@@ -1,41 +1,52 @@
-<h1 align="center"></h1>
+<div style="text-align: center; width: 100%;">
 
-<div align="center">
-  <a href="http://nestjs.com/" target="_blank">
-    <img src="https://nestjs.com/img/logo_text.svg" width="150" alt="Nest Logo" />
-  </a>
+<div style="display: inline-block">
+
+[![NPM version](https://img.shields.io/npm/v/mongodb-dynamic-api.svg)](https://www.npmjs.com/package/mongodb-dynamic-api)
+![NPM](https://img.shields.io/npm/l/mongodb-dynamic-api?registry_uri=https%3A%2F%2Fregistry.npmjs.com)
+![npm](https://img.shields.io/npm/dw/mongodb-dynamic-api)
 </div>
 
-<h3 align="center">NestJS npm Package Starter</h3>
+<div style="display: inline-block">
 
-<div align="center">
-  <a href="https://nestjs.com" target="_blank">
-    <img src="https://img.shields.io/badge/built%20with-NestJs-red.svg" alt="Built with NestJS">
-  </a>
+![GitHub branch checks state](https://img.shields.io/github/checks-status/MikeDev75015/mongodb-dynamic-api/main)
+[![CircleCI](https://circleci.com/gh/MikeDev75015/mongodb-dynamic-api.svg?style=shield)](https://app.circleci.com/pipelines/github/MikeDev75015/mongodb-dynamic-api)
+</div>
 </div>
 
-### Installation
 
-1. Clone the repo
-2. Run npm/yarn install
+<div style="text-align: center; width: 100%;">
+<div style="display: inline-block">
 
-```bash
-cd nestjs-package-starter
-npm install
-```
+![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/MikeDev75015/mongodb-dynamic-api)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/w/MikeDev75015/mongodb-dynamic-api)
+![GitHub last commit (branch)](https://img.shields.io/github/last-commit/MikeDev75015/mongodb-dynamic-api/main)
+</div>
 
-## Change Log
+</div>
 
-See [Changelog](CHANGELOG.md) for more information.
+---
 
-## Contributing
+<div style="text-align: center; width: 100%;">
 
-Contributions welcome! See [Contributing](CONTRIBUTING.md).
+# mongodb-dynamic-api
 
-## Author
+</div>
 
-**John Biundo (Y Prospect on [Discord](https://discord.gg/G7Qnnhy))**
 
-## License
+<p style="text-align: justify; width: 100%;font-size: 15px;">
 
-Licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+**mongodb-dynamic-api** is an auto generated CRUD API for MongoDB using NestJS.
+
+</p>
+
+---
+
+## npm package <img src="https://pbs.twimg.com/media/EDoWJbUXYAArclg.png" width="24" height="24" />
+
+`npm i -S mongodb-dynamic-api`
+
+
+---
+
+

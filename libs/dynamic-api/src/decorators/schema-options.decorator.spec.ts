@@ -3,7 +3,7 @@ import {
   DynamicAPISchemaOptionsInterface,
 } from '@dynamic-api';
 import { Type } from '@nestjs/common';
-import { buildDynamicApiModuleOptionsMock } from '../../__mocks__/dynamic-api.module.mock';
+import { buildDynamicApiModuleOptionsMock } from '../../../../test/__mocks__/dynamic-api.module.mock';
 
 describe('DynamicAPISchema', () => {
   let options: DynamicAPISchemaOptionsInterface;

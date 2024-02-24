@@ -21,6 +21,6 @@
       ]
     }
   },
-  "include": ["libs/**/*.ts"],
+  "include": ["libs/**/*"],
   "exclude": ["node_modules"]
 }

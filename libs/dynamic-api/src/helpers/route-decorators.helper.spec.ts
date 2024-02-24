@@ -1,5 +1,5 @@
 import { RouteDecoratorsBuilder, RouteDecoratorsHelper } from '@dynamic-api';
-import { buildDynamicApiModuleOptionsMock } from '../../__mocks__/dynamic-api.module.mock';
+import { buildDynamicApiModuleOptionsMock } from '../../../../test/__mocks__/dynamic-api.module.mock';
 
 describe('RouteDecoratorsHelper', () => {
   it('should build and apply decorators', () => {

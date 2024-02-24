@@ -1,7 +1,7 @@
 import { BaseDeleteOneService, DeleteOnePresenter } from '@dynamic-api';
 import { Builder } from 'builder-pattern';
 import { Model } from 'mongoose';
-import { buildModelMock } from '../../../__mocks__/model.mock';
+import { buildModelMock } from '../../../../../test/__mocks__/model.mock';
 
 describe('BaseDeleteOneService', () => {
   let service: any;

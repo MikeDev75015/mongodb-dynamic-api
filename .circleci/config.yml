@@ -1,0 +1,126 @@
+version: 2.1
+orbs:
+  sonarcloud: sonarsource/sonarcloud@2.0.0
+  slack: circleci/slack@4.12.6
+  jq: circleci/jq@2.2.0
+
+aliases:
+  - &install-deps
+    run:
+      name: Install dependencies
+      command: npm ci
+  - &restore-cache
+    restore_cache:
+      key: dependency-cache-{{ checksum "package.json" }}
+  - &save-cache
+    save_cache:
+      key: dependency-cache-{{ checksum "package.json" }}
+      paths:
+        - ./node_modules
+  - &persist-dist
+    persist_to_workspace:
+      root: .
+      paths:
+        - 'dist'
+  - &build-package
+    run:
+      name: Build
+      command: npm run build
+  - &update-npm-version
+    run:
+      name: Update NPM version
+      command: 'sudo npm install -g npm@latest'
+  - &notify-fail-job
+    slack/notify:
+      event: fail
+      template: basic_fail_1
+  - &notify-success-job
+    slack/notify:
+      event: pass
+      template: basic_success_1
+
+commands:
+  run-unit-tests:
+    description: "Split, run unit tests and create reports"
+    steps:
+      - run:
+          name: Unit tests to run
+          command: echo $(circleci tests glob "libs/**/*.spec.ts")
+      - run:
+          name: Create reports folder
+          command: mkdir -p reports/sonar
+      - run:
+          name: Run unit tests with reporter
+          command: npm run test:ci
+      - store_artifacts:
+          path: reports/sonar
+          destination: reports/sonar
+
+jobs:
+  dependencies:
+    description: "Install dependencies"
+    docker:
+      - image: cimg/node:20.5.0
+    resource_class: medium
+    steps:
+      - checkout
+      - *update-npm-version
+      - *restore-cache
+      - *install-deps
+      - *save-cache
+  build:
+    docker:
+      - image: cimg/node:20.5.0
+    resource_class: medium
+    parameters:
+      persist:
+        type: boolean
+        default: false
+    steps:
+      - checkout
+      - *restore-cache
+      - *build-package
+      - when:
+          condition: << parameters.persist >>
+          steps:
+            - *persist-dist
+      - *notify-fail-job
+      - *notify-success-job
+
+  test:
+    docker:
+      - image: cimg/node:20.5.0
+    resource_class: medium
+    parallelism: 8
+    steps:
+      - checkout
+      - *restore-cache
+      - run-unit-tests
+      - sonarcloud/scan
+      - *notify-fail-job
+      - *notify-success-job
+
+workflows:
+  build-and-test:
+    when:
+      not: << pipeline.git.tag >>
+    jobs:
+      - dependencies
+      - build:
+          requires:
+            - dependencies
+          context: SLACK
+          filters:
+            branches:
+              ignore:
+                - test
+      - test:
+          requires:
+            - dependencies
+          context:
+            - SONARCLOUD
+            - SLACK
+          filters:
+            branches:
+              ignore:
+                - test

@@ -13,7 +13,7 @@ import {
   UpdateOneModule,
 } from '@dynamic-api';
 import { MongooseModule, SchemaFactory } from '@nestjs/mongoose';
-import { buildDynamicApiModuleOptionsMock } from '../__mocks__/dynamic-api.module.mock';
+import { buildDynamicApiModuleOptionsMock } from '../../../test/__mocks__/dynamic-api.module.mock';
 
 describe('DynamicApiModule', () => {
   beforeEach(() => {

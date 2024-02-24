@@ -1,7 +1,7 @@
 import { BaseGetOneService } from '@dynamic-api';
 import { BadRequestException } from '@nestjs/common';
 import { Model } from 'mongoose';
-import { buildModelMock } from '../../../__mocks__/model.mock';
+import { buildModelMock } from '../../../../../test/__mocks__/model.mock';
 
 describe('BaseGetOneService', () => {
   let service: any;

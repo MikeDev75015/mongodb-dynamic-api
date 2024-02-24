@@ -59,7 +59,6 @@ export class DynamicApiModule {
 
     if (hooks?.length) {
       hooks.forEach(({ type, method, callback, options }) => {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         schema[method](
           type,
