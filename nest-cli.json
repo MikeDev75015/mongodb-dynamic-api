@@ -1,0 +1,20 @@
+{
+  "language": "ts",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "src",
+  "compilerOptions": {
+    "deleteOutDir": true,
+    "webpack": true
+  },
+  "projects": {
+    "dynamic-api": {
+      "type": "library",
+      "root": "libs/dynamic-api",
+      "entryFile": "index",
+      "sourceRoot": "libs/dynamic-api/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/dynamic-api/tsconfig.lib.json"
+      }
+    }
+  }
+}
