@@ -70,6 +70,40 @@ commands:
           path: reports/sonar
           destination: reports/sonar
 
+  git-config-local-user-command:
+    description: "Configure the default identity for the git account"
+    steps:
+      - run: git config credential.helper 'cache --timeout=120'
+      - run: git config user.email ${USER_EMAIL}
+      - run: git config user.name ${USER_NAME}
+
+  install-github-cli-command:
+    description: "Installs the latest Github CLI version"
+    steps:
+      - jq/install
+      - run:
+          name: Install Github CLI
+          command: |
+            LATEST_RELEASE=$(curl -s https://api.github.com/repos/cli/cli/releases/latest)
+            VERSION=$(echo $LATEST_RELEASE | jq -r '.tag_name')
+            DEB_URL=$(echo $LATEST_RELEASE | jq -r '.assets[].browser_download_url | select(. | contains("linux_amd64.deb"))')
+            wget --quiet -O gh_latest.deb $DEB_URL
+            sudo apt install ./gh_latest.deb
+          description: Gets latest release version of Github CLI
+
+  merge-pull-request-command:
+    description: "Merge pull request then delete branch"
+    parameters:
+      branch:
+        type: string
+    steps:
+      - run:
+          name: Checkout to the << parameters.branch >> branch
+          command: git checkout << parameters.branch >>
+      - run:
+          name: Merge the pull request and delete the << parameters.branch >> branch
+          command: gh pr merge << parameters.branch >> -r -d
+
   release-command:
     description: "Create release PR on Github"
     steps:
@@ -153,8 +187,22 @@ jobs:
       - checkout
       - pre-release-command
 
+  merge-pr-job:
+    docker:
+      - image: cimg/node:20.5.0
+    resource_class: medium
+    parameters:
+      branch:
+        type: string
+    steps:
+      - checkout
+      - git-config-local-user-command
+      - install-github-cli-command
+      - merge-pull-request-command:
+          branch: << parameters.branch >>
+
 workflows:
-  ci-build-and-test-workflow:
+  ci-default-workflow:
     when:
       not: << pipeline.git.tag >>
     jobs:
@@ -166,8 +214,30 @@ workflows:
           filters:
             branches:
               ignore:
-                - test
+                - main
       - test-job:
+          requires:
+            - dependencies-job
+          context: SLACK
+          filters:
+            branches:
+              ignore:
+                - main
+
+      - merge-pr-job:
+          branch: << pipeline.git.branch >>
+          requires:
+            - test-job
+            - build-job
+          context:
+            - GIT
+            - SLACK
+          filters:
+            branches:
+              only:
+                - /^release-please-*/
+
+      - sonarcloud-job:
           requires:
             - dependencies-job
           context:
@@ -175,8 +245,8 @@ workflows:
             - SLACK
           filters:
             branches:
-              ignore:
-                - test
+              only:
+                - main
 
   cd-pre-release-workflow:
     when:
