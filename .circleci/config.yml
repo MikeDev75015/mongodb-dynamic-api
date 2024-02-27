@@ -30,35 +30,68 @@ aliases:
     run:
       name: Update NPM version
       command: 'sudo npm install -g npm@latest'
-  - &notify-fail-job
+  - &notify-fail
     slack/notify:
       event: fail
       template: basic_fail_1
-  - &notify-success-job
+  - &notify-success
     slack/notify:
       event: pass
       template: basic_success_1
 
 commands:
-  run-unit-tests:
-    description: "Split, run unit tests and create reports"
+  unit-tests-parallelized-command:
+    description: "Split and run unit tests with JUnit as reporter"
     steps:
       - run:
-          name: Unit tests to run
-          command: echo $(circleci tests glob "libs/**/*.spec.ts")
+          name: Create report folder
+          command: mkdir -p reports/junit
       - run:
-          name: Create reports folder
+          name: Split and run unit tests
+          command: |
+            UT_FILES=$(circleci tests glob "libs/**/*.spec.ts" | circleci tests split --split-by=timings)
+            echo $UT_FILES
+            npm run test:ci:junit $UT_FILES
+          environment:
+            JEST_JUNIT_OUTPUT_DIR: reports/junit
+      - store_test_results:
+          path: reports/junit
+
+  unit-tests-not-parallelized-command:
+    description: "Run unit tests with Sonar as reporter"
+    steps:
+      - run:
+          name: Create report folder
           command: mkdir -p reports/sonar
       - run:
-          name: Run unit tests with reporter
-          command: npm run test:ci
+          name: Run unit tests
+          command: npm run test:ci:sonar
       - store_artifacts:
           path: reports/sonar
           destination: reports/sonar
 
+  release-command:
+    description: "Create release PR on Github"
+    steps:
+      - run:
+          name: Create release PR on Github
+          command: npx release-please release-pr
+            --token ${GH_TOKEN}
+            --repo-url ${GH_OWNER}/${GH_REPO}
+
+  pre-release-command:
+    description: "Create prerelease PR on Github"
+    steps:
+      - run:
+          name: Create prerelease PR on Github
+          command: npx release-please release-pr
+            --token ${GH_TOKEN}
+            --repo-url ${GH_OWNER}/${GH_REPO}
+            --versioning-strategy prerelease
+
 jobs:
-  dependencies:
-    description: "Install dependencies"
+  dependencies-job:
+    description: "Install dependencies, update cache"
     docker:
       - image: cimg/node:20.5.0
     resource_class: medium
@@ -68,7 +101,8 @@ jobs:
       - *restore-cache
       - *install-deps
       - *save-cache
-  build:
+
+  build-job:
     docker:
       - image: cimg/node:20.5.0
     resource_class: medium
@@ -84,10 +118,10 @@ jobs:
           condition: << parameters.persist >>
           steps:
             - *persist-dist
-      - *notify-fail-job
-      - *notify-success-job
+      - *notify-fail
+      - *notify-success
 
-  test:
+  test-job:
     docker:
       - image: cimg/node:20.5.0
     resource_class: medium
@@ -95,18 +129,37 @@ jobs:
     steps:
       - checkout
       - *restore-cache
-      - run-unit-tests
+      - unit-tests-parallelized-command
+      - *notify-fail
+      - *notify-success
+
+  sonarcloud-job:
+    docker:
+      - image: cimg/node:20.5.0
+    resource_class: medium
+    steps:
+      - checkout
+      - *restore-cache
+      - unit-tests-not-parallelized-command
       - sonarcloud/scan
-      - *notify-fail-job
-      - *notify-success-job
+      - *notify-fail
+      - *notify-success
+
+  pre-release-job:
+    docker:
+      - image: cimg/node:20.5.0
+    resource_class: medium
+    steps:
+      - checkout
+      - pre-release-command
 
 workflows:
-  build-and-test:
+  ci-build-and-test-workflow:
     when:
       not: << pipeline.git.tag >>
     jobs:
-      - dependencies
-      - build:
+      - dependencies-job
+      - build-job:
           requires:
             - dependencies
           context: SLACK
@@ -114,7 +167,7 @@ workflows:
             branches:
               ignore:
                 - test
-      - test:
+      - test-job:
           requires:
             - dependencies
           context:
@@ -124,3 +177,16 @@ workflows:
             branches:
               ignore:
                 - test
+
+  cd-pre-release-workflow:
+    when:
+      equal: [ << pipeline.git.tag >>, prerelease ]
+    jobs:
+      - pre-release-job:
+          context:
+            - GIT
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: prerelease
