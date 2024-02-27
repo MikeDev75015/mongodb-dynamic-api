@@ -1,6 +1,6 @@
 {
   "packages": {
-    "libs/dynamic-api/src": {
+    ".": {
       "changelog-path": "CHANGELOG.md",
       "release-type": "node",
       "bump-minor-pre-major": false,
