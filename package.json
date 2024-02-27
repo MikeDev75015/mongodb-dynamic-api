@@ -1,28 +1,29 @@
 {
   "name": "mongodb-dynamic-api",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Auto generated CRUD API for MongoDB using NestJS",
-  "author": "Mickaël NODANCHE <mikeonline75@gmail.com> (https://cv-mikeonline.web.app)",
-  "homepage": "https://mikedev75015.github.io",
-  "license": "MIT",
   "readmeFilename": "README.md",
   "main": "index.js",
-  "files": [
-    "dist/**/*",
-    "*.md"
-  ],
+  "types": "index.d.ts",
   "scripts": {
-    "start:dev": "tsc -w",
-    "build": "tsc -p tsconfig.build.json",
     "prepare": "npm run build",
+    "build": "tsc",
     "format": "prettier --write \"src/**/*.ts\"",
     "lint": "tslint -p tsconfig.json -c tslint.json",
     "test": "jest --runInBand",
     "test-cov": "jest --runInBand --coverage",
     "test:ci:junit": "jest --ci --runInBand --coverage --testResultsProcessor=jest-junit",
     "test:ci:sonar": "jest --ci --runInBand --coverage --testResultsProcessor=jest-sonar-reporter",
-    "compodoc": "npx compodoc -p tsconfig.json libs/dynamic-api/src --theme postmark",
-    "pre-release": "git tag -f prerelease && git push -f origin prerelease"
+    "pre-release-tag": "git tag -f prerelease && git push -f origin prerelease",
+    "release-tag": "git tag -f release && git push -f origin release",
+    "auto-prerelease": "release-it --ci --preRelease=beta --no-git.requireUpstream --no-git.tag",
+    "auto-release": "release-it --ci --no-git.requireUpstream --no-git.tag",
+    "publish-prerelease": "npm publish ./dist --tag prerelease",
+    "publish-release": "npm publish ./dist --tag latest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MikeDev75015/mongodb-dynamic-api.git"
   },
   "keywords": [
     "nestjs",
@@ -30,9 +31,14 @@
     "dynamic-api",
     "crud"
   ],
+  "author": "Mickaël NODANCHE <mikeonline75@gmail.com> (https://cv-mikeonline.web.app)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/MikeDev75015/mongodb-dynamic-api/issues"
+  },
+  "homepage": "https://mikedev75015.github.io",
   "dependencies": {
     "@nestjs/common": "^10.3.2",
-    "@nestjs/config": "^3.2.0",
     "@nestjs/core": "^10.3.2",
     "@nestjs/mongoose": "^10.0.4",
     "@nestjs/platform-express": "^10.3.2",
@@ -47,11 +53,12 @@
     "rxjs": "^7.8.1"
   },
   "devDependencies": {
-    "@compodoc/compodoc": "^1.1.23",
     "@golevelup/ts-jest": "^0.4.0",
     "@nestjs/cli": "^10.3.1",
     "@nestjs/schematics": "^10.1.0",
     "@nestjs/testing": "^10.3.2",
+    "@release-it/bumper": "^6.0.1",
+    "@release-it/conventional-changelog": "^8.0.1",
     "@swc/cli": "^0.3.9",
     "@swc/core": "^1.4.0",
     "@types/express": "^4.17.21",
@@ -67,6 +74,7 @@
     "jest-junit": "^16.0.0",
     "jest-sonar-reporter": "^2.0.0",
     "prettier": "^3.2.5",
+    "release-it": "^17.1.1",
     "source-map-support": "^0.5.21",
     "supertest": "^6.3.4",
     "ts-jest": "^29.1.2",
@@ -95,17 +103,17 @@
       "<rootDir>/"
     ],
     "coveragePathIgnorePatterns": [
-      "index.ts"
+      "index.ts",
+      ".*\\.mock\\.ts"
     ],
-    "moduleNameMapper": {
-      "@dynamic-api/(.*)": "<rootDir>/dynamic-api/src/$1",
-      "@dynamic-api": "<rootDir>/dynamic-api/src"
-    },
     "reporters": [
       "default"
     ]
   },
   "jestSonar": {
     "reportPath": "reports/sonar"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
