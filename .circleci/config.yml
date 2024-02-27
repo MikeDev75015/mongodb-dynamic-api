@@ -161,7 +161,7 @@ workflows:
       - dependencies-job
       - build-job:
           requires:
-            - dependencies
+            - dependencies-job
           context: SLACK
           filters:
             branches:
@@ -169,7 +169,7 @@ workflows:
                 - test
       - test-job:
           requires:
-            - dependencies
+            - dependencies-job
           context:
             - SONARCLOUD
             - SLACK
