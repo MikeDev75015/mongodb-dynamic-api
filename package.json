@@ -19,8 +19,10 @@
     "lint": "tslint -p tsconfig.json -c tslint.json",
     "test": "jest --runInBand",
     "test-cov": "jest --runInBand --coverage",
-    "test:ci": "jest --ci --runInBand --coverage --testResultsProcessor=jest-sonar-reporter",
-    "compodoc": "npx compodoc -p tsconfig.json libs/dynamic-api/src --theme postmark"
+    "test:ci:junit": "jest --ci --runInBand --coverage --testResultsProcessor=jest-junit",
+    "test:ci:sonar": "jest --ci --runInBand --coverage --testResultsProcessor=jest-sonar-reporter",
+    "compodoc": "npx compodoc -p tsconfig.json libs/dynamic-api/src --theme postmark",
+    "pre-release": "git tag -f prerelease && git push -f origin prerelease"
   },
   "keywords": [
     "nestjs",
