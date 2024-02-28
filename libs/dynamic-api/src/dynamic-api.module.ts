@@ -8,6 +8,7 @@ import {
 } from './interfaces';
 import { BaseEntity } from './models';
 import {
+  CreateManyModule,
   CreateOneModule,
   DeleteOneModule,
   DuplicateOneModule,
@@ -81,6 +82,17 @@ export class DynamicApiModule {
             const version = routeVersion ?? apiVersion;
 
             switch (type) {
+              case 'CreateMany':
+                return CreateManyModule.forFeature(
+                  databaseModule,
+                  entity,
+                  path,
+                  apiTag,
+                  version,
+                  description,
+                  dTOs,
+                );
+
               case 'CreateOne':
                 return CreateOneModule.forFeature(
                   databaseModule,

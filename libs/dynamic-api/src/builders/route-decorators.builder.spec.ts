@@ -22,9 +22,9 @@ describe('RouteDecoratorsBuilder', () => {
   });
 
   describe('build', () => {
-    it('should throw an error if the route type is invalid', () => {
+    it('should throw an error if the route type is unexpected', () => {
       expect(() => routeDecoratorsBuilder.build()).toThrowError(
-        `Invalid route type! Cannot build route decorators. Received: FakeRouteType`,
+        `Unexpected route type! Cannot build route decorators. Received: FakeRouteType`,
       );
     });
 

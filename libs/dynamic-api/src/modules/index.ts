@@ -1,4 +1,5 @@
 export * from './create-one';
+export * from './create-many';
 export * from './delete-one';
 export * from './duplicate-one';
 export * from './get-many';
