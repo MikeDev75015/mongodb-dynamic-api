@@ -91,15 +91,34 @@ commands:
             sudo apt install ./gh_latest.deb
           description: Gets latest release version of Github CLI
 
-  merge-pull-request-command:
-    description: "Merge pull request then delete branch"
+  merge-release-pr-command:
+    description: "Edit, merge the pull request then automatically delete the branch"
     parameters:
       branch:
         type: string
+      pr-label-to-remove:
+        type: string
+        default: "autorelease: pending"
     steps:
       - run:
-          name: Merge the pull request and delete the << parameters.branch >> branch
-          command: gh pr merge << parameters.branch >> -R ${GH_OWNER}/${GH_REPO} --auto -r -d
+          name: Edit the PR, remove the autorelease pending label
+          command: gh pr edit << parameters.branch >>
+            -R ${GH_OWNER}/${GH_REPO}
+            --remove-label << parameters.pr-label-to-remove >>
+      - run:
+          name: Merge the PR the << parameters.branch >> branch
+          command: gh pr merge << parameters.branch >> -R ${GH_OWNER}/${GH_REPO} --auto -r
+      - run:
+          name: Create the version tag
+          command: |
+            VERSION_NUMBER=v$(jq -r '.version' package.json)
+            echo ${VERSION_NUMBER}
+            git checkout main
+            git tag ${VERSION_NUMBER}
+            git push --follow-tags -q https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git main
+      - run:
+          name: Delete << parameters.branch >> branch
+          command: git push -d -q https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git << parameters.branch >>
 
   release-command:
     description: "Create release PR on Github"
@@ -112,13 +131,21 @@ commands:
 
   pre-release-command:
     description: "Create prerelease PR on Github"
+    parameters:
+      prerelease-type:
+        type: string
+        default: beta
     steps:
+      - run:
+          name: Checkout to the main branch
+          command: git checkout main
       - run:
           name: Create prerelease PR on Github
           command: npx release-please release-pr
             --token ${GH_TOKEN}
             --repo-url ${GH_OWNER}/${GH_REPO}
             --versioning-strategy prerelease
+            --prerelease-type << parameters.prerelease-type >>
 
 jobs:
   dependencies-job:
@@ -195,7 +222,7 @@ jobs:
       - checkout
       - git-config-local-user-command
       - install-github-cli-command
-      - merge-pull-request-command:
+      - merge-release-pr-command:
           branch: << parameters.branch >>
 
 workflows:
@@ -228,13 +255,39 @@ workflows:
                 - main
                 - /^release-please-.+$/
 
-  cd-merge-prerelease-workflow:
+  cd-prerelease-workflow:
     when:
       matches:
         pattern: "^release-please-.+$"
         value: << pipeline.git.branch >>
     jobs:
+      - dependencies-job:
+          filters:
+            branches:
+              only:
+                - /^release-please-.+$/
+      - build-job:
+          name: build-pr-job
+          requires:
+            - dependencies-job
+          context: SLACK
+          filters:
+            branches:
+              only:
+                - /^release-please-.+$/
+      - test-job:
+          name: test-pr-job
+          requires:
+            - dependencies-job
+          context: SLACK
+          filters:
+            branches:
+              only:
+                - /^release-please-.+$/
       - merge-pr-job:
+          requires:
+            - test-job
+            - build-job
           branch: << pipeline.git.branch >>
           context:
             - GIT
@@ -244,48 +297,35 @@ workflows:
               only:
                 - /^release-please-.+$/
 
-  cd-pre-release-workflow:
+  pre-release-tag-workflow:
     when:
-      equal: [ << pipeline.git.branch >>, main ]
+      equal: [ << pipeline.git.tag >>, prerelease ]
     jobs:
-      - dependencies-job:
-          filters:
-            branches:
-              only:
-                - main
-      - build-job:
-          requires:
-            - dependencies-job
-          context: SLACK
-          filters:
-            branches:
-              only:
-                - main
-      - test-job:
-          requires:
-            - dependencies-job
-          context: SLACK
-          filters:
-            branches:
-              only:
-                - main
-#      - sonarcloud-job:
-#          requires:
-#            - dependencies-job
-#          context:
-#            - SONARCLOUD
-#            - SLACK
-#          filters:
-#            branches:
-#              only:
-#                - main
       - pre-release-job:
-          requires:
-              - build-job
-              - test-job
           context:
             - GIT
           filters:
             branches:
-              only:
-                - main
+              ignore: /.*/
+            tags:
+              only: prerelease
+
+  ci-version-workflow:
+    when:
+      matches:
+        pattern: /^v\d+\.\d+.+$/
+        value: << pipeline.git.tag >>
+    jobs:
+      - dependencies-job:
+          filters:
+            tags:
+              only: /^v\d+\.\d+.+$/
+      - sonarcloud-job:
+          requires:
+            - dependencies-job
+          context:
+            - SONARCLOUD
+            - SLACK
+          filters:
+            tags:
+              only: /^v\d+\.\d+.+$/
