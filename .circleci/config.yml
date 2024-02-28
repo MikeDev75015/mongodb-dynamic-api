@@ -98,11 +98,8 @@ commands:
         type: string
     steps:
       - run:
-          name: Checkout to the << parameters.branch >> branch
-          command: git checkout << parameters.branch >>
-      - run:
           name: Merge the pull request and delete the << parameters.branch >> branch
-          command: gh pr merge << parameters.branch >> -r -d
+          command: gh pr merge << parameters.branch >> -R ${GH_OWNER}/${GH_REPO} --auto -r -d
 
   release-command:
     description: "Create release PR on Github"
@@ -206,7 +203,12 @@ workflows:
     when:
       not: << pipeline.git.tag >>
     jobs:
-      - dependencies-job
+      - dependencies-job:
+          filters:
+            branches:
+              ignore:
+                - main
+                - /^release-please-.+$/
       - build-job:
           requires:
             - dependencies-job
@@ -215,6 +217,7 @@ workflows:
             branches:
               ignore:
                 - main
+                - /^release-please-.+$/
       - test-job:
           requires:
             - dependencies-job
@@ -223,40 +226,66 @@ workflows:
             branches:
               ignore:
                 - main
+                - /^release-please-.+$/
 
+  cd-merge-prerelease-workflow:
+    when:
+      matches:
+        pattern: "^release-please-.+$"
+        value: << pipeline.git.branch >>
+    jobs:
       - merge-pr-job:
           branch: << pipeline.git.branch >>
-          requires:
-            - test-job
-            - build-job
           context:
             - GIT
             - SLACK
           filters:
             branches:
               only:
-                - /^release-please-*/
+                - /^release-please-.+$/
 
-      - sonarcloud-job:
-          requires:
-            - dependencies-job
-          context:
-            - SONARCLOUD
-            - SLACK
+  cd-pre-release-workflow:
+    when:
+      equal: [ << pipeline.git.branch >>, main ]
+    jobs:
+      - dependencies-job:
           filters:
             branches:
               only:
                 - main
-
-  cd-pre-release-workflow:
-    when:
-      equal: [ << pipeline.git.tag >>, prerelease ]
-    jobs:
+      - build-job:
+          requires:
+            - dependencies-job
+          context: SLACK
+          filters:
+            branches:
+              only:
+                - main
+      - test-job:
+          requires:
+            - dependencies-job
+          context: SLACK
+          filters:
+            branches:
+              only:
+                - main
+#      - sonarcloud-job:
+#          requires:
+#            - dependencies-job
+#          context:
+#            - SONARCLOUD
+#            - SLACK
+#          filters:
+#            branches:
+#              only:
+#                - main
       - pre-release-job:
+          requires:
+              - build-job
+              - test-job
           context:
             - GIT
           filters:
             branches:
-              ignore: /.*/
-            tags:
-              only: prerelease
+              only:
+                - main
