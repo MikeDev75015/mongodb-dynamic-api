@@ -96,26 +96,18 @@ commands:
     parameters:
       branch:
         type: string
-      pr-label-to-remove:
-        type: string
-        default: "autorelease: pending"
     steps:
-      - run:
-          name: Edit the PR, remove the autorelease pending label
-          command: gh pr edit << parameters.branch >>
-            -R ${GH_OWNER}/${GH_REPO}
-            --remove-label << parameters.pr-label-to-remove >>
       - run:
           name: Merge the PR the << parameters.branch >> branch
           command: gh pr merge << parameters.branch >> -R ${GH_OWNER}/${GH_REPO} --auto -r
       - run:
-          name: Create the version tag
+          name: Checkout main, create and push the tag version
           command: |
+            git checkout main
             VERSION_NUMBER=v$(jq -r '.version' package.json)
             echo ${VERSION_NUMBER}
-            git checkout main
-            git tag ${VERSION_NUMBER}
-            git push --follow-tags -q https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git main
+            git tag -f ${VERSION_NUMBER}
+            git push -f -q https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git ${VERSION_NUMBER}
       - run:
           name: Delete << parameters.branch >> branch
           command: git push -d -q https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git << parameters.branch >>
@@ -146,6 +138,7 @@ commands:
             --repo-url ${GH_OWNER}/${GH_REPO}
             --versioning-strategy prerelease
             --prerelease-type << parameters.prerelease-type >>
+            --label prerelease
 
 jobs:
   dependencies-job:
@@ -286,8 +279,8 @@ workflows:
                 - /^release-please-.+$/
       - merge-pr-job:
           requires:
-            - test-job
-            - build-job
+            - build-pr-job
+            - test-pr-job
           branch: << pipeline.git.branch >>
           context:
             - GIT
