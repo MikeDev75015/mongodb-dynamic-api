@@ -187,10 +187,6 @@ jobs:
       - checkout
       - *restore-cache
       - *build-package
-      - when:
-          condition: << parameters.persist >>
-          steps:
-            - *persist-dist
       - *notify-fail
       - *notify-success
 
@@ -266,8 +262,7 @@ jobs:
     steps:
       - checkout
       - *restore-cache
-      - attach_workspace:
-          at: .
+      - *build-package
       - copy-files-command
       - publish-npm-command:
           branch: << parameters.branch >>
@@ -343,9 +338,35 @@ workflows:
               only:
                 - release
                 - prerelease
-      - create-release-pr-job:
+      - build-job:
+          name: build-pr-job
           requires:
             - dependencies-job
+          context: SLACK
+          persist: true
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only:
+                - release
+                - prerelease
+      - test-job:
+          name: test-pr-job
+          requires:
+            - dependencies-job
+          context: SLACK
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only:
+                - release
+                - prerelease
+      - create-release-pr-job:
+          requires:
+            - build-pr-job
+            - test-pr-job
           branch: << pipeline.git.tag >>
           context:
             - GIT
@@ -371,34 +392,10 @@ workflows:
             tags:
               only:
                 - /^\d+\.\d+\.\d+\-beta\.\d+$/
-      - build-job:
-          name: build-pr-job
-          requires:
-            - dependencies-job
-          context: SLACK
-          persist: true
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only:
-                - /^\d+\.\d+\.\d+\-beta\.\d+$/
-      - test-job:
-          name: test-pr-job
-          requires:
-            - dependencies-job
-          context: SLACK
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only:
-                - /^\d+\.\d+\.\d+\-beta\.\d+$/
       - merge-release-pr-job:
           name: merge-prerelease-pr-job
           requires:
-            - build-pr-job
-            - test-pr-job
+            - dependencies-job
           context:
             - GIT
             - SLACK
@@ -438,33 +435,9 @@ workflows:
             tags:
               only:
                 - /^\d+\.\d+\.\d+$/
-      - build-job:
-          name: build-pr-job
-          requires:
-            - dependencies-job
-          context: SLACK
-          persist: true
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only:
-                - /^\d+\.\d+\.\d+$/
-      - test-job:
-          name: test-pr-job
-          requires:
-            - dependencies-job
-          context: SLACK
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only:
-                - /^\d+\.\d+\.\d+$/
       - merge-release-pr-job:
           requires:
-            - build-pr-job
-            - test-pr-job
+            - dependencies-job
           context:
             - GIT
             - SLACK
