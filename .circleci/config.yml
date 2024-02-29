@@ -329,7 +329,7 @@ workflows:
             branches:
               only: sonar
 
-  cd-release-tag-workflow:
+  ci-deploy-tag-workflow:
     when:
       or:
         - equal: [ << pipeline.git.tag >>, release ]
@@ -358,56 +358,42 @@ workflows:
                 - release
                 - prerelease
 
-  cd-version-tag-workflow:
+  cd-prerelease-tag-workflow:
     when:
-      or:
-        - matches:
-            pattern: /^v\d+\.\d+\.\d+$/ # release
-            value: << pipeline.git.tag >>
-        - matches:
-            pattern: /^\d+\.\d+\.\d+\-beta\.\d+$/ # prerelease
-            value: << pipeline.git.tag >>
+      matches:
+        pattern: /^\d+\.\d+\.\d+\-beta\.\d+$/
+        value: << pipeline.git.tag >>
     jobs:
-      - dependencies-job
-
+      - dependencies-job:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only:
+                - /^\d+\.\d+\.\d+\-beta\.\d+$/
       - build-job:
           name: build-pr-job
           requires:
             - dependencies-job
           context: SLACK
           persist: true
-
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only:
+                - /^\d+\.\d+\.\d+\-beta\.\d+$/
       - test-job:
           name: test-pr-job
           requires:
             - dependencies-job
           context: SLACK
-
-        # release
-      - merge-release-pr-job:
-          requires:
-            - build-pr-job
-            - test-pr-job
-          context:
-            - GIT
-            - SLACK
-          branch: release
           filters:
+            branches:
+              ignore: /.*/
             tags:
-              only: /^v\d+\.\d+\.\d+$/
-      - publish-release-job:
-          requires:
-            - merge-release-pr-job
-          branch: release
-          context:
-            - GIT
-            - SLACK
-            - NPM
-          filters:
-            tags:
-              only: /^v\d+\.\d+\.\d+$/
-
-        # prerelease
+              only:
+                - /^\d+\.\d+\.\d+\-beta\.\d+$/
       - merge-release-pr-job:
           name: merge-prerelease-pr-job
           requires:
@@ -418,8 +404,11 @@ workflows:
             - SLACK
           branch: prerelease
           filters:
+            branches:
+              ignore: /.*/
             tags:
-              only: /^\d+\.\d+\.\d+\-beta\.\d+$/
+              only:
+                - /^\d+\.\d+\.\d+\-beta\.\d+$/
       - publish-release-job:
           name: publish-prerelease-job
           requires:
@@ -430,5 +419,74 @@ workflows:
             - SLACK
             - NPM
           filters:
+            branches:
+              ignore: /.*/
             tags:
-              only: /^\d+\.\d+\.\d+\-beta\.\d+$/
+              only:
+                - /^\d+\.\d+\.\d+\-beta\.\d+$/
+
+  cd-release-tag-workflow:
+    when:
+      matches:
+        pattern: /^\d+\.\d+\.\d+$/
+        value: << pipeline.git.tag >>
+    jobs:
+      - dependencies-job:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only:
+                - /^\d+\.\d+\.\d+$/
+      - build-job:
+          name: build-pr-job
+          requires:
+            - dependencies-job
+          context: SLACK
+          persist: true
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only:
+                - /^\d+\.\d+\.\d+$/
+      - test-job:
+          name: test-pr-job
+          requires:
+            - dependencies-job
+          context: SLACK
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only:
+                - /^\d+\.\d+\.\d+$/
+      - merge-release-pr-job:
+          requires:
+            - build-pr-job
+            - test-pr-job
+          context:
+            - GIT
+            - SLACK
+          branch: release
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only:
+                - /^\d+\.\d+\.\d+$/
+      - publish-release-job:
+          requires:
+            - merge-release-pr-job
+          branch: release
+          context:
+            - GIT
+            - SLACK
+            - NPM
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only:
+                - /^\d+\.\d+\.\d+$/
+
