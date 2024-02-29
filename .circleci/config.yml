@@ -85,7 +85,7 @@ commands:
     steps:
       - run:
           name: Delete the tag from the repository
-          command: git push -d -q https://${GH_TOKEN}@github.com/{GH_OWNER}/${GH_REPO}.git << parameters.tag >>
+          command: git push -d -q https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git << parameters.tag >>
 
   install-github-cli-command:
     description: "Installs the latest Github CLI version"
@@ -108,19 +108,20 @@ commands:
         type: string
     steps:
       - run:
-          name: Create the << parameters.branch >> branch from develop
-          command: |
-            git checkout develop
-            git checkout -q -b << parameters.branch >>
+          name: Create the auto-<< parameters.branch >> branch
+          command: git checkout -q -b auto-<< parameters.branch >>
       - run:
-          name: Prepare << parameters.branch >> with release-it
+          name: Push the auto-<< parameters.branch >> branch on repository
+          command: git push -q https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git auto-<< parameters.branch >>
+      - run:
+          name: Prepare auto-<< parameters.branch >> with release-it
           command: npm run << parameters.branch >>
       - run:
           name: Create the PR on Github
           command: |
             VERSION_NUMBER=v$(jq -r '.version' package.json)
             echo ${VERSION_NUMBER}
-            gh pr create -R ${GH_OWNER}/${GH_REPO} -H << parameters.branch >> -B develop --fill-verbose -t "${VERSION_NUMBER} created automatically from CircleCI"
+            gh pr create -R ${GH_OWNER}/${GH_REPO} -H auto-<< parameters.branch >> -B develop --fill-verbose -t "${VERSION_NUMBER} created automatically from CircleCI"
 
   merge-release-pr-command:
     description: "Merge the release PR and automatically delete the branch"
@@ -129,8 +130,8 @@ commands:
         type: string
     steps:
       - run:
-          name: Merge the PR and delete the << parameters.branch >> branch
-          command: gh pr merge << parameters.branch >> -R ${GH_OWNER}/${GH_REPO} --auto -r -d
+          name: Merge the PR and delete the auto-<< parameters.branch >> branch
+          command: gh pr merge auto-<< parameters.branch >> -R ${GH_OWNER}/${GH_REPO} --auto -r -d
 
   copy-files-command:
     description: "Copy all the required files to dist directory"
@@ -357,50 +358,6 @@ workflows:
                 - release
                 - prerelease
 
-  cd-release-pr-workflow:
-    when:
-      or:
-        - equal: [ << pipeline.git.branch >>, release ]
-        - equal: [ << pipeline.git.branch >>, prerelease ]
-    jobs:
-      - dependencies-job:
-          filters:
-            branches:
-              only:
-                - release
-                - prerelease
-      - build-job:
-          name: build-pr-job
-          requires:
-            - dependencies-job
-          context: SLACK
-          filters:
-            branches:
-              only:
-                - release
-                - prerelease
-      - test-job:
-          name: test-pr-job
-          requires:
-            - dependencies-job
-          context: SLACK
-          filters:
-            branches:
-              only:
-                - release
-                - prerelease
-      - merge-release-pr-job:
-          requires:
-            - build-pr-job
-            - test-pr-job
-          context: SLACK
-          branch: << pipeline.git.branch >>
-          filters:
-            branches:
-              only:
-                - release
-                - prerelease
-
   cd-version-tag-workflow:
     when:
       or:
@@ -411,44 +368,69 @@ workflows:
             pattern: /^v\d+\.\d+\.\d+\-beta.\d+$/ # prerelease
             value: << pipeline.git.tag >>
     jobs:
-      - dependencies-job:
-          filters:
-            tags:
-              only:
-                - /^v\d+\.\d+\.\d+$/ # release
-                - /^v\d+\.\d+\.\d+\-beta.\d+$/ # prerelease
+      - dependencies-job
+
       - build-job:
+          name: build-pr-job
           requires:
             - dependencies-job
           context: SLACK
           persist: true
+
+      - test-job:
+          name: test-pr-job
+          requires:
+            - dependencies-job
+          context: SLACK
+
+        # release
+      - merge-release-pr-job:
+          requires:
+            - build-pr-job
+            - test-pr-job
+          context:
+            - GIT
+            - SLACK
+          branch: release
           filters:
             tags:
-              only:
-                - /^v\d+\.\d+\.\d+$/ # release
-                - /^v\d+\.\d+\.\d+\-beta.\d+$/ # prerelease
-        # release
+              only: /^v\d+\.\d+\.\d+$/
+
       - publish-release-job:
+          requires:
+            - merge-release-pr-job
           branch: release
           context:
             - GIT
             - SLACK
             - NPM
-          requires:
-            - build-job
           filters:
             tags:
               only: /^v\d+\.\d+\.\d+$/
+
         # prerelease
+      - merge-release-pr-job:
+          name: merge-prerelease-pr-job
+          requires:
+            - build-pr-job
+            - test-pr-job
+          context:
+            - GIT
+            - SLACK
+          branch: prerelease
+          filters:
+            tags:
+              only: /^v\d+\.\d+\.\d+\-beta.\d+$/
+
       - publish-release-job:
           name: publish-prerelease-job
-          branch: pre-release
+          requires:
+            - merge-prerelease-pr-job
+          branch: prerelease
           context:
             - GIT
             - SLACK
             - NPM
-          requires:
-            - build-job
           filters:
             tags:
               only: /^v\d+\.\d+\.\d+\-beta.\d+$/
