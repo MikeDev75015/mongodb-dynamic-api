@@ -77,6 +77,16 @@ commands:
       - run: git config user.email ${USER_EMAIL}
       - run: git config user.name ${USER_NAME}
 
+  delete-tag-command:
+    description: "Delete the tag from the repository"
+    parameters:
+      tag:
+        type: string
+    steps:
+      - run:
+          name: Delete the tag from the repository
+          command: git push -d -q https://${GH_TOKEN}@github.com/{GH_OWNER}/${GH_REPO}.git << parameters.tag >>
+
   install-github-cli-command:
     description: "Installs the latest Github CLI version"
     steps:
@@ -221,6 +231,8 @@ jobs:
       - install-github-cli-command
       - create-release-pr-command:
           branch: << parameters.branch >>
+      - delete-tag-command:
+          tag: << parameters.branch >>
       - *notify-fail
       - *notify-success
 
