@@ -329,7 +329,7 @@ workflows:
             branches:
               only: sonar
 
-  cd-release-tag-workflow:
+  ci-deploy-tag-workflow:
     when:
       or:
         - equal: [ << pipeline.git.tag >>, release ]
@@ -358,56 +358,24 @@ workflows:
                 - release
                 - prerelease
 
-  cd-version-tag-workflow:
+  cd-prerelease-tag-workflow:
     when:
-      or:
-        - matches:
-            pattern: /^v\d+\.\d+\.\d+$/ # release
-            value: << pipeline.git.tag >>
-        - matches:
-            pattern: /^\d+\.\d+\.\d+\-beta\.\d+$/ # prerelease
-            value: << pipeline.git.tag >>
+      matches:
+        pattern: /^\d+\.\d+\.\d+\-beta\.\d+$/
+        value: << pipeline.git.tag >>
     jobs:
       - dependencies-job
-
       - build-job:
           name: build-pr-job
           requires:
             - dependencies-job
           context: SLACK
           persist: true
-
       - test-job:
           name: test-pr-job
           requires:
             - dependencies-job
           context: SLACK
-
-        # release
-      - merge-release-pr-job:
-          requires:
-            - build-pr-job
-            - test-pr-job
-          context:
-            - GIT
-            - SLACK
-          branch: release
-          filters:
-            tags:
-              only: /^v\d+\.\d+\.\d+$/
-      - publish-release-job:
-          requires:
-            - merge-release-pr-job
-          branch: release
-          context:
-            - GIT
-            - SLACK
-            - NPM
-          filters:
-            tags:
-              only: /^v\d+\.\d+\.\d+$/
-
-        # prerelease
       - merge-release-pr-job:
           name: merge-prerelease-pr-job
           requires:
@@ -417,9 +385,6 @@ workflows:
             - GIT
             - SLACK
           branch: prerelease
-          filters:
-            tags:
-              only: /^\d+\.\d+\.\d+\-beta\.\d+$/
       - publish-release-job:
           name: publish-prerelease-job
           requires:
@@ -429,6 +394,39 @@ workflows:
             - GIT
             - SLACK
             - NPM
-          filters:
-            tags:
-              only: /^\d+\.\d+\.\d+\-beta\.\d+$/
+
+  cd-release-tag-workflow:
+    when:
+      matches:
+        pattern: /^v\d+\.\d+\.\d+$/
+        value: << pipeline.git.tag >>
+    jobs:
+      - dependencies-job
+      - build-job:
+          name: build-pr-job
+          requires:
+            - dependencies-job
+          context: SLACK
+          persist: true
+      - test-job:
+          name: test-pr-job
+          requires:
+            - dependencies-job
+          context: SLACK
+      - merge-release-pr-job:
+          requires:
+            - build-pr-job
+            - test-pr-job
+          context:
+            - GIT
+            - SLACK
+          branch: release
+      - publish-release-job:
+          requires:
+            - merge-release-pr-job
+          branch: release
+          context:
+            - GIT
+            - SLACK
+            - NPM
+
