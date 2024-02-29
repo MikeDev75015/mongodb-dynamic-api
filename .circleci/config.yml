@@ -98,34 +98,58 @@ commands:
         type: string
     steps:
       - run:
-          name: Checkout to develop branch
-          command: git checkout develop
+          name: Create the << parameters.branch >> branch from develop
+          command: |
+            git checkout develop
+            git checkout -q -b << parameters.branch >>
       - run:
           name: Prepare << parameters.branch >> with release-it
           command: npm run << parameters.branch >>
-      - run:
-          name: Create and push the << parameters.branch >> branch on remote
-          command: |
-            VERSION_NUMBER=v$(jq -r '.version' package.json)
-            echo ${VERSION_NUMBER}
-            git checkout -b release-${VERSION_NUMBER}
-            git push -q https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git release-${VERSION_NUMBER}
       - run:
           name: Create the PR on Github
           command: |
             VERSION_NUMBER=v$(jq -r '.version' package.json)
             echo ${VERSION_NUMBER}
-            gh pr create -H release-${VERSION_NUMBER} -f -B main -t "<< parameters.branch >> ${VERSION_NUMBER}" -b "Created from CircleCI"
+            gh pr create -R ${GH_OWNER}/${GH_REPO} -H << parameters.branch >> -B develop --fill-verbose -t "${VERSION_NUMBER} created automatically from CircleCI"
 
   merge-release-pr-command:
-    description: "Merge the pull request then automatically delete the branch"
+    description: "Merge the release PR and automatically delete the branch"
     parameters:
       branch:
         type: string
     steps:
       - run:
-          name: Merge the PR the << parameters.branch >> branch
+          name: Merge the PR and delete the << parameters.branch >> branch
           command: gh pr merge << parameters.branch >> -R ${GH_OWNER}/${GH_REPO} --auto -r -d
+
+  copy-files-command:
+    description: "Copy all the required files to dist directory"
+    steps:
+      - run:
+          name: Copy README.md to dist
+          command: cp -rf README.md dist
+      - run:
+          name: Copy CHANGELOG.md to dist
+          command: cp -rf CHANGELOG.md dist
+      - run:
+          name: Copy LICENSE to dist
+          command: cp -rf LICENSE dist
+      - run:
+          name: Copy package.json to dist
+          command: cp -rf package.json dist
+
+  publish-npm-command:
+    description: "Authenticate to npm account and publish new version"
+    parameters:
+      branch:
+        type: string
+    steps:
+      - run:
+          name: NPM Account Authentication
+          command: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
+      - run:
+          name: Publish << parameters.branch >> on npm
+          command: npm run publish-<< parameters.branch >>
 
 jobs:
   dependencies-job:
@@ -190,7 +214,6 @@ jobs:
     parameters:
       branch:
         type: string
-        default: release
     steps:
       - checkout
       - *restore-cache
@@ -208,15 +231,34 @@ jobs:
     parameters:
       branch:
         type: string
-        default: release
     steps:
       - checkout
+      - *restore-cache
       - git-config-local-user-command
       - install-github-cli-command
       - merge-release-pr-command:
           branch: << parameters.branch >>
       - *notify-fail
       - *notify-success
+
+  publish-release-job:
+    docker:
+      - image: cimg/node:20.5.0
+    resource_class: medium
+    parameters:
+      branch:
+        type: string
+    steps:
+      - checkout
+      - *restore-cache
+      - attach_workspace:
+          at: .
+      - copy-files-command
+      - publish-npm-command:
+          branch: << parameters.branch >>
+      - *notify-fail
+      - *notify-success
+
 
 workflows:
   ci-default-workflow:
@@ -229,7 +271,8 @@ workflows:
               ignore:
                 - main
                 - develop
-                - /^release-v.+$/
+                - prerelease
+                - release
       - build-job:
           requires:
             - dependencies-job
@@ -239,7 +282,8 @@ workflows:
               ignore:
                 - main
                 - develop
-                - /^release-v.+$/
+                - prerelease
+                - release
       - test-job:
           requires:
             - dependencies-job
@@ -249,19 +293,68 @@ workflows:
               ignore:
                 - main
                 - develop
-                - /^release-v.+$/
+                - prerelease
+                - release
+
+  ci-develop-workflow:
+    when:
+      equal: [ << pipeline.git.tag >>, develop ]
+    jobs:
+      - dependencies-job:
+          filters:
+            branches:
+              only: develop
+      - sonarcloud-job:
+          requires:
+            - dependencies-job
+          context:
+            - SONARCLOUD
+            - SLACK
+          filters:
+            branches:
+              only: develop
+
+  cd-release-tag-workflow:
+    when:
+      or:
+        - equal: [ << pipeline.git.tag >>, release ]
+        - equal: [ << pipeline.git.tag >>, prerelease ]
+    jobs:
+      - dependencies-job:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only:
+                - release
+                - prerelease
+      - create-release-pr-job:
+          requires:
+            - dependencies-job
+          branch: << pipeline.git.tag >>
+          context:
+            - GIT
+            - SLACK
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only:
+                - release
+                - prerelease
 
   cd-release-pr-workflow:
     when:
-      matches:
-        pattern: /^release-v.+$/
-        value: << pipeline.git.branch >>
+      or:
+        - equal: [ << pipeline.git.branch >>, release ]
+        - equal: [ << pipeline.git.branch >>, prerelease ]
     jobs:
       - dependencies-job:
           filters:
             branches:
               only:
-                - /^release-v.+$/
+                - release
+                - prerelease
       - build-job:
           name: build-pr-job
           requires:
@@ -270,7 +363,8 @@ workflows:
           filters:
             branches:
               only:
-                - /^release-v.+$/
+                - release
+                - prerelease
       - test-job:
           name: test-pr-job
           requires:
@@ -279,41 +373,21 @@ workflows:
           filters:
             branches:
               only:
-                - /^release-v.+$/
+                - release
+                - prerelease
       - merge-release-pr-job:
           requires:
             - build-pr-job
             - test-pr-job
           context: SLACK
+          branch: << pipeline.git.branch >>
           filters:
             branches:
               only:
-                - /^release-v.+$/
+                - release
+                - prerelease
 
-  cd-prerelease-tag-workflow:
-    when:
-      equal: [ << pipeline.git.tag >>, prerelease ]
-    jobs:
-      - dependencies-job:
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: prerelease
-      - create-release-pr-job:
-          requires:
-            - dependencies-job
-          branch: prerelease
-          context:
-            - GIT
-            - SLACK
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: prerelease
-
-  ci-version-tag-workflow:
+  cd-version-tag-workflow:
     when:
       matches:
         pattern: /^v\d+\.\d+.+$/
@@ -323,12 +397,36 @@ workflows:
           filters:
             tags:
               only: /^v\d+\.\d+.+$/
-      - sonarcloud-job:
+      - build-job:
           requires:
             - dependencies-job
+          context: SLACK
+          persist: true
+          filters:
+              tags:
+              only: /^v\d+\.\d+.+$/
+        # prerelease
+      - publish-release-job:
+          name: publish-prerelease-job
+          branch: pre-release
           context:
-            - SONARCLOUD
+            - GIT
             - SLACK
+            - NPM
+          requires:
+            - build-job
           filters:
             tags:
-              only: /^v\d+\.\d+.+$/
+              only: /^v\d+\.\d+\.\d+\-beta.\d+$/
+        # release
+      - publish-release-job:
+          branch: release
+          context:
+            - GIT
+            - SLACK
+            - NPM
+          requires:
+            - build-job
+          filters:
+            tags:
+              only: /^v\d+\.\d+\.\d+$/

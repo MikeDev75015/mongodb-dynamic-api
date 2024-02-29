@@ -24,7 +24,9 @@
     "compodoc": "npx compodoc -p tsconfig.json libs/dynamic-api/src --theme postmark",
     "pre-release-tag": "git tag -f prerelease && git push -f origin prerelease",
     "prerelease": "release-it --ci --preRelease=beta",
-    "release": "release-it --ci"
+    "release": "release-it --ci",
+    "publish-prerelease": "npm publish ./dist --tag prerelease",
+    "publish-release": "npm publish ./dist --tag latest"
   },
   "keywords": [
     "nestjs",
