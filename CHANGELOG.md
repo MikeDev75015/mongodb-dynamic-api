@@ -1,5 +1,7 @@
 Changelog
 
+## [1.2.0-beta.3](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/prerelease...1.2.0-beta.3) (2024-02-29)
+
 ## [1.2.0-beta.2](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/prerelease...1.2.0-beta.2) (2024-02-29)
 
 ## [1.2.0-beta.1](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/prerelease...1.2.0-beta.1) (2024-02-29)
