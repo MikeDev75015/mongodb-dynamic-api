@@ -22,7 +22,9 @@
     "test:ci:junit": "jest --ci --runInBand --coverage --testResultsProcessor=jest-junit",
     "test:ci:sonar": "jest --ci --runInBand --coverage --testResultsProcessor=jest-sonar-reporter",
     "compodoc": "npx compodoc -p tsconfig.json libs/dynamic-api/src --theme postmark",
-    "pre-release": "git tag -f prerelease && git push -f origin prerelease"
+    "pre-release-tag": "git tag -f prerelease && git push -f origin prerelease",
+    "prerelease": "release-it --ci --preRelease=beta",
+    "release": "release-it --ci"
   },
   "keywords": [
     "nestjs",
@@ -52,6 +54,8 @@
     "@nestjs/cli": "^10.3.1",
     "@nestjs/schematics": "^10.1.0",
     "@nestjs/testing": "^10.3.2",
+    "@release-it/bumper": "^6.0.1",
+    "@release-it/conventional-changelog": "^8.0.1",
     "@swc/cli": "^0.3.9",
     "@swc/core": "^1.4.0",
     "@types/express": "^4.17.21",
@@ -67,6 +71,7 @@
     "jest-junit": "^16.0.0",
     "jest-sonar-reporter": "^2.0.0",
     "prettier": "^3.2.5",
+    "release-it": "^17.1.1",
     "source-map-support": "^0.5.21",
     "supertest": "^6.3.4",
     "ts-jest": "^29.1.2",
@@ -107,5 +112,8 @@
   },
   "jestSonar": {
     "reportPath": "reports/sonar"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
