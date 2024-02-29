@@ -286,8 +286,8 @@ workflows:
               ignore:
                 - main
                 - develop
-                - prerelease
-                - release
+                - auto-prerelease
+                - auto-release
       - build-job:
           requires:
             - dependencies-job
@@ -297,8 +297,8 @@ workflows:
               ignore:
                 - main
                 - develop
-                - prerelease
-                - release
+                - auto-prerelease
+                - auto-release
       - test-job:
           requires:
             - dependencies-job
@@ -308,8 +308,8 @@ workflows:
               ignore:
                 - main
                 - develop
-                - prerelease
-                - release
+                - auto-prerelease
+                - auto-release
 
   ci-sonar-workflow:
     when:
@@ -365,7 +365,7 @@ workflows:
             pattern: /^v\d+\.\d+\.\d+$/ # release
             value: << pipeline.git.tag >>
         - matches:
-            pattern: /^v\d+\.\d+\.\d+\-beta.\d+$/ # prerelease
+            pattern: /^\d+\.\d+\.\d+\-beta\.\d+$/ # prerelease
             value: << pipeline.git.tag >>
     jobs:
       - dependencies-job
@@ -395,7 +395,6 @@ workflows:
           filters:
             tags:
               only: /^v\d+\.\d+\.\d+$/
-
       - publish-release-job:
           requires:
             - merge-release-pr-job
@@ -420,8 +419,7 @@ workflows:
           branch: prerelease
           filters:
             tags:
-              only: /^v\d+\.\d+\.\d+\-beta.\d+$/
-
+              only: /^\d+\.\d+\.\d+\-beta\.\d+$/
       - publish-release-job:
           name: publish-prerelease-job
           requires:
@@ -433,4 +431,4 @@ workflows:
             - NPM
           filters:
             tags:
-              only: /^v\d+\.\d+\.\d+\-beta.\d+$/
+              only: /^\d+\.\d+\.\d+\-beta\.\d+$/
