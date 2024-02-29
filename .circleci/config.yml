@@ -148,6 +148,12 @@ commands:
       - run:
           name: Copy package.json to dist
           command: cp -rf package.json dist
+      - run:
+          name: Copy tsconfig.json to dist
+          command: cp -rf tsconfig.json dist
+      - run:
+          name: Copy tsconfig.build.json to dist
+          command: cp -rf tsconfig.build.json dist
 
   publish-npm-command:
     description: "Authenticate to npm account and publish new version"
