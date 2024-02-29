@@ -212,6 +212,8 @@ jobs:
     steps:
       - checkout
       - *restore-cache
+      - delete-tag-command:
+          tag: sonar
       - unit-tests-not-parallelized-command
       - sonarcloud/scan
       - *notify-fail
@@ -308,14 +310,14 @@ workflows:
                 - prerelease
                 - release
 
-  ci-develop-workflow:
+  ci-sonar-workflow:
     when:
-      equal: [ << pipeline.git.tag >>, develop ]
+      equal: [ << pipeline.git.tag >>, sonar ]
     jobs:
       - dependencies-job:
           filters:
             branches:
-              only: develop
+              only: sonar
       - sonarcloud-job:
           requires:
             - dependencies-job
@@ -324,7 +326,7 @@ workflows:
             - SLACK
           filters:
             branches:
-              only: develop
+              only: sonar
 
   cd-release-tag-workflow:
     when:
