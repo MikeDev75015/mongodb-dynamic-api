@@ -1,4 +1,8 @@
-# Changelog
+Changelog
+
+## [1.4.0-beta.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/prerelease...1.4.0-beta.0) (2024-02-29)
+
+# 
 
 ## [1.3.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/mongodb-dynamic-api-v1.2.0...mongodb-dynamic-api-v1.3.0) (2024-02-28)
 
