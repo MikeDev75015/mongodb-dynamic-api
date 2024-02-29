@@ -401,22 +401,42 @@ workflows:
 
   cd-version-tag-workflow:
     when:
-      matches:
-        pattern: /^v\d+\.\d+.+$/
-        value: << pipeline.git.tag >>
+      or:
+        - matches:
+            pattern: /^v\d+\.\d+\.\d+$/ # release
+            value: << pipeline.git.tag >>
+        - matches:
+            pattern: /^v\d+\.\d+\.\d+\-beta.\d+$/ # prerelease
+            value: << pipeline.git.tag >>
     jobs:
       - dependencies-job:
           filters:
             tags:
-              only: /^v\d+\.\d+.+$/
+              only:
+                - /^v\d+\.\d+\.\d+$/ # release
+                - /^v\d+\.\d+\.\d+\-beta.\d+$/ # prerelease
       - build-job:
           requires:
             - dependencies-job
           context: SLACK
           persist: true
           filters:
-              tags:
-              only: /^v\d+\.\d+.+$/
+            tags:
+              only:
+                - /^v\d+\.\d+\.\d+$/ # release
+                - /^v\d+\.\d+\.\d+\-beta.\d+$/ # prerelease
+        # release
+      - publish-release-job:
+          branch: release
+          context:
+            - GIT
+            - SLACK
+            - NPM
+          requires:
+            - build-job
+          filters:
+            tags:
+              only: /^v\d+\.\d+\.\d+$/
         # prerelease
       - publish-release-job:
           name: publish-prerelease-job
@@ -430,15 +450,3 @@ workflows:
           filters:
             tags:
               only: /^v\d+\.\d+\.\d+\-beta.\d+$/
-        # release
-      - publish-release-job:
-          branch: release
-          context:
-            - GIT
-            - SLACK
-            - NPM
-          requires:
-            - build-job
-          filters:
-            tags:
-              only: /^v\d+\.\d+\.\d+$/
