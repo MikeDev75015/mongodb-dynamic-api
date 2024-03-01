@@ -1,4 +1,4 @@
-import { BaseEntity } from '@dynamic-api';
+import { BaseEntity } from '../../models';
 
 interface ReplaceOneService<Entity extends BaseEntity> {
   replaceOne(id: string, partial: Partial<Entity>): Promise<Entity>;

@@ -1,12 +1,11 @@
-import { BaseEntity, DTOsBundle, EntityBodyMixin, EntityPresenterMixin } from '@dynamic-api';
-import {
-  CreateOneController,
-  CreateOneControllerConstructor,
-  CreateOneService,
-} from '@dynamic-api/modules';
 import { Body, Type } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { RouteDecoratorsHelper } from '../../helpers';
+import { DTOsBundle } from '../../interfaces';
+import { EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
+import { BaseEntity } from '../../models';
+import { CreateOneController, CreateOneControllerConstructor } from './create-one-controller.interface';
+import { CreateOneService } from './create-one-service.interface';
 
 function CreateOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,

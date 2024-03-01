@@ -1,4 +1,4 @@
-import { BaseEntity } from '@dynamic-api';
+import { BaseEntity } from '../../models';
 
 type DeletedCount = { deletedCount: number };
 

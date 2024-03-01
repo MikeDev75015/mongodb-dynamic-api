@@ -1,5 +1,5 @@
-import { BaseEntity } from '@dynamic-api';
-import { GetOneService } from '@dynamic-api/modules';
+import { BaseEntity } from '../../models';
+import { GetOneService } from './get-one-service.interface';
 
 interface GetOneController<Entity extends BaseEntity> {
   getOne(id: string): Promise<Entity>;

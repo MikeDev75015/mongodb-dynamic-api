@@ -1,8 +1,9 @@
-import { BaseEntity, DeletedCount, DeleteOnePresenter } from '@dynamic-api';
-import { DeleteOneService } from '@dynamic-api/modules';
-import { BaseService } from '@dynamic-api/services';
 import { Builder } from 'builder-pattern';
 import { Model } from 'mongoose';
+import { BaseEntity } from '../../models';
+import { BaseService } from '../../services';
+import { DeletedCount, DeleteOneService } from './delete-one-service.interface';
+import { DeleteOnePresenter } from './delete-one.presenter';
 
 export abstract class BaseDeleteOneService<Entity extends BaseEntity>
   extends BaseService<Entity>

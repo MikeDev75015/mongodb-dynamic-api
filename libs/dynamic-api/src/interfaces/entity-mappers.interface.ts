@@ -1,4 +1,4 @@
-import { BaseEntity } from '@dynamic-api';
+import { BaseEntity } from '../models';
 
 interface BodyToPartialEntityMapper {
   toEntity?: <Entity extends BaseEntity, Body>(body: Body) => Promise<Partial<Entity>>;

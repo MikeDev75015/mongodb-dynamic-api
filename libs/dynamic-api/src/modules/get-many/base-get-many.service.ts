@@ -1,7 +1,7 @@
-import { BaseEntity } from '@dynamic-api';
-import { GetManyService } from '@dynamic-api/modules';
-import { BaseService } from '@dynamic-api/services';
 import { Model } from 'mongoose';
+import { BaseEntity } from '../../models';
+import { BaseService } from '../../services';
+import { GetManyService } from './get-many-service.interface';
 
 export abstract class BaseGetManyService<Entity extends BaseEntity>
   extends BaseService<Entity>

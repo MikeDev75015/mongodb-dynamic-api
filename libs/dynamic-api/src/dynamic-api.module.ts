@@ -1,7 +1,7 @@
-import { DEFAULT_BDD_CONNECTION_NAME } from '@dynamic-api/dynamic-api.constant';
 import { DynamicModule, Module } from '@nestjs/common';
 import { MongooseModule, SchemaFactory } from '@nestjs/mongoose';
 import { DYNAMIC_API_SCHEMA_OPTIONS_METADATA } from './decorators';
+import { DEFAULT_BDD_CONNECTION_NAME } from './dynamic-api.constant';
 import {
   DynamicApiOptions,
   DynamicAPISchemaOptionsInterface,

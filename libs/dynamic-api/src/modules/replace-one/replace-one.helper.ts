@@ -1,16 +1,4 @@
 import {
-  BaseEntity,
-  DEFAULT_BDD_CONNECTION_NAME,
-  DTOsBundle,
-  ServiceProvider,
-} from '@dynamic-api';
-import {
-  BaseReplaceOneService,
-  ReplaceOneControllerConstructor,
-  ReplaceOneControllerMixin,
-  ReplaceOneService,
-} from '@dynamic-api/modules';
-import {
   Controller,
   Inject,
   Type,
@@ -20,6 +8,13 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
+import { DEFAULT_BDD_CONNECTION_NAME } from '../../dynamic-api.constant';
+import { DTOsBundle, ServiceProvider } from '../../interfaces';
+import { BaseEntity } from '../../models';
+import { BaseReplaceOneService } from './base-replace-one.service';
+import { ReplaceOneControllerConstructor } from './replace-one-controller.interface';
+import { ReplaceOneControllerMixin } from './replace-one-controller.mixin';
+import { ReplaceOneService } from './replace-one-service.interface';
 
 function provideServiceName(entityName) {
   return `ReplaceOne${entityName}Service`;

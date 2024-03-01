@@ -1,11 +1,8 @@
-import {
-  createCreateManyController,
-  createCreateManyServiceProvider,
-} from '@dynamic-api';
 import { Type } from '@nestjs/common';
 import { Model } from 'mongoose';
-import { buildDynamicApiModuleOptionsMock } from '../../../../../test/__mocks__/dynamic-api.module.mock';
-import { buildModelMock } from '../../../../../test/__mocks__/model.mock';
+import { buildDynamicApiModuleOptionsMock } from '../../../__mocks__/dynamic-api.module.mock';
+import { buildModelMock } from '../../../__mocks__/model.mock';
+import { createCreateManyController, createCreateManyServiceProvider } from './create-many.helper';
 
 describe('CreateManyHelper', () => {
   let entity: Type;

@@ -11,15 +11,7 @@
     "outDir": "./dist",
     "baseUrl": "./",
     "incremental": true,
-    "skipLibCheck": true,
-    "paths": {
-      "@dynamic-api": [
-        "libs/dynamic-api/src"
-      ],
-      "@dynamic-api/*": [
-        "libs/dynamic-api/src/*"
-      ]
-    }
+    "skipLibCheck": true
   },
   "include": ["libs/**/*"],
   "exclude": ["node_modules", "**/*.spec.ts", "**/*.mock.ts"]

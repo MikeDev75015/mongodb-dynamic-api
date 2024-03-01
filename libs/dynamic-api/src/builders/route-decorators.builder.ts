@@ -1,7 +1,8 @@
-import { BaseEntity, RouteType } from '@dynamic-api';
 import { Delete, Get, Patch, Post, Put, Type } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { lowerCase, upperFirst, keys, lowerFirst } from 'lodash';
+import { RouteType } from '../interfaces';
+import { BaseEntity } from '../models';
 
 class RouteDecoratorsBuilder<Entity extends BaseEntity> {
   private readonly responseRouteTypeIsArray: RouteType[] = [

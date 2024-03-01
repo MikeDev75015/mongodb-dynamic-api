@@ -1,7 +1,7 @@
-import { BaseEntity } from '@dynamic-api';
-import { CreateOneService } from '@dynamic-api/modules';
-import { BaseService } from '@dynamic-api/services';
 import { Model } from 'mongoose';
+import { BaseEntity } from '../../models';
+import { BaseService } from '../../services';
+import { CreateOneService } from './create-one-service.interface';
 
 export abstract class BaseCreateOneService<Entity extends BaseEntity>
   extends BaseService<Entity>

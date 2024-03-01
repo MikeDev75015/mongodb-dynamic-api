@@ -1,5 +1,5 @@
-import { BaseEntity } from '@dynamic-api';
-import { ReplaceOneService } from '@dynamic-api/modules';
+import { BaseEntity } from '../../models';
+import { ReplaceOneService } from './replace-one-service.interface';
 
 interface ReplaceOneController<Entity extends BaseEntity> {
   replaceOne(id: string, partial: Partial<Entity>): Promise<Entity | undefined>;

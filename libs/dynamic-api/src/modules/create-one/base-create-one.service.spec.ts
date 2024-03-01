@@ -1,6 +1,6 @@
-import { BaseCreateOneService } from '@dynamic-api';
 import { Model } from 'mongoose';
-import { buildModelMock } from '../../../../../test/__mocks__/model.mock';
+import { buildModelMock } from '../../../__mocks__/model.mock';
+import { BaseCreateOneService } from './base-create-one.service';
 
 describe('BaseCreateOneService', () => {
   let service: any;

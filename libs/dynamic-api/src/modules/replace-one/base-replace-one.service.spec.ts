@@ -1,7 +1,7 @@
-import { BaseReplaceOneService } from '@dynamic-api';
 import { DeepMocked } from '@golevelup/ts-jest';
 import { Model } from 'mongoose';
-import { buildModelMock } from '../../../../../test/__mocks__/model.mock';
+import { buildModelMock } from '../../../__mocks__/model.mock';
+import { BaseReplaceOneService } from './base-replace-one.service';
 
 class TestService extends BaseReplaceOneService<any> {
   constructor(protected readonly _: Model<any>) {

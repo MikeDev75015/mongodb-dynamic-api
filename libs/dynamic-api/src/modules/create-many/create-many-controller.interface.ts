@@ -1,5 +1,5 @@
-import { BaseEntity } from '@dynamic-api';
-import { CreateManyService } from '@dynamic-api/modules';
+import { BaseEntity } from '../../models';
+import { CreateManyService } from './create-many-service.interface';
 
 interface CreateManyController<Entity extends BaseEntity> {
   createMany<Body>(body: Body): Promise<Entity[]>;

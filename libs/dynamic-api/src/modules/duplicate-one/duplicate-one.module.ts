@@ -1,9 +1,7 @@
-import { BaseEntity, DTOsBundle } from '@dynamic-api';
 import { DynamicModule, Module, Type } from '@nestjs/common';
-import {
-  createDuplicateOneController,
-  createDuplicateOneServiceProvider,
-} from '@dynamic-api/modules';
+import { DTOsBundle } from '../../interfaces';
+import { BaseEntity } from '../../models';
+import { createDuplicateOneController, createDuplicateOneServiceProvider } from './duplicate-one.helper';
 
 @Module({})
 export class DuplicateOneModule {

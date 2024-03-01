@@ -1,4 +1,4 @@
-import { BaseEntity } from '@dynamic-api';
+import { BaseEntity } from '../../models';
 
 interface GetManyService<Entity extends BaseEntity> {
   getMany(query?: object): Promise<Entity[]>;

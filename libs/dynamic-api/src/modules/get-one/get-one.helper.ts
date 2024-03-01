@@ -1,16 +1,4 @@
 import {
-  BaseEntity,
-  DEFAULT_BDD_CONNECTION_NAME,
-  DTOsBundle,
-  ServiceProvider,
-} from '@dynamic-api';
-import {
-  BaseGetOneService,
-  GetOneControllerConstructor,
-  GetOneControllerMixin,
-  GetOneService,
-} from '@dynamic-api/modules';
-import {
   Controller,
   Inject,
   Type,
@@ -20,6 +8,13 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
+import { DEFAULT_BDD_CONNECTION_NAME } from '../../dynamic-api.constant';
+import { DTOsBundle, ServiceProvider } from '../../interfaces';
+import { BaseEntity } from '../../models';
+import { BaseGetOneService } from './base-get-one.service';
+import { GetOneControllerConstructor } from './get-one-controller.interface';
+import { GetOneControllerMixin } from './get-one-controller.mixin';
+import { GetOneService } from './get-one-service.interface';
 
 function provideServiceName(entityName) {
   return `GetOne${entityName}Service`;

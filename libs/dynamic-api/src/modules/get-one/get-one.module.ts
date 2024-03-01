@@ -1,5 +1,6 @@
-import { BaseEntity, DTOsBundle } from "@dynamic-api";
 import { DynamicModule, Module, Type } from '@nestjs/common';
+import { DTOsBundle } from '../../interfaces';
+import { BaseEntity } from '../../models';
 import {
   createGetOneController,
   createGetOneServiceProvider,

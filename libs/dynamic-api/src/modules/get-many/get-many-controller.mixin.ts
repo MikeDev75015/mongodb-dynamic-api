@@ -1,8 +1,12 @@
-import { BaseEntity, DTOsBundle, EntityPresenterMixin, EntityQuery } from '@dynamic-api';
-import { GetManyController, GetManyControllerConstructor, GetManyService } from '@dynamic-api/modules';
 import { Query, Type } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
+import { EntityQuery } from '../../dtos';
 import { RouteDecoratorsHelper } from '../../helpers';
+import { DTOsBundle } from '../../interfaces';
+import { EntityPresenterMixin } from '../../mixins';
+import { BaseEntity } from '../../models';
+import { GetManyController, GetManyControllerConstructor } from './get-many-controller.interface';
+import { GetManyService } from './get-many-service.interface';
 
 function GetManyControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,

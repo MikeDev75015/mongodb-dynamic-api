@@ -1,7 +1,7 @@
-import { BaseUpdateOneService } from '@dynamic-api';
 import { DeepMocked } from '@golevelup/ts-jest';
 import { Model } from 'mongoose';
-import { buildModelMock } from '../../../../../test/__mocks__/model.mock';
+import { buildModelMock } from '../../../__mocks__/model.mock';
+import { BaseUpdateOneService } from './base-update-one.service';
 
 class TestService extends BaseUpdateOneService<any> {
   constructor(protected readonly _: Model<any>) {

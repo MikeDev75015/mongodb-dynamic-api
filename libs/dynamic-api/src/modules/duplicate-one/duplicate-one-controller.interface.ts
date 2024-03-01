@@ -1,5 +1,5 @@
-import { BaseEntity } from '@dynamic-api';
-import { DuplicateOneService } from '@dynamic-api/modules';
+import { BaseEntity } from '../../models';
+import { DuplicateOneService } from './duplicate-one-service.interface';
 
 interface DuplicateOneController<Entity extends BaseEntity> {
   duplicateOne(id: string, partial: Partial<Entity>): Promise<Entity>;
