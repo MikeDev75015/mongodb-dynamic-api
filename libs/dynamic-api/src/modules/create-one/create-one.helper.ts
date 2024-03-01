@@ -8,7 +8,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
-import { DEFAULT_BDD_CONNECTION_NAME } from '../../dynamic-api.constant';
+import { DynamicApiModule } from '../../dynamic-api.module';
 import { DTOsBundle, ServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseCreateOneService } from './base-create-one.service';
@@ -29,7 +29,7 @@ function createCreateOneServiceProvider<Entity extends BaseEntity>(
     constructor(
       @InjectModel(
         entity.name,
-        process.env.BBD_CONNECTION_NAME || DEFAULT_BDD_CONNECTION_NAME,
+        DynamicApiModule.connectionName,
       )
       protected readonly model: Model<Entity>,
     ) {

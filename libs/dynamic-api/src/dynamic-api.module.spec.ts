@@ -1,9 +1,9 @@
 import { MongooseModule, SchemaFactory } from '@nestjs/mongoose';
 import { buildDynamicApiModuleOptionsMock } from '../__mocks__/dynamic-api.module.mock';
-import { DEFAULT_BDD_CONNECTION_NAME } from './dynamic-api.constant';
 import { DynamicApiModule } from './dynamic-api.module';
 import { DynamicAPISchemaOptionsInterface, RouteConfig, RouteType } from './interfaces';
 import {
+  CreateManyModule,
   CreateOneModule,
   DeleteOneModule,
   DuplicateOneModule,
@@ -16,42 +16,22 @@ describe('DynamicApiModule', () => {
   beforeEach(() => {
     jest.spyOn(MongooseModule, 'forRoot').mockReturnValue(null);
     jest.spyOn(MongooseModule, 'forFeature').mockReturnValue(null);
-    process.env.BBD_CONNECTION_NAME = 'fake-connection-name';
   });
 
   describe('forRoot', () => {
-    it('should throw an error if no uri and no env variables', () => {
-      process.env.BDD_URL = '';
-      process.env.BDD_BASE = '';
-
-      expect(() => DynamicApiModule.forRoot()).toThrowError(
-        'You must provide a mongodbUri or set the BDD_URL and BDD_BASE environment variables',
+    it('should throw an error if no uri or invalid is provided', () => {
+      expect(() => DynamicApiModule.forRoot('')).toThrowError(
+        'You must provide a valid mongodb uri in the forRoot method to use MongoDB Dynamic API',
       );
     });
 
-    it('should call MongooseModule.forRoot with uri', () => {
+    it('should call MongooseModule.forRoot with uri and DynamicApiModule.connectionName', () => {
       const uri = 'fake-uri';
-      process.env.BBD_CONNECTION_NAME = '';
-
       DynamicApiModule.forRoot(uri);
 
       expect(MongooseModule.forRoot).toHaveBeenCalledWith(uri, {
-        connectionName: DEFAULT_BDD_CONNECTION_NAME,
+        connectionName: DynamicApiModule.connectionName,
       });
-    });
-
-    it('should call MongooseModule.forRoot with env variables', () => {
-      process.env.BDD_URL = 'fake-url';
-      process.env.BDD_BASE = 'fake-base';
-
-      DynamicApiModule.forRoot();
-
-      expect(MongooseModule.forRoot).toHaveBeenCalledWith(
-        `${process.env.BDD_URL}/${process.env.BDD_BASE}?retryWrites=true&w=majority`,
-        {
-          connectionName: process.env.BBD_CONNECTION_NAME,
-        },
-      );
     });
   });
 
@@ -66,8 +46,7 @@ describe('DynamicApiModule', () => {
         .mockReturnValue(fakeDatabaseModule as any);
     });
 
-    it('should call MongooseModule.forFeature with DEFAULT_BDD_CONNECTION_NAME', () => {
-      process.env.BBD_CONNECTION_NAME = '';
+    it('should call MongooseModule.forFeature with DynamicApiModule.connectionName', () => {
       const { entity, controllerOptions, routes } = defaultOptions;
 
       const module = DynamicApiModule.forFeature({
@@ -78,23 +57,7 @@ describe('DynamicApiModule', () => {
 
       expect(MongooseModule.forFeature).toHaveBeenCalledWith(
         [{ name: entity.name, schema: expect.any(Object) }],
-        DEFAULT_BDD_CONNECTION_NAME,
-      );
-      expect(module.imports.length).toStrictEqual(0);
-    });
-
-    it('should call MongooseModule.forFeature with BBD_CONNECTION_NAME', () => {
-      const { entity, controllerOptions, routes } = defaultOptions;
-
-      const module = DynamicApiModule.forFeature({
-        entity,
-        controllerOptions,
-        routes,
-      });
-
-      expect(MongooseModule.forFeature).toHaveBeenCalledWith(
-        [{ name: entity.name, schema: expect.any(Object) }],
-        process.env.BBD_CONNECTION_NAME,
+        DynamicApiModule.connectionName,
       );
       expect(module.imports.length).toStrictEqual(0);
     });
@@ -157,6 +120,8 @@ describe('DynamicApiModule', () => {
     });
 
     it('should import route modules', () => {
+      const spyCreateManyModule = jest.spyOn(CreateManyModule, 'forFeature');
+      const createManyRoute: RouteConfig<any> = { type: 'CreateMany' };
       const spyCreateOneModule = jest.spyOn(CreateOneModule, 'forFeature');
       const createOneRoute: RouteConfig<any> = { type: 'CreateOne' };
       const spyDeleteOneModule = jest.spyOn(DeleteOneModule, 'forFeature');
@@ -177,6 +142,7 @@ describe('DynamicApiModule', () => {
 
       const options = buildDynamicApiModuleOptionsMock({
         routes: [
+          createManyRoute,
           createOneRoute,
           deleteOneRoute,
           duplicateOneRoute,
@@ -189,7 +155,16 @@ describe('DynamicApiModule', () => {
 
       const module = DynamicApiModule.forFeature(options);
 
-      expect(module.imports.length).toStrictEqual(7);
+      expect(module.imports.length).toStrictEqual(8);
+      expect(spyCreateManyModule).toHaveBeenCalledWith(
+        fakeDatabaseModule,
+        options.entity,
+        options.controllerOptions.path,
+        options.controllerOptions.apiTag,
+        options.controllerOptions.version,
+        createOneRoute.description,
+        createOneRoute.dTOs,
+      );
       expect(spyCreateOneModule).toHaveBeenCalledWith(
         fakeDatabaseModule,
         options.entity,
