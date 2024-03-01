@@ -1,6 +1,6 @@
-import { BaseEntity } from '@dynamic-api';
 import { applyDecorators } from '@nestjs/common';
-import { RouteDecoratorsBuilder } from '@dynamic-api/builders';
+import { RouteDecoratorsBuilder } from '../builders';
+import { BaseEntity } from '../models';
 
 function RouteDecoratorsHelper<Entity extends BaseEntity>(
   routeDecorators: RouteDecoratorsBuilder<Entity>,

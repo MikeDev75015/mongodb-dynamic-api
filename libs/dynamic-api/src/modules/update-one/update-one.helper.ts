@@ -1,16 +1,4 @@
 import {
-  BaseEntity,
-  DEFAULT_BDD_CONNECTION_NAME,
-  DTOsBundle,
-  ServiceProvider,
-} from '@dynamic-api';
-import {
-  BaseUpdateOneService,
-  UpdateOneControllerConstructor,
-  UpdateOneControllerMixin,
-  UpdateOneService,
-} from '@dynamic-api/modules';
-import {
   Controller,
   Inject,
   Type,
@@ -20,6 +8,13 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
+import { DEFAULT_BDD_CONNECTION_NAME } from '../../dynamic-api.constant';
+import { DTOsBundle, ServiceProvider } from '../../interfaces';
+import { BaseEntity } from '../../models';
+import { BaseUpdateOneService } from './base-update-one.service';
+import { UpdateOneControllerConstructor } from './update-one-controller.interface';
+import { UpdateOneControllerMixin } from './update-one-controller.mixin';
+import { UpdateOneService } from './update-one-service.interface';
 
 function provideServiceName(entityName) {
   return `UpdateOne${entityName}Service`;

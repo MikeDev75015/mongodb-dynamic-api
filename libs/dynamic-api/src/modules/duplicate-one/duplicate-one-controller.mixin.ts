@@ -1,8 +1,12 @@
-import { BaseEntity, DTOsBundle, EntityBodyMixin, EntityParam, EntityPresenterMixin } from '@dynamic-api';
-import { DuplicateOneController, DuplicateOneControllerConstructor, DuplicateOneService } from '@dynamic-api/modules';
 import { Body, Param, Type } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
+import { EntityParam } from '../../dtos';
 import { RouteDecoratorsHelper } from '../../helpers';
+import { DTOsBundle } from '../../interfaces';
+import { EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
+import { BaseEntity } from '../../models';
+import { DuplicateOneController, DuplicateOneControllerConstructor } from './duplicate-one-controller.interface';
+import { DuplicateOneService } from './duplicate-one-service.interface';
 
 function DuplicateOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,

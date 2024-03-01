@@ -1,8 +1,12 @@
-import { BaseEntity, DTOsBundle, EntityBodyMixin, EntityParam, EntityPresenterMixin } from '@dynamic-api';
-import { ReplaceOneController, ReplaceOneControllerConstructor, ReplaceOneService } from '@dynamic-api/modules';
 import { Body, Param, Type } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
+import { EntityParam } from '../../dtos';
 import { RouteDecoratorsHelper } from '../../helpers';
+import { DTOsBundle } from '../../interfaces';
+import { EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
+import { BaseEntity } from '../../models';
+import { ReplaceOneController, ReplaceOneControllerConstructor } from './replace-one-controller.interface';
+import { ReplaceOneService } from './replace-one-service.interface';
 
 function ReplaceOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,

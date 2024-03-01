@@ -1,7 +1,7 @@
-import { BaseEntity, DeletedCount } from "@dynamic-api";
-import { DeleteOneService } from '@dynamic-api/modules';
-
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { BaseEntity } from '../../models';
+import { DeletedCount, DeleteOneService } from './delete-one-service.interface';
+
 interface DeleteOneController<Entity extends BaseEntity> {
   deleteOne(id: string): Promise<DeletedCount>;
 }

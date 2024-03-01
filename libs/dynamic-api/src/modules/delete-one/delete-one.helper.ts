@@ -1,16 +1,4 @@
 import {
-  BaseEntity,
-  DEFAULT_BDD_CONNECTION_NAME,
-  DTOsBundle,
-  ServiceProvider,
-} from '@dynamic-api';
-import {
-  BaseDeleteOneService,
-  DeleteOneControllerConstructor,
-  DeleteOneControllerMixin,
-  DeleteOneService,
-} from '@dynamic-api/modules';
-import {
   Controller,
   Inject,
   Type,
@@ -20,6 +8,13 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
+import { DEFAULT_BDD_CONNECTION_NAME } from '../../dynamic-api.constant';
+import { DTOsBundle, ServiceProvider } from '../../interfaces';
+import { BaseEntity } from '../../models';
+import { BaseDeleteOneService } from './base-delete-one.service';
+import { DeleteOneControllerConstructor } from './delete-one-controller.interface';
+import { DeleteOneControllerMixin } from './delete-one-controller.mixin';
+import { DeleteOneService } from './delete-one-service.interface';
 
 function provideServiceName(entityName) {
   return `DeleteOne${entityName}Service`;

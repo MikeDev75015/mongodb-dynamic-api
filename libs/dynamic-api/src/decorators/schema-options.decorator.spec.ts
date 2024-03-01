@@ -1,9 +1,7 @@
-import {
-  DYNAMIC_API_SCHEMA_OPTIONS_METADATA,
-  DynamicAPISchemaOptionsInterface,
-} from '@dynamic-api';
 import { Type } from '@nestjs/common';
-import { buildDynamicApiModuleOptionsMock } from '../../../../test/__mocks__/dynamic-api.module.mock';
+import { buildDynamicApiModuleOptionsMock } from '../../__mocks__/dynamic-api.module.mock';
+import { DynamicAPISchemaOptionsInterface } from '../interfaces';
+import { DYNAMIC_API_SCHEMA_OPTIONS_METADATA } from './schema-options.decorator';
 
 describe('DynamicAPISchema', () => {
   let options: DynamicAPISchemaOptionsInterface;

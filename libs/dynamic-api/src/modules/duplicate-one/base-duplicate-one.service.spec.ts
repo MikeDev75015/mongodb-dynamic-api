@@ -1,7 +1,7 @@
-import { BaseDuplicateOneService } from '@dynamic-api';
 import { DeepMocked } from '@golevelup/ts-jest';
 import { Model } from 'mongoose';
-import { buildModelMock } from '../../../../../test/__mocks__/model.mock';
+import { buildModelMock } from '../../../__mocks__/model.mock';
+import { BaseDuplicateOneService } from './base-duplicate-one.service';
 
 class TestService extends BaseDuplicateOneService<any> {
   constructor(protected readonly _: Model<any>) {

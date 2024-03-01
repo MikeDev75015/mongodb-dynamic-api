@@ -17,7 +17,6 @@
     "test-cov": "jest --runInBand --coverage",
     "test:ci:junit": "jest --ci --runInBand --coverage --testResultsProcessor=jest-junit",
     "test:ci:sonar": "jest --ci --runInBand --coverage --testResultsProcessor=jest-sonar-reporter",
-    "compodoc": "npx compodoc -p tsconfig.json libs/dynamic-api/src --theme postmark",
     "pre-release-tag": "git tag -f prerelease && git push -f origin prerelease",
     "prerelease": "release-it --ci --preRelease=beta --no-git.requireUpstream",
     "release": "release-it --ci",
@@ -51,7 +50,6 @@
     "rxjs": "^7.8.1"
   },
   "devDependencies": {
-    "@compodoc/compodoc": "^1.1.23",
     "@golevelup/ts-jest": "^0.4.0",
     "@nestjs/cli": "^10.3.1",
     "@nestjs/schematics": "^10.1.0",
@@ -102,12 +100,9 @@
       "<rootDir>/"
     ],
     "coveragePathIgnorePatterns": [
-      "index.ts"
+      "index.ts",
+      ".*\\.mock\\.ts"
     ],
-    "moduleNameMapper": {
-      "@dynamic-api/(.*)": "<rootDir>/dynamic-api/src/$1",
-      "@dynamic-api": "<rootDir>/dynamic-api/src"
-    },
     "reporters": [
       "default"
     ]

@@ -1,4 +1,4 @@
-import { DynamicAPISchemaOptionsInterface } from '@dynamic-api';
+import { DynamicAPISchemaOptionsInterface } from '../interfaces';
 
 const DYNAMIC_API_SCHEMA_OPTIONS_METADATA = 'dynamic-api-module:schema-options';
 

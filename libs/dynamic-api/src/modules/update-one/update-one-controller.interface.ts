@@ -1,5 +1,5 @@
-import { BaseEntity } from '@dynamic-api';
-import { UpdateOneService } from '@dynamic-api/modules';
+import { BaseEntity } from '../../models';
+import { UpdateOneService } from './update-one-service.interface';
 
 interface UpdateOneController<Entity extends BaseEntity> {
   updateOne(id: string, partial: Partial<Entity>): Promise<Entity | undefined>;
