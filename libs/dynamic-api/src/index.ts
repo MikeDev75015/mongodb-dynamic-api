@@ -8,4 +8,3 @@ export * from './models';
 export * from './modules';
 export * from './services';
 export * from './dynamic-api.module';
-export * from './dynamic-api.constant';

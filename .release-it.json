@@ -28,8 +28,7 @@
       "infile": "CHANGELOG.md"
     },
     "@release-it/bumper": {
-      "in": "composer.json",
-      "out": "composer.json"
+      "out": "./libs/dynamic-api/src/version.json"
     }
   }
 }
