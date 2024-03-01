@@ -1,7 +1,6 @@
 import { DynamicModule, Module } from '@nestjs/common';
 import { MongooseModule, SchemaFactory } from '@nestjs/mongoose';
 import { DYNAMIC_API_SCHEMA_OPTIONS_METADATA } from './decorators';
-import { DEFAULT_BDD_CONNECTION_NAME } from './dynamic-api.constant';
 import {
   DynamicApiOptions,
   DynamicAPISchemaOptionsInterface,
@@ -20,22 +19,21 @@ import {
 
 @Module({})
 export class DynamicApiModule {
-  static forRoot(mongodbUri?: string): DynamicModule {
-    if (!mongodbUri && (!process.env.BDD_URL || !process.env.BDD_BASE)) {
+  static connectionName = 'dynamic-api-connection';
+
+  static forRoot(uri: string): DynamicModule {
+    if (!uri) {
       throw new Error(
-        'You must provide a mongodbUri or set the BDD_URL and BDD_BASE environment variables',
+        'You must provide a valid mongodb uri in the forRoot method to use MongoDB Dynamic API',
       );
     }
+
     return {
       module: DynamicApiModule,
       imports: [
         MongooseModule.forRoot(
-          mongodbUri ??
-            `${process.env.BDD_URL}/${process.env.BDD_BASE}?retryWrites=true&w=majority`,
-          {
-            connectionName:
-              process.env.BBD_CONNECTION_NAME || DEFAULT_BDD_CONNECTION_NAME,
-          },
+          uri,
+          { connectionName: DynamicApiModule.connectionName },
         ),
       ],
     };
@@ -71,7 +69,7 @@ export class DynamicApiModule {
 
     const databaseModule = MongooseModule.forFeature(
       [{ name: entity.name, schema }],
-      process.env.BBD_CONNECTION_NAME || DEFAULT_BDD_CONNECTION_NAME,
+      DynamicApiModule.connectionName,
     );
 
     return {
