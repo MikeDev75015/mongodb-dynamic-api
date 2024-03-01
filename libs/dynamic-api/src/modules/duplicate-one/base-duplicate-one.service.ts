@@ -1,7 +1,8 @@
-import { BaseEntity, baseEntityKeysToExclude } from '@dynamic-api';
-import { DuplicateOneService } from '@dynamic-api/modules';
-import { BaseService } from '@dynamic-api/services';
 import { Model } from 'mongoose';
+import { baseEntityKeysToExclude } from '../../mixins';
+import { BaseEntity } from '../../models';
+import { BaseService } from '../../services';
+import { DuplicateOneService } from './duplicate-one-service.interface';
 
 export abstract class BaseDuplicateOneService<Entity extends BaseEntity>
   extends BaseService<Entity>

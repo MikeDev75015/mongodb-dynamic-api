@@ -1,7 +1,7 @@
-import { BaseEntity } from '@dynamic-api';
 import { BadRequestException, Type } from '@nestjs/common';
 import { Builder } from 'builder-pattern';
 import { Model } from 'mongoose';
+import { BaseEntity } from '../models';
 
 export abstract class BaseService<Entity extends BaseEntity> {
   protected readonly entity: Type<Entity>;

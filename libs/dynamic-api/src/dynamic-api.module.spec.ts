@@ -1,19 +1,16 @@
+import { MongooseModule, SchemaFactory } from '@nestjs/mongoose';
+import { buildDynamicApiModuleOptionsMock } from '../__mocks__/dynamic-api.module.mock';
+import { DEFAULT_BDD_CONNECTION_NAME } from './dynamic-api.constant';
+import { DynamicApiModule } from './dynamic-api.module';
+import { DynamicAPISchemaOptionsInterface, RouteConfig, RouteType } from './interfaces';
 import {
   CreateOneModule,
-  DEFAULT_BDD_CONNECTION_NAME,
   DeleteOneModule,
   DuplicateOneModule,
-  DynamicApiModule,
-  DynamicAPISchemaOptionsInterface,
   GetManyModule,
   GetOneModule,
-  ReplaceOneModule,
-  RouteConfig,
-  RouteType,
-  UpdateOneModule,
-} from '@dynamic-api';
-import { MongooseModule, SchemaFactory } from '@nestjs/mongoose';
-import { buildDynamicApiModuleOptionsMock } from '../../../test/__mocks__/dynamic-api.module.mock';
+  ReplaceOneModule, UpdateOneModule,
+} from './modules';
 
 describe('DynamicApiModule', () => {
   beforeEach(() => {

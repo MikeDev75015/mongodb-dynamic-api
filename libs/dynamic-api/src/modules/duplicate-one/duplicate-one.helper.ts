@@ -1,15 +1,4 @@
-import {
-  BaseEntity,
-  DEFAULT_BDD_CONNECTION_NAME,
-  DTOsBundle,
-  ServiceProvider,
-} from '@dynamic-api';
-import {
-  BaseDuplicateOneService,
-  DuplicateOneControllerConstructor,
-  DuplicateOneControllerMixin,
-  DuplicateOneService,
-} from '@dynamic-api/modules';
+
 import {
   Controller,
   Inject,
@@ -20,6 +9,13 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
+import { DEFAULT_BDD_CONNECTION_NAME } from '../../dynamic-api.constant';
+import { DTOsBundle, ServiceProvider } from '../../interfaces';
+import { BaseEntity } from '../../models';
+import { BaseDuplicateOneService } from './base-duplicate-one.service';
+import { DuplicateOneControllerConstructor } from './duplicate-one-controller.interface';
+import { DuplicateOneControllerMixin } from './duplicate-one-controller.mixin';
+import { DuplicateOneService } from './duplicate-one-service.interface';
 
 function provideServiceName(entityName) {
   return `DuplicateOne${entityName}Service`;

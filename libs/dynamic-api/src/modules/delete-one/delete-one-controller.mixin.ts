@@ -1,14 +1,12 @@
-import { BaseEntity, DTOsBundle } from '@dynamic-api';
-import {
-  DeleteOneController,
-  DeleteOneControllerConstructor,
-  DeleteOnePresenter,
-  DeleteOneService,
-} from '@dynamic-api/modules';
 import { Param, Type } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityParam } from '../../dtos';
 import { RouteDecoratorsHelper } from '../../helpers';
+import { DTOsBundle } from '../../interfaces';
+import { BaseEntity } from '../../models';
+import { DeleteOneController, DeleteOneControllerConstructor } from './delete-one-controller.interface';
+import { DeleteOneService } from './delete-one-service.interface';
+import { DeleteOnePresenter } from './delete-one.presenter';
 
 function DeleteOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,

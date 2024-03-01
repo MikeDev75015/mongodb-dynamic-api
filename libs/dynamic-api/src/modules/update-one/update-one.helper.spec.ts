@@ -1,11 +1,8 @@
-import {
-  createUpdateOneController,
-  createUpdateOneServiceProvider,
-} from '@dynamic-api';
 import { Type } from '@nestjs/common';
 import { Model } from 'mongoose';
-import { buildDynamicApiModuleOptionsMock } from '../../../../../test/__mocks__/dynamic-api.module.mock';
-import { buildModelMock } from '../../../../../test/__mocks__/model.mock';
+import { buildDynamicApiModuleOptionsMock } from '../../../__mocks__/dynamic-api.module.mock';
+import { buildModelMock } from '../../../__mocks__/model.mock';
+import { createUpdateOneController, createUpdateOneServiceProvider } from './update-one.helper';
 
 describe('UpdateOneHelper', () => {
   let entity: Type;

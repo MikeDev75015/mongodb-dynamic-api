@@ -1,16 +1,4 @@
 import {
-  BaseEntity,
-  DEFAULT_BDD_CONNECTION_NAME,
-  DTOsBundle,
-  ServiceProvider,
-} from '@dynamic-api';
-import {
-  BaseCreateOneService,
-  CreateOneControllerConstructor,
-  CreateOneControllerMixin,
-  CreateOneService,
-} from '@dynamic-api/modules';
-import {
   Controller,
   Inject,
   Type,
@@ -20,6 +8,13 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
+import { DEFAULT_BDD_CONNECTION_NAME } from '../../dynamic-api.constant';
+import { DTOsBundle, ServiceProvider } from '../../interfaces';
+import { BaseEntity } from '../../models';
+import { BaseCreateOneService } from './base-create-one.service';
+import { CreateOneControllerConstructor } from './create-one-controller.interface';
+import { CreateOneControllerMixin } from './create-one-controller.mixin';
+import { CreateOneService } from './create-one-service.interface';
 
 function provideServiceName(entityName) {
   return `CreateOne${entityName}Service`;

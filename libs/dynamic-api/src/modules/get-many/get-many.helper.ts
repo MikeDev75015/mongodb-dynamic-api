@@ -1,16 +1,4 @@
 import {
-  BaseEntity,
-  DEFAULT_BDD_CONNECTION_NAME,
-  DTOsBundle,
-  ServiceProvider,
-} from '@dynamic-api';
-import {
-  BaseGetManyService,
-  GetManyControllerConstructor,
-  GetManyControllerMixin,
-  GetManyService,
-} from '@dynamic-api/modules';
-import {
   Controller,
   Inject,
   Type,
@@ -20,6 +8,13 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
+import { DEFAULT_BDD_CONNECTION_NAME } from '../../dynamic-api.constant';
+import { DTOsBundle, ServiceProvider } from '../../interfaces';
+import { BaseEntity } from '../../models';
+import { BaseGetManyService } from './base-get-many.service';
+import { GetManyControllerConstructor } from './get-many-controller.interface';
+import { GetManyControllerMixin } from './get-many-controller.mixin';
+import { GetManyService } from './get-many-service.interface';
 
 function provideServiceName(entityName) {
   return `GetMany${entityName}Service`;

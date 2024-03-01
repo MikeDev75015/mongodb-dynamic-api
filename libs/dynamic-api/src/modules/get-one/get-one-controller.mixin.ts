@@ -1,9 +1,12 @@
-import { BaseEntity, DTOsBundle, EntityPresenterMixin, EntityQuery } from '@dynamic-api';
-import { GetOneController, GetOneControllerConstructor, GetOneService } from '@dynamic-api/modules';
 import { Param, Type } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
-import { EntityParam } from '../../dtos';
+import { EntityParam, EntityQuery } from '../../dtos';
 import { RouteDecoratorsHelper } from '../../helpers';
+import { DTOsBundle } from '../../interfaces';
+import { EntityPresenterMixin } from '../../mixins';
+import { BaseEntity } from '../../models';
+import { GetOneController, GetOneControllerConstructor } from './get-one-controller.interface';
+import { GetOneService } from './get-one-service.interface';
 
 function GetOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,

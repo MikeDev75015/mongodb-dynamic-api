@@ -1,10 +1,3 @@
-import {
-  BaseEntity,
-  DynamicApiOptions,
-  DynamicAPISchemaOptions,
-  DynamicAPISchemaOptionsInterface,
-  SoftDeletableEntity,
-} from '@dynamic-api';
 import { Schema } from '@nestjs/mongoose';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
@@ -14,28 +7,41 @@ import {
   IsPositive,
   IsString,
 } from 'class-validator';
+import {
+  BaseEntity,
+  DynamicApiOptions,
+  DynamicAPISchemaOptions,
+  DynamicAPISchemaOptionsInterface,
+  SoftDeletableEntity,
+} from '../src';
 
 function buildDynamicApiModuleOptionsMock(
   { entity, controllerOptions, routes }: Partial<DynamicApiOptions<any>> = {},
   { indexes, hooks }: Partial<DynamicAPISchemaOptionsInterface> = {},
   softDeletable = false,
 ): DynamicApiOptions<any> {
-  @DynamicAPISchemaOptions({
-    indexes,
-    hooks,
-  })
+  // @ts-ignore
+  @DynamicAPISchemaOptions({ indexes, hooks })
+  // @ts-ignore
   @Schema()
   class PersonEntity extends (softDeletable
     ? BaseEntity
     : SoftDeletableEntity) {
+    // @ts-ignore
     @ApiProperty()
+    // @ts-ignore
     @IsNotEmpty()
+    // @ts-ignore
     @IsString()
     name: string;
 
+    // @ts-ignore
     @ApiPropertyOptional()
+    // @ts-ignore
     @IsPositive()
+    // @ts-ignore
     @IsInt()
+    // @ts-ignore
     @IsOptional()
     age?: number;
   }

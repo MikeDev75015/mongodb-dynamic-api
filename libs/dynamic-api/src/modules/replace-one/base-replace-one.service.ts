@@ -1,7 +1,7 @@
-import { BaseEntity } from '@dynamic-api';
-import { ReplaceOneService } from '@dynamic-api/modules';
-import { BaseService } from '@dynamic-api/services';
 import { Model } from 'mongoose';
+import { BaseEntity } from '../../models';
+import { BaseService } from '../../services';
+import { ReplaceOneService } from './replace-one-service.interface';
 
 export abstract class BaseReplaceOneService<Entity extends BaseEntity>
   extends BaseService<Entity>

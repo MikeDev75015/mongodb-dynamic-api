@@ -1,5 +1,6 @@
-import { BaseEntity, BaseService } from '@dynamic-api';
 import { BadRequestException } from '@nestjs/common';
+import { BaseEntity } from '../models';
+import { BaseService } from './base.service';
 
 describe('BaseService', () => {
   class TestEntity extends BaseEntity {

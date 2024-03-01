@@ -1,5 +1,5 @@
-import { BaseEntity } from '@dynamic-api';
 import { Type } from '@nestjs/common';
+import { BaseEntity } from '../models';
 
 type RouteType =
   | 'GetMany'

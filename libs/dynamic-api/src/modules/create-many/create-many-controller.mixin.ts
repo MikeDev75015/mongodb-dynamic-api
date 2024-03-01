@@ -1,14 +1,13 @@
-import { BaseEntity, DTOsBundle, EntityBodyMixin, EntityPresenterMixin } from '@dynamic-api';
-import {
-  CreateManyController,
-  CreateManyControllerConstructor,
-  CreateManyService,
-} from '@dynamic-api/modules';
 import { Body, Type } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
 import { ArrayMinSize, IsInstance, ValidateNested } from 'class-validator';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { RouteDecoratorsHelper } from '../../helpers';
+import { DTOsBundle } from '../../interfaces';
+import { EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
+import { BaseEntity } from '../../models';
+import { CreateManyController, CreateManyControllerConstructor } from './create-many-controller.interface';
+import { CreateManyService } from './create-many-service.interface';
 
 function CreateManyControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
