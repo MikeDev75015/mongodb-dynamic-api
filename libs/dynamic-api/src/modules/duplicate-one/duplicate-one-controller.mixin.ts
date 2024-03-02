@@ -29,7 +29,7 @@ function DuplicateOneControllerMixin<Entity extends BaseEntity>(
 
   if (!CustomBody) {
     Object.defineProperty(RouteBody, 'name', {
-      value: `DuplicateOne${displayedName}Body`,
+      value: `DuplicateOne${displayedName}Dto`,
       writable: false,
     });
   }

@@ -22,7 +22,7 @@ function CreateOneControllerMixin<Entity extends BaseEntity>(
 
   if (!CustomBody) {
     Object.defineProperty(RouteBody, 'name', {
-      value: `CreateOne${displayedName}Body`,
+      value: `CreateOne${displayedName}Dto`,
       writable: false,
     });
   }

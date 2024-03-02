@@ -29,7 +29,7 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
 
   if (!CustomBody) {
     Object.defineProperty(RouteBody, 'name', {
-      value: `UpdateOne${displayedName}Body`,
+      value: `UpdateOne${displayedName}Dto`,
       writable: false,
     });
   }

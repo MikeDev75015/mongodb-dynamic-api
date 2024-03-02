@@ -29,7 +29,7 @@ function ReplaceOneControllerMixin<Entity extends BaseEntity>(
 
   if (!CustomBody) {
     Object.defineProperty(RouteBody, 'name', {
-      value: `ReplaceOne${displayedName}Body`,
+      value: `ReplaceOne${displayedName}Dto`,
       writable: false,
     });
   }
