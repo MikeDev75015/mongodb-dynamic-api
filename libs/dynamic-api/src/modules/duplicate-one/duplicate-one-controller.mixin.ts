@@ -74,7 +74,7 @@ function DuplicateOneControllerMixin<Entity extends BaseEntity>(
     }
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
-    async duplicateOne(@Param('id') id: string, @Body() body: RouteBody) {
+    async duplicateOne(@Param('id') id: string, @Body() body?: RouteBody) {
       return this.service.duplicateOne(id, body as any);
     }
   }
