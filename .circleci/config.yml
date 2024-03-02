@@ -303,12 +303,16 @@ workflows:
 
   ci-sonar-workflow:
     when:
-      equal: [ << pipeline.git.tag >>, sonar ]
+      or:
+        - equal: [ << pipeline.git.branch >>, main ]
+        - equal: [ << pipeline.git.branch >>, develop ]
     jobs:
       - dependencies-job:
           filters:
             branches:
-              only: sonar
+              only:
+                - develop
+                - main
       - sonarcloud-job:
           requires:
             - dependencies-job
@@ -317,7 +321,9 @@ workflows:
             - SLACK
           filters:
             branches:
-              only: sonar
+              only:
+                - develop
+                - main
 
   ci-deploy-tag-workflow:
     when:
