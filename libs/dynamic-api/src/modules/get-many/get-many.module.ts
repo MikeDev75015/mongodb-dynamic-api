@@ -1,4 +1,4 @@
-import { DynamicModule, Module, Type } from '@nestjs/common';
+import { DynamicModule, Module, Type, ValidationPipeOptions } from '@nestjs/common';
 import { DTOsBundle } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import {
@@ -16,6 +16,7 @@ export class GetManyModule {
     version?: string,
     description?: string,
     DTOs?: DTOsBundle,
+    validationPipeOptions?: ValidationPipeOptions,
   ): DynamicModule {
     const controller = createGetManyController(
       entity,
@@ -24,6 +25,7 @@ export class GetManyModule {
       version,
       description,
       DTOs,
+      validationPipeOptions,
     );
     const ServiceProvider = createGetManyServiceProvider(entity);
 

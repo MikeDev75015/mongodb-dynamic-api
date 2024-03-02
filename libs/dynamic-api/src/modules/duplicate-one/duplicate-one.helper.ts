@@ -3,7 +3,7 @@ import {
   Inject,
   Type,
   UsePipes,
-  ValidationPipe,
+  ValidationPipe, ValidationPipeOptions,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
@@ -55,15 +55,12 @@ function createDuplicateOneController<Entity extends BaseEntity>(
   version?: string,
   description?: string,
   DTOs?: DTOsBundle,
+  validationPipeOptions?: ValidationPipeOptions,
 ): DuplicateOneControllerConstructor<Entity> {
   @Controller({ path, version })
   @ApiTags(apiTag || entity.name)
   @UsePipes(
-    new ValidationPipe({
-      forbidNonWhitelisted: true,
-      transform: true,
-      whitelist: true,
-    }),
+    new ValidationPipe(validationPipeOptions ?? { transform: true }),
   )
   class DuplicateOneController extends DuplicateOneControllerMixin(
     entity,
