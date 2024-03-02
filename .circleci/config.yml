@@ -204,8 +204,6 @@ jobs:
     steps:
       - checkout
       - *restore-cache
-      - delete-tag-command:
-          tag: sonar
       - unit-tests-not-parallelized-command
       - sonarcloud/scan
       - *notify-fail
