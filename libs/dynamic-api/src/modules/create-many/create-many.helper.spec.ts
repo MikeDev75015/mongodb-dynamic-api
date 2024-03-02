@@ -47,7 +47,7 @@ describe('CreateManyHelper', () => {
       expect(controller).toBeDefined();
       expect(controller['service']).toBe(service);
 
-      await controller.createMany<{ list: any[] }>({ list: [{ unit: 'test' }] });
+      await controller.createMany({ list: [{ unit: 'test' }] });
 
       expect(spyServiceCreateMany).toHaveBeenCalledWith([{ unit: 'test' }]);
     });

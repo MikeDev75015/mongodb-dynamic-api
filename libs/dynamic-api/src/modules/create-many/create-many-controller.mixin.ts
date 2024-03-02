@@ -1,6 +1,7 @@
 import { Body, Type } from '@nestjs/common';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, PickType } from '@nestjs/swagger';
 import { ArrayMinSize, IsInstance, ValidateNested } from 'class-validator';
+import { Type as TypeTransformer } from 'class-transformer';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { RouteDecoratorsHelper } from '../../helpers';
 import { DTOsBundle } from '../../interfaces';
@@ -26,10 +27,11 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
     @ValidateNested({ each: true })
     @IsInstance(DtoBody, { each: true })
     @ArrayMinSize(1)
+    @TypeTransformer(() => DtoBody)
     list: DtoBody[];
   }
 
-  class RouteBody extends (CustomBody ?? CreateManyBody) {}
+  class RouteBody extends PickType(CustomBody ?? CreateManyBody, ['list']) {}
 
   if (!CustomBody) {
     Object.defineProperty(RouteBody, 'name', {
