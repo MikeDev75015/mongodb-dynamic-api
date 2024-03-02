@@ -2,7 +2,7 @@ import { BaseEntity } from '../../models';
 import { CreateManyService } from './create-many-service.interface';
 
 interface CreateManyController<Entity extends BaseEntity> {
-  createMany<Body>(body: Body): Promise<Entity[]>;
+  createMany(body: { list: any }): Promise<Entity[]>;
 }
 
 type CreateManyControllerConstructor<Entity extends BaseEntity> = new (
