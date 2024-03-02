@@ -66,7 +66,10 @@ class RouteDecoratorsBuilder<Entity extends BaseEntity> {
         type: this.presenter ?? this.entity,
         isArray: this.responseRouteTypeIsArray.includes(this.routeType),
       }),
-      ...(this.body ? [ApiBody({ type: this.body })] : []),
+      ...(this.body ? [ApiBody({
+        type: this.body,
+        ...(this.routeType === 'DuplicateOne' ? { required: false } : {})
+      })] : []),
       ...(this.param && paramKey
         ? [
             ApiParam({

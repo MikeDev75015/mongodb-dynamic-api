@@ -2,7 +2,7 @@ import { BaseEntity } from '../../models';
 import { DuplicateOneService } from './duplicate-one-service.interface';
 
 interface DuplicateOneController<Entity extends BaseEntity> {
-  duplicateOne(id: string, partial: Partial<Entity>): Promise<Entity>;
+  duplicateOne(id: string, body?: Partial<Entity>): Promise<Entity>;
 }
 
 type DuplicateOneControllerConstructor<Entity extends BaseEntity> = new (
