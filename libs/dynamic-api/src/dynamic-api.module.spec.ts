@@ -116,123 +116,274 @@ describe('DynamicApiModule', () => {
       );
     });
 
-    it('should import route modules', () => {
-      const spyCreateManyModule = jest.spyOn(CreateManyModule, 'forFeature');
-      const createManyRoute: RouteConfig<any> = { type: 'CreateMany' };
-      const spyCreateOneModule = jest.spyOn(CreateOneModule, 'forFeature');
-      const createOneRoute: RouteConfig<any> = { type: 'CreateOne' };
-      const spyDeleteOneModule = jest.spyOn(DeleteOneModule, 'forFeature');
-      const deleteOneRoute: RouteConfig<any> = { type: 'DeleteOne' };
-      const spyDuplicateOneModule = jest.spyOn(
-        DuplicateOneModule,
-        'forFeature',
-      );
-      const duplicateOneRoute: RouteConfig<any> = { type: 'DuplicateOne' };
-      const spyGetManyModule = jest.spyOn(GetManyModule, 'forFeature');
-      const getManyRoute: RouteConfig<any> = { type: 'GetMany' };
-      const spyGetOneModule = jest.spyOn(GetOneModule, 'forFeature');
-      const getOneRoute: RouteConfig<any> = { type: 'GetOne' };
-      const spyReplaceOneModule = jest.spyOn(ReplaceOneModule, 'forFeature');
-      const replaceOneRoute: RouteConfig<any> = { type: 'ReplaceOne' };
-      const spyUpdateOneModule = jest.spyOn(UpdateOneModule, 'forFeature');
-      const updateOneRoute: RouteConfig<any> = { type: 'UpdateOne' };
+    describe('with routes', () => {
+      let spyCreateManyModule: jest.SpyInstance;
+      let spyCreateOneModule: jest.SpyInstance;
+      let spyDeleteOneModule: jest.SpyInstance;
+      let spyDuplicateOneModule: jest.SpyInstance;
+      let spyGetManyModule: jest.SpyInstance;
+      let spyGetOneModule: jest.SpyInstance;
+      let spyReplaceOneModule: jest.SpyInstance;
+      let spyUpdateOneModule: jest.SpyInstance;
 
-      const options = buildDynamicApiModuleOptionsMock({
-        routes: [
-          createManyRoute,
-          createOneRoute,
-          deleteOneRoute,
-          duplicateOneRoute,
-          getManyRoute,
-          getOneRoute,
-          replaceOneRoute,
-          updateOneRoute,
-        ],
+      class fakeQuery {}
+
+      class fakeParam {}
+
+      class fakeBody {}
+
+      class fakeManyBody {list: any[];}
+
+      class fakePresenter {}
+
+      beforeEach(() => {
+        spyCreateManyModule = jest.spyOn(CreateManyModule, 'forFeature');
+        spyCreateOneModule = jest.spyOn(CreateOneModule, 'forFeature');
+        spyDeleteOneModule = jest.spyOn(DeleteOneModule, 'forFeature');
+        spyDuplicateOneModule = jest.spyOn(DuplicateOneModule, 'forFeature');
+        spyGetManyModule = jest.spyOn(GetManyModule, 'forFeature');
+        spyGetOneModule = jest.spyOn(GetOneModule, 'forFeature');
+        spyReplaceOneModule = jest.spyOn(ReplaceOneModule, 'forFeature');
+        spyUpdateOneModule = jest.spyOn(UpdateOneModule, 'forFeature');
       });
 
-      const module = DynamicApiModule.forFeature(options);
+      it('should import route modules with controller options', () => {
+        const createManyRoute: RouteConfig<any> = { type: 'CreateMany' };
+        const createOneRoute: RouteConfig<any> = { type: 'CreateOne' };
+        const deleteOneRoute: RouteConfig<any> = { type: 'DeleteOne' };
+        const duplicateOneRoute: RouteConfig<any> = { type: 'DuplicateOne' };
+        const getManyRoute: RouteConfig<any> = { type: 'GetMany' };
+        const getOneRoute: RouteConfig<any> = { type: 'GetOne' };
+        const replaceOneRoute: RouteConfig<any> = { type: 'ReplaceOne' };
+        const updateOneRoute: RouteConfig<any> = { type: 'UpdateOne' };
 
-      expect(module.imports.length).toStrictEqual(8);
-      expect(spyCreateManyModule).toHaveBeenCalledWith(
-        fakeDatabaseModule,
-        options.entity,
-        options.controllerOptions.path,
-        options.controllerOptions.apiTag,
-        options.controllerOptions.version,
-        createOneRoute.description,
-        createOneRoute.dTOs,
-        createManyRoute.validationPipeOptions ?? options.controllerOptions.validationPipeOptions,
-      );
-      expect(spyCreateOneModule).toHaveBeenCalledWith(
-        fakeDatabaseModule,
-        options.entity,
-        options.controllerOptions.path,
-        options.controllerOptions.apiTag,
-        options.controllerOptions.version,
-        createOneRoute.description,
-        createOneRoute.dTOs,
-        createOneRoute.validationPipeOptions ?? options.controllerOptions.validationPipeOptions,
-      );
-      expect(spyDeleteOneModule).toHaveBeenCalledWith(
-        fakeDatabaseModule,
-        options.entity,
-        options.controllerOptions.path,
-        options.controllerOptions.apiTag,
-        options.controllerOptions.version,
-        deleteOneRoute.description,
-        deleteOneRoute.dTOs,
-        deleteOneRoute.validationPipeOptions ?? options.controllerOptions.validationPipeOptions,
-      );
-      expect(spyDuplicateOneModule).toHaveBeenCalledWith(
-        fakeDatabaseModule,
-        options.entity,
-        options.controllerOptions.path,
-        options.controllerOptions.apiTag,
-        options.controllerOptions.version,
-        duplicateOneRoute.description,
-        duplicateOneRoute.dTOs,
-        duplicateOneRoute.validationPipeOptions ?? options.controllerOptions.validationPipeOptions,
-      );
-      expect(spyGetManyModule).toHaveBeenCalledWith(
-        fakeDatabaseModule,
-        options.entity,
-        options.controllerOptions.path,
-        options.controllerOptions.apiTag,
-        options.controllerOptions.version,
-        getManyRoute.description,
-        getManyRoute.dTOs,
-        getManyRoute.validationPipeOptions ?? options.controllerOptions.validationPipeOptions,
-      );
-      expect(spyGetOneModule).toHaveBeenCalledWith(
-        fakeDatabaseModule,
-        options.entity,
-        options.controllerOptions.path,
-        options.controllerOptions.apiTag,
-        options.controllerOptions.version,
-        getOneRoute.description,
-        getOneRoute.dTOs,
-        getOneRoute.validationPipeOptions ?? options.controllerOptions.validationPipeOptions,
-      );
-      expect(spyReplaceOneModule).toHaveBeenCalledWith(
-        fakeDatabaseModule,
-        options.entity,
-        options.controllerOptions.path,
-        options.controllerOptions.apiTag,
-        options.controllerOptions.version,
-        replaceOneRoute.description,
-        replaceOneRoute.dTOs,
-        replaceOneRoute.validationPipeOptions ?? options.controllerOptions.validationPipeOptions,
-      );
-      expect(spyUpdateOneModule).toHaveBeenCalledWith(
-        fakeDatabaseModule,
-        options.entity,
-        options.controllerOptions.path,
-        options.controllerOptions.apiTag,
-        options.controllerOptions.version,
-        updateOneRoute.description,
-        updateOneRoute.dTOs,
-        updateOneRoute.validationPipeOptions ?? options.controllerOptions.validationPipeOptions,
-      );
+        const options = buildDynamicApiModuleOptionsMock({
+          controllerOptions: { path: 'fake-path', version: '1', validationPipeOptions: { transform: true } },
+          routes: [
+            createManyRoute,
+            createOneRoute,
+            deleteOneRoute,
+            duplicateOneRoute,
+            getManyRoute,
+            getOneRoute,
+            replaceOneRoute,
+            updateOneRoute,
+          ],
+        });
+
+        const module = DynamicApiModule.forFeature(options);
+
+        expect(module.imports.length).toStrictEqual(8);
+        expect(spyCreateManyModule).toHaveBeenCalledWith(
+          fakeDatabaseModule,
+          options.entity,
+          { path: options.controllerOptions.path, apiTag: undefined },
+          { description: undefined, dTOs: undefined },
+          options.controllerOptions.version,
+          options.controllerOptions.validationPipeOptions,
+        );
+        expect(spyCreateOneModule).toHaveBeenCalledWith(
+          fakeDatabaseModule,
+          options.entity,
+          { path: options.controllerOptions.path, apiTag: undefined },
+          { description: undefined, dTOs: undefined },
+          options.controllerOptions.version,
+          options.controllerOptions.validationPipeOptions,
+        );
+        expect(spyDeleteOneModule).toHaveBeenCalledWith(
+          fakeDatabaseModule,
+          options.entity,
+          { path: options.controllerOptions.path, apiTag: undefined },
+          { description: undefined, dTOs: undefined },
+          options.controllerOptions.version,
+          options.controllerOptions.validationPipeOptions,
+        );
+        expect(spyDuplicateOneModule).toHaveBeenCalledWith(
+          fakeDatabaseModule,
+          options.entity,
+          { path: options.controllerOptions.path, apiTag: undefined },
+          { description: undefined, dTOs: undefined },
+          options.controllerOptions.version,
+          options.controllerOptions.validationPipeOptions,
+        );
+        expect(spyGetManyModule).toHaveBeenCalledWith(
+          fakeDatabaseModule,
+          options.entity,
+          { path: options.controllerOptions.path, apiTag: undefined },
+          { description: undefined, dTOs: undefined },
+          options.controllerOptions.version,
+          options.controllerOptions.validationPipeOptions,
+        );
+        expect(spyGetOneModule).toHaveBeenCalledWith(
+          fakeDatabaseModule,
+          options.entity,
+          { path: options.controllerOptions.path, apiTag: undefined },
+          { description: undefined, dTOs: undefined },
+          options.controllerOptions.version,
+          options.controllerOptions.validationPipeOptions,
+        );
+        expect(spyReplaceOneModule).toHaveBeenCalledWith(
+          fakeDatabaseModule,
+          options.entity,
+          { path: options.controllerOptions.path, apiTag: undefined },
+          { description: undefined, dTOs: undefined },
+          options.controllerOptions.version,
+          options.controllerOptions.validationPipeOptions,
+        );
+        expect(spyUpdateOneModule).toHaveBeenCalledWith(
+          fakeDatabaseModule,
+          options.entity,
+          { path: options.controllerOptions.path, apiTag: undefined },
+          { description: undefined, dTOs: undefined },
+          options.controllerOptions.version,
+          options.controllerOptions.validationPipeOptions,
+        );
+      });
+
+      it('should import route modules with route options', () => {
+        const createManyRoute: RouteConfig<any> = {
+          type: 'CreateMany',
+          description: 'Create many items',
+          dTOs: { body: fakeManyBody, presenter: fakePresenter },
+          version: '2',
+          validationPipeOptions: { forbidNonWhitelisted: true },
+        };
+        const createOneRoute: RouteConfig<any> = {
+          type: 'CreateOne',
+          description: 'Create one item',
+          dTOs: { body: fakeBody, presenter: fakePresenter },
+          version: '2',
+          validationPipeOptions: { forbidNonWhitelisted: true },
+        };
+        const deleteOneRoute: RouteConfig<any> = {
+          type: 'DeleteOne',
+          description: 'Delete one item',
+          version: '2',
+          validationPipeOptions: { forbidNonWhitelisted: true },
+        };
+        const duplicateOneRoute: RouteConfig<any> = {
+          type: 'DuplicateOne',
+          description: 'Duplicate one item',
+          dTOs: { body: fakeBody, presenter: fakePresenter },
+          version: '2',
+          validationPipeOptions: { forbidNonWhitelisted: true },
+        };
+        const getManyRoute: RouteConfig<any> = {
+          type: 'GetMany',
+          description: 'Get many items',
+          dTOs: { query: fakeQuery, presenter: fakePresenter },
+          version: '2',
+          validationPipeOptions: { forbidNonWhitelisted: true },
+        };
+        const getOneRoute: RouteConfig<any> = {
+          type: 'GetOne',
+          description: 'Get one item',
+          dTOs: { param: fakeParam, presenter: fakePresenter },
+          version: '2',
+          validationPipeOptions: { forbidNonWhitelisted: true },
+        };
+        const replaceOneRoute: RouteConfig<any> = {
+          type: 'ReplaceOne',
+          description: 'Replace one item',
+          dTOs: { body: fakeBody, presenter: fakePresenter },
+          version: '2',
+          validationPipeOptions: { forbidNonWhitelisted: true },
+        };
+        const updateOneRoute: RouteConfig<any> = {
+          type: 'UpdateOne',
+          description: 'Update one item',
+          dTOs: { body: fakeBody, presenter: fakePresenter },
+          version: '2',
+          validationPipeOptions: { forbidNonWhitelisted: true },
+        };
+
+        const options = buildDynamicApiModuleOptionsMock({
+          controllerOptions: {
+            path: 'fake-path',
+            apiTag: 'Tag',
+            version: '1',
+            validationPipeOptions: { transform: true },
+          },
+          routes: [
+            createManyRoute,
+            createOneRoute,
+            deleteOneRoute,
+            duplicateOneRoute,
+            getManyRoute,
+            getOneRoute,
+            replaceOneRoute,
+            updateOneRoute,
+          ],
+        });
+
+        const module = DynamicApiModule.forFeature(options);
+
+        expect(module.imports.length).toStrictEqual(8);
+        expect(spyCreateManyModule).toHaveBeenCalledWith(
+          fakeDatabaseModule,
+          options.entity,
+          { path: options.controllerOptions.path, apiTag: options.controllerOptions.apiTag },
+          { description: createManyRoute.description, dTOs: createManyRoute.dTOs },
+          createManyRoute.version,
+          createManyRoute.validationPipeOptions,
+        );
+        expect(spyCreateOneModule).toHaveBeenCalledWith(
+          fakeDatabaseModule,
+          options.entity,
+          { path: options.controllerOptions.path, apiTag: options.controllerOptions.apiTag },
+          { description: createOneRoute.description, dTOs: createOneRoute.dTOs },
+          createOneRoute.version,
+          createOneRoute.validationPipeOptions,
+        );
+        expect(spyDeleteOneModule).toHaveBeenCalledWith(
+          fakeDatabaseModule,
+          options.entity,
+          { path: options.controllerOptions.path, apiTag: options.controllerOptions.apiTag },
+          { description: deleteOneRoute.description, dTOs: deleteOneRoute.dTOs },
+          deleteOneRoute.version,
+          deleteOneRoute.validationPipeOptions,
+        );
+        expect(spyDuplicateOneModule).toHaveBeenCalledWith(
+          fakeDatabaseModule,
+          options.entity,
+          { path: options.controllerOptions.path, apiTag: options.controllerOptions.apiTag },
+          { description: duplicateOneRoute.description, dTOs: duplicateOneRoute.dTOs },
+          duplicateOneRoute.version,
+          duplicateOneRoute.validationPipeOptions,
+        );
+        expect(spyGetManyModule).toHaveBeenCalledWith(
+          fakeDatabaseModule,
+          options.entity,
+          { path: options.controllerOptions.path, apiTag: options.controllerOptions.apiTag },
+          { description: getManyRoute.description, dTOs: getManyRoute.dTOs },
+          getManyRoute.version,
+          getManyRoute.validationPipeOptions,
+        );
+        expect(spyGetOneModule).toHaveBeenCalledWith(
+          fakeDatabaseModule,
+          options.entity,
+          { path: options.controllerOptions.path, apiTag: options.controllerOptions.apiTag },
+          { description: getOneRoute.description, dTOs: getOneRoute.dTOs },
+          getOneRoute.version,
+          getOneRoute.validationPipeOptions,
+        );
+        expect(spyReplaceOneModule).toHaveBeenCalledWith(
+          fakeDatabaseModule,
+          options.entity,
+          { path: options.controllerOptions.path, apiTag: options.controllerOptions.apiTag },
+          { description: replaceOneRoute.description, dTOs: replaceOneRoute.dTOs },
+          replaceOneRoute.version,
+          replaceOneRoute.validationPipeOptions,
+        );
+        expect(spyUpdateOneModule).toHaveBeenCalledWith(
+          fakeDatabaseModule,
+          options.entity,
+          { path: options.controllerOptions.path, apiTag: options.controllerOptions.apiTag },
+          { description: updateOneRoute.description, dTOs: updateOneRoute.dTOs },
+          updateOneRoute.version,
+          updateOneRoute.validationPipeOptions,
+        );
+      });
     });
   });
 });
