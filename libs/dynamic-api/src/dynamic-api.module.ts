@@ -53,6 +53,7 @@ export class DynamicApiModule {
     ) as DynamicAPISchemaOptionsInterface ?? {};
 
     const schema = SchemaFactory.createForClass(entity);
+    schema.set('timestamps', true);
 
     if (indexes) {
       indexes.forEach(({ fields, options }) => {
