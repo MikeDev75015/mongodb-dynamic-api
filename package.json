@@ -15,6 +15,7 @@
     "test:ci:junit": "jest --ci --runInBand --coverage --testResultsProcessor=jest-junit",
     "test:ci:sonar": "jest --ci --runInBand --coverage --testResultsProcessor=jest-sonar-reporter",
     "pre-release-tag": "git tag -f prerelease && git push -f origin prerelease",
+    "release-tag": "git tag -f release && git push -f origin release",
     "prerelease": "release-it --ci --preRelease=beta --no-git.requireUpstream",
     "release": "release-it --ci",
     "publish-prerelease": "npm publish ./dist --tag prerelease",
