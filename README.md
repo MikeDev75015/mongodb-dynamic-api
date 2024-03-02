@@ -56,17 +56,135 @@
 
 <p style="text-align: justify; width: 100%;font-size: 15px;">
 
-**mongodb-dynamic-api** is an auto generated CRUD API for MongoDB using NestJS.
+**mongodb-dynamic-api** is an auto generated CRUD API for MongoDB using NestJS 10.
 
 </p>
 
 ---
 
 ## npm package <img src="https://pbs.twimg.com/media/EDoWJbUXYAArclg.png" width="24" height="24" />
-
-`npm i -S mongodb-dynamic-api`
+```text
+npm install --save mongodb-dynamic-api
+```
 
 
 ---
+### HOW TO ENJOY IT
+
+- Start a new [nest](https://docs.nestjs.com/) project with **typescript** (use the `--strict` option)
+```text
+nest new --strict your-project-name
+```
+
+- Go to your project root and install the [mongodb-dynamic-api](https://www.npmjs.com/package/mongodb-dynamic-api) package
+```text
+npm i -S mongodb-dynamic-api
+```
+
+- Add DynamicApiModule to your app.module.ts and pass the MongoDB connection string to the `forRoot` method
+```typescript
+@Module({
+  imports: [
+    // ...
+    DynamicApiModule.forRoot(
+      // <- pass the MongoDB connection string here
+    ),
+    // ...
+  ],
+  controllers: [AppController],
+  providers: [AppService],
+})
+export class AppModule {}
+```
+
+- Ok, now let's add our first content. This content will be a simple `User` with a `name` and an `email` field.
+```typescript
+// user.ts
+@Schema({ collection: 'users' })
+export class User extends BaseEntity { // <- you must extend BaseEntity
+  @Prop({ type: String })
+  name: string;
+
+  @Prop({ type: String })
+  email: string;
+}
+```
+```typescript
+// users.module.ts
+@Module({
+  imports: [
+    DynamicApiModule.forFeature({ // <- use the forFeature method to add the User content
+      entity: User,
+      controllerOptions: {
+        path: 'users',
+      },
+    }),
+  ],
+})
+export class UsersModule {}
+```
+```typescript
+// app.module.ts
+@Module({
+  imports: [
+    // ...
+    DynamicApiModule.forRoot('...'),
+    UsersModule, // <- add the module to the imports after the DynamicApiModule
+  ],
+  controllers: [AppController],
+  providers: [AppService],
+})
+export class AppModule {}
+```
+
+**That's all !** *You now have a fully functional CRUD API for the `User` content at the `/users` path.*
+
+___
+### Swagger (optional but recommended)
+```typescript
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  // ...
+  enableDynamicAPISwagger(app); // <- add this line in your main.ts file
+
+  await app.listen(3000);
+}
+```
+The `enableDynamicAPISwagger` function will automatically build the swagger documentation.
+This method can be called with optional parameters to specify more documentation options.
+
+Do not forget to add the `@ApiProperty` decorator to your entity properties to have a better swagger documentation.
+```typescript
+// user.entity.ts
+@Schema({ collection: 'users' })
+export class UserEntity extends BaseEntity {
+  @ApiProperty() // <- add this line
+  @Prop({ type: String })
+  name: string;
+  
+  @ApiProperty() // <- add this line
+  @Prop({ type: String })
+  email: string;
+}
+```
+
+go to the swagger API path (default to `/openapi`) and you will see the auto generated API
 
 
+![User API](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/images/dynamic-api-user-full.Jpeg?raw=true "User API")
+
+[more screenshots](/README/swagger.md)
+
+___
+### Versioning (optional)
+```typescript
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  // ...
+  enableDynamicAPIVersioning(app); // <- add this line in your main.ts file
+
+  await app.listen(3000);
+}
+```
+The `enableDynamicAPIVersioning` function will automatically add versioning to the API. By default it will use the URI versioning type.
+This method can be called with a second optional parameter to specify more options.
