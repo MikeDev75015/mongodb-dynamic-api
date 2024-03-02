@@ -106,8 +106,11 @@ commands:
           name: Create the auto-<< parameters.branch >> branch
           command: git checkout -q -b auto-<< parameters.branch >>
       - run:
+          name: Push the auto-<< parameters.branch >> branch on remote
+          command: git push -q https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git auto-<< parameters.branch >>
+      - run:
           name: Prepare auto-<< parameters.branch >> with release-it
-          command: npm run << parameters.branch >>
+          command: npm run auto-<< parameters.branch >>
       - when:
           condition:
             equal: [ << parameters.branch >>, prerelease ]
@@ -148,13 +151,13 @@ commands:
           steps:
             - run:
                 name: Merge the auto-<< parameters.branch >> branch PR into main
-                command: gh pr merge auto-<< parameters.branch >> -R ${GH_OWNER}/${GH_REPO} --auto -r
-            - run:
-                name: Create a pull request to merge into the develop branch
-                command: gh pr create -H auto-<< parameters.branch >> -R ${GH_OWNER}/${GH_REPO} -f -B develop
-            - run:
-                name: Merge the PR into develop and delete the auto-<< parameters.branch >> branch
                 command: gh pr merge auto-<< parameters.branch >> -R ${GH_OWNER}/${GH_REPO} --auto -r -d
+            - run:
+                name: Create a pull request from main to the develop branch
+                command: |
+                  VERSION_NUMBER=v$(jq -r '.version' package.json)
+                  echo ${VERSION_NUMBER}
+                  gh pr create -R ${GH_OWNER}/${GH_REPO} -H main -B develop --fill-verbose -t "Back merge ${VERSION_NUMBER} created automatically from CircleCI"
 
   copy-files-command:
     description: "Copy all the required files to dist directory"
