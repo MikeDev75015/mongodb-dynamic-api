@@ -1,4 +1,4 @@
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, VersioningOptions, VersioningType } from '@nestjs/common';
 import { DocumentBuilder, OpenAPIObject, SwaggerDocumentOptions, SwaggerModule } from '@nestjs/swagger';
 import versionFile from '../version.json';
 
@@ -7,18 +7,28 @@ interface DynamicAPISwaggerOptions {
   description?: string;
   version?: string;
   path?: string;
-  swaggerConfig?: Omit<OpenAPIObject, "paths">;
+  swaggerConfig?: Omit<OpenAPIObject, 'paths'>;
   swaggerOptions?: SwaggerDocumentOptions;
+}
+
+function enableDynamicAPIVersioning(
+  app: INestApplication,
+  options?: VersioningOptions,
+) {
+  app.enableVersioning({
+    type: VersioningType.URI,
+    ...options,
+  });
 }
 
 function enableDynamicAPISwagger(
   app: INestApplication,
-  options?: DynamicAPISwaggerOptions
+  options?: DynamicAPISwaggerOptions,
 ) {
   const {
     title = 'MongoDB Dynamic API',
     description = 'Auto generated CRUD for MongoDB',
-    version = versionFile?.version,
+    version = versionFile?.version?.split('-beta')[0],
     path = '/api',
     swaggerOptions,
     swaggerConfig,
@@ -39,4 +49,4 @@ function enableDynamicAPISwagger(
   );
 }
 
-export { enableDynamicAPISwagger };
+export { enableDynamicAPISwagger, enableDynamicAPIVersioning };
