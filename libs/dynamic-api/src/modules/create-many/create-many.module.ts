@@ -1,5 +1,5 @@
 import { DynamicModule, Module, Type, ValidationPipeOptions } from '@nestjs/common';
-import { DTOsBundle } from '../../interfaces';
+import { ControllerOptions, RouteConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import {
   createCreateManyController,
@@ -11,11 +11,9 @@ export class CreateManyModule {
   static forFeature<Entity extends BaseEntity>(
     databaseModule: DynamicModule,
     entity: Type<Entity>,
-    path: string,
-    apiTag?: string,
+    { path, apiTag }: ControllerOptions,
+    { description, dTOs: DTOs }: RouteConfig<Entity>,
     version?: string,
-    description?: string,
-    DTOs?: DTOsBundle,
     validationPipeOptions?: ValidationPipeOptions,
   ): DynamicModule {
     const controller = createCreateManyController(

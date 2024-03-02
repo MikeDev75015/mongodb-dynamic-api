@@ -17,7 +17,7 @@ import {
 
 @Module({})
 export class DynamicApiModule {
-  static connectionName = 'dynamic-api-connection';
+  static readonly connectionName = 'dynamic-api-connection';
 
   static forRoot(uri: string): DynamicModule {
     if (!uri) {
@@ -98,11 +98,10 @@ export class DynamicApiModule {
         .map(({
           type,
           description,
-          version: routeVersion,
           dTOs,
+          version: routeVersion,
           validationPipeOptions: routeValidationPipeOptions,
         }) => {
-          const version = routeVersion ?? controllerVersion;
 
           let module: CreateManyModule
             | CreateOneModule
@@ -154,11 +153,9 @@ export class DynamicApiModule {
           return module.forFeature(
             databaseModule,
             entity,
-            path,
-            apiTag,
-            version,
-            description,
-            dTOs,
+            { path, apiTag },
+            { description, dTOs },
+            routeVersion ?? controllerVersion,
             routeValidationPipeOptions ?? controllerValidationPipeOptions,
           );
         })
