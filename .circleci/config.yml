@@ -135,11 +135,6 @@ commands:
           name: Copy README.md to dist
           command: cp -rf README.md dist
       - run:
-          name: Copy swagger.md to dist
-          command: |
-            mkdir -p dist/README
-            cp -rf README/swagger.md dist/README/swagger.md
-      - run:
           name: Copy CHANGELOG.md to dist
           command: cp -rf CHANGELOG.md dist
       - run:

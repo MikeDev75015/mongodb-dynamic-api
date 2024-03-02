@@ -173,7 +173,7 @@ go to the swagger API path (default to `/openapi`) and you will see the auto gen
 
 ![User API](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/images/dynamic-api-user-full.Jpeg?raw=true "User API")
 
-[more screenshots](/README/swagger.md)
+[more screenshots](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/swagger.md)
 
 ___
 ### Versioning (optional)
