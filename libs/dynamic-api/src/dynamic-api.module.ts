@@ -1,5 +1,6 @@
 import { DynamicModule, Module } from '@nestjs/common';
 import { MongooseModule, SchemaFactory } from '@nestjs/mongoose';
+import { lowerCase } from 'lodash';
 import { DYNAMIC_API_SCHEMA_OPTIONS_METADATA } from './decorators';
 import {
   DynamicApiOptions,
@@ -41,13 +42,14 @@ export class DynamicApiModule {
 
   static forFeature<Entity extends BaseEntity>({
     entity,
-    controllerOptions: { path, apiTag, version: apiVersion },
-    routes,
+    controllerOptions: { path, apiTag, version: controllerVersion },
+    routes = [],
   }: DynamicApiOptions<Entity>): DynamicModule {
     const { indexes, hooks } = Reflect.getOwnMetadata(
       DYNAMIC_API_SCHEMA_OPTIONS_METADATA,
       entity,
-    ) as DynamicAPISchemaOptionsInterface;
+    ) as DynamicAPISchemaOptionsInterface ?? {};
+
     const schema = SchemaFactory.createForClass(entity);
 
     if (indexes) {
@@ -72,12 +74,26 @@ export class DynamicApiModule {
       DynamicApiModule.connectionName,
     );
 
+    if (!routes.length) {
+      const contentName = lowerCase(entity.name);
+      routes = [
+        { type: 'GetMany', description: `Get many ${contentName}` },
+        { type: 'GetOne', description: `Get one ${contentName} by id` },
+        { type: 'CreateMany', description: `Create many ${contentName}` },
+        { type: 'CreateOne', description: `Create one ${contentName}` },
+        { type: 'ReplaceOne', description: `Replace one ${contentName}` },
+        { type: 'UpdateOne', description: `Update one ${contentName}` },
+        { type: 'DuplicateOne', description: `Duplicate one ${contentName}` },
+        { type: 'DeleteOne', description: `Delete one ${contentName}` },
+      ];
+    }
+
     return {
       module: DynamicApiModule,
       imports: [
         ...routes
           .map(({ type, description, version: routeVersion, dTOs }) => {
-            const version = routeVersion ?? apiVersion;
+            const version = routeVersion ?? controllerVersion;
 
             switch (type) {
               case 'CreateMany':

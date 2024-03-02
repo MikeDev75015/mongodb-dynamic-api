@@ -52,7 +52,7 @@ function buildDynamicApiModuleOptionsMock(
       path: 'persons',
       ...controllerOptions,
     },
-    routes: routes ?? [],
+    routes,
   };
 }
 
