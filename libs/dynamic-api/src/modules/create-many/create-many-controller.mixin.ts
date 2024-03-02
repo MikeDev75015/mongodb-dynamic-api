@@ -22,6 +22,12 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
   const { body: CustomBody, presenter: CustomPresenter } = DTOs ?? {};
 
   class DtoBody extends EntityBodyMixin(entity) {}
+
+  Object.defineProperty(DtoBody, 'name', {
+    value: `${displayedName}Dto`,
+    writable: false,
+  });
+
   class CreateManyBody {
     @ApiProperty({ type: [DtoBody] })
     @ValidateNested({ each: true })
@@ -35,7 +41,7 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
 
   if (!CustomBody) {
     Object.defineProperty(RouteBody, 'name', {
-      value: `CreateMany${displayedName}Body`,
+      value: `CreateMany${displayedName}Dto`,
       writable: false,
     });
   }
