@@ -9,7 +9,8 @@ import {
   DuplicateOneModule,
   GetManyModule,
   GetOneModule,
-  ReplaceOneModule, UpdateOneModule,
+  ReplaceOneModule,
+  UpdateOneModule,
 } from './modules';
 
 describe('DynamicApiModule', () => {
@@ -42,8 +43,8 @@ describe('DynamicApiModule', () => {
     beforeEach(() => {
       defaultOptions = buildDynamicApiModuleOptionsMock();
       jest
-        .spyOn(MongooseModule, 'forFeature')
-        .mockReturnValue(fakeDatabaseModule as any);
+      .spyOn(MongooseModule, 'forFeature')
+      .mockReturnValue(fakeDatabaseModule as any);
     });
 
     it('should call MongooseModule.forFeature with DynamicApiModule.connectionName', () => {
@@ -65,8 +66,8 @@ describe('DynamicApiModule', () => {
     it('should add schema indexes', () => {
       const fakeSchema = { index: jest.fn() };
       jest
-        .spyOn(SchemaFactory, 'createForClass')
-        .mockReturnValue(fakeSchema as any);
+      .spyOn(SchemaFactory, 'createForClass')
+      .mockReturnValue(fakeSchema as any);
       const indexes = [
         { fields: { name: 1 }, options: { unique: true } },
         { fields: { age: -1 } },
@@ -92,8 +93,8 @@ describe('DynamicApiModule', () => {
     it('should add schema hooks', () => {
       const fakeSchema = { pre: jest.fn() };
       jest
-        .spyOn(SchemaFactory, 'createForClass')
-        .mockReturnValue(fakeSchema as any);
+      .spyOn(SchemaFactory, 'createForClass')
+      .mockReturnValue(fakeSchema as any);
       const hooks = [{ type: 'save', method: 'pre', callback: jest.fn() }];
       const options = buildDynamicApiModuleOptionsMock({}, {
         hooks,
@@ -164,6 +165,7 @@ describe('DynamicApiModule', () => {
         options.controllerOptions.version,
         createOneRoute.description,
         createOneRoute.dTOs,
+        createManyRoute.validationPipeOptions ?? options.controllerOptions.validationPipeOptions,
       );
       expect(spyCreateOneModule).toHaveBeenCalledWith(
         fakeDatabaseModule,
@@ -173,6 +175,7 @@ describe('DynamicApiModule', () => {
         options.controllerOptions.version,
         createOneRoute.description,
         createOneRoute.dTOs,
+        createOneRoute.validationPipeOptions ?? options.controllerOptions.validationPipeOptions,
       );
       expect(spyDeleteOneModule).toHaveBeenCalledWith(
         fakeDatabaseModule,
@@ -182,6 +185,7 @@ describe('DynamicApiModule', () => {
         options.controllerOptions.version,
         deleteOneRoute.description,
         deleteOneRoute.dTOs,
+        deleteOneRoute.validationPipeOptions ?? options.controllerOptions.validationPipeOptions,
       );
       expect(spyDuplicateOneModule).toHaveBeenCalledWith(
         fakeDatabaseModule,
@@ -191,6 +195,7 @@ describe('DynamicApiModule', () => {
         options.controllerOptions.version,
         duplicateOneRoute.description,
         duplicateOneRoute.dTOs,
+        duplicateOneRoute.validationPipeOptions ?? options.controllerOptions.validationPipeOptions,
       );
       expect(spyGetManyModule).toHaveBeenCalledWith(
         fakeDatabaseModule,
@@ -200,6 +205,7 @@ describe('DynamicApiModule', () => {
         options.controllerOptions.version,
         getManyRoute.description,
         getManyRoute.dTOs,
+        getManyRoute.validationPipeOptions ?? options.controllerOptions.validationPipeOptions,
       );
       expect(spyGetOneModule).toHaveBeenCalledWith(
         fakeDatabaseModule,
@@ -209,6 +215,7 @@ describe('DynamicApiModule', () => {
         options.controllerOptions.version,
         getOneRoute.description,
         getOneRoute.dTOs,
+        getOneRoute.validationPipeOptions ?? options.controllerOptions.validationPipeOptions,
       );
       expect(spyReplaceOneModule).toHaveBeenCalledWith(
         fakeDatabaseModule,
@@ -218,6 +225,7 @@ describe('DynamicApiModule', () => {
         options.controllerOptions.version,
         replaceOneRoute.description,
         replaceOneRoute.dTOs,
+        replaceOneRoute.validationPipeOptions ?? options.controllerOptions.validationPipeOptions,
       );
       expect(spyUpdateOneModule).toHaveBeenCalledWith(
         fakeDatabaseModule,
@@ -227,6 +235,7 @@ describe('DynamicApiModule', () => {
         options.controllerOptions.version,
         updateOneRoute.description,
         updateOneRoute.dTOs,
+        updateOneRoute.validationPipeOptions ?? options.controllerOptions.validationPipeOptions,
       );
     });
   });

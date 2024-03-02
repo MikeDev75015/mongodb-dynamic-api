@@ -2,10 +2,7 @@ import { DynamicModule, Module } from '@nestjs/common';
 import { MongooseModule, SchemaFactory } from '@nestjs/mongoose';
 import { lowerCase } from 'lodash';
 import { DYNAMIC_API_SCHEMA_OPTIONS_METADATA } from './decorators';
-import {
-  DynamicApiOptions,
-  DynamicAPISchemaOptionsInterface,
-} from './interfaces';
+import { DynamicApiOptions, DynamicAPISchemaOptionsInterface } from './interfaces';
 import { BaseEntity } from './models';
 import {
   CreateManyModule,
@@ -42,7 +39,12 @@ export class DynamicApiModule {
 
   static forFeature<Entity extends BaseEntity>({
     entity,
-    controllerOptions: { path, apiTag, version: controllerVersion },
+    controllerOptions: {
+      path,
+      apiTag,
+      version: controllerVersion,
+      validationPipeOptions: controllerValidationPipeOptions,
+    },
     routes = [],
   }: DynamicApiOptions<Entity>): DynamicModule {
     const { indexes, hooks } = Reflect.getOwnMetadata(
@@ -92,103 +94,74 @@ export class DynamicApiModule {
       module: DynamicApiModule,
       imports: [
         ...routes
-          .map(({ type, description, version: routeVersion, dTOs }) => {
-            const version = routeVersion ?? controllerVersion;
+        .map(({
+          type,
+          description,
+          version: routeVersion,
+          dTOs,
+          validationPipeOptions: routeValidationPipeOptions,
+        }) => {
+          const version = routeVersion ?? controllerVersion;
 
-            switch (type) {
-              case 'CreateMany':
-                return CreateManyModule.forFeature(
-                  databaseModule,
-                  entity,
-                  path,
-                  apiTag,
-                  version,
-                  description,
-                  dTOs,
-                );
+          let module: CreateManyModule
+            | CreateOneModule
+            | DeleteOneModule
+            | DuplicateOneModule
+            | GetManyModule
+            | GetOneModule
+            | ReplaceOneModule
+            | UpdateOneModule;
 
-              case 'CreateOne':
-                return CreateOneModule.forFeature(
-                  databaseModule,
-                  entity,
-                  path,
-                  apiTag,
-                  version,
-                  description,
-                  dTOs,
-                );
+          switch (type) {
+            case 'CreateMany':
+              module = CreateManyModule;
+              break;
 
-              case 'DeleteOne':
-                return DeleteOneModule.forFeature(
-                  databaseModule,
-                  entity,
-                  path,
-                  apiTag,
-                  version,
-                  description,
-                  dTOs,
-                );
+            case 'CreateOne':
+              module = CreateOneModule;
+              break;
 
-              case 'DuplicateOne':
-                return DuplicateOneModule.forFeature(
-                  databaseModule,
-                  entity,
-                  path,
-                  apiTag,
-                  version,
-                  description,
-                  dTOs,
-                );
+            case 'DeleteOne':
+              module = DeleteOneModule;
+              break;
 
-              case 'GetMany':
-                return GetManyModule.forFeature(
-                  databaseModule,
-                  entity,
-                  path,
-                  apiTag,
-                  version,
-                  description,
-                  dTOs,
-                );
+            case 'DuplicateOne':
+              module = DuplicateOneModule;
+              break;
 
-              case 'GetOne':
-                return GetOneModule.forFeature(
-                  databaseModule,
-                  entity,
-                  path,
-                  apiTag,
-                  version,
-                  description,
-                  dTOs,
-                );
+            case 'GetMany':
+              module = GetManyModule;
+              break;
 
-              case 'ReplaceOne':
-                return ReplaceOneModule.forFeature(
-                  databaseModule,
-                  entity,
-                  path,
-                  apiTag,
-                  version,
-                  description,
-                  dTOs,
-                );
+            case 'GetOne':
+              module = GetOneModule;
+              break;
 
-              case 'UpdateOne':
-                return UpdateOneModule.forFeature(
-                  databaseModule,
-                  entity,
-                  path,
-                  apiTag,
-                  version,
-                  description,
-                  dTOs,
-                );
+            case 'ReplaceOne':
+              module = ReplaceOneModule;
+              break;
 
-              default:
-                throw new Error(`Route for ${type} is not implemented`);
-            }
-          })
-          .filter((module) => module),
+            case 'UpdateOne':
+              module = UpdateOneModule;
+              break;
+
+            default:
+              throw new Error(`Route for ${type} is not implemented`);
+          }
+
+          // @ts-ignore
+          return module.forFeature(
+            databaseModule,
+            entity,
+            path,
+            apiTag,
+            version,
+            description,
+            dTOs,
+            routeValidationPipeOptions ?? controllerValidationPipeOptions,
+          );
+        })
+        .filter((module) => module),
       ],
     };
   }

@@ -1,4 +1,4 @@
-import { Type } from '@nestjs/common';
+import { Type, ValidationPipeOptions } from '@nestjs/common';
 import { BaseEntity } from '../models';
 
 type RouteType =
@@ -24,6 +24,7 @@ interface RouteConfig<Entity extends BaseEntity> {
   description?: string;
   version?: string;
   dTOs?: DTOsBundle;
+  validationPipeOptions?: ValidationPipeOptions;
 }
 
 export { DTOsBundle, RouteType, RouteConfig };
