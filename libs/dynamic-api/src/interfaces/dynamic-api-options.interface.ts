@@ -11,5 +11,5 @@ interface ControllerOptions {
 export interface DynamicApiOptions<Entity extends BaseEntity> {
   entity: Type<Entity>;
   controllerOptions: ControllerOptions;
-  routes: RouteConfig<Entity>[];
+  routes?: RouteConfig<Entity>[];
 }

@@ -59,7 +59,7 @@ describe('DynamicApiModule', () => {
         [{ name: entity.name, schema: expect.any(Object) }],
         DynamicApiModule.connectionName,
       );
-      expect(module.imports.length).toStrictEqual(0);
+      expect(module.imports.length).toStrictEqual(8);
     });
 
     it('should add schema indexes', () => {
