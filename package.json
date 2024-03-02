@@ -2,9 +2,6 @@
   "name": "mongodb-dynamic-api",
   "version": "1.2.0-beta.6",
   "description": "Auto generated CRUD API for MongoDB using NestJS",
-  "author": "Mickaël NODANCHE <mikeonline75@gmail.com> (https://cv-mikeonline.web.app)",
-  "homepage": "https://mikedev75015.github.io",
-  "license": "MIT",
   "readmeFilename": "README.md",
   "main": "index.js",
   "types": "index.d.ts",
@@ -33,6 +30,12 @@
     "dynamic-api",
     "crud"
   ],
+  "author": "Mickaël NODANCHE <mikeonline75@gmail.com> (https://cv-mikeonline.web.app)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/MikeDev75015/mongodb-dynamic-api/issues"
+  },
+  "homepage": "https://mikedev75015.github.io",
   "dependencies": {
     "@nestjs/common": "^10.3.2",
     "@nestjs/core": "^10.3.2",
