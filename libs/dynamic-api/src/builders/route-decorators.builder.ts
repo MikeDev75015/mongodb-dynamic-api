@@ -7,6 +7,7 @@ import { BaseEntity } from '../models';
 class RouteDecoratorsBuilder<Entity extends BaseEntity> {
   private readonly responseRouteTypeIsArray: RouteType[] = [
     'GetMany',
+    'CreateMany',
   ];
 
   constructor(
