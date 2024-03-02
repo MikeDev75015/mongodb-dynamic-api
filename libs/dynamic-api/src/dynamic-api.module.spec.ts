@@ -39,9 +39,13 @@ describe('DynamicApiModule', () => {
   describe('forFeature', () => {
     let defaultOptions: ReturnType<typeof buildDynamicApiModuleOptionsMock>;
     const fakeDatabaseModule = { module: 'fake-database-module' };
+    const fakeSchema = { index: jest.fn(), pre: jest.fn(), set: jest.fn() };
 
     beforeEach(() => {
       defaultOptions = buildDynamicApiModuleOptionsMock();
+      jest
+      .spyOn(SchemaFactory, 'createForClass')
+      .mockReturnValue(fakeSchema as any);
       jest
       .spyOn(MongooseModule, 'forFeature')
       .mockReturnValue(fakeDatabaseModule as any);
@@ -64,10 +68,6 @@ describe('DynamicApiModule', () => {
     });
 
     it('should add schema indexes', () => {
-      const fakeSchema = { index: jest.fn() };
-      jest
-      .spyOn(SchemaFactory, 'createForClass')
-      .mockReturnValue(fakeSchema as any);
       const indexes = [
         { fields: { name: 1 }, options: { unique: true } },
         { fields: { age: -1 } },
@@ -91,10 +91,6 @@ describe('DynamicApiModule', () => {
     });
 
     it('should add schema hooks', () => {
-      const fakeSchema = { pre: jest.fn() };
-      jest
-      .spyOn(SchemaFactory, 'createForClass')
-      .mockReturnValue(fakeSchema as any);
       const hooks = [{ type: 'save', method: 'pre', callback: jest.fn() }];
       const options = buildDynamicApiModuleOptionsMock({}, {
         hooks,

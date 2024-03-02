@@ -12,7 +12,7 @@ export abstract class BaseDuplicateOneService<Entity extends BaseEntity>
     super(model);
   }
 
-  async duplicateOne(id: string, partial: Partial<Entity>): Promise<Entity> {
+  async duplicateOne(id: string, partial: Partial<Entity> | undefined): Promise<Entity> {
     try {
       const toDuplicate = await this.model
         .findOne({
