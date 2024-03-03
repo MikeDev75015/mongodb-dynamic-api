@@ -1,7 +1,7 @@
 import { DynamicModule, Module } from '@nestjs/common';
 import { MongooseModule, SchemaFactory } from '@nestjs/mongoose';
-import { lowerCase } from 'lodash';
 import { DYNAMIC_API_SCHEMA_OPTIONS_METADATA } from './decorators';
+import { getDefaultRouteDescription } from './helpers';
 import { DynamicApiOptions, DynamicAPISchemaOptionsInterface } from './interfaces';
 import { BaseEntity } from './models';
 import {
@@ -78,16 +78,15 @@ export class DynamicApiModule {
     );
 
     if (!routes.length) {
-      const contentName = lowerCase(entity.name);
       routes = [
-        { type: 'GetMany', description: `Get many ${contentName}` },
-        { type: 'GetOne', description: `Get one ${contentName} by id` },
-        { type: 'CreateMany', description: `Create many ${contentName}` },
-        { type: 'CreateOne', description: `Create one ${contentName}` },
-        { type: 'ReplaceOne', description: `Replace one ${contentName}` },
-        { type: 'UpdateOne', description: `Update one ${contentName}` },
-        { type: 'DuplicateOne', description: `Duplicate one ${contentName}` },
-        { type: 'DeleteOne', description: `Delete one ${contentName}` },
+        { type: 'GetMany' },
+        { type: 'GetOne' },
+        { type: 'CreateMany' },
+        { type: 'CreateOne' },
+        { type: 'ReplaceOne' },
+        { type: 'UpdateOne' },
+        { type: 'DuplicateOne' },
+        { type: 'DeleteOne' },
       ];
     }
 
@@ -97,8 +96,8 @@ export class DynamicApiModule {
         ...routes
         .map(({
           type,
-          description,
           dTOs,
+          description: routeDescription,
           version: routeVersion,
           validationPipeOptions: routeValidationPipeOptions,
         }) => {
@@ -148,6 +147,8 @@ export class DynamicApiModule {
             default:
               throw new Error(`Route for ${type} is not implemented`);
           }
+
+          const description = routeDescription ?? getDefaultRouteDescription(type, entity.name);
 
           // @ts-ignore
           return module.forFeature(
