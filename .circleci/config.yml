@@ -480,7 +480,7 @@ workflows:
   cd-prerelease-version-workflow:
     when:
       matches:
-        pattern: /^\d+\.\d+\.\d+\-beta\.\d+$/
+        pattern: /^v\d+\.\d+\.\d+\-beta\.\d+$/
         value: << pipeline.git.tag >>
     jobs:
       - dependencies-job:
@@ -489,7 +489,7 @@ workflows:
               ignore: /.*/
             tags:
               only:
-                - /^\d+\.\d+\.\d+\-beta\.\d+$/
+                - /^v\d+\.\d+\.\d+\-beta\.\d+$/
       - publish-release-job:
           name: publish-prerelease-job
           requires:
@@ -504,12 +504,12 @@ workflows:
               ignore: /.*/
             tags:
               only:
-                - /^\d+\.\d+\.\d+\-beta\.\d+$/
+                - /^v\d+\.\d+\.\d+\-beta\.\d+$/
 
   cd-release-version-workflow:
     when:
       matches:
-        pattern: /^\d+\.\d+\.\d+$/
+        pattern: /^v\d+\.\d+\.\d+$/
         value: << pipeline.git.tag >>
     jobs:
       - dependencies-job:
@@ -518,7 +518,7 @@ workflows:
               ignore: /.*/
             tags:
               only:
-                - /^\d+\.\d+\.\d+$/
+                - /^v\d+\.\d+\.\d+$/
       - publish-release-job:
           requires:
             - dependencies-job
@@ -532,7 +532,7 @@ workflows:
               ignore: /.*/
             tags:
               only:
-                - /^\d+\.\d+\.\d+$/
+                - /^v\d+\.\d+\.\d+$/
 
   ci-try-workflow:
     when:
