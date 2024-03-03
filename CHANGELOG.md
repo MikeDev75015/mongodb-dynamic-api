@@ -1,5 +1,12 @@
 Changelog
 
+## [1.2.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v1.1.0...v1.2.0) (2024-03-03)
+
+
+### api
+
+* **api:** add default route description if not specified ([733b42a](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/733b42a6dab49c39370fdd4094b7f08288e54c5b))
+
 ## 1.1.0 (2024-03-03)
 
 
