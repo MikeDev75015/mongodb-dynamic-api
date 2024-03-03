@@ -1,3 +1,4 @@
+export * from './format.helper';
 export * from './route-decorators.helper';
 export * from './route-description.helper';
 export * from './swagger-config.helper';
