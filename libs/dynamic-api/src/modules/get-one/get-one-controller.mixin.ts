@@ -1,7 +1,7 @@
 import { Param, Type } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityParam, EntityQuery } from '../../dtos';
-import { RouteDecoratorsHelper } from '../../helpers';
+import { pascalCase, RouteDecoratorsHelper } from '../../helpers';
 import { DTOsBundle } from '../../interfaces';
 import { EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
@@ -16,7 +16,7 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
   description?: string,
   DTOs?: DTOsBundle,
 ): GetOneControllerConstructor<Entity> {
-  const displayedName = apiTag ?? entity.name;
+  const displayedName = pascalCase(apiTag) ?? entity.name;
   const {
     param: CustomParam,
     query: CustomQuery,
@@ -29,7 +29,7 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
 
   if (!CustomParam) {
     Object.defineProperty(RouteParam, 'name', {
-      value: `GetOne${displayedName}Param`,
+      value: `GetOne${displayedName}${version ? 'V' + version : ''}Param`,
       writable: false,
     });
   }
@@ -40,7 +40,7 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
 
   if (!CustomQuery) {
     Object.defineProperty(RouteQuery, 'name', {
-      value: `GetOne${displayedName}Query`,
+      value: `GetOne${displayedName}${version ? 'V' + version : ''}Query`,
       writable: false,
     });
   }
@@ -51,7 +51,7 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
 
   if (!CustomPresenter) {
     Object.defineProperty(RoutePresenter, 'name', {
-      value: `${displayedName}Presenter`,
+      value: `${displayedName}${version ? 'V' + version : ''}Presenter`,
       writable: false,
     });
   }
@@ -59,6 +59,7 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
   const routeDecoratorsBuilder = new RouteDecoratorsBuilder(
     'GetOne',
     entity,
+    version,
     description,
     RouteParam,
     RouteQuery,
@@ -80,7 +81,7 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(BaseGetOneController, 'name', {
-    value: `GetOne${entity.name}Controller`,
+    value: `BaseGetOne${entity.name}${version ? 'V' + version : ''}Controller`,
     writable: false,
   });
 

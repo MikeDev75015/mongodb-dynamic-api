@@ -116,6 +116,16 @@ describe('DynamicApiModule', () => {
       );
     });
 
+    it('should throw an error if version not match a numeric string', () => {
+      const options = buildDynamicApiModuleOptionsMock({
+        controllerOptions: { path: '/version', version: 'v1' },
+      });
+
+      expect(() => DynamicApiModule.forFeature(options)).toThrowError(
+        'Invalid version v1 for GetMany route. Version must be a string that matches numeric format, e.g. 1, 2, 3, ..., 99.',
+      );
+    });
+
     describe('with routes', () => {
       let spyCreateManyModule: jest.SpyInstance;
       let spyCreateOneModule: jest.SpyInstance;

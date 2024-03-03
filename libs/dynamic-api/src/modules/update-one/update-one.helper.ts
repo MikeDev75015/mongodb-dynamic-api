@@ -16,12 +16,13 @@ import { UpdateOneControllerConstructor } from './update-one-controller.interfac
 import { UpdateOneControllerMixin } from './update-one-controller.mixin';
 import { UpdateOneService } from './update-one-service.interface';
 
-function provideServiceName(entityName) {
-  return `UpdateOne${entityName}Service`;
+function provideServiceName(entityName, version: string | undefined) {
+  return `UpdateOne${entityName}${version ? 'V' + version : ''}Service`;
 }
 
 function createUpdateOneServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
+  version: string | undefined,
 ): ServiceProvider {
   class UpdateOneService extends BaseUpdateOneService<Entity> {
     protected readonly entity = entity;
@@ -38,12 +39,12 @@ function createUpdateOneServiceProvider<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(UpdateOneService, 'name', {
-    value: provideServiceName(entity.name),
+    value: provideServiceName(entity.name, version),
     writable: false,
   });
 
   return {
-    provide: provideServiceName(entity.name),
+    provide: provideServiceName(entity.name, version),
     useClass: UpdateOneService,
   };
 }
@@ -71,7 +72,7 @@ function createUpdateOneController<Entity extends BaseEntity>(
     DTOs,
   ) {
     constructor(
-      @Inject(provideServiceName(entity.name))
+      @Inject(provideServiceName(entity.name, version))
       protected readonly service: UpdateOneService<Entity>,
     ) {
       super(service);
@@ -79,7 +80,7 @@ function createUpdateOneController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(UpdateOneController, 'name', {
-    value: `UpdateOne${entity.name}Controller`,
+    value: `UpdateOne${entity.name}${version ? 'V' + version : ''}Controller`,
     writable: false,
   });
 

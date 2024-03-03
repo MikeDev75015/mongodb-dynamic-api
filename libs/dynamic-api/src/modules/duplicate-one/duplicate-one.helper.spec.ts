@@ -15,11 +15,11 @@ describe('DuplicateOneHelper', () => {
 
   describe('createDuplicateOneServiceProvider', () => {
     it('should return DuplicateOne provider', () => {
-      const { provide, useClass } = createDuplicateOneServiceProvider(entity);
+      const { provide, useClass } = createDuplicateOneServiceProvider(entity, '1');
       const service = new useClass(model);
 
-      expect(provide).toBe(`DuplicateOne${entity.name}Service`);
-      expect(useClass.name).toBe(`DuplicateOne${entity.name}Service`);
+      expect(provide).toBe(`DuplicateOne${entity.name}V1Service`);
+      expect(useClass.name).toBe(`DuplicateOne${entity.name}V1Service`);
       expect(service.entity).toBe(entity);
     });
   });
@@ -34,11 +34,11 @@ describe('DuplicateOneHelper', () => {
         'description',
       );
 
-      expect(controllerClass.name).toBe(`DuplicateOne${entity.name}Controller`);
+      expect(controllerClass.name).toBe(`DuplicateOne${entity.name}V1Controller`);
     });
 
     it('should instantiate DuplicateOne controller with default values', async () => {
-      const { useClass } = createDuplicateOneServiceProvider(entity);
+      const { useClass } = createDuplicateOneServiceProvider(entity, undefined);
       const service = new useClass(model);
       const controllerClass = createDuplicateOneController(entity, 'path');
       const controller = new controllerClass(service);

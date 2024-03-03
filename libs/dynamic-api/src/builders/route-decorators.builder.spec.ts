@@ -18,7 +18,6 @@ describe('RouteDecoratorsBuilder', () => {
     routeDecoratorsBuilder = new RouteDecoratorsBuilder(
       'FakeRouteType' as RouteType,
       entity,
-      undefined,
     );
   });
 
@@ -30,17 +29,18 @@ describe('RouteDecoratorsBuilder', () => {
     });
 
     test.each([
-      ['GetMany', undefined, undefined, undefined, undefined, undefined, 3],
-      ['GetOne', undefined, fakeParam, undefined, undefined, undefined, 4],
-      ['CreateOne', undefined, undefined, undefined, fakeBody, undefined, 4],
-      ['UpdateOne', undefined, fakeParam, undefined, undefined, undefined, 4],
-      ['ReplaceOne', undefined, fakeParam, undefined, undefined, undefined, 4],
-      ['DuplicateOne', 'test', fakeParam, undefined, undefined, undefined, 4],
-      ['DeleteOne', undefined, fakeParam, undefined, undefined, undefined, 4],
+      ['GetMany', undefined, undefined, undefined, undefined, undefined, undefined, 3],
+      ['GetOne', undefined, undefined, fakeParam, undefined, undefined, undefined, 4],
+      ['CreateOne', undefined, undefined, undefined, undefined, fakeBody, undefined, 4],
+      ['UpdateOne', undefined, undefined, fakeParam, undefined, undefined, undefined, 4],
+      ['ReplaceOne', undefined, undefined, fakeParam, undefined, undefined, undefined, 4],
+      ['DuplicateOne', undefined, 'test', fakeParam, undefined, undefined, undefined, 4],
+      ['DeleteOne', undefined, undefined, fakeParam, undefined, undefined, undefined, 4],
     ])(
       'should return an array of route decorators for %s',
       (
         routeType,
+        version,
         description,
         param: Type,
         query: Type,
@@ -51,6 +51,7 @@ describe('RouteDecoratorsBuilder', () => {
         routeDecoratorsBuilder = new RouteDecoratorsBuilder(
           routeType as RouteType,
           entity,
+          version,
           description,
           param,
           query,

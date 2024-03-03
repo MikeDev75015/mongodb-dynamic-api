@@ -16,12 +16,13 @@ import { CreateManyControllerConstructor } from './create-many-controller.interf
 import { CreateManyControllerMixin } from './create-many-controller.mixin';
 import { CreateManyService } from './create-many-service.interface';
 
-function provideServiceName(entityName) {
-  return `CreateMany${entityName}Service`;
+function provideServiceName(entityName, version: string | undefined) {
+  return `CreateMany${entityName}${version ? 'V' + version : ''}Service`;
 }
 
 function createCreateManyServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
+  version: string | undefined,
 ): ServiceProvider {
   class CreateManyService extends BaseCreateManyService<Entity> {
     protected readonly entity = entity;
@@ -38,12 +39,12 @@ function createCreateManyServiceProvider<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(CreateManyService, 'name', {
-    value: provideServiceName(entity.name),
+    value: provideServiceName(entity.name, version),
     writable: false,
   });
 
   return {
-    provide: provideServiceName(entity.name),
+    provide: provideServiceName(entity.name, version),
     useClass: CreateManyService,
   };
 }
@@ -71,7 +72,7 @@ function createCreateManyController<Entity extends BaseEntity>(
     DTOs,
   ) {
     constructor(
-      @Inject(provideServiceName(entity.name))
+      @Inject(provideServiceName(entity.name, version))
       protected readonly service: CreateManyService<Entity>,
     ) {
       super(service);
@@ -79,7 +80,7 @@ function createCreateManyController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(CreateManyController, 'name', {
-    value: `CreateMany${entity.name}Controller`,
+    value: `CreateMany${entity.name}${version ? 'V' + version : ''}Controller`,
     writable: false,
   });
 

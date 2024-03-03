@@ -15,11 +15,11 @@ describe('UpdateOneHelper', () => {
 
   describe('createUpdateOneServiceProvider', () => {
     it('should return UpdateOne provider', () => {
-      const { provide, useClass } = createUpdateOneServiceProvider(entity);
+      const { provide, useClass } = createUpdateOneServiceProvider(entity, '1');
       const service = new useClass(model);
 
-      expect(provide).toBe(`UpdateOne${entity.name}Service`);
-      expect(useClass.name).toBe(`UpdateOne${entity.name}Service`);
+      expect(provide).toBe(`UpdateOne${entity.name}V1Service`);
+      expect(useClass.name).toBe(`UpdateOne${entity.name}V1Service`);
       expect(service.entity).toBe(entity);
     });
   });
@@ -34,11 +34,11 @@ describe('UpdateOneHelper', () => {
         'description',
       );
 
-      expect(controllerClass.name).toBe(`UpdateOne${entity.name}Controller`);
+      expect(controllerClass.name).toBe(`UpdateOne${entity.name}V1Controller`);
     });
 
     it('should instantiate UpdateOne controller with default values', async () => {
-      const { useClass } = createUpdateOneServiceProvider(entity);
+      const { useClass } = createUpdateOneServiceProvider(entity, undefined);
       const service = new useClass(model);
       const controllerClass = createUpdateOneController(entity, 'path');
       const controller = new controllerClass(service);

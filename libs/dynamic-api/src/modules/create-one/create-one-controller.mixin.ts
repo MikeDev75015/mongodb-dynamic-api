@@ -1,6 +1,6 @@
 import { Body, Type } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
-import { RouteDecoratorsHelper } from '../../helpers';
+import { pascalCase, RouteDecoratorsHelper } from '../../helpers';
 import { DTOsBundle } from '../../interfaces';
 import { EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
@@ -15,14 +15,14 @@ function CreateOneControllerMixin<Entity extends BaseEntity>(
   description?: string,
   DTOs?: DTOsBundle,
 ): CreateOneControllerConstructor<Entity> {
-  const displayedName = apiTag ?? entity.name;
+  const displayedName = pascalCase(apiTag) ?? entity.name;
   const { body: CustomBody, presenter: CustomPresenter } = DTOs ?? {};
 
   class RouteBody extends (CustomBody ?? EntityBodyMixin(entity)) {}
 
   if (!CustomBody) {
     Object.defineProperty(RouteBody, 'name', {
-      value: `CreateOne${displayedName}Dto`,
+      value: `CreateOne${displayedName}${version ? 'V' + version : ''}Dto`,
       writable: false,
     });
   }
@@ -31,7 +31,7 @@ function CreateOneControllerMixin<Entity extends BaseEntity>(
 
   if (!CustomPresenter) {
     Object.defineProperty(RoutePresenter, 'name', {
-      value: `${displayedName}Presenter`,
+      value: `${displayedName}${version ? 'V' + version : ''}Presenter`,
       writable: false,
     });
   }
@@ -39,6 +39,7 @@ function CreateOneControllerMixin<Entity extends BaseEntity>(
   const routeDecoratorsBuilder = new RouteDecoratorsBuilder(
     'CreateOne',
     entity,
+    version,
     description,
     undefined,
     undefined,
@@ -60,7 +61,7 @@ function CreateOneControllerMixin<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(BaseCreateOneController, 'name', {
-    value: `CreateOne${entity.name}Controller`,
+    value: `BaseCreateOne${entity.name}${version ? 'V' + version : ''}Controller`,
     writable: false,
   });
 

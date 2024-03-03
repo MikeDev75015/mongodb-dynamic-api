@@ -25,7 +25,7 @@ export class UpdateOneModule {
       DTOs,
       validationPipeOptions,
     );
-    const ServiceProvider = createUpdateOneServiceProvider(entity);
+    const ServiceProvider = createUpdateOneServiceProvider(entity, version);
 
     return {
       module: UpdateOneModule,

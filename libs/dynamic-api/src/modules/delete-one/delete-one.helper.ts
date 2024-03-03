@@ -16,12 +16,13 @@ import { DeleteOneControllerConstructor } from './delete-one-controller.interfac
 import { DeleteOneControllerMixin } from './delete-one-controller.mixin';
 import { DeleteOneService } from './delete-one-service.interface';
 
-function provideServiceName(entityName) {
-  return `DeleteOne${entityName}Service`;
+function provideServiceName(entityName, version: string | undefined) {
+  return `DeleteOne${entityName}${version ? 'V' + version : ''}Service`;
 }
 
 function createDeleteOneServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
+  version: string | undefined,
 ): ServiceProvider {
   class DeleteOneService extends BaseDeleteOneService<Entity> {
     protected readonly entity = entity;
@@ -38,12 +39,12 @@ function createDeleteOneServiceProvider<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(DeleteOneService, 'name', {
-    value: provideServiceName(entity.name),
+    value: provideServiceName(entity.name, version),
     writable: false,
   });
 
   return {
-    provide: provideServiceName(entity.name),
+    provide: provideServiceName(entity.name, version),
     useClass: DeleteOneService,
   };
 }
@@ -71,7 +72,7 @@ function createDeleteOneController<Entity extends BaseEntity>(
     DTOs,
   ) {
     constructor(
-      @Inject(provideServiceName(entity.name))
+      @Inject(provideServiceName(entity.name, version))
       protected readonly service: DeleteOneService<Entity>,
     ) {
       super(service);
@@ -79,7 +80,7 @@ function createDeleteOneController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(DeleteOneController, 'name', {
-    value: `DeleteOne${entity.name}Controller`,
+    value: `DeleteOne${entity.name}${version ? 'V' + version : ''}Controller`,
     writable: false,
   });
 

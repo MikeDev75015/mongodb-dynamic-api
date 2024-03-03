@@ -15,11 +15,11 @@ describe('GetOneHelper', () => {
 
   describe('createGetOneServiceProvider', () => {
     it('should return GetOne provider', () => {
-      const { provide, useClass } = createGetOneServiceProvider(entity);
+      const { provide, useClass } = createGetOneServiceProvider(entity, '1');
       const service = new useClass(model);
 
-      expect(provide).toBe(`GetOne${entity.name}Service`);
-      expect(useClass.name).toBe(`GetOne${entity.name}Service`);
+      expect(provide).toBe(`GetOne${entity.name}V1Service`);
+      expect(useClass.name).toBe(`GetOne${entity.name}V1Service`);
       expect(service.entity).toBe(entity);
     });
   });
@@ -34,11 +34,11 @@ describe('GetOneHelper', () => {
         'description',
       );
 
-      expect(controllerClass.name).toBe(`GetOne${entity.name}Controller`);
+      expect(controllerClass.name).toBe(`GetOne${entity.name}V1Controller`);
     });
 
     it('should instantiate GetOne controller with default values', async () => {
-      const { useClass } = createGetOneServiceProvider(entity);
+      const { useClass } = createGetOneServiceProvider(entity, undefined);
       const service = new useClass(model);
       const controllerClass = createGetOneController(entity, 'path');
       const controller = new controllerClass(service);

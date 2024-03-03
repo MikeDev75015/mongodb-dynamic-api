@@ -16,12 +16,13 @@ import { GetOneControllerConstructor } from './get-one-controller.interface';
 import { GetOneControllerMixin } from './get-one-controller.mixin';
 import { GetOneService } from './get-one-service.interface';
 
-function provideServiceName(entityName) {
-  return `GetOne${entityName}Service`;
+function provideServiceName(entityName, version: string | undefined) {
+  return `GetOne${entityName}${version ? 'V' + version : ''}Service`;
 }
 
 function createGetOneServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
+  version: string | undefined,
 ): ServiceProvider {
   class GetOneService extends BaseGetOneService<Entity> {
     protected readonly entity = entity;
@@ -38,12 +39,12 @@ function createGetOneServiceProvider<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(GetOneService, 'name', {
-    value: provideServiceName(entity.name),
+    value: provideServiceName(entity.name, version),
     writable: false,
   });
 
   return {
-    provide: provideServiceName(entity.name),
+    provide: provideServiceName(entity.name, version),
     useClass: GetOneService,
   };
 }
@@ -71,7 +72,7 @@ function createGetOneController<Entity extends BaseEntity>(
     DTOs,
   ) {
     constructor(
-      @Inject(provideServiceName(entity.name))
+      @Inject(provideServiceName(entity.name, version))
       protected readonly service: GetOneService<Entity>,
     ) {
       super(service);
@@ -79,7 +80,7 @@ function createGetOneController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(GetOneController, 'name', {
-    value: `GetOne${entity.name}Controller`,
+    value: `GetOne${entity.name}${version ? 'V' + version : ''}Controller`,
     writable: false,
   });
 
