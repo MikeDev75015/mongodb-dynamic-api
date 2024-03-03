@@ -25,7 +25,7 @@ export class CreateManyModule {
       DTOs,
       validationPipeOptions,
     );
-    const ServiceProvider = createCreateManyServiceProvider(entity);
+    const ServiceProvider = createCreateManyServiceProvider(entity, version);
 
     return {
       module: CreateManyModule,

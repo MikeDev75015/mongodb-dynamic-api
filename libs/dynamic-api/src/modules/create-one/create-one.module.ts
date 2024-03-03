@@ -25,7 +25,7 @@ export class CreateOneModule {
       DTOs,
       validationPipeOptions,
     );
-    const ServiceProvider = createCreateOneServiceProvider(entity);
+    const ServiceProvider = createCreateOneServiceProvider(entity, version);
 
     return {
       module: CreateOneModule,

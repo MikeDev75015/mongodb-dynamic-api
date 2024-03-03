@@ -1,7 +1,7 @@
 import { Query, Type } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityQuery } from '../../dtos';
-import { RouteDecoratorsHelper } from '../../helpers';
+import { pascalCase, RouteDecoratorsHelper } from '../../helpers';
 import { DTOsBundle } from '../../interfaces';
 import { EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
@@ -16,7 +16,7 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
   description?: string,
   DTOs?: DTOsBundle,
 ): GetManyControllerConstructor<Entity> {
-  const displayedName = apiTag ?? entity.name;
+  const displayedName = pascalCase(apiTag) ?? entity.name;
   const { query: CustomQuery, presenter: CustomPresenter } = DTOs ?? {};
 
   class RouteQuery extends (
@@ -25,7 +25,7 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
 
   if (!CustomQuery) {
     Object.defineProperty(RouteQuery, 'name', {
-      value: `GetMany${displayedName}Query`,
+      value: `GetMany${displayedName}${version ? 'V' + version : ''}Query`,
       writable: false,
     });
   }
@@ -36,7 +36,7 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
 
   if (!CustomPresenter) {
     Object.defineProperty(RoutePresenter, 'name', {
-      value: `${displayedName}Presenter`,
+      value: `${displayedName}${version ? 'V' + version : ''}Presenter`,
       writable: false,
     });
   }
@@ -44,6 +44,7 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
   const routeDecoratorsBuilder = new RouteDecoratorsBuilder(
     'GetMany',
     entity,
+    version,
     description,
     undefined,
     RouteQuery,
@@ -65,7 +66,7 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(BaseGetManyController, 'name', {
-    value: `GetMany${entity.name}Controller`,
+    value: `BaseGetMany${entity.name}${version ? 'V' + version : ''}Controller`,
     writable: false,
   });
 

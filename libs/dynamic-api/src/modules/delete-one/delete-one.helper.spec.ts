@@ -15,11 +15,11 @@ describe('DeleteOneHelper', () => {
 
   describe('createDeleteOneServiceProvider', () => {
     it('should return DeleteOne provider', () => {
-      const { provide, useClass } = createDeleteOneServiceProvider(entity);
+      const { provide, useClass } = createDeleteOneServiceProvider(entity, '1');
       const service = new useClass(model);
 
-      expect(provide).toBe(`DeleteOne${entity.name}Service`);
-      expect(useClass.name).toBe(`DeleteOne${entity.name}Service`);
+      expect(provide).toBe(`DeleteOne${entity.name}V1Service`);
+      expect(useClass.name).toBe(`DeleteOne${entity.name}V1Service`);
       expect(service.entity).toBe(entity);
     });
   });
@@ -34,11 +34,11 @@ describe('DeleteOneHelper', () => {
         'description',
       );
 
-      expect(controllerClass.name).toBe(`DeleteOne${entity.name}Controller`);
+      expect(controllerClass.name).toBe(`DeleteOne${entity.name}V1Controller`);
     });
 
     it('should instantiate DeleteOne controller with default values', async () => {
-      const { useClass } = createDeleteOneServiceProvider(entity);
+      const { useClass } = createDeleteOneServiceProvider(entity, undefined);
       const service = new useClass(model);
       const controllerClass = createDeleteOneController(entity, 'path');
       const controller = new controllerClass(service);

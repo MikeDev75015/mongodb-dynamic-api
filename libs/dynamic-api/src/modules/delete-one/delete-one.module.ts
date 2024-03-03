@@ -25,7 +25,7 @@ export class DeleteOneModule {
       DTOs,
       validationPipeOptions,
     );
-    const ServiceProvider = createDeleteOneServiceProvider(entity);
+    const ServiceProvider = createDeleteOneServiceProvider(entity, version);
 
     return {
       module: DeleteOneModule,

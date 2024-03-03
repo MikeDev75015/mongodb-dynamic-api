@@ -1,7 +1,7 @@
 import { Param, Type } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityParam } from '../../dtos';
-import { RouteDecoratorsHelper } from '../../helpers';
+import { pascalCase, RouteDecoratorsHelper } from '../../helpers';
 import { DTOsBundle } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { DeleteOneController, DeleteOneControllerConstructor } from './delete-one-controller.interface';
@@ -16,7 +16,7 @@ function DeleteOneControllerMixin<Entity extends BaseEntity>(
   description?: string,
   DTOs?: DTOsBundle,
 ): DeleteOneControllerConstructor<Entity> {
-  const displayedName = apiTag ?? entity.name;
+  const displayedName = pascalCase(apiTag) ?? entity.name;
   const { param: CustomParam, presenter: CustomPresenter } = DTOs ?? {};
 
   class RouteParam extends (
@@ -25,7 +25,7 @@ function DeleteOneControllerMixin<Entity extends BaseEntity>(
 
   if (!CustomParam) {
     Object.defineProperty(RouteParam, 'name', {
-      value: `DeleteOne${displayedName}Param`,
+      value: `DeleteOne${displayedName}${version ? 'V' + version : ''}Param`,
       writable: false,
     });
   }
@@ -36,7 +36,7 @@ function DeleteOneControllerMixin<Entity extends BaseEntity>(
 
   if (!CustomPresenter) {
     Object.defineProperty(RoutePresenter, 'name', {
-      value: `DeleteOne${displayedName}Presenter`,
+      value: `DeleteOne${displayedName}${version ? 'V' + version : ''}Presenter`,
       writable: false,
     });
   }
@@ -44,6 +44,7 @@ function DeleteOneControllerMixin<Entity extends BaseEntity>(
   const routeDecoratorsBuilder = new RouteDecoratorsBuilder(
     'DeleteOne',
     entity,
+    version,
     description,
     RouteParam,
     undefined,
@@ -65,7 +66,7 @@ function DeleteOneControllerMixin<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(BaseDeleteOneController, 'name', {
-    value: `DeleteOne${entity.name}Controller`,
+    value: `BaseDeleteOne${entity.name}${version ? 'V' + version : ''}Controller`,
     writable: false,
   });
 

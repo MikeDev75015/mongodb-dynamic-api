@@ -16,12 +16,13 @@ import { GetManyControllerConstructor } from './get-many-controller.interface';
 import { GetManyControllerMixin } from './get-many-controller.mixin';
 import { GetManyService } from './get-many-service.interface';
 
-function provideServiceName(entityName) {
-  return `GetMany${entityName}Service`;
+function provideServiceName(entityName, version: string | undefined) {
+  return `GetMany${entityName}${version ? 'V' + version : ''}Service`;
 }
 
 function createGetManyServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
+  version: string | undefined,
 ): ServiceProvider {
   class GetManyService extends BaseGetManyService<Entity> {
     protected readonly entity = entity;
@@ -38,12 +39,12 @@ function createGetManyServiceProvider<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(GetManyService, 'name', {
-    value: provideServiceName(entity.name),
+    value: provideServiceName(entity.name, version),
     writable: false,
   });
 
   return {
-    provide: provideServiceName(entity.name),
+    provide: provideServiceName(entity.name, version),
     useClass: GetManyService,
   };
 }
@@ -71,7 +72,7 @@ function createGetManyController<Entity extends BaseEntity>(
     DTOs,
   ) {
     constructor(
-      @Inject(provideServiceName(entity.name))
+      @Inject(provideServiceName(entity.name, version))
       protected readonly service: GetManyService<Entity>,
     ) {
       super(service);
@@ -79,7 +80,7 @@ function createGetManyController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(GetManyController, 'name', {
-    value: `GetMany${entity.name}Controller`,
+    value: `GetMany${entity.name}${version ? 'V' + version : ''}Controller`,
     writable: false,
   });
 

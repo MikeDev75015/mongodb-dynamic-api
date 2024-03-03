@@ -16,12 +16,13 @@ import { DuplicateOneControllerConstructor } from './duplicate-one-controller.in
 import { DuplicateOneControllerMixin } from './duplicate-one-controller.mixin';
 import { DuplicateOneService } from './duplicate-one-service.interface';
 
-function provideServiceName(entityName) {
-  return `DuplicateOne${entityName}Service`;
+function provideServiceName(entityName, version: string | undefined) {
+  return `DuplicateOne${entityName}${version ? 'V' + version : ''}Service`;
 }
 
 function createDuplicateOneServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
+  version: string | undefined,
 ): ServiceProvider {
   class DuplicateOneService extends BaseDuplicateOneService<Entity> {
     protected readonly entity = entity;
@@ -38,12 +39,12 @@ function createDuplicateOneServiceProvider<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(DuplicateOneService, 'name', {
-    value: provideServiceName(entity.name),
+    value: provideServiceName(entity.name, version),
     writable: false,
   });
 
   return {
-    provide: provideServiceName(entity.name),
+    provide: provideServiceName(entity.name, version),
     useClass: DuplicateOneService,
   };
 }
@@ -71,7 +72,7 @@ function createDuplicateOneController<Entity extends BaseEntity>(
     DTOs,
   ) {
     constructor(
-      @Inject(provideServiceName(entity.name))
+      @Inject(provideServiceName(entity.name, version))
       protected readonly service: DuplicateOneService<Entity>,
     ) {
       super(service);
@@ -79,7 +80,7 @@ function createDuplicateOneController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(DuplicateOneController, 'name', {
-    value: `DuplicateOne${entity.name}Controller`,
+    value: `DuplicateOne${entity.name}${version ? 'V' + version : ''}Controller`,
     writable: false,
   });
 

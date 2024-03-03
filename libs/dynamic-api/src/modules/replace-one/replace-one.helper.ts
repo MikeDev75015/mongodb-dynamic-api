@@ -16,12 +16,13 @@ import { ReplaceOneControllerConstructor } from './replace-one-controller.interf
 import { ReplaceOneControllerMixin } from './replace-one-controller.mixin';
 import { ReplaceOneService } from './replace-one-service.interface';
 
-function provideServiceName(entityName) {
-  return `ReplaceOne${entityName}Service`;
+function provideServiceName(entityName, version: string | undefined) {
+  return `ReplaceOne${entityName}${version ? 'V' + version : ''}Service`;
 }
 
 function createReplaceOneServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
+  version: string | undefined,
 ): ServiceProvider {
   class ReplaceOneService extends BaseReplaceOneService<Entity> {
     protected readonly entity = entity;
@@ -38,12 +39,12 @@ function createReplaceOneServiceProvider<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(ReplaceOneService, 'name', {
-    value: provideServiceName(entity.name),
+    value: provideServiceName(entity.name, version),
     writable: false,
   });
 
   return {
-    provide: provideServiceName(entity.name),
+    provide: provideServiceName(entity.name, version),
     useClass: ReplaceOneService,
   };
 }
@@ -71,7 +72,7 @@ function createReplaceOneController<Entity extends BaseEntity>(
     DTOs,
   ) {
     constructor(
-      @Inject(provideServiceName(entity.name))
+      @Inject(provideServiceName(entity.name, version))
       protected readonly service: ReplaceOneService<Entity>,
     ) {
       super(service);
@@ -79,7 +80,7 @@ function createReplaceOneController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(ReplaceOneController, 'name', {
-    value: `ReplaceOne${entity.name}Controller`,
+    value: `ReplaceOne${entity.name}${version ? 'V' + version : ''}Controller`,
     writable: false,
   });
 

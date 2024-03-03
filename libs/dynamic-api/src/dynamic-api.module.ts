@@ -149,6 +149,13 @@ export class DynamicApiModule {
           }
 
           const description = routeDescription ?? getDefaultRouteDescription(type, entity.name);
+          const version = routeVersion ?? controllerVersion;
+
+          if (version?.match(/^\d+$/) === null) {
+            throw new Error(
+              `Invalid version ${version} for ${type} route. Version must be a string that matches numeric format, e.g. 1, 2, 3, ..., 99.`,
+            );
+          }
 
           // @ts-ignore
           return module.forFeature(
@@ -156,7 +163,7 @@ export class DynamicApiModule {
             entity,
             { path, apiTag },
             { description, dTOs },
-            routeVersion ?? controllerVersion,
+            version,
             routeValidationPipeOptions ?? controllerValidationPipeOptions,
           );
         })

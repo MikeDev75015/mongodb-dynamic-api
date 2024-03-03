@@ -13,6 +13,7 @@ class RouteDecoratorsBuilder<Entity extends BaseEntity> {
   constructor(
     private readonly routeType: RouteType,
     private readonly entity: Type<Entity>,
+    private readonly version?: string,
     private readonly description?: string,
     private readonly param?: Type,
     private readonly query?: Type,
@@ -57,7 +58,7 @@ class RouteDecoratorsBuilder<Entity extends BaseEntity> {
   private getApiDecorators(paramKey?: string) {
     return [
       ApiOperation({
-        operationId: `${lowerFirst(this.routeType)}${this.entity.name}`,
+        operationId: `${lowerFirst(this.routeType)}${this.entity.name}${this.version ? 'V' + this.version : ''}`,
         summary:
           this.description ??
           `${upperFirst(lowerCase(this.routeType))} ${lowerCase(this.entity.name)}`,

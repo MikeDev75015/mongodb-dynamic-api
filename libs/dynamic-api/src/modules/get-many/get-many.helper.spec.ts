@@ -15,11 +15,11 @@ describe('GetManyHelper', () => {
 
   describe('createGetManyServiceProvider', () => {
     it('should return GetMany provider', () => {
-      const { provide, useClass } = createGetManyServiceProvider(entity);
+      const { provide, useClass } = createGetManyServiceProvider(entity, '1');
       const service = new useClass(model);
 
-      expect(provide).toBe(`GetMany${entity.name}Service`);
-      expect(useClass.name).toBe(`GetMany${entity.name}Service`);
+      expect(provide).toBe(`GetMany${entity.name}V1Service`);
+      expect(useClass.name).toBe(`GetMany${entity.name}V1Service`);
       expect(service.entity).toBe(entity);
     });
   });
@@ -34,11 +34,11 @@ describe('GetManyHelper', () => {
         'description',
       );
 
-      expect(controllerClass.name).toBe(`GetMany${entity.name}Controller`);
+      expect(controllerClass.name).toBe(`GetMany${entity.name}V1Controller`);
     });
 
     it('should instantiate GetMany controller with default values', async () => {
-      const { useClass } = createGetManyServiceProvider(entity);
+      const { useClass } = createGetManyServiceProvider(entity, undefined);
       const service = new useClass(model);
       const controllerClass = createGetManyController(entity, 'path');
       const controller = new controllerClass(service);

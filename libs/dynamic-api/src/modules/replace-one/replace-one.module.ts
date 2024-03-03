@@ -25,7 +25,7 @@ export class ReplaceOneModule {
       DTOs,
       validationPipeOptions,
     );
-    const ServiceProvider = createReplaceOneServiceProvider(entity);
+    const ServiceProvider = createReplaceOneServiceProvider(entity, version);
 
     return {
       module: ReplaceOneModule,

@@ -22,7 +22,7 @@ export class DuplicateOneModule {
       DTOs,
       validationPipeOptions,
     );
-    const ServiceProvider = createDuplicateOneServiceProvider(entity);
+    const ServiceProvider = createDuplicateOneServiceProvider(entity, version);
 
     return {
       module: DuplicateOneModule,

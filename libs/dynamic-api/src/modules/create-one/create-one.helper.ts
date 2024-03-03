@@ -16,12 +16,13 @@ import { CreateOneControllerConstructor } from './create-one-controller.interfac
 import { CreateOneControllerMixin } from './create-one-controller.mixin';
 import { CreateOneService } from './create-one-service.interface';
 
-function provideServiceName(entityName) {
-  return `CreateOne${entityName}Service`;
+function provideServiceName(entityName, version: string | undefined) {
+  return `CreateOne${entityName}${version ? 'V' + version : ''}Service`;
 }
 
 function createCreateOneServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
+  version: string | undefined,
 ): ServiceProvider {
   class CreateOneService extends BaseCreateOneService<Entity> {
     protected readonly entity = entity;
@@ -38,12 +39,12 @@ function createCreateOneServiceProvider<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(CreateOneService, 'name', {
-    value: provideServiceName(entity.name),
+    value: provideServiceName(entity.name, version),
     writable: false,
   });
 
   return {
-    provide: provideServiceName(entity.name),
+    provide: provideServiceName(entity.name, version),
     useClass: CreateOneService,
   };
 }
@@ -71,7 +72,7 @@ function createCreateOneController<Entity extends BaseEntity>(
     DTOs,
   ) {
     constructor(
-      @Inject(provideServiceName(entity.name))
+      @Inject(provideServiceName(entity.name, version))
       protected readonly service: CreateOneService<Entity>,
     ) {
       super(service);
@@ -79,7 +80,7 @@ function createCreateOneController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(CreateOneController, 'name', {
-    value: `CreateOne${entity.name}Controller`,
+    value: `CreateOne${entity.name}${version ? 'V' + version : ''}Controller`,
     writable: false,
   });
 

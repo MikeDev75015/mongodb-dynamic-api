@@ -15,11 +15,11 @@ describe('ReplaceOneHelper', () => {
 
   describe('createReplaceOneServiceProvider', () => {
     it('should return ReplaceOne provider', () => {
-      const { provide, useClass } = createReplaceOneServiceProvider(entity);
+      const { provide, useClass } = createReplaceOneServiceProvider(entity, '1');
       const service = new useClass(model);
 
-      expect(provide).toBe(`ReplaceOne${entity.name}Service`);
-      expect(useClass.name).toBe(`ReplaceOne${entity.name}Service`);
+      expect(provide).toBe(`ReplaceOne${entity.name}V1Service`);
+      expect(useClass.name).toBe(`ReplaceOne${entity.name}V1Service`);
       expect(service.entity).toBe(entity);
     });
   });
@@ -34,11 +34,11 @@ describe('ReplaceOneHelper', () => {
         'description',
       );
 
-      expect(controllerClass.name).toBe(`ReplaceOne${entity.name}Controller`);
+      expect(controllerClass.name).toBe(`ReplaceOne${entity.name}V1Controller`);
     });
 
     it('should instantiate ReplaceOne controller with default values', async () => {
-      const { useClass } = createReplaceOneServiceProvider(entity);
+      const { useClass } = createReplaceOneServiceProvider(entity, undefined);
       const service = new useClass(model);
       const controllerClass = createReplaceOneController(entity, 'path');
       const controller = new controllerClass(service);

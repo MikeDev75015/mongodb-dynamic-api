@@ -1,7 +1,7 @@
 import { Body, Param, Type } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityParam } from '../../dtos';
-import { RouteDecoratorsHelper } from '../../helpers';
+import { pascalCase, RouteDecoratorsHelper } from '../../helpers';
 import { DTOsBundle } from '../../interfaces';
 import { EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
@@ -16,7 +16,7 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
   description?: string,
   DTOs?: DTOsBundle,
 ): UpdateOneControllerConstructor<Entity> {
-  const displayedName = apiTag ?? entity.name;
+  const displayedName = pascalCase(apiTag) ?? entity.name;
   const {
     body: CustomBody,
     param: CustomParam,
@@ -29,7 +29,7 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
 
   if (!CustomBody) {
     Object.defineProperty(RouteBody, 'name', {
-      value: `UpdateOne${displayedName}Dto`,
+      value: `UpdateOne${displayedName}${version ? 'V' + version : ''}Dto`,
       writable: false,
     });
   }
@@ -40,7 +40,7 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
 
   if (!CustomParam) {
     Object.defineProperty(RouteParam, 'name', {
-      value: `UpdateOne${displayedName}Param`,
+      value: `UpdateOne${displayedName}${version ? 'V' + version : ''}Param`,
       writable: false,
     });
   }
@@ -51,7 +51,7 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
 
   if (!CustomPresenter) {
     Object.defineProperty(RoutePresenter, 'name', {
-      value: `${displayedName}Presenter`,
+      value: `${displayedName}${version ? 'V' + version : ''}Presenter`,
       writable: false,
     });
   }
@@ -59,6 +59,7 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
   const routeDecoratorsBuilder = new RouteDecoratorsBuilder(
     'UpdateOne',
     entity,
+    version,
     description,
     RouteParam,
     undefined,
@@ -80,7 +81,7 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(BaseUpdateOneController, 'name', {
-    value: `UpdateOne${entity.name}Controller`,
+    value: `BaseUpdateOne${entity.name}${version ? 'V' + version : ''}Controller`,
     writable: false,
   });
 
