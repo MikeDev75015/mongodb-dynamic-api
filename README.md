@@ -100,7 +100,7 @@ import { DynamicApiModule } from 'mongodb-dynamic-api';
 })
 export class AppModule {}
 ```
-**Basic usage**
+**Basic Usage**
 
 - Ok, now let's add our first content with just 2 files. It will be a simple `User` with a `name` and an `email` field.
 - We use the `@Schema` and `@Prop` decorators from the `@nestjs/mongoose` package to define our MongoDB model. 
@@ -331,8 +331,9 @@ The `enableDynamicAPIVersioning` function will automatically add versioning to t
 **Usage**
 
 Pass the `version` property to the `controllerOptions` object or to the `route` object in the `DynamicApiModule.forFeature` method.
+<br>*If the version is specified in 2, the version specified in the route will have priority.*
 
-*If the version is specified in 2, the version specified in the route will have priority.*
+Let's add a new version to the `User` content.
 
 ```typescript
 // create-one-user-v2.dto.ts
@@ -406,7 +407,7 @@ import { UserV2Presenter } from './user-v2.presenter';
 export class UsersModule {}
 ```
 
-Great, now you have a versioned User API, and you can access it at the `/v1/users` and `/v2/users` path.
+Great, now you have a versioned User API, and you can access it at the `/v1/users` and `/v2/users` paths.
 
 ![User API Versioned](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/images/dynamic-api-versioning.Jpeg?raw=true "User API Versioned")
 
