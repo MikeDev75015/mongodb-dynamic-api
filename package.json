@@ -16,8 +16,8 @@
     "test:ci:sonar": "jest --ci --runInBand --coverage --testResultsProcessor=jest-sonar-reporter",
     "pre-release-tag": "git tag -f prerelease && git push -f origin prerelease",
     "release-tag": "git tag -f release && git push -f origin release",
-    "auto-prerelease": "release-it --ci --preRelease=beta --no-git.requireUpstream",
-    "auto-release": "release-it --ci --no-git.requireUpstream",
+    "auto-prerelease": "release-it --ci --preRelease=beta --no-git.requireUpstream --no-git.tag",
+    "auto-release": "release-it --ci --no-git.requireUpstream --no-git.tag",
     "publish-prerelease": "npm publish ./dist --tag prerelease",
     "publish-release": "npm publish ./dist --tag latest"
   },
