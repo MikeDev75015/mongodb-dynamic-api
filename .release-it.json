@@ -16,7 +16,7 @@
         "types": [
           {"type": "feat", "section": "Features"},
           {"type": "fix", "section": "Bug Fixes"},
-          {"type": "refactor", "section": "Refactors"},
+          {"type": "refactor", "hidden": true},
           {"type": "chore", "hidden": true},
           {"type": "docs", "hidden": true},
           {"type": "test", "hidden": true},
