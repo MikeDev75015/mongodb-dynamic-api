@@ -97,7 +97,7 @@ commands:
           description: Gets latest release version of Github CLI
 
   create-release-pr-command:
-    description: "Create PR on Github"
+    description: "Create release or prerelease PR to develop on Github"
     parameters:
       branch:
         type: string
@@ -111,26 +111,12 @@ commands:
       - run:
           name: Prepare auto-<< parameters.branch >> with release-it
           command: npm run auto-<< parameters.branch >>
-      - when:
-          condition:
-            equal: [ << parameters.branch >>, prerelease ]
-          steps:
-            - run:
-                name: Create the PR on Github
-                command: |
-                  VERSION_NUMBER=v$(jq -r '.version' package.json)
-                  echo ${VERSION_NUMBER}
-                  gh pr create -R ${GH_OWNER}/${GH_REPO} -H auto-<< parameters.branch >> -B develop --fill-verbose -t "${VERSION_NUMBER} created automatically from CircleCI"
-      - when:
-          condition:
-            equal: [ << parameters.branch >>, release ]
-          steps:
-            - run:
-                name: Create the PR on Github
-                command: |
-                  VERSION_NUMBER=v$(jq -r '.version' package.json)
-                  echo ${VERSION_NUMBER}
-                  gh pr create -R ${GH_OWNER}/${GH_REPO} -H auto-<< parameters.branch >> -B main --fill-verbose -t "${VERSION_NUMBER} created automatically from CircleCI"
+      - run:
+          name: Create the PR on Github
+          command: |
+            VERSION_NUMBER=v$(jq -r '.version' package.json)
+            echo ${VERSION_NUMBER}
+            gh pr create -R ${GH_OWNER}/${GH_REPO} -H auto-<< parameters.branch >> -B develop --fill-verbose -t "<< parameters.branch >> ${VERSION_NUMBER} created automatically from CircleCI"
 
   merge-release-pr-command:
     description: "Merge the release PR and automatically delete the branch"
@@ -138,26 +124,42 @@ commands:
       branch:
         type: string
     steps:
-      - when:
-          condition:
-            equal: [ << parameters.branch >>, prerelease ]
-          steps:
-            - run:
-                name: Merge the PR and delete the auto-<< parameters.branch >> branch
-                command: gh pr merge auto-<< parameters.branch >> -R ${GH_OWNER}/${GH_REPO} --auto -r -d
-      - when:
-          condition:
-            equal: [ << parameters.branch >>, release ]
-          steps:
-            - run:
-                name: Merge the auto-<< parameters.branch >> branch PR into main
-                command: gh pr merge auto-<< parameters.branch >> -R ${GH_OWNER}/${GH_REPO} --auto -r -d
-            - run:
-                name: Create a pull request from main to the develop branch
-                command: |
-                  VERSION_NUMBER=v$(jq -r '.version' package.json)
-                  echo ${VERSION_NUMBER}
-                  gh pr create -R ${GH_OWNER}/${GH_REPO} -H main -B develop --fill-verbose -t "Back merge ${VERSION_NUMBER} created automatically from CircleCI"
+      - run:
+          name: Merge the PR and automatically delete the << parameters.branch >> branch
+          command: gh pr merge << parameters.branch >> -R ${GH_OWNER}/${GH_REPO} --auto -r -d
+
+  create-develop-pr-command:
+    description: "Create PR from develop to main on Github"
+    steps:
+      - run:
+          name: Checkout to develop
+          command: git checkout develop
+      - run:
+          name: Pull develop
+          command: git pull https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git develop
+      - run:
+          name: Create a pull request from develop to main
+          command: |
+            VERSION_NUMBER=v$(jq -r '.version' package.json)
+            echo ${VERSION_NUMBER}
+            gh pr create -R ${GH_OWNER}/${GH_REPO} -H develop -B main --fill-verbose -t "New ${VERSION_NUMBER} created automatically from CircleCI"
+
+  create-version-tags-command:
+    description: "Create and push the version tags"
+    steps:
+      - run:
+          name: Checkout to main
+          command: git checkout main
+      - run:
+          name: Pull main
+          command: git pull https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git main
+      - run:
+          name: Create the release / prerelease version tags
+          command: |
+            VERSION_NUMBER=v$(jq -r '.version' package.json)
+            echo ${VERSION_NUMBER}
+            git tag ${VERSION_NUMBER}
+            git push https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git ${VERSION_NUMBER}
 
   copy-files-command:
     description: "Copy all the required files to dist directory"
@@ -228,18 +230,6 @@ jobs:
       - *notify-fail
       - *notify-success
 
-  sonarcloud-job:
-    docker:
-      - image: cimg/node:20.5.0
-    resource_class: medium
-    steps:
-      - checkout
-      - *restore-cache
-      - unit-tests-not-parallelized-command
-      - sonarcloud/scan
-      - *notify-fail
-      - *notify-success
-
   create-release-pr-job:
     docker:
       - image: cimg/node:20.5.0
@@ -276,6 +266,34 @@ jobs:
       - *notify-fail
       - *notify-success
 
+  create-develop-pr-job:
+    docker:
+      - image: cimg/node:20.5.0
+    resource_class: medium
+    steps:
+      - checkout
+      - *restore-cache
+      - unit-tests-not-parallelized-command
+      - sonarcloud/scan
+      - git-config-local-user-command
+      - install-github-cli-command
+      - create-develop-pr-command
+      - *notify-fail
+      - *notify-success
+
+  create-version-tags-job:
+    docker:
+      - image: cimg/node:20.5.0
+    resource_class: medium
+    steps:
+      - checkout
+      - *restore-cache
+      - git-config-local-user-command
+      - install-github-cli-command
+      - create-version-tags-command
+      - *notify-fail
+      - *notify-success
+
   publish-release-job:
     docker:
       - image: cimg/node:20.5.0
@@ -293,6 +311,18 @@ jobs:
       - *notify-fail
       - *notify-success
 
+  try-job:
+    docker:
+      - image: cimg/node:20.5.0
+    resource_class: medium
+    steps:
+      - checkout
+      - *restore-cache
+      - delete-tag-command:
+          tag: try
+      - git-config-local-user-command
+      - install-github-cli-command
+      - create-version-tags-command
 
 workflows:
   ci-default-workflow:
@@ -330,31 +360,44 @@ workflows:
                 - auto-prerelease
                 - auto-release
 
-  ci-sonar-workflow:
+  ci-develop-workflow:
     when:
-      or:
-        - equal: [ << pipeline.git.branch >>, main ]
-        - equal: [ << pipeline.git.branch >>, develop ]
+      equal: [ << pipeline.git.branch >>, develop ]
     jobs:
       - dependencies-job:
           filters:
             branches:
-              only:
-                - develop
-                - main
-      - sonarcloud-job:
+              only: develop
+      - create-develop-pr-job:
           requires:
             - dependencies-job
           context:
             - SONARCLOUD
+            - GIT
             - SLACK
           filters:
             branches:
-              only:
-                - develop
-                - main
+              only: develop
 
-  ci-deploy-tag-workflow:
+  ci-main-workflow:
+    when:
+      equal: [ << pipeline.git.branch >>, main ]
+    jobs:
+      - dependencies-job:
+          filters:
+            branches:
+              only: main
+      - create-version-tags-job:
+          requires:
+            - dependencies-job
+          context:
+            - GIT
+            - SLACK
+          filters:
+            branches:
+              only: main
+
+  ci-release-tags-workflow:
     when:
       or:
         - equal: [ << pipeline.git.tag >>, release ]
@@ -409,7 +452,32 @@ workflows:
                 - release
                 - prerelease
 
-  cd-prerelease-tag-workflow:
+  ci-release-branches-workflow:
+    when:
+      or:
+        - equal: [ << pipeline.git.branch >>, auto-release ]
+        - equal: [ << pipeline.git.branch >>, auto-prerelease ]
+    jobs:
+      - dependencies-job:
+          filters:
+            branches:
+              only:
+                  - auto-release
+                  - auto-prerelease
+      - merge-release-pr-job:
+          requires:
+            - dependencies-job
+          branch: << pipeline.git.branch >>
+          context:
+            - GIT
+            - SLACK
+          filters:
+            branches:
+              only:
+                - auto-release
+                - auto-prerelease
+
+  cd-prerelease-version-workflow:
     when:
       matches:
         pattern: /^\d+\.\d+\.\d+\-beta\.\d+$/
@@ -422,24 +490,10 @@ workflows:
             tags:
               only:
                 - /^\d+\.\d+\.\d+\-beta\.\d+$/
-      - merge-release-pr-job:
-          name: merge-prerelease-pr-job
-          requires:
-            - dependencies-job
-          context:
-            - GIT
-            - SLACK
-          branch: prerelease
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only:
-                - /^\d+\.\d+\.\d+\-beta\.\d+$/
       - publish-release-job:
           name: publish-prerelease-job
           requires:
-            - merge-prerelease-pr-job
+            - dependencies-job
           branch: prerelease
           context:
             - GIT
@@ -452,7 +506,7 @@ workflows:
               only:
                 - /^\d+\.\d+\.\d+\-beta\.\d+$/
 
-  cd-release-tag-workflow:
+  cd-release-version-workflow:
     when:
       matches:
         pattern: /^\d+\.\d+\.\d+$/
@@ -465,22 +519,9 @@ workflows:
             tags:
               only:
                 - /^\d+\.\d+\.\d+$/
-      - merge-release-pr-job:
-          requires:
-            - dependencies-job
-          context:
-            - GIT
-            - SLACK
-          branch: release
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only:
-                - /^\d+\.\d+\.\d+$/
       - publish-release-job:
           requires:
-            - merge-release-pr-job
+            - dependencies-job
           branch: release
           context:
             - GIT
@@ -493,3 +534,21 @@ workflows:
               only:
                 - /^\d+\.\d+\.\d+$/
 
+  ci-try-workflow:
+    when:
+      equal: [ << pipeline.git.tag >>, try ]
+    jobs:
+      - dependencies-job:
+          filters:
+            tags:
+              only:
+                  - try
+      - try-job:
+          requires:
+            - dependencies-job
+          context:
+            - GIT
+          filters:
+            tags:
+              only:
+                - try
