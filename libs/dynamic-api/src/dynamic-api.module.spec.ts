@@ -178,7 +178,7 @@ describe('DynamicApiModule', () => {
           fakeDatabaseModule,
           options.entity,
           { path: options.controllerOptions.path, apiTag: undefined },
-          { description: undefined, dTOs: undefined },
+          { description: 'Create many person entity', dTOs: undefined },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
         );
@@ -186,7 +186,7 @@ describe('DynamicApiModule', () => {
           fakeDatabaseModule,
           options.entity,
           { path: options.controllerOptions.path, apiTag: undefined },
-          { description: undefined, dTOs: undefined },
+          { description: 'Create one person entity', dTOs: undefined },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
         );
@@ -194,7 +194,7 @@ describe('DynamicApiModule', () => {
           fakeDatabaseModule,
           options.entity,
           { path: options.controllerOptions.path, apiTag: undefined },
-          { description: undefined, dTOs: undefined },
+          { description: 'Delete one person entity', dTOs: undefined },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
         );
@@ -202,7 +202,7 @@ describe('DynamicApiModule', () => {
           fakeDatabaseModule,
           options.entity,
           { path: options.controllerOptions.path, apiTag: undefined },
-          { description: undefined, dTOs: undefined },
+          { description: 'Duplicate one person entity', dTOs: undefined },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
         );
@@ -210,7 +210,7 @@ describe('DynamicApiModule', () => {
           fakeDatabaseModule,
           options.entity,
           { path: options.controllerOptions.path, apiTag: undefined },
-          { description: undefined, dTOs: undefined },
+          { description: 'Get many person entity', dTOs: undefined },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
         );
@@ -218,7 +218,7 @@ describe('DynamicApiModule', () => {
           fakeDatabaseModule,
           options.entity,
           { path: options.controllerOptions.path, apiTag: undefined },
-          { description: undefined, dTOs: undefined },
+          { description: 'Get one person entity by id', dTOs: undefined },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
         );
@@ -226,7 +226,7 @@ describe('DynamicApiModule', () => {
           fakeDatabaseModule,
           options.entity,
           { path: options.controllerOptions.path, apiTag: undefined },
-          { description: undefined, dTOs: undefined },
+          { description: 'Replace one person entity', dTOs: undefined },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
         );
@@ -234,7 +234,7 @@ describe('DynamicApiModule', () => {
           fakeDatabaseModule,
           options.entity,
           { path: options.controllerOptions.path, apiTag: undefined },
-          { description: undefined, dTOs: undefined },
+          { description: 'Update one person entity', dTOs: undefined },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
         );
