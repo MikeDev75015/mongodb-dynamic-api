@@ -230,6 +230,18 @@ jobs:
       - *notify-fail
       - *notify-success
 
+  sonarcloud-job:
+    docker:
+      - image: cimg/node:20.5.0
+    resource_class: medium
+    steps:
+      - checkout
+      - *restore-cache
+      - unit-tests-not-parallelized-command
+      - sonarcloud/scan
+      - *notify-fail
+      - *notify-success
+
   create-release-pr-job:
     docker:
       - image: cimg/node:20.5.0
@@ -273,8 +285,6 @@ jobs:
     steps:
       - checkout
       - *restore-cache
-      - unit-tests-not-parallelized-command
-      - sonarcloud/scan
       - git-config-local-user-command
       - install-github-cli-command
       - create-develop-pr-command
@@ -368,9 +378,25 @@ workflows:
           filters:
             branches:
               only: develop
-      - create-develop-pr-job:
+      - sonarcloud-job:
           requires:
             - dependencies-job
+          context:
+            - SONARCLOUD
+            - SLACK
+          filters:
+            branches:
+              only: develop
+      - confirm-develop-pr-job:
+          type: approval
+          requires:
+            - sonarcloud-job
+          filters:
+            branches:
+              only: develop
+      - create-develop-pr-job:
+          requires:
+            - confirm-develop-pr-job
           context:
             - SONARCLOUD
             - GIT
