@@ -1,7 +1,7 @@
 import { DynamicModule, Module } from '@nestjs/common';
 import { MongooseModule, SchemaFactory } from '@nestjs/mongoose';
 import { DYNAMIC_API_SCHEMA_OPTIONS_METADATA } from './decorators';
-import { getDefaultRouteDescription } from './helpers';
+import { getDefaultRouteDescription, isValidVersion } from './helpers';
 import { DynamicApiOptions, DynamicAPISchemaOptionsInterface } from './interfaces';
 import { BaseEntity } from './models';
 import {
@@ -171,7 +171,7 @@ export class DynamicApiModule {
           const description = routeDescription ?? getDefaultRouteDescription(type, entity.name);
           const version = routeVersion ?? controllerVersion;
 
-          if (version?.match(/^\d+$/) === null) {
+          if (version && !isValidVersion(version)) {
             throw new Error(
               `Invalid version ${version} for ${type} route. Version must be a string that matches numeric format, e.g. 1, 2, 3, ..., 99.`,
             );
