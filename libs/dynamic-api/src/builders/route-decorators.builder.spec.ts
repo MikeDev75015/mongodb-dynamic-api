@@ -6,11 +6,19 @@ import { RouteDecoratorsBuilder } from './route-decorators.builder';
 describe('RouteDecoratorsBuilder', () => {
   let routeDecoratorsBuilder: RouteDecoratorsBuilder<any>;
   let entity: Type;
+
+  const fakeManyQuery: Type = class FakeManyQuery {
+    ids: string[];
+  }
   const fakeParam: Type = class FakeParam {
     id = '';
   };
-  const fakeBody: Type = class FakeBody {
+  class FakeBody {
     name: string;
+  };
+  const fakeBody: Type = FakeBody;
+  const fakeManyBody: Type = class FakeManyBody {
+    list: FakeBody[];
   };
 
   beforeEach(() => {
@@ -31,10 +39,14 @@ describe('RouteDecoratorsBuilder', () => {
     test.each([
       ['GetMany', undefined, undefined, undefined, undefined, undefined, undefined, 3],
       ['GetOne', undefined, undefined, fakeParam, undefined, undefined, undefined, 4],
+      ['CreateMany', undefined, undefined, undefined, undefined, fakeManyBody, undefined, 4],
       ['CreateOne', undefined, undefined, undefined, undefined, fakeBody, undefined, 4],
+      ['UpdateMany', undefined, undefined, undefined, fakeManyQuery, undefined, undefined, 3],
       ['UpdateOne', undefined, undefined, fakeParam, undefined, undefined, undefined, 4],
       ['ReplaceOne', undefined, undefined, fakeParam, undefined, undefined, undefined, 4],
+      ['DuplicateMany', undefined, 'test', undefined, fakeManyQuery, undefined, undefined, 3],
       ['DuplicateOne', undefined, 'test', fakeParam, undefined, undefined, undefined, 4],
+      ['DeleteMany', undefined, undefined, undefined, fakeManyQuery, undefined, undefined, 3],
       ['DeleteOne', undefined, undefined, fakeParam, undefined, undefined, undefined, 4],
     ])(
       'should return an array of route decorators for %s',
