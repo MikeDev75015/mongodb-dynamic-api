@@ -9,6 +9,8 @@ function getDefaultRouteDescription(routeType: RouteType, entityName: string): s
       return `Create many ${contentName}`;
     case 'CreateOne':
       return `Create one ${contentName}`;
+    case 'DeleteMany':
+      return `Delete many ${contentName}`;
     case 'DeleteOne':
       return `Delete one ${contentName}`;
     case 'DuplicateOne':

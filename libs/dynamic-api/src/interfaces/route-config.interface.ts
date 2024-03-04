@@ -2,14 +2,15 @@ import { Type, ValidationPipeOptions } from '@nestjs/common';
 import { BaseEntity } from '../models';
 
 type RouteType =
+  | 'CreateMany'
+  | 'CreateOne'
+  | 'DeleteMany'
+  | 'DeleteOne'
+  | 'DuplicateOne'
   | 'GetMany'
   | 'GetOne'
-  | 'CreateOne'
-  | 'CreateMany'
-  | 'UpdateOne'
   | 'ReplaceOne'
-  | 'DeleteOne'
-  | 'DuplicateOne';
+  | 'UpdateOne';
 
 type DTOsBundle = {
   query?: Type;
