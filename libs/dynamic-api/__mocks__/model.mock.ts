@@ -7,6 +7,7 @@ const buildModelMock = ({
   findOne,
   findOneAndReplace,
   findOneAndUpdate,
+  deleteMany,
   deleteOne,
   updateOne,
 }: {
@@ -15,6 +16,7 @@ const buildModelMock = ({
   findOne?: any[];
   findOneAndReplace?: any[];
   findOneAndUpdate?: any[];
+  deleteMany?: any[];
   deleteOne?: any[];
   updateOne?: any[];
 } = {}) => {
@@ -106,6 +108,20 @@ const buildModelMock = ({
         modelMock.deleteOne.mockReturnValue(value);
       } else {
         modelMock.deleteOne.mockReturnValueOnce(value);
+      }
+    });
+  }
+
+  if (deleteMany?.length) {
+    deleteMany.forEach((d, i) => {
+      const value = {
+        exec: jest.fn(() => Promise.resolve(d)),
+      } as any;
+
+      if (i === deleteMany.length - 1) {
+        modelMock.deleteMany.mockReturnValue(value);
+      } else {
+        modelMock.deleteMany.mockReturnValueOnce(value);
       }
     });
   }

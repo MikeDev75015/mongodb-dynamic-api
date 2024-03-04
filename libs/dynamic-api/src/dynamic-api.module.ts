@@ -14,6 +14,7 @@ import {
   ReplaceOneModule,
   UpdateOneModule,
 } from './modules';
+import { DeleteManyModule } from './modules/delete-many';
 
 @Module({})
 export class DynamicApiModule {
@@ -86,6 +87,7 @@ export class DynamicApiModule {
         { type: 'ReplaceOne' },
         { type: 'UpdateOne' },
         { type: 'DuplicateOne' },
+        { type: 'DeleteMany' },
         { type: 'DeleteOne' },
       ];
     }
@@ -104,6 +106,7 @@ export class DynamicApiModule {
 
           let module: CreateManyModule
             | CreateOneModule
+            | DeleteManyModule
             | DeleteOneModule
             | DuplicateOneModule
             | GetManyModule
@@ -118,6 +121,10 @@ export class DynamicApiModule {
 
             case 'CreateOne':
               module = CreateOneModule;
+              break;
+
+            case 'DeleteMany':
+              module = DeleteManyModule;
               break;
 
             case 'DeleteOne':
@@ -157,6 +164,8 @@ export class DynamicApiModule {
             );
           }
 
+          const validationPipeOptions = routeValidationPipeOptions ?? controllerValidationPipeOptions;
+
           // @ts-ignore
           return module.forFeature(
             databaseModule,
@@ -164,7 +173,7 @@ export class DynamicApiModule {
             { path, apiTag },
             { description, dTOs },
             version,
-            routeValidationPipeOptions ?? controllerValidationPipeOptions,
+            validationPipeOptions,
           );
         })
         .filter((module) => module),

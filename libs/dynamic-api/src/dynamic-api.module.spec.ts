@@ -26,6 +26,10 @@ describe('DynamicApiModule', () => {
       );
     });
 
+    it('should have default connection name value', () => {
+      expect(DynamicApiModule.connectionName).toStrictEqual('dynamic-api-connection');
+    });
+
     it('should call MongooseModule.forRoot with uri and DynamicApiModule.connectionName', () => {
       const uri = 'fake-uri';
       DynamicApiModule.forRoot(uri);
@@ -64,7 +68,7 @@ describe('DynamicApiModule', () => {
         [{ name: entity.name, schema: expect.any(Object) }],
         DynamicApiModule.connectionName,
       );
-      expect(module.imports.length).toStrictEqual(8);
+      expect(module.imports.length).toStrictEqual(9);
     });
 
     it('should add schema indexes', () => {
