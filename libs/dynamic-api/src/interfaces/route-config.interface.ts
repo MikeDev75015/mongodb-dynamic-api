@@ -6,6 +6,7 @@ type RouteType =
   | 'CreateOne'
   | 'DeleteMany'
   | 'DeleteOne'
+  | 'DuplicateMany'
   | 'DuplicateOne'
   | 'GetMany'
   | 'GetOne'
