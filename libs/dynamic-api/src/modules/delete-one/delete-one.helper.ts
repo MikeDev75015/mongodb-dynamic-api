@@ -9,6 +9,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { DynamicApiModule } from '../../dynamic-api.module';
+import { addVersionSuffix } from '../../helpers';
 import { DTOsBundle, ServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseDeleteOneService } from './base-delete-one.service';
@@ -17,7 +18,7 @@ import { DeleteOneControllerMixin } from './delete-one-controller.mixin';
 import { DeleteOneService } from './delete-one-service.interface';
 
 function provideServiceName(entityName, version: string | undefined) {
-  return `DeleteOne${entityName}${version ? 'V' + version : ''}Service`;
+  return `DeleteOne${entityName}${addVersionSuffix(version)}Service`;
 }
 
 function createDeleteOneServiceProvider<Entity extends BaseEntity>(
@@ -80,7 +81,7 @@ function createDeleteOneController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(DeleteOneController, 'name', {
-    value: `DeleteOne${entity.name}${version ? 'V' + version : ''}Controller`,
+    value: `DeleteOne${entity.name}${addVersionSuffix(version)}Controller`,
     writable: false,
   });
 

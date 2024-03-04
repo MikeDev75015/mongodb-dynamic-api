@@ -3,7 +3,7 @@ import { ApiProperty, PickType } from '@nestjs/swagger';
 import { ArrayMinSize, IsInstance, ValidateNested } from 'class-validator';
 import { Type as TypeTransformer } from 'class-transformer';
 import { RouteDecoratorsBuilder } from '../../builders';
-import { pascalCase, RouteDecoratorsHelper } from '../../helpers';
+import { addVersionSuffix, pascalCase, RouteDecoratorsHelper } from '../../helpers';
 import { DTOsBundle } from '../../interfaces';
 import { EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
@@ -24,7 +24,7 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
   class DtoBody extends EntityBodyMixin(entity) {}
 
   Object.defineProperty(DtoBody, 'name', {
-    value: `${displayedName}${version ? 'V' + version : ''}Dto`,
+    value: `${displayedName}${addVersionSuffix(version)}Dto`,
     writable: false,
   });
 
@@ -41,7 +41,7 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
 
   if (!CustomBody) {
     Object.defineProperty(RouteBody, 'name', {
-      value: `CreateMany${displayedName}${version ? 'V' + version : ''}Dto`,
+      value: `CreateMany${displayedName}${addVersionSuffix(version)}Dto`,
       writable: false,
     });
   }
@@ -50,7 +50,7 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
 
   if (!CustomPresenter) {
     Object.defineProperty(RoutePresenter, 'name', {
-      value: `${displayedName}${version ? 'V' + version : ''}Presenter`,
+      value: `${displayedName}${addVersionSuffix(version)}Presenter`,
       writable: false,
     });
   }
@@ -80,7 +80,7 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(BaseCreateManyController, 'name', {
-    value: `BaseCreateMany${entity.name}${version ? 'V' + version : ''}Controller`,
+    value: `BaseCreateMany${entity.name}${addVersionSuffix(version)}Controller`,
     writable: false,
   });
 

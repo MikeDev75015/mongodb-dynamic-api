@@ -1,7 +1,7 @@
 import { Query, Type } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityQuery } from '../../dtos';
-import { pascalCase, RouteDecoratorsHelper } from '../../helpers';
+import { addVersionSuffix, pascalCase, RouteDecoratorsHelper } from '../../helpers';
 import { DTOsBundle } from '../../interfaces';
 import { EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
@@ -25,7 +25,7 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
 
   if (!CustomQuery) {
     Object.defineProperty(RouteQuery, 'name', {
-      value: `GetMany${displayedName}${version ? 'V' + version : ''}Query`,
+      value: `GetMany${displayedName}${addVersionSuffix(version)}Query`,
       writable: false,
     });
   }
@@ -36,7 +36,7 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
 
   if (!CustomPresenter) {
     Object.defineProperty(RoutePresenter, 'name', {
-      value: `${displayedName}${version ? 'V' + version : ''}Presenter`,
+      value: `${displayedName}${addVersionSuffix(version)}Presenter`,
       writable: false,
     });
   }
@@ -66,7 +66,7 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(BaseGetManyController, 'name', {
-    value: `BaseGetMany${entity.name}${version ? 'V' + version : ''}Controller`,
+    value: `BaseGetMany${entity.name}${addVersionSuffix(version)}Controller`,
     writable: false,
   });
 

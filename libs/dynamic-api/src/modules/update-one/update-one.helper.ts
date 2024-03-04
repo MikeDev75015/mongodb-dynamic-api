@@ -9,6 +9,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { DynamicApiModule } from '../../dynamic-api.module';
+import { addVersionSuffix } from '../../helpers';
 import { DTOsBundle, ServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseUpdateOneService } from './base-update-one.service';
@@ -17,7 +18,7 @@ import { UpdateOneControllerMixin } from './update-one-controller.mixin';
 import { UpdateOneService } from './update-one-service.interface';
 
 function provideServiceName(entityName, version: string | undefined) {
-  return `UpdateOne${entityName}${version ? 'V' + version : ''}Service`;
+  return `UpdateOne${entityName}${addVersionSuffix(version)}Service`;
 }
 
 function createUpdateOneServiceProvider<Entity extends BaseEntity>(
@@ -80,7 +81,7 @@ function createUpdateOneController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(UpdateOneController, 'name', {
-    value: `UpdateOne${entity.name}${version ? 'V' + version : ''}Controller`,
+    value: `UpdateOne${entity.name}${addVersionSuffix(version)}Controller`,
     writable: false,
   });
 

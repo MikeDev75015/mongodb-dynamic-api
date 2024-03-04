@@ -10,4 +10,8 @@ function enableDynamicAPIVersioning(
   });
 }
 
-export { enableDynamicAPIVersioning };
+function addVersionSuffix(version?: string) {
+  return version ? `V${version}` : '';
+}
+
+export { addVersionSuffix, enableDynamicAPIVersioning };
