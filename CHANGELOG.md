@@ -1,5 +1,8 @@
 Changelog
 
+## [1.2.1](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v1.2.0...v1.2.1) (2024-03-04)
+
+
 ## [1.2.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v1.1.0...v1.2.0) (2024-03-03)
 
 
@@ -8,11 +11,6 @@ Changelog
 * **api:** add default route description if not specified ([733b42a](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/733b42a6dab49c39370fdd4094b7f08288e54c5b))
 
 ## 1.1.0 (2024-03-03)
-
-
-* activate schema timestamps ([ee2e8e4](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/ee2e8e4442bd692b2fe1566687b98f421bc9f9f6))
-* rename mixin dtos ([7a0fc65](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/7a0fc6540a4d93000c735744786469204a734ce4))
-* rework validation options ([3cb0b56](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/3cb0b56a81e7016f1dc03c0f46ec1714ad57eff2))
 
 
 ### api
