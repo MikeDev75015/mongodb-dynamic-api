@@ -1,7 +1,7 @@
 import { MongooseModule, SchemaFactory } from '@nestjs/mongoose';
 import { buildDynamicApiModuleOptionsMock } from '../__mocks__/dynamic-api.module.mock';
 import { DynamicApiModule } from './dynamic-api.module';
-import { DynamicAPISchemaOptionsInterface, RouteConfig, RouteType } from './interfaces';
+import { DynamicAPISchemaOptionsInterface, DynamicAPIRouteConfig, RouteType } from './interfaces';
 import {
   CreateManyModule,
   CreateOneModule,
@@ -171,17 +171,17 @@ describe('DynamicApiModule', () => {
       });
 
       it('should import route modules with controller options', () => {
-        const createManyRoute: RouteConfig<any> = { type: 'CreateMany' };
-        const createOneRoute: RouteConfig<any> = { type: 'CreateOne' };
-        const deleteManyRoute: RouteConfig<any> = { type: 'DeleteMany' };
-        const deleteOneRoute: RouteConfig<any> = { type: 'DeleteOne' };
-        const duplicateManyRoute: RouteConfig<any> = { type: 'DuplicateMany' };
-        const duplicateOneRoute: RouteConfig<any> = { type: 'DuplicateOne' };
-        const getManyRoute: RouteConfig<any> = { type: 'GetMany' };
-        const getOneRoute: RouteConfig<any> = { type: 'GetOne' };
-        const replaceOneRoute: RouteConfig<any> = { type: 'ReplaceOne' };
-        const updateManyRoute: RouteConfig<any> = { type: 'UpdateMany' };
-        const updateOneRoute: RouteConfig<any> = { type: 'UpdateOne' };
+        const createManyRoute: DynamicAPIRouteConfig<any> = { type: 'CreateMany' };
+        const createOneRoute: DynamicAPIRouteConfig<any> = { type: 'CreateOne' };
+        const deleteManyRoute: DynamicAPIRouteConfig<any> = { type: 'DeleteMany' };
+        const deleteOneRoute: DynamicAPIRouteConfig<any> = { type: 'DeleteOne' };
+        const duplicateManyRoute: DynamicAPIRouteConfig<any> = { type: 'DuplicateMany' };
+        const duplicateOneRoute: DynamicAPIRouteConfig<any> = { type: 'DuplicateOne' };
+        const getManyRoute: DynamicAPIRouteConfig<any> = { type: 'GetMany' };
+        const getOneRoute: DynamicAPIRouteConfig<any> = { type: 'GetOne' };
+        const replaceOneRoute: DynamicAPIRouteConfig<any> = { type: 'ReplaceOne' };
+        const updateManyRoute: DynamicAPIRouteConfig<any> = { type: 'UpdateMany' };
+        const updateOneRoute: DynamicAPIRouteConfig<any> = { type: 'UpdateOne' };
 
         const options = buildDynamicApiModuleOptionsMock({
           controllerOptions: { path: 'fake-path', version: '1', validationPipeOptions: { transform: true } },
@@ -294,75 +294,75 @@ describe('DynamicApiModule', () => {
       });
 
       it('should import route modules with route options', () => {
-        const createManyRoute: RouteConfig<any> = {
+        const createManyRoute: DynamicAPIRouteConfig<any> = {
           type: 'CreateMany',
           description: 'Create many items',
           dTOs: { body: fakeManyBody, presenter: fakePresenter },
           version: '2',
           validationPipeOptions: { forbidNonWhitelisted: true },
         };
-        const createOneRoute: RouteConfig<any> = {
+        const createOneRoute: DynamicAPIRouteConfig<any> = {
           type: 'CreateOne',
           description: 'Create one item',
           dTOs: { body: fakeBody, presenter: fakePresenter },
           version: '2',
           validationPipeOptions: { forbidNonWhitelisted: true },
         };
-        const deleteManyRoute: RouteConfig<any> = {
+        const deleteManyRoute: DynamicAPIRouteConfig<any> = {
           type: 'DeleteMany',
           description: 'Delete many item',
           version: '2',
           validationPipeOptions: { forbidNonWhitelisted: true },
         };
-        const deleteOneRoute: RouteConfig<any> = {
+        const deleteOneRoute: DynamicAPIRouteConfig<any> = {
           type: 'DeleteOne',
           description: 'Delete one item',
           version: '2',
           validationPipeOptions: { forbidNonWhitelisted: true },
         };
-        const duplicateManyRoute: RouteConfig<any> = {
+        const duplicateManyRoute: DynamicAPIRouteConfig<any> = {
           type: 'DuplicateMany',
           description: 'Duplicate many item',
           dTOs: { body: fakeBody, presenter: fakePresenter },
           version: '2',
           validationPipeOptions: { forbidNonWhitelisted: true },
         };
-        const duplicateOneRoute: RouteConfig<any> = {
+        const duplicateOneRoute: DynamicAPIRouteConfig<any> = {
           type: 'DuplicateOne',
           description: 'Duplicate one item',
           dTOs: { body: fakeBody, presenter: fakePresenter },
           version: '2',
           validationPipeOptions: { forbidNonWhitelisted: true },
         };
-        const getManyRoute: RouteConfig<any> = {
+        const getManyRoute: DynamicAPIRouteConfig<any> = {
           type: 'GetMany',
           description: 'Get many items',
           dTOs: { query: fakeQuery, presenter: fakePresenter },
           version: '2',
           validationPipeOptions: { forbidNonWhitelisted: true },
         };
-        const getOneRoute: RouteConfig<any> = {
+        const getOneRoute: DynamicAPIRouteConfig<any> = {
           type: 'GetOne',
           description: 'Get one item',
           dTOs: { param: fakeParam, presenter: fakePresenter },
           version: '2',
           validationPipeOptions: { forbidNonWhitelisted: true },
         };
-        const replaceOneRoute: RouteConfig<any> = {
+        const replaceOneRoute: DynamicAPIRouteConfig<any> = {
           type: 'ReplaceOne',
           description: 'Replace one item',
           dTOs: { body: fakeBody, presenter: fakePresenter },
           version: '2',
           validationPipeOptions: { forbidNonWhitelisted: true },
         };
-        const updateManyRoute: RouteConfig<any> = {
+        const updateManyRoute: DynamicAPIRouteConfig<any> = {
           type: 'UpdateMany',
           description: 'Update many item',
           dTOs: { body: fakeBody, presenter: fakePresenter },
           version: '2',
           validationPipeOptions: { forbidNonWhitelisted: true },
         };
-        const updateOneRoute: RouteConfig<any> = {
+        const updateOneRoute: DynamicAPIRouteConfig<any> = {
           type: 'UpdateOne',
           description: 'Update one item',
           dTOs: { body: fakeBody, presenter: fakePresenter },

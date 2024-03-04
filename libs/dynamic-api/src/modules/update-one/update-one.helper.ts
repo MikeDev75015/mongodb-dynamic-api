@@ -10,7 +10,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { addVersionSuffix } from '../../helpers';
-import { DTOsBundle, ServiceProvider } from '../../interfaces';
+import { DTOsBundle, DynamicAPIServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseUpdateOneService } from './base-update-one.service';
 import { UpdateOneControllerConstructor } from './update-one-controller.interface';
@@ -24,7 +24,7 @@ function provideServiceName(entityName, version: string | undefined) {
 function createUpdateOneServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
   version: string | undefined,
-): ServiceProvider {
+): DynamicAPIServiceProvider {
   class UpdateOneService extends BaseUpdateOneService<Entity> {
     protected readonly entity = entity;
 

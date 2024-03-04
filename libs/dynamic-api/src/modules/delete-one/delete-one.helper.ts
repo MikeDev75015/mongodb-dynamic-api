@@ -10,7 +10,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { addVersionSuffix } from '../../helpers';
-import { DTOsBundle, ServiceProvider } from '../../interfaces';
+import { DTOsBundle, DynamicAPIServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseDeleteOneService } from './base-delete-one.service';
 import { DeleteOneControllerConstructor } from './delete-one-controller.interface';
@@ -24,7 +24,7 @@ function provideServiceName(entityName, version: string | undefined) {
 function createDeleteOneServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
   version: string | undefined,
-): ServiceProvider {
+): DynamicAPIServiceProvider {
   class DeleteOneService extends BaseDeleteOneService<Entity> {
     protected readonly entity = entity;
 
