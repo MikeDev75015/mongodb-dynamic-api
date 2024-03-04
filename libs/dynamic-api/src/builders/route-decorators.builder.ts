@@ -46,6 +46,8 @@ class RouteDecoratorsBuilder<Entity extends BaseEntity> {
         return [Post('many')];
       case 'CreateOne':
         return [Post()];
+      case 'UpdateMany':
+        return [Patch()];
       case 'UpdateOne':
         return [Patch(`:${paramKey}`)];
       case 'ReplaceOne':
@@ -54,10 +56,10 @@ class RouteDecoratorsBuilder<Entity extends BaseEntity> {
         return [Post(`duplicate`)];
       case 'DuplicateOne':
         return [Post(`duplicate/:${paramKey}`)];
-      case 'DeleteOne':
-        return [Delete(`:${paramKey}`)];
       case 'DeleteMany':
         return [Delete()];
+      case 'DeleteOne':
+        return [Delete(`:${paramKey}`)];
       default:
         throw new Error(
           `Unexpected route type! Cannot build route decorators. Received: ${this.routeType}`,

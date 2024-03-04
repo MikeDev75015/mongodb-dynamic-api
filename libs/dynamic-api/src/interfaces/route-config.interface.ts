@@ -11,6 +11,7 @@ type RouteType =
   | 'GetMany'
   | 'GetOne'
   | 'ReplaceOne'
+  | 'UpdateMany'
   | 'UpdateOne';
 
 type DTOsBundle = {

@@ -23,6 +23,8 @@ function getDefaultRouteDescription(routeType: RouteType, entityName: string): s
       return `Get one ${contentName} by id`;
     case 'ReplaceOne':
       return `Replace one ${contentName}`;
+    case 'UpdateMany':
+      return `Update many ${contentName}`;
     case 'UpdateOne':
       return `Update one ${contentName}`;
     default:

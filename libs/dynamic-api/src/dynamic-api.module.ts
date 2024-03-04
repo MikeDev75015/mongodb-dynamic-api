@@ -16,6 +16,7 @@ import {
 } from './modules';
 import { DeleteManyModule } from './modules/delete-many';
 import { DuplicateManyModule } from './modules/duplicate-many';
+import { UpdateManyModule } from './modules/update-many';
 
 @Module({})
 export class DynamicApiModule {
@@ -85,6 +86,7 @@ export class DynamicApiModule {
         { type: 'GetOne' },
         { type: 'CreateMany' },
         { type: 'CreateOne' },
+        { type: 'UpdateMany' },
         { type: 'UpdateOne' },
         { type: 'ReplaceOne' },
         { type: 'DuplicateMany' },
@@ -114,6 +116,7 @@ export class DynamicApiModule {
             | GetManyModule
             | GetOneModule
             | ReplaceOneModule
+            | UpdateManyModule
             | UpdateOneModule;
 
           switch (type) {
@@ -151,6 +154,10 @@ export class DynamicApiModule {
 
             case 'ReplaceOne':
               module = ReplaceOneModule;
+              break;
+
+            case 'UpdateMany':
+              module = UpdateManyModule;
               break;
 
             case 'UpdateOne':
