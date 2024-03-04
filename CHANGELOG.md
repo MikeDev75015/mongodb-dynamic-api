@@ -1,5 +1,14 @@
 Changelog
 
+## [1.3.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v1.2.1...v1.3.0) (2024-03-04)
+
+
+### api
+
+* **api:** add delete many route ([43a89cb](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/43a89cb4c087c468743559950fa232ff6e10c140))
+* **api:** add duplicate many route ([be33d1b](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/be33d1b221d81c5ff6649cd2eccc331cb58459b9))
+* **api:** add update many route ([7543eb9](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/7543eb92d7ba538f6d46b69ec194a6c44daff5b2))
+
 ## [1.2.1](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v1.2.0...v1.2.1) (2024-03-04)
 
 
