@@ -22,7 +22,7 @@ type DTOsBundle = {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface RouteConfig<Entity extends BaseEntity> {
+interface DynamicAPIRouteConfig<Entity extends BaseEntity> {
   type: RouteType;
   description?: string;
   version?: string;
@@ -30,4 +30,4 @@ interface RouteConfig<Entity extends BaseEntity> {
   validationPipeOptions?: ValidationPipeOptions;
 }
 
-export { DTOsBundle, RouteType, RouteConfig };
+export { DTOsBundle, RouteType, DynamicAPIRouteConfig };

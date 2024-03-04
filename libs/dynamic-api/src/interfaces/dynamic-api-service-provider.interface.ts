@@ -1,8 +1,8 @@
 import { Type } from '@nestjs/common';
 
-interface ServiceProvider {
+interface DynamicAPIServiceProvider {
   provide: string;
   useClass: Type;
 }
 
-export type { ServiceProvider };
+export type { DynamicAPIServiceProvider };

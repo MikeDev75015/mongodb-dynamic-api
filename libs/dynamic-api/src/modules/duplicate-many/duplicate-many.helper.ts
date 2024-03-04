@@ -10,7 +10,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { addVersionSuffix } from '../../helpers';
-import { DTOsBundle, ServiceProvider } from '../../interfaces';
+import { DTOsBundle, DynamicAPIServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseDuplicateManyService } from './base-duplicate-many.service';
 import { DuplicateManyControllerConstructor } from './duplicate-many-controller.interface';
@@ -24,7 +24,7 @@ function provideServiceName(entityName, version: string | undefined) {
 function createDuplicateManyServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
   version: string | undefined,
-): ServiceProvider {
+): DynamicAPIServiceProvider {
   class DuplicateManyService extends BaseDuplicateManyService<Entity> {
     protected readonly entity = entity;
 

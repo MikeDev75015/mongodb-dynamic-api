@@ -1,18 +1,12 @@
-import { Type, ValidationPipeOptions } from '@nestjs/common';
+import { Type } from '@nestjs/common';
 import { BaseEntity } from '../models';
-import { RouteConfig } from './route-config.interface';
-
-interface ControllerOptions {
-  path: string;
-  apiTag?: string;
-  version?: string;
-  validationPipeOptions?: ValidationPipeOptions;
-}
+import { ControllerOptions } from './controller-options.interface';
+import { DynamicAPIRouteConfig } from './dynamic-api-route-config.interface';
 
 interface DynamicApiOptions<Entity extends BaseEntity> {
   entity: Type<Entity>;
   controllerOptions: ControllerOptions;
-  routes?: RouteConfig<Entity>[];
+  routes?: DynamicAPIRouteConfig<Entity>[];
 }
 
-export { DynamicApiOptions, ControllerOptions };
+export { DynamicApiOptions };

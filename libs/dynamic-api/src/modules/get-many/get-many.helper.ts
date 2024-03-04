@@ -10,7 +10,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { addVersionSuffix } from '../../helpers';
-import { DTOsBundle, ServiceProvider } from '../../interfaces';
+import { DTOsBundle, DynamicAPIServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseGetManyService } from './base-get-many.service';
 import { GetManyControllerConstructor } from './get-many-controller.interface';
@@ -24,7 +24,7 @@ function provideServiceName(entityName, version: string | undefined) {
 function createGetManyServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
   version: string | undefined,
-): ServiceProvider {
+): DynamicAPIServiceProvider {
   class GetManyService extends BaseGetManyService<Entity> {
     protected readonly entity = entity;
 
