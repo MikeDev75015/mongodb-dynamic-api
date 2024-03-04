@@ -8,6 +8,12 @@ class RouteDecoratorsBuilder<Entity extends BaseEntity> {
   private readonly responseRouteTypeIsArray: RouteType[] = [
     'GetMany',
     'CreateMany',
+    'DuplicateMany',
+  ];
+
+  private readonly bodyRouteTypeIsOptional: RouteType[] = [
+    'DuplicateOne',
+    'DuplicateMany',
   ];
 
   constructor(
@@ -44,8 +50,10 @@ class RouteDecoratorsBuilder<Entity extends BaseEntity> {
         return [Patch(`:${paramKey}`)];
       case 'ReplaceOne':
         return [Put(`:${paramKey}`)];
+      case 'DuplicateMany':
+        return [Post(`duplicate`)];
       case 'DuplicateOne':
-        return [Post(`:${paramKey}`)];
+        return [Post(`duplicate/:${paramKey}`)];
       case 'DeleteOne':
         return [Delete(`:${paramKey}`)];
       case 'DeleteMany':
@@ -71,7 +79,7 @@ class RouteDecoratorsBuilder<Entity extends BaseEntity> {
       }),
       ...(this.body ? [ApiBody({
         type: this.body,
-        ...(this.routeType === 'DuplicateOne' ? { required: false } : {})
+        required: !this.bodyRouteTypeIsOptional.includes(this.routeType),
       })] : []),
       ...(this.param && paramKey
         ? [

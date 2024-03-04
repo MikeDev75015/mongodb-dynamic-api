@@ -13,6 +13,8 @@ function getDefaultRouteDescription(routeType: RouteType, entityName: string): s
       return `Delete many ${contentName}`;
     case 'DeleteOne':
       return `Delete one ${contentName}`;
+    case 'DuplicateMany':
+      return `Duplicate many ${contentName}`;
     case 'DuplicateOne':
       return `Duplicate one ${contentName}`;
     case 'GetMany':
