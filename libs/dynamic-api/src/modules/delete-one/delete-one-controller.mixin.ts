@@ -1,7 +1,7 @@
 import { Param, Type } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityParam } from '../../dtos';
-import { pascalCase, RouteDecoratorsHelper } from '../../helpers';
+import { addVersionSuffix, pascalCase, RouteDecoratorsHelper } from '../../helpers';
 import { DTOsBundle } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { DeleteOneController, DeleteOneControllerConstructor } from './delete-one-controller.interface';
@@ -25,7 +25,7 @@ function DeleteOneControllerMixin<Entity extends BaseEntity>(
 
   if (!CustomParam) {
     Object.defineProperty(RouteParam, 'name', {
-      value: `DeleteOne${displayedName}${version ? 'V' + version : ''}Param`,
+      value: `DeleteOne${displayedName}${addVersionSuffix(version)}Param`,
       writable: false,
     });
   }
@@ -36,7 +36,7 @@ function DeleteOneControllerMixin<Entity extends BaseEntity>(
 
   if (!CustomPresenter) {
     Object.defineProperty(RoutePresenter, 'name', {
-      value: `DeleteOne${displayedName}${version ? 'V' + version : ''}Presenter`,
+      value: `DeleteOne${displayedName}${addVersionSuffix(version)}Presenter`,
       writable: false,
     });
   }
@@ -66,7 +66,7 @@ function DeleteOneControllerMixin<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(BaseDeleteOneController, 'name', {
-    value: `BaseDeleteOne${entity.name}${version ? 'V' + version : ''}Controller`,
+    value: `BaseDeleteOne${entity.name}${addVersionSuffix(version)}Controller`,
     writable: false,
   });
 

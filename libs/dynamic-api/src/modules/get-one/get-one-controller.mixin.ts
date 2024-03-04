@@ -1,7 +1,7 @@
 import { Param, Type } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityParam, EntityQuery } from '../../dtos';
-import { pascalCase, RouteDecoratorsHelper } from '../../helpers';
+import { addVersionSuffix, pascalCase, RouteDecoratorsHelper } from '../../helpers';
 import { DTOsBundle } from '../../interfaces';
 import { EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
@@ -29,7 +29,7 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
 
   if (!CustomParam) {
     Object.defineProperty(RouteParam, 'name', {
-      value: `GetOne${displayedName}${version ? 'V' + version : ''}Param`,
+      value: `GetOne${displayedName}${addVersionSuffix(version)}Param`,
       writable: false,
     });
   }
@@ -40,7 +40,7 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
 
   if (!CustomQuery) {
     Object.defineProperty(RouteQuery, 'name', {
-      value: `GetOne${displayedName}${version ? 'V' + version : ''}Query`,
+      value: `GetOne${displayedName}${addVersionSuffix(version)}Query`,
       writable: false,
     });
   }
@@ -51,7 +51,7 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
 
   if (!CustomPresenter) {
     Object.defineProperty(RoutePresenter, 'name', {
-      value: `${displayedName}${version ? 'V' + version : ''}Presenter`,
+      value: `${displayedName}${addVersionSuffix(version)}Presenter`,
       writable: false,
     });
   }
@@ -81,7 +81,7 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(BaseGetOneController, 'name', {
-    value: `BaseGetOne${entity.name}${version ? 'V' + version : ''}Controller`,
+    value: `BaseGetOne${entity.name}${addVersionSuffix(version)}Controller`,
     writable: false,
   });
 

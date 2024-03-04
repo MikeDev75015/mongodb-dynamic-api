@@ -9,6 +9,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { DynamicApiModule } from '../../dynamic-api.module';
+import { addVersionSuffix } from '../../helpers';
 import { DTOsBundle, ServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseDuplicateOneService } from './base-duplicate-one.service';
@@ -17,7 +18,7 @@ import { DuplicateOneControllerMixin } from './duplicate-one-controller.mixin';
 import { DuplicateOneService } from './duplicate-one-service.interface';
 
 function provideServiceName(entityName, version: string | undefined) {
-  return `DuplicateOne${entityName}${version ? 'V' + version : ''}Service`;
+  return `DuplicateOne${entityName}${addVersionSuffix(version)}Service`;
 }
 
 function createDuplicateOneServiceProvider<Entity extends BaseEntity>(
@@ -80,7 +81,7 @@ function createDuplicateOneController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(DuplicateOneController, 'name', {
-    value: `DuplicateOne${entity.name}${version ? 'V' + version : ''}Controller`,
+    value: `DuplicateOne${entity.name}${addVersionSuffix(version)}Controller`,
     writable: false,
   });
 

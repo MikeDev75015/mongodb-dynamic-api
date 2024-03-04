@@ -1,7 +1,7 @@
 import { Body, Param, Type } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityParam } from '../../dtos';
-import { pascalCase, RouteDecoratorsHelper } from '../../helpers';
+import { addVersionSuffix, pascalCase, RouteDecoratorsHelper } from '../../helpers';
 import { DTOsBundle } from '../../interfaces';
 import { EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
@@ -29,7 +29,7 @@ function DuplicateOneControllerMixin<Entity extends BaseEntity>(
 
   if (!CustomBody) {
     Object.defineProperty(RouteBody, 'name', {
-      value: `DuplicateOne${displayedName}${version ? 'V' + version : ''}Dto`,
+      value: `DuplicateOne${displayedName}${addVersionSuffix(version)}Dto`,
       writable: false,
     });
   }
@@ -40,7 +40,7 @@ function DuplicateOneControllerMixin<Entity extends BaseEntity>(
 
   if (!CustomParam) {
     Object.defineProperty(RouteParam, 'name', {
-      value: `DuplicateOne${displayedName}${version ? 'V' + version : ''}Param`,
+      value: `DuplicateOne${displayedName}${addVersionSuffix(version)}Param`,
       writable: false,
     });
   }
@@ -51,7 +51,7 @@ function DuplicateOneControllerMixin<Entity extends BaseEntity>(
 
   if (!CustomPresenter) {
     Object.defineProperty(RoutePresenter, 'name', {
-      value: `${displayedName}${version ? 'V' + version : ''}Presenter`,
+      value: `${displayedName}${addVersionSuffix(version)}Presenter`,
       writable: false,
     });
   }
@@ -81,7 +81,7 @@ function DuplicateOneControllerMixin<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(BaseDuplicateOneController, 'name', {
-    value: `BaseDuplicateOne${entity.name}${version ? 'V' + version : ''}Controller`,
+    value: `BaseDuplicateOne${entity.name}${addVersionSuffix(version)}Controller`,
     writable: false,
   });
 
