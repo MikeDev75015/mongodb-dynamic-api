@@ -1,12 +1,18 @@
 import { Type } from '@nestjs/common';
 import { BaseEntity } from '../models';
 import { ControllerOptions } from './controller-options.interface';
+import { DynamicApiCacheOptions } from './dynamic-api-cache-options.interface';
 import { DynamicAPIRouteConfig } from './dynamic-api-route-config.interface';
 
-interface DynamicApiOptions<Entity extends BaseEntity> {
+interface DynamicApiForRootOptions {
+  useGlobalCache?: boolean;
+  cacheOptions?: DynamicApiCacheOptions;
+}
+
+interface DynamicApiForFeatureOptions<Entity extends BaseEntity> {
   entity: Type<Entity>;
   controllerOptions: ControllerOptions;
   routes?: DynamicAPIRouteConfig<Entity>[];
 }
 
-export { DynamicApiOptions };
+export { DynamicApiForFeatureOptions, DynamicApiForRootOptions };
