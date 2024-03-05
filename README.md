@@ -103,7 +103,9 @@ export class AppModule {}
 **Basic Usage**
 
 - Ok, now let's add our first content with just 2 files. It will be a simple `User` with a `name` and an `email` field.
-- We use the `@Schema` and `@Prop` decorators from the `@nestjs/mongoose` package to define our MongoDB model. 
+- We use the `@Schema` and `@Prop` decorators from the `@nestjs/mongoose` package to define our MongoDB model. <br>*See <strong>nestjs</strong> <a href="https://docs.nestjs.com/techniques/mongodb#model-injection" target="_blank">documentation</a> for more details.*
+
+
 - You must extend the `BaseEntity` (or `SoftDeletableEntity`) class from the `mongodb-dynamic-api` package **for all your collection models**.
 - Just create a new file `user.ts` and add the following code.
 
@@ -114,10 +116,10 @@ import { BaseEntity } from 'mongodb-dynamic-api';
 
 @Schema({ collection: 'users' })
 export class User extends BaseEntity {
-  @Prop({ type: String })
+  @Prop({ type: String, required: true })
   name: string;
 
-  @Prop({ type: String })
+  @Prop({ type: String, required: true })
   email: string;
 }
 ```
@@ -165,7 +167,23 @@ export class AppModule {}
 
 **And that's all !** *You now have a fully functional CRUD API for the `User` content at the `/users` path.*
 
-___
+
+
+| Endpoint                                          |                      Body                      |    Param     |      Query      |
+|:--------------------------------------------------|:----------------------------------------------:|:------------:|:---------------:|
+| **GET /users**               <br>*Get many*       |                       x                        |      x       |        x        |
+| **GET /users/:id**           <br>*Get one*        |                       x                        | `id: string` |        x        |
+| **POST /users/many**         <br>*Create many*    | `{ list: [{ name: string; email: string; }] }` |      x       |        x        |
+| **POST /users**              <br>*Create one*     |       `{ name: string; email: string; }`       |      x       |        x        |
+| **PUT /users/:id**           <br>*Replace one*    |       `{ name: string; email: string; }`       | `id: string` |        x        |
+| **PATCH /users**             <br>*Update many*    |      `{ name?: string; email?: string; }`      |      x       | `ids: string[]` |
+| **PATCH /users/:id**         <br>*Update one*     |      `{ name?: string; email?: string; }`      | `id: string` |        x        |
+| **DELETE /users**            <br>*Delete many*    |                       x                        |      x       | `ids: string[]` |
+| **DELETE /users/:id**        <br>*Delete one*     |                       x                        | `id: string` |        x        |
+| **POST /users/duplicate**    <br>*Duplicate many* |      `{ name?: string; email?: string; }`      |      x       | `ids: string[]` |
+| **POST /users/duplicate/:id**<br>*Duplicate one*  |      `{ name?: string; email?: string; }`      | `id: string` |        x        |
+
+
 ### [Swagger UI](https://docs.nestjs.com/openapi/introduction#document-options) (optional but strongly recommended)
 `function enableDynamicAPISwagger(app: INestApplication, options?: DynamicAPISwaggerOptions): void`
 
@@ -200,15 +218,15 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 @Schema({ collection: 'users' })
 export class User extends BaseEntity {
   @ApiProperty() // <- add this line
-  @Prop({ type: String })
+  @Prop({ type: String, required: true })
   name: string;
   
   @ApiProperty() // <- add this line
-  @Prop({ type: String })
+  @Prop({ type: String, required: true })
   email: string;
 
   @ApiPropertyOptional() // <- add this line
-  @Prop({ type: String, required: false })
+  @Prop({ type: String })
   company?: string;
 }
 ```
@@ -284,16 +302,16 @@ import { IsEmail } from 'class-validator';
 @Schema({ collection: 'users' })
 export class User extends BaseEntity {
   @ApiProperty()
-  @Prop({ type: String })
+  @Prop({ type: String, required: true })
   name: string;
 
   @ApiProperty()
   @IsEmail()
-  @Prop({ type: String })
+  @Prop({ type: String, required: true })
   email: string;
 
   @ApiPropertyOptional()
-  @Prop({ type: String, required: false })
+  @Prop({ type: String })
   company?: string;
 }
 ```
@@ -463,7 +481,7 @@ export class AppModule {}
 
 **Usage**
 
-> When you request the `/users` route with the `GET` method, the response will be cached until the cache expires or until the maximum number of items is reached or until a request like `POST`, `PUT`, `PATCH`, or `DELETE` is made on the same route.
+When you request the `/users` route with the `GET` method, the response will be cached until the cache expires or until the maximum number of items is reached or until a request like `POST`, `PUT`, `PATCH`, or `DELETE` is made on the same route.
 <br><br>Let's inspect the behavior in the network tab of our browser
 <br>We expected to see a code `200` for the first GET request, a code `304`* for the second GET request, and again a code `200` for the third GET request made after the POST request.
 
