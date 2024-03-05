@@ -9,17 +9,17 @@ import {
 } from 'class-validator';
 import {
   BaseEntity,
-  DynamicApiOptions,
+  DynamicApiForFeatureOptions,
   DynamicAPISchemaOptions,
   DynamicAPISchemaOptionsInterface,
   SoftDeletableEntity,
 } from '../src';
 
 function buildDynamicApiModuleOptionsMock(
-  { entity, controllerOptions, routes }: Partial<DynamicApiOptions<any>> = {},
+  { entity, controllerOptions, routes }: Partial<DynamicApiForFeatureOptions<any>> = {},
   { indexes, hooks }: Partial<DynamicAPISchemaOptionsInterface> = {},
   softDeletable = false,
-): DynamicApiOptions<any> {
+): DynamicApiForFeatureOptions<any> {
   // @ts-ignore
   @DynamicAPISchemaOptions({ indexes, hooks })
   // @ts-ignore

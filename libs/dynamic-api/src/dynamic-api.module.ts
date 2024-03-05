@@ -1,8 +1,10 @@
+import { CacheInterceptor, CacheModule } from '@nestjs/cache-manager';
 import { DynamicModule, Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { MongooseModule, SchemaFactory } from '@nestjs/mongoose';
 import { DYNAMIC_API_SCHEMA_OPTIONS_METADATA } from './decorators';
 import { getDefaultRouteDescription, isValidVersion } from './helpers';
-import { DynamicApiOptions, DynamicAPISchemaOptionsInterface } from './interfaces';
+import { DynamicApiForFeatureOptions, DynamicApiForRootOptions, DynamicAPISchemaOptionsInterface } from './interfaces';
 import { BaseEntity } from './models';
 import {
   CreateManyModule,
@@ -21,17 +23,28 @@ import { UpdateManyModule } from './modules/update-many';
 @Module({})
 export class DynamicApiModule {
   static readonly connectionName = 'dynamic-api-connection';
+  static isGlobalCacheEnabled = true;
 
-  static forRoot(uri: string): DynamicModule {
+  static forRoot(
+    uri: string,
+    { useGlobalCache = true, cacheOptions = {} }: DynamicApiForRootOptions = {},
+  ): DynamicModule {
     if (!uri) {
       throw new Error(
         'You must provide a valid mongodb uri in the forRoot method to use MongoDB Dynamic API',
       );
     }
 
+    if (!useGlobalCache) {
+      DynamicApiModule.isGlobalCacheEnabled = false;
+    }
+
     return {
       module: DynamicApiModule,
       imports: [
+        ...(
+          useGlobalCache ? [CacheModule.register({ isGlobal: true, ...cacheOptions })] : []
+        ),
         MongooseModule.forRoot(
           uri,
           { connectionName: DynamicApiModule.connectionName },
@@ -49,7 +62,7 @@ export class DynamicApiModule {
       validationPipeOptions: controllerValidationPipeOptions,
     },
     routes = [],
-  }: DynamicApiOptions<Entity>): DynamicModule {
+  }: DynamicApiForFeatureOptions<Entity>): DynamicModule {
     const { indexes, hooks } = Reflect.getOwnMetadata(
       DYNAMIC_API_SCHEMA_OPTIONS_METADATA,
       entity,
@@ -190,6 +203,16 @@ export class DynamicApiModule {
           );
         })
         .filter((module) => module),
+      ],
+      providers: [
+        ...(
+          DynamicApiModule.isGlobalCacheEnabled ? [
+            {
+              provide: APP_INTERCEPTOR,
+              useClass: CacheInterceptor,
+            },
+          ] : []
+        ),
       ],
     };
   }

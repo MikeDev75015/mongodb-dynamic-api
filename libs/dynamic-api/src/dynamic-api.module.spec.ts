@@ -1,3 +1,4 @@
+import { CacheModule } from '@nestjs/cache-manager';
 import { MongooseModule, SchemaFactory } from '@nestjs/mongoose';
 import { buildDynamicApiModuleOptionsMock } from '../__mocks__/dynamic-api.module.mock';
 import { DynamicApiModule } from './dynamic-api.module';
@@ -39,6 +40,43 @@ describe('DynamicApiModule', () => {
 
       expect(MongooseModule.forRoot).toHaveBeenCalledWith(uri, {
         connectionName: DynamicApiModule.connectionName,
+      });
+    });
+
+    describe('with cache', () => {
+      let spyCacheModuleRegister: jest.SpyInstance;
+
+      beforeEach(() => {
+        spyCacheModuleRegister = jest.spyOn(CacheModule, 'register');
+      });
+
+      afterEach(() => {
+        spyCacheModuleRegister.mockClear();
+      });
+
+      it('should register CacheModule globally by default', () => {
+        const uri = 'fake-uri';
+        const module = DynamicApiModule.forRoot(uri);
+
+        expect(spyCacheModuleRegister).toHaveBeenCalledWith({ isGlobal: true });
+        expect(module.imports.length).toStrictEqual(2);
+      });
+
+      it('should pass cacheOptions to CacheModule.register', () => {
+        const uri = 'fake-uri';
+        const cacheOptions = { max: 100 };
+        DynamicApiModule.forRoot(uri, { cacheOptions });
+
+        expect(spyCacheModuleRegister).toHaveBeenCalledWith({ isGlobal: true, ...cacheOptions });
+      });
+
+      it('should not register CacheModule globally if useGlobalCache is set to false', () => {
+        const uri = 'fake-uri';
+        const options = { useGlobalCache: false };
+        const module = DynamicApiModule.forRoot(uri, options);
+
+        expect(spyCacheModuleRegister).not.toHaveBeenCalled();
+        expect(module.imports.length).toStrictEqual(1);
       });
     });
   });
@@ -484,6 +522,23 @@ describe('DynamicApiModule', () => {
           updateOneRoute.validationPipeOptions,
         );
       });
+    });
+
+    it('should provide CacheInterceptor if isGlobalCacheEnabled is true', () => {
+      DynamicApiModule.isGlobalCacheEnabled = true;
+      const options = buildDynamicApiModuleOptionsMock();
+      const module = DynamicApiModule.forFeature(options);
+
+      // @ts-ignore
+      expect(module.providers[0].useClass.name).toStrictEqual('CacheInterceptor');
+    });
+
+    it('should not provide CacheInterceptor if isGlobalCacheEnabled is false', () => {
+      DynamicApiModule.isGlobalCacheEnabled = false;
+      const options = buildDynamicApiModuleOptionsMock();
+      const module = DynamicApiModule.forFeature(options);
+
+      expect(module.providers).toStrictEqual([]);
     });
   });
 });
