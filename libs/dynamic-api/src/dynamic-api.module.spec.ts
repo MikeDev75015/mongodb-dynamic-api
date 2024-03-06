@@ -2,20 +2,20 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { MongooseModule, SchemaFactory } from '@nestjs/mongoose';
 import { buildDynamicApiModuleOptionsMock } from '../__mocks__/dynamic-api.module.mock';
 import { DynamicApiModule } from './dynamic-api.module';
-import { DynamicAPISchemaOptionsInterface, DynamicAPIRouteConfig, RouteType } from './interfaces';
+import { DynamicAPIRouteConfig, DynamicAPISchemaOptionsInterface, RouteType } from './interfaces';
 import {
   CreateManyModule,
   CreateOneModule,
+  DeleteManyModule,
   DeleteOneModule,
+  DuplicateManyModule,
   DuplicateOneModule,
   GetManyModule,
   GetOneModule,
   ReplaceOneModule,
+  UpdateManyModule,
   UpdateOneModule,
 } from './modules';
-import { DeleteManyModule } from './modules/delete-many';
-import { DuplicateManyModule } from './modules/duplicate-many';
-import { UpdateManyModule } from './modules/update-many';
 
 describe('DynamicApiModule', () => {
   beforeEach(() => {
