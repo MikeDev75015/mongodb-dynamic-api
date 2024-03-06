@@ -15,7 +15,7 @@ import {
   ReplaceOneModule,
   UpdateManyModule,
   UpdateOneModule,
-} from './modules';
+} from './routes';
 
 describe('DynamicApiModule', () => {
   beforeEach(() => {
