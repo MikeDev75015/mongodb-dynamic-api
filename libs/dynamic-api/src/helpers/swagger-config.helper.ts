@@ -1,7 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { DynamicAPISwaggerExtraConfig, DynamicAPISwaggerOptions } from '../interfaces';
-import versionFile from '../version.json';
+import jsonFile from '../version.json';
 
 function buildExtraConfig(
   config: DocumentBuilder,
@@ -115,10 +115,11 @@ function enableDynamicAPISwagger(
   app: INestApplication,
   options: DynamicAPISwaggerOptions = {},
 ) {
+  const versionFile = require('../version.json');
   const {
     title = 'MongoDB Dynamic API',
     description = 'Auto generated CRUD for MongoDB',
-    version = versionFile?.version?.split('-beta')[0],
+    version = (jsonFile ?? versionFile)?.version,
     path = '/dynamic-api',
     swaggerExtraConfig,
     swaggerDocumentOptions,
