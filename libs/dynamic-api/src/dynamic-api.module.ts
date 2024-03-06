@@ -9,20 +9,21 @@ import { BaseEntity } from './models';
 import {
   CreateManyModule,
   CreateOneModule,
+  DeleteManyModule,
   DeleteOneModule,
+  DuplicateManyModule,
   DuplicateOneModule,
   GetManyModule,
   GetOneModule,
   ReplaceOneModule,
+  UpdateManyModule,
   UpdateOneModule,
 } from './modules';
-import { DeleteManyModule } from './modules/delete-many';
-import { DuplicateManyModule } from './modules/duplicate-many';
-import { UpdateManyModule } from './modules/update-many';
 
 @Module({})
 export class DynamicApiModule {
   static readonly connectionName = 'dynamic-api-connection';
+
   static isGlobalCacheEnabled = true;
 
   static forRoot(
