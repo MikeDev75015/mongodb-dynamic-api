@@ -5,6 +5,6 @@ export * from './helpers';
 export * from './interfaces';
 export * from './mixins';
 export * from './models';
-export * from './modules';
+export * from './routes';
 export * from './services';
 export * from './dynamic-api.module';

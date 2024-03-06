@@ -18,7 +18,7 @@ import {
   ReplaceOneModule,
   UpdateManyModule,
   UpdateOneModule,
-} from './modules';
+} from './routes';
 
 @Module({})
 export class DynamicApiModule {
