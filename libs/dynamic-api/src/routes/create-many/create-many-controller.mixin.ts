@@ -1,25 +1,30 @@
-import { Body, Type } from '@nestjs/common';
+import { Body, Type, UseGuards } from '@nestjs/common';
 import { ApiProperty, PickType } from '@nestjs/swagger';
-import { ArrayMinSize, IsInstance, ValidateNested } from 'class-validator';
 import { Type as TypeTransformer } from 'class-transformer';
+import { ArrayMinSize, IsInstance, ValidateNested } from 'class-validator';
 import { RouteDecoratorsBuilder } from '../../builders';
+import { CheckPolicies } from '../../decorators';
 import { addVersionSuffix, pascalCase, RouteDecoratorsHelper } from '../../helpers';
-import { DTOsBundle } from '../../interfaces';
-import { EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
+import { getPredicateFromControllerAbilityPredicates } from '../../helpers/controller-ability-predicates.helper';
+import { AppAbility, ControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { CreatePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { CreateManyController, CreateManyControllerConstructor } from './create-many-controller.interface';
 import { CreateManyService } from './create-many-service.interface';
 
 function CreateManyControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
-  path: string,
-  apiTag?: string,
+  { path, apiTag, abilityPredicates: controllerAbilityPredicates }: ControllerOptions<Entity>,
+  {
+    type: routeType,
+    description,
+    dTOs,
+    abilityPredicate: routeAbilityPredicate,
+  }: DynamicAPIRouteConfig<Entity>,
   version?: string,
-  description?: string,
-  DTOs?: DTOsBundle,
 ): CreateManyControllerConstructor<Entity> {
   const displayedName = pascalCase(apiTag) ?? entity.name;
-  const { body: CustomBody, presenter: CustomPresenter } = DTOs ?? {};
+  const { body: CustomBody, presenter: CustomPresenter } = dTOs ?? {};
 
   class DtoBody extends EntityBodyMixin(entity) {}
 
@@ -46,7 +51,9 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
     });
   }
 
-  class RoutePresenter extends (CustomPresenter ?? EntityPresenterMixin(entity)) {}
+  class RoutePresenter extends (
+    CustomPresenter ?? EntityPresenterMixin(entity)
+  ) {}
 
   if (!CustomPresenter) {
     Object.defineProperty(RoutePresenter, 'name', {
@@ -66,14 +73,27 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
     RoutePresenter,
   );
 
-  class BaseCreateManyController<Entity extends BaseEntity>
-    implements CreateManyController<Entity>
-  {
+  const abilityPredicate = routeAbilityPredicate ?? getPredicateFromControllerAbilityPredicates(
+    controllerAbilityPredicates,
+    routeType,
+  );
+
+  class CreateManyPoliciesGuard extends CreatePoliciesGuardMixin(
+    entity,
+    routeType,
+    version,
+    abilityPredicate,
+  ) {}
+
+  class BaseCreateManyController implements CreateManyController<Entity> {
     protected readonly entity = entity;
 
-    constructor(protected readonly service: CreateManyService<Entity>) {}
+    constructor(protected readonly service: CreateManyService<Entity>) {
+    }
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
+    @UseGuards(CreateManyPoliciesGuard)
+    @CheckPolicies((ability: AppAbility<Entity>) => ability.can(routeType, entity))
     async createMany(@Body() body: RouteBody) {
       return this.service.createMany(body.list as unknown as Partial<Entity>[]);
     }

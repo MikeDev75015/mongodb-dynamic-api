@@ -1,28 +1,23 @@
 import { DynamicModule, Module, Type, ValidationPipeOptions } from '@nestjs/common';
 import { ControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import {
-  createGetManyController,
-  createGetManyServiceProvider,
-} from './get-many.helper';
+import { createGetManyController, createGetManyServiceProvider } from './get-many.helper';
 
 @Module({})
 export class GetManyModule {
   static forFeature<Entity extends BaseEntity>(
     databaseModule: DynamicModule,
     entity: Type<Entity>,
-    { path, apiTag }: ControllerOptions,
-    { description, dTOs: DTOs }: DynamicAPIRouteConfig<Entity>,
+    controllerOptions: ControllerOptions<Entity>,
+    routeConfig: DynamicAPIRouteConfig<Entity>,
     version?: string,
     validationPipeOptions?: ValidationPipeOptions,
   ): DynamicModule {
     const controller = createGetManyController(
       entity,
-      path,
-      apiTag,
+      controllerOptions,
+      routeConfig,
       version,
-      description,
-      DTOs,
       validationPipeOptions,
     );
     const ServiceProvider = createGetManyServiceProvider(entity, version);

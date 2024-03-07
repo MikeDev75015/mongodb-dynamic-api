@@ -10,7 +10,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { addVersionSuffix } from '../../helpers';
-import { DTOsBundle, DynamicAPIServiceProvider } from '../../interfaces';
+import { ControllerOptions, DTOsBundle, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseGetOneService } from './base-get-one.service';
 import { GetOneControllerConstructor } from './get-one-controller.interface';
@@ -52,13 +52,14 @@ function createGetOneServiceProvider<Entity extends BaseEntity>(
 
 function createGetOneController<Entity extends BaseEntity>(
   entity: Type<Entity>,
-  path: string,
-  apiTag?: string,
+  controllerOptions: ControllerOptions<Entity>,
+  routeConfig: DynamicAPIRouteConfig<Entity>,
   version?: string,
-  description?: string,
-  DTOs?: DTOsBundle,
   validationPipeOptions?: ValidationPipeOptions,
 ): GetOneControllerConstructor<Entity> {
+  const { path, apiTag, abilityPredicates } = controllerOptions;
+  const { type: routeType, description, dTOs, abilityPredicate } = routeConfig;
+
   @Controller({ path, version })
   @ApiTags(apiTag || entity.name)
   @UsePipes(
@@ -66,11 +67,9 @@ function createGetOneController<Entity extends BaseEntity>(
   )
   class GetOneController extends GetOneControllerMixin(
     entity,
-    path,
-    apiTag,
+    { path, apiTag, abilityPredicates },
+    { type: routeType, description, dTOs, abilityPredicate },
     version,
-    description,
-    DTOs,
   ) {
     constructor(
       @Inject(provideServiceName(entity.name, version))

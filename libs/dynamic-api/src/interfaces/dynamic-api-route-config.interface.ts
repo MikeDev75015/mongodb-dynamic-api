@@ -1,5 +1,6 @@
 import { Type, ValidationPipeOptions } from '@nestjs/common';
 import { BaseEntity } from '../models';
+import { DynamicApiRouteCaslAbilityPredicate } from './dynamic-api-casl-ability.interface';
 
 type RouteType =
   | 'CreateMany'
@@ -28,6 +29,7 @@ interface DynamicAPIRouteConfig<Entity extends BaseEntity> {
   version?: string;
   dTOs?: DTOsBundle;
   validationPipeOptions?: ValidationPipeOptions;
+  abilityPredicate?: DynamicApiRouteCaslAbilityPredicate<Entity>;
 }
 
 export { DTOsBundle, RouteType, DynamicAPIRouteConfig };

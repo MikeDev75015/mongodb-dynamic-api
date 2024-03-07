@@ -1,27 +1,32 @@
-import { Body, Param, Type } from '@nestjs/common';
+import { Body, Param, Type, UseGuards } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
+import { CheckPolicies } from '../../decorators';
 import { EntityParam } from '../../dtos';
 import { addVersionSuffix, pascalCase, RouteDecoratorsHelper } from '../../helpers';
-import { DTOsBundle } from '../../interfaces';
-import { EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
+import { getPredicateFromControllerAbilityPredicates } from '../../helpers/controller-ability-predicates.helper';
+import { AppAbility, ControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { CreatePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { ReplaceOneController, ReplaceOneControllerConstructor } from './replace-one-controller.interface';
 import { ReplaceOneService } from './replace-one-service.interface';
 
 function ReplaceOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
-  path: string,
-  apiTag?: string,
+  { path, apiTag, abilityPredicates: controllerAbilityPredicates }: ControllerOptions<Entity>,
+  {
+    type: routeType,
+    description,
+    dTOs,
+    abilityPredicate: routeAbilityPredicate,
+  }: DynamicAPIRouteConfig<Entity>,
   version?: string,
-  description?: string,
-  DTOs?: DTOsBundle,
 ): ReplaceOneControllerConstructor<Entity> {
   const displayedName = pascalCase(apiTag) ?? entity.name;
   const {
     body: CustomBody,
     param: CustomParam,
     presenter: CustomPresenter,
-  } = DTOs ?? {};
+  } = dTOs ?? {};
 
   class RouteBody extends (
     CustomBody ?? EntityBodyMixin(entity)
@@ -67,14 +72,27 @@ function ReplaceOneControllerMixin<Entity extends BaseEntity>(
     RoutePresenter,
   );
 
-  class BaseReplaceOneController<Entity extends BaseEntity>
-    implements ReplaceOneController<Entity> {
+  const abilityPredicate = routeAbilityPredicate ?? getPredicateFromControllerAbilityPredicates(
+    controllerAbilityPredicates,
+    routeType,
+  );
+
+  class ReplaceOnePoliciesGuard extends CreatePoliciesGuardMixin(
+    entity,
+    routeType,
+    version,
+    abilityPredicate,
+  ) {}
+
+  class BaseReplaceOneController implements ReplaceOneController<Entity> {
     protected readonly entity = entity;
 
     constructor(protected readonly service: ReplaceOneService<Entity>) {
     }
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
+    @UseGuards(ReplaceOnePoliciesGuard)
+    @CheckPolicies((ability: AppAbility<Entity>) => ability.can(routeType, entity))
     async replaceOne(@Param('id') id: string, @Body() body: RouteBody) {
       return this.service.replaceOne(id, body as any);
     }

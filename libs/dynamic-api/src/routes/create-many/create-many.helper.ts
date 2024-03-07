@@ -10,7 +10,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { addVersionSuffix } from '../../helpers';
-import { DTOsBundle, DynamicAPIServiceProvider } from '../../interfaces';
+import { ControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseCreateManyService } from './base-create-many.service';
 import { CreateManyControllerConstructor } from './create-many-controller.interface';
@@ -52,13 +52,14 @@ function createCreateManyServiceProvider<Entity extends BaseEntity>(
 
 function createCreateManyController<Entity extends BaseEntity>(
   entity: Type<Entity>,
-  path: string,
-  apiTag?: string,
+  controllerOptions: ControllerOptions<Entity>,
+  routeConfig: DynamicAPIRouteConfig<Entity>,
   version?: string,
-  description?: string,
-  DTOs?: DTOsBundle,
   validationPipeOptions?: ValidationPipeOptions,
 ): CreateManyControllerConstructor<Entity> {
+  const { path, apiTag, abilityPredicates } = controllerOptions;
+  const { type: routeType, description, dTOs, abilityPredicate } = routeConfig;
+
   @Controller({ path, version })
   @ApiTags(apiTag || entity.name)
   @UsePipes(
@@ -66,11 +67,9 @@ function createCreateManyController<Entity extends BaseEntity>(
   )
   class CreateManyController extends CreateManyControllerMixin(
     entity,
-    path,
-    apiTag,
+    { path, apiTag, abilityPredicates },
+    { type: routeType, description, dTOs, abilityPredicate },
     version,
-    description,
-    DTOs,
   ) {
     constructor(
       @Inject(provideServiceName(entity.name, version))

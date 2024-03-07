@@ -11,18 +11,16 @@ export class ReplaceOneModule {
   static forFeature<Entity extends BaseEntity>(
     databaseModule: DynamicModule,
     entity: Type<Entity>,
-    { path, apiTag }: ControllerOptions,
-    { description, dTOs: DTOs }: DynamicAPIRouteConfig<Entity>,
+    controllerOptions: ControllerOptions<Entity>,
+    routeConfig: DynamicAPIRouteConfig<Entity>,
     version?: string,
     validationPipeOptions?: ValidationPipeOptions,
   ): DynamicModule {
     const controller = createReplaceOneController(
       entity,
-      path,
-      apiTag,
+      controllerOptions,
+      routeConfig,
       version,
-      description,
-      DTOs,
       validationPipeOptions,
     );
     const ServiceProvider = createReplaceOneServiceProvider(entity, version);

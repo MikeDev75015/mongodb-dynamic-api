@@ -1,16 +1,10 @@
-import {
-  Controller,
-  Inject,
-  Type,
-  UsePipes,
-  ValidationPipe, ValidationPipeOptions,
-} from '@nestjs/common';
+import { Controller, Inject, Type, UsePipes, ValidationPipe, ValidationPipeOptions } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { addVersionSuffix } from '../../helpers';
-import { DTOsBundle, DynamicAPIServiceProvider } from '../../interfaces';
+import { ControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseGetManyService } from './base-get-many.service';
 import { GetManyControllerConstructor } from './get-many-controller.interface';
@@ -52,13 +46,14 @@ function createGetManyServiceProvider<Entity extends BaseEntity>(
 
 function createGetManyController<Entity extends BaseEntity>(
   entity: Type<Entity>,
-  path: string,
-  apiTag?: string,
+  controllerOptions: ControllerOptions<Entity>,
+  routeConfig: DynamicAPIRouteConfig<Entity>,
   version?: string,
-  description?: string,
-  DTOs?: DTOsBundle,
   validationPipeOptions?: ValidationPipeOptions,
 ): GetManyControllerConstructor<Entity> {
+  const { path, apiTag, abilityPredicates } = controllerOptions;
+  const { type: routeType, description, dTOs, abilityPredicate } = routeConfig;
+
   @Controller({ path, version })
   @ApiTags(apiTag || entity.name)
   @UsePipes(
@@ -66,11 +61,9 @@ function createGetManyController<Entity extends BaseEntity>(
   )
   class GetManyController extends GetManyControllerMixin(
     entity,
-    path,
-    apiTag,
+    { path, apiTag, abilityPredicates },
+    { type: routeType, description, dTOs, abilityPredicate },
     version,
-    description,
-    DTOs,
   ) {
     constructor(
       @Inject(provideServiceName(entity.name, version))
@@ -81,7 +74,7 @@ function createGetManyController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(GetManyController, 'name', {
-    value: `GetMany${entity.name}${addVersionSuffix(version)}Controller`,
+    value: `${routeType}${entity.name}${addVersionSuffix(version)}Controller`,
     writable: false,
   });
 

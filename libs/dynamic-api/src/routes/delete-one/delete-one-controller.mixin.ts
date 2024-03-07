@@ -1,8 +1,11 @@
-import { Param, Type } from '@nestjs/common';
+import { Param, Type, UseGuards } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
+import { CheckPolicies } from '../../decorators';
 import { EntityParam } from '../../dtos';
 import { addVersionSuffix, pascalCase, RouteDecoratorsHelper } from '../../helpers';
-import { DTOsBundle } from '../../interfaces';
+import { getPredicateFromControllerAbilityPredicates } from '../../helpers/controller-ability-predicates.helper';
+import { AppAbility, ControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { CreatePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DeleteOneController, DeleteOneControllerConstructor } from './delete-one-controller.interface';
 import { DeleteOneService } from './delete-one-service.interface';
@@ -10,14 +13,17 @@ import { DeleteOnePresenter } from './delete-one.presenter';
 
 function DeleteOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
-  path: string,
-  apiTag?: string,
+  { path, apiTag, abilityPredicates: controllerAbilityPredicates }: ControllerOptions<Entity>,
+  {
+    type: routeType,
+    description,
+    dTOs,
+    abilityPredicate: routeAbilityPredicate,
+  }: DynamicAPIRouteConfig<Entity>,
   version?: string,
-  description?: string,
-  DTOs?: DTOsBundle,
 ): DeleteOneControllerConstructor<Entity> {
   const displayedName = pascalCase(apiTag) ?? entity.name;
-  const { param: CustomParam, presenter: CustomPresenter } = DTOs ?? {};
+  const { param: CustomParam, presenter: CustomPresenter } = dTOs ?? {};
 
   class RouteParam extends (
     CustomParam ?? EntityParam
@@ -52,14 +58,27 @@ function DeleteOneControllerMixin<Entity extends BaseEntity>(
     RoutePresenter,
   );
 
-  class BaseDeleteOneController<Entity extends BaseEntity>
-    implements DeleteOneController<Entity> {
+  const abilityPredicate = routeAbilityPredicate ?? getPredicateFromControllerAbilityPredicates(
+    controllerAbilityPredicates,
+    routeType,
+  );
+
+  class DeleteOnePoliciesGuard extends CreatePoliciesGuardMixin(
+    entity,
+    routeType,
+    version,
+    abilityPredicate,
+  ) {}
+
+  class BaseDeleteOneController implements DeleteOneController<Entity> {
     protected readonly entity = entity;
 
     constructor(protected readonly service: DeleteOneService<Entity>) {
     }
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
+    @UseGuards(DeleteOnePoliciesGuard)
+    @CheckPolicies((ability: AppAbility<Entity>) => ability.can(routeType, entity))
     async deleteOne(@Param('id') id: string) {
       return this.service.deleteOne(id);
     }

@@ -8,18 +8,16 @@ export class DuplicateOneModule {
   static forFeature<Entity extends BaseEntity>(
     databaseModule: DynamicModule,
     entity: Type<Entity>,
-    { path, apiTag }: ControllerOptions,
-    { description, dTOs: DTOs }: DynamicAPIRouteConfig<Entity>,
+    controllerOptions: ControllerOptions<Entity>,
+    routeConfig: DynamicAPIRouteConfig<Entity>,
     version?: string,
     validationPipeOptions?: ValidationPipeOptions,
   ): DynamicModule {
     const controller = createDuplicateOneController(
       entity,
-      path,
-      apiTag,
+      controllerOptions,
+      routeConfig,
       version,
-      description,
-      DTOs,
       validationPipeOptions,
     );
     const ServiceProvider = createDuplicateOneServiceProvider(entity, version);

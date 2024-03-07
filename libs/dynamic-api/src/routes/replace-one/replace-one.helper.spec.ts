@@ -28,10 +28,12 @@ describe('ReplaceOneHelper', () => {
     it('should return ReplaceOne controller', () => {
       const controllerClass = createReplaceOneController(
         entity,
-        'path',
-        'apiTag',
+        {
+          path: 'path',
+          apiTag: 'apiTag',
+        },
+        { type: 'ReplaceOne', description: 'description' },
         '1',
-        'description',
       );
 
       expect(controllerClass.name).toBe(`ReplaceOne${entity.name}V1Controller`);
@@ -40,7 +42,11 @@ describe('ReplaceOneHelper', () => {
     it('should instantiate ReplaceOne controller with default values', async () => {
       const { useClass } = createReplaceOneServiceProvider(entity, undefined);
       const service = new useClass(model);
-      const controllerClass = createReplaceOneController(entity, 'path');
+      const controllerClass = createReplaceOneController(
+        entity,
+        { path: 'path' },
+        { type: 'ReplaceOne' },
+      );
       const controller = new controllerClass(service);
       const spyServiceReplaceOne = jest.spyOn(service, 'replaceOne');
       jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);

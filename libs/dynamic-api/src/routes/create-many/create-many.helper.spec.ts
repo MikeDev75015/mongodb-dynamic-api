@@ -28,10 +28,12 @@ describe('CreateManyHelper', () => {
     it('should return CreateMany controller', () => {
       const controllerClass = createCreateManyController(
         entity,
-        'path',
-        'apiTag',
+        {
+          path: 'path',
+          apiTag: 'apiTag',
+        },
+        { type: 'CreateMany', description: 'description' },
         '1',
-        'description',
       );
 
       expect(controllerClass.name).toBe(`CreateMany${entity.name}V1Controller`);
@@ -40,7 +42,11 @@ describe('CreateManyHelper', () => {
     it('should instantiate CreateMany controller with default values', async () => {
       const { useClass } = createCreateManyServiceProvider(entity, undefined);
       const service = new useClass(model);
-      const controllerClass = createCreateManyController(entity, 'path');
+      const controllerClass = createCreateManyController(
+        entity,
+        { path: 'path' },
+        { type: 'CreateMany' },
+      );
       const controller = new controllerClass(service);
       const spyServiceCreateMany = jest.spyOn(service, 'createMany');
 

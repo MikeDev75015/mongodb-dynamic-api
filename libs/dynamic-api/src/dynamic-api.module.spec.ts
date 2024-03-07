@@ -244,88 +244,88 @@ describe('DynamicApiModule', () => {
         expect(spyCreateManyModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
           options.entity,
-          { path: options.controllerOptions.path, apiTag: undefined },
-          { description: 'Create many person entity', dTOs: undefined },
+          options.controllerOptions,
+          { description: 'Create many person entity', ...createManyRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
         );
         expect(spyCreateOneModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
           options.entity,
-          { path: options.controllerOptions.path, apiTag: undefined },
-          { description: 'Create one person entity', dTOs: undefined },
+          options.controllerOptions,
+          { description: 'Create one person entity', ...createOneRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
         );
         expect(spyDeleteManyModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
           options.entity,
-          { path: options.controllerOptions.path, apiTag: undefined },
-          { description: 'Delete many person entity', dTOs: undefined },
+          options.controllerOptions,
+          { description: 'Delete many person entity', ...deleteManyRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
         );
         expect(spyDeleteOneModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
           options.entity,
-          { path: options.controllerOptions.path, apiTag: undefined },
-          { description: 'Delete one person entity', dTOs: undefined },
+          options.controllerOptions,
+          { description: 'Delete one person entity', ...deleteOneRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
         );
         expect(spyDuplicateManyModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
           options.entity,
-          { path: options.controllerOptions.path, apiTag: undefined },
-          { description: 'Duplicate many person entity', dTOs: undefined },
+          options.controllerOptions,
+          { description: 'Duplicate many person entity', ...duplicateManyRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
         );
         expect(spyDuplicateOneModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
           options.entity,
-          { path: options.controllerOptions.path, apiTag: undefined },
-          { description: 'Duplicate one person entity', dTOs: undefined },
+          options.controllerOptions,
+          { description: 'Duplicate one person entity', ...duplicateOneRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
         );
         expect(spyGetManyModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
           options.entity,
-          { path: options.controllerOptions.path, apiTag: undefined },
-          { description: 'Get many person entity', dTOs: undefined },
+          options.controllerOptions,
+          { description: 'Get many person entity', ...getManyRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
         );
         expect(spyGetOneModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
           options.entity,
-          { path: options.controllerOptions.path, apiTag: undefined },
-          { description: 'Get one person entity by id', dTOs: undefined },
+          options.controllerOptions,
+          { description: 'Get one person entity by id', ...getOneRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
         );
         expect(spyReplaceOneModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
           options.entity,
-          { path: options.controllerOptions.path, apiTag: undefined },
-          { description: 'Replace one person entity', dTOs: undefined },
+          options.controllerOptions,
+          { description: 'Replace one person entity', ...replaceOneRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
         );
         expect(spyUpdateManyModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
           options.entity,
-          { path: options.controllerOptions.path, apiTag: undefined },
-          { description: 'Update many person entity', dTOs: undefined },
+          options.controllerOptions,
+          { description: 'Update many person entity', ...updateManyRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
         );
         expect(spyUpdateOneModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
           options.entity,
-          { path: options.controllerOptions.path, apiTag: undefined },
-          { description: 'Update one person entity', dTOs: undefined },
+          options.controllerOptions,
+          { description: 'Update one person entity', ...updateOneRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
         );
@@ -436,88 +436,88 @@ describe('DynamicApiModule', () => {
         expect(spyCreateManyModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
           options.entity,
-          { path: options.controllerOptions.path, apiTag: options.controllerOptions.apiTag },
-          { description: createManyRoute.description, dTOs: createManyRoute.dTOs },
+          options.controllerOptions,
+          createManyRoute,
           createManyRoute.version,
           createManyRoute.validationPipeOptions,
         );
         expect(spyCreateOneModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
           options.entity,
-          { path: options.controllerOptions.path, apiTag: options.controllerOptions.apiTag },
-          { description: createOneRoute.description, dTOs: createOneRoute.dTOs },
+          options.controllerOptions,
+          createOneRoute,
           createOneRoute.version,
           createOneRoute.validationPipeOptions,
         );
         expect(spyDeleteOneModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
           options.entity,
-          { path: options.controllerOptions.path, apiTag: options.controllerOptions.apiTag },
-          { description: deleteOneRoute.description, dTOs: deleteOneRoute.dTOs },
+          options.controllerOptions,
+          deleteOneRoute,
           deleteOneRoute.version,
           deleteOneRoute.validationPipeOptions,
         );
         expect(spyDeleteManyModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
           options.entity,
-          { path: options.controllerOptions.path, apiTag: options.controllerOptions.apiTag },
-          { description: deleteManyRoute.description, dTOs: deleteManyRoute.dTOs },
+          options.controllerOptions,
+          deleteManyRoute,
           deleteManyRoute.version,
           deleteManyRoute.validationPipeOptions,
         );
         expect(spyDuplicateManyModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
           options.entity,
-          { path: options.controllerOptions.path, apiTag: options.controllerOptions.apiTag },
-          { description: duplicateManyRoute.description, dTOs: duplicateManyRoute.dTOs },
+          options.controllerOptions,
+          duplicateManyRoute,
           duplicateManyRoute.version,
           duplicateManyRoute.validationPipeOptions,
         );
         expect(spyDuplicateOneModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
           options.entity,
-          { path: options.controllerOptions.path, apiTag: options.controllerOptions.apiTag },
-          { description: duplicateOneRoute.description, dTOs: duplicateOneRoute.dTOs },
+          options.controllerOptions,
+          duplicateOneRoute,
           duplicateOneRoute.version,
           duplicateOneRoute.validationPipeOptions,
         );
         expect(spyGetManyModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
           options.entity,
-          { path: options.controllerOptions.path, apiTag: options.controllerOptions.apiTag },
-          { description: getManyRoute.description, dTOs: getManyRoute.dTOs },
+          options.controllerOptions,
+          getManyRoute,
           getManyRoute.version,
           getManyRoute.validationPipeOptions,
         );
         expect(spyGetOneModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
           options.entity,
-          { path: options.controllerOptions.path, apiTag: options.controllerOptions.apiTag },
-          { description: getOneRoute.description, dTOs: getOneRoute.dTOs },
+          options.controllerOptions,
+          getOneRoute,
           getOneRoute.version,
           getOneRoute.validationPipeOptions,
         );
         expect(spyReplaceOneModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
           options.entity,
-          { path: options.controllerOptions.path, apiTag: options.controllerOptions.apiTag },
-          { description: replaceOneRoute.description, dTOs: replaceOneRoute.dTOs },
+          options.controllerOptions,
+          replaceOneRoute,
           replaceOneRoute.version,
           replaceOneRoute.validationPipeOptions,
         );
         expect(spyUpdateManyModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
           options.entity,
-          { path: options.controllerOptions.path, apiTag: options.controllerOptions.apiTag },
-          { description: updateManyRoute.description, dTOs: updateManyRoute.dTOs },
+          options.controllerOptions,
+          updateManyRoute,
           updateManyRoute.version,
           updateManyRoute.validationPipeOptions,
         );
         expect(spyUpdateOneModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
           options.entity,
-          { path: options.controllerOptions.path, apiTag: options.controllerOptions.apiTag },
-          { description: updateOneRoute.description, dTOs: updateOneRoute.dTOs },
+          options.controllerOptions,
+          updateOneRoute,
           updateOneRoute.version,
           updateOneRoute.validationPipeOptions,
         );

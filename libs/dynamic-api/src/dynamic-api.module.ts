@@ -56,12 +56,7 @@ export class DynamicApiModule {
 
   static forFeature<Entity extends BaseEntity>({
     entity,
-    controllerOptions: {
-      path,
-      apiTag,
-      version: controllerVersion,
-      validationPipeOptions: controllerValidationPipeOptions,
-    },
+    controllerOptions,
     routes = [],
   }: DynamicApiForFeatureOptions<Entity>): DynamicModule {
     const { indexes, hooks } = Reflect.getOwnMetadata(
@@ -110,17 +105,22 @@ export class DynamicApiModule {
       ];
     }
 
+    const {
+      version: controllerVersion,
+      validationPipeOptions: controllerValidationPipeOptions,
+    } = controllerOptions;
+
     return {
       module: DynamicApiModule,
       imports: [
         ...routes
-        .map(({
-          type,
-          dTOs,
-          description: routeDescription,
-          version: routeVersion,
-          validationPipeOptions: routeValidationPipeOptions,
-        }) => {
+        .map((routeConfig) => {
+          const {
+            type,
+            description: routeDescription,
+            version: routeVersion,
+            validationPipeOptions: routeValidationPipeOptions,
+          } = routeConfig;
 
           let module: CreateManyModule
             | CreateOneModule
@@ -197,8 +197,8 @@ export class DynamicApiModule {
           return module.forFeature(
             databaseModule,
             entity,
-            { path, apiTag },
-            { description, dTOs },
+            controllerOptions,
+            { ...routeConfig, description },
             version,
             validationPipeOptions,
           );
