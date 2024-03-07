@@ -1,6 +1,6 @@
 import { Type } from '@nestjs/common';
-import { buildDynamicApiModuleOptionsMock } from '../../__mocks__/dynamic-api.module.mock';
-import { RouteType } from '../interfaces';
+import { buildDynamicApiModuleOptionsMock } from '../../../__mocks__/dynamic-api.module.mock';
+import { RouteType } from '../../interfaces';
 import { RouteDecoratorsBuilder } from './route-decorators.builder';
 
 describe('RouteDecoratorsBuilder', () => {

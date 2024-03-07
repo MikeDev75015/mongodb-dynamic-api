@@ -11,7 +11,7 @@ interface DynamicApiForRootOptions {
 
 interface DynamicApiForFeatureOptions<Entity extends BaseEntity> {
   entity: Type<Entity>;
-  controllerOptions: ControllerOptions;
+  controllerOptions: ControllerOptions<Entity>;
   routes?: DynamicAPIRouteConfig<Entity>[];
 }
 

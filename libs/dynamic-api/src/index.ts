@@ -1,6 +1,7 @@
 export * from './builders';
 export * from './decorators';
 export * from './dtos';
+export * from './guards';
 export * from './helpers';
 export * from './interfaces';
 export * from './mixins';

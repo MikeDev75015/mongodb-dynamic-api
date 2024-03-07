@@ -30,10 +30,12 @@ describe('UpdateManyHelper', () => {
     it('should return UpdateMany controller', () => {
       const controllerClass = createUpdateManyController(
         entity,
-        'path',
-        'apiTag',
+        {
+          path: 'path',
+          apiTag: 'apiTag',
+        },
+        { type: 'UpdateMany', description: 'description' },
         '1',
-        'description',
       );
 
       expect(controllerClass.name).toBe(`UpdateMany${entity.name}V1Controller`);
@@ -42,7 +44,11 @@ describe('UpdateManyHelper', () => {
     it('should instantiate UpdateMany controller with default values', async () => {
       const { useClass } = createUpdateManyServiceProvider(entity, undefined);
       const service = new useClass(model);
-      const controllerClass = createUpdateManyController(entity, 'path');
+      const controllerClass = createUpdateManyController(
+        entity,
+        { path: 'path' },
+        { type: 'UpdateMany' },
+      );
       const controller = new controllerClass(service);
       const spyServiceUpdateMany = jest.spyOn(service, 'updateMany');
       jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);

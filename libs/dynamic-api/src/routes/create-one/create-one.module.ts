@@ -11,18 +11,16 @@ export class CreateOneModule {
   static forFeature<Entity extends BaseEntity>(
     databaseModule: DynamicModule,
     entity: Type<Entity>,
-    { path, apiTag }: ControllerOptions,
-    { description, dTOs: DTOs }: DynamicAPIRouteConfig<Entity>,
+    controllerOptions: ControllerOptions<Entity>,
+    routeConfig: DynamicAPIRouteConfig<Entity>,
     version?: string,
     validationPipeOptions?: ValidationPipeOptions,
   ): DynamicModule {
     const controller = createCreateOneController(
       entity,
-      path,
-      apiTag,
+      controllerOptions,
+      routeConfig,
       version,
-      description,
-      DTOs,
       validationPipeOptions,
     );
     const ServiceProvider = createCreateOneServiceProvider(entity, version);

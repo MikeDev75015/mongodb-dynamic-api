@@ -28,10 +28,12 @@ describe('GetOneHelper', () => {
     it('should return GetOne controller', () => {
       const controllerClass = createGetOneController(
         entity,
-        'path',
-        'apiTag',
+        {
+          path: 'path',
+          apiTag: 'apiTag',
+        },
+        { type: 'GetOne', description: 'description' },
         '1',
-        'description',
       );
 
       expect(controllerClass.name).toBe(`GetOne${entity.name}V1Controller`);
@@ -40,7 +42,11 @@ describe('GetOneHelper', () => {
     it('should instantiate GetOne controller with default values', async () => {
       const { useClass } = createGetOneServiceProvider(entity, undefined);
       const service = new useClass(model);
-      const controllerClass = createGetOneController(entity, 'path');
+      const controllerClass = createGetOneController(
+        entity,
+        { path: 'path' },
+        { type: 'GetOne' },
+      );
       const controller = new controllerClass(service);
       const spyServiceGetOne = jest.spyOn(service, 'getOne');
       jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);

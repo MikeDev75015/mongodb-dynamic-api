@@ -1,27 +1,32 @@
-import { Body, Param, Type } from '@nestjs/common';
+import { Body, Param, Type, UseGuards } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
+import { CheckPolicies } from '../../decorators';
 import { EntityParam } from '../../dtos';
 import { addVersionSuffix, pascalCase, RouteDecoratorsHelper } from '../../helpers';
-import { DTOsBundle } from '../../interfaces';
-import { EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
+import { getPredicateFromControllerAbilityPredicates } from '../../helpers/controller-ability-predicates.helper';
+import { AppAbility, ControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { CreatePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DuplicateOneController, DuplicateOneControllerConstructor } from './duplicate-one-controller.interface';
 import { DuplicateOneService } from './duplicate-one-service.interface';
 
 function DuplicateOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
-  path: string,
-  apiTag?: string,
+  { path, apiTag, abilityPredicates: controllerAbilityPredicates }: ControllerOptions<Entity>,
+  {
+    type: routeType,
+    description,
+    dTOs,
+    abilityPredicate: routeAbilityPredicate,
+  }: DynamicAPIRouteConfig<Entity>,
   version?: string,
-  description?: string,
-  DTOs?: DTOsBundle,
 ): DuplicateOneControllerConstructor<Entity> {
   const displayedName = pascalCase(apiTag) ?? entity.name;
   const {
     body: CustomBody,
     param: CustomParam,
     presenter: CustomPresenter,
-  } = DTOs ?? {};
+  } = dTOs ?? {};
 
   class RouteBody extends (
     CustomBody ?? EntityBodyMixin(entity, true)
@@ -67,14 +72,27 @@ function DuplicateOneControllerMixin<Entity extends BaseEntity>(
     RoutePresenter,
   );
 
-  class BaseDuplicateOneController<Entity extends BaseEntity>
-    implements DuplicateOneController<Entity> {
+  const abilityPredicate = routeAbilityPredicate ?? getPredicateFromControllerAbilityPredicates(
+    controllerAbilityPredicates,
+    routeType,
+  );
+
+  class DuplicateOnePoliciesGuard extends CreatePoliciesGuardMixin(
+    entity,
+    routeType,
+    version,
+    abilityPredicate,
+  ) {}
+
+  class BaseDuplicateOneController implements DuplicateOneController<Entity> {
     protected readonly entity = entity;
 
     constructor(protected readonly service: DuplicateOneService<Entity>) {
     }
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
+    @UseGuards(DuplicateOnePoliciesGuard)
+    @CheckPolicies((ability: AppAbility<Entity>) => ability.can(routeType, entity))
     async duplicateOne(@Param('id') id: string, @Body() body?: RouteBody) {
       return this.service.duplicateOne(id, body as any);
     }

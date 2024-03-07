@@ -28,10 +28,12 @@ describe('CreateOneHelper', () => {
     it('should return CreateOne controller', () => {
       const controllerClass = createCreateOneController(
         entity,
-        'path',
-        'apiTag',
+        {
+          path: 'path',
+          apiTag: 'apiTag',
+        },
+        { type: 'CreateOne', description: 'description' },
         '1',
-        'description',
       );
 
       expect(controllerClass.name).toBe(`CreateOne${entity.name}V1Controller`);
@@ -40,7 +42,11 @@ describe('CreateOneHelper', () => {
     it('should instantiate CreateOne controller with default values', async () => {
       const { useClass } = createCreateOneServiceProvider(entity, undefined);
       const service = new useClass(model);
-      const controllerClass = createCreateOneController(entity, 'path');
+      const controllerClass = createCreateOneController(
+        entity,
+        { path: 'path' },
+        { type: 'CreateOne' },
+      );
       const controller = new controllerClass(service);
       const spyServiceCreateOne = jest.spyOn(service, 'createOne');
 

@@ -38,6 +38,7 @@
   },
   "homepage": "https://mikedev75015.github.io",
   "dependencies": {
+    "@casl/ability": "^6.7.0",
     "@nestjs/cache-manager": "^2.2.1",
     "@nestjs/common": "^10.3.2",
     "@nestjs/core": "^10.3.2",

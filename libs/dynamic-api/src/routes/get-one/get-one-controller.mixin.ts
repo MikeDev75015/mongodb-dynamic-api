@@ -1,27 +1,32 @@
-import { Param, Type } from '@nestjs/common';
+import { Param, Type, UseGuards } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
+import { CheckPolicies } from '../../decorators';
 import { EntityParam, EntityQuery } from '../../dtos';
 import { addVersionSuffix, pascalCase, RouteDecoratorsHelper } from '../../helpers';
-import { DTOsBundle } from '../../interfaces';
-import { EntityPresenterMixin } from '../../mixins';
+import { getPredicateFromControllerAbilityPredicates } from '../../helpers/controller-ability-predicates.helper';
+import { AppAbility, ControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { CreatePoliciesGuardMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { GetOneController, GetOneControllerConstructor } from './get-one-controller.interface';
 import { GetOneService } from './get-one-service.interface';
 
 function GetOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
-  path: string,
-  apiTag?: string,
+  { path, apiTag, abilityPredicates: controllerAbilityPredicates }: ControllerOptions<Entity>,
+  {
+    type: routeType,
+    description,
+    dTOs,
+    abilityPredicate: routeAbilityPredicate,
+  }: DynamicAPIRouteConfig<Entity>,
   version?: string,
-  description?: string,
-  DTOs?: DTOsBundle,
 ): GetOneControllerConstructor<Entity> {
   const displayedName = pascalCase(apiTag) ?? entity.name;
   const {
     param: CustomParam,
     query: CustomQuery,
     presenter: CustomPresenter,
-  } = DTOs ?? {};
+  } = dTOs ?? {};
 
   class RouteParam extends (
     CustomParam ?? EntityParam
@@ -67,14 +72,27 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
     RoutePresenter,
   );
 
-  class BaseGetOneController<Entity extends BaseEntity>
-    implements GetOneController<Entity> {
+  const abilityPredicate = routeAbilityPredicate ?? getPredicateFromControllerAbilityPredicates(
+    controllerAbilityPredicates,
+    routeType,
+  );
+
+  class GetOnePoliciesGuard extends CreatePoliciesGuardMixin(
+    entity,
+    routeType,
+    version,
+    abilityPredicate,
+  ) {}
+
+  class BaseGetOneController implements GetOneController<Entity> {
     protected readonly entity = entity;
 
     constructor(protected readonly service: GetOneService<Entity>) {
     }
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
+    @UseGuards(GetOnePoliciesGuard)
+    @CheckPolicies((ability: AppAbility<Entity>) => ability.can(routeType, entity))
     async getOne(@Param('id') id: string) {
       return this.service.getOne(id);
     }

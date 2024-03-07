@@ -1,7 +1,10 @@
-import { Query, Type } from '@nestjs/common';
+import { Query, Type, UseGuards } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
+import { CheckPolicies } from '../../decorators';
 import { addVersionSuffix, pascalCase, RouteDecoratorsHelper } from '../../helpers';
-import { DTOsBundle } from '../../interfaces';
+import { getPredicateFromControllerAbilityPredicates } from '../../helpers/controller-ability-predicates.helper';
+import { AppAbility, ControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { CreatePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DeleteManyController, DeleteManyControllerConstructor } from './delete-many-controller.interface';
 import { DeleteManyService } from './delete-many-service.interface';
@@ -9,14 +12,17 @@ import { DeleteManyPresenter } from './delete-many.presenter';
 
 function DeleteManyControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
-  path: string,
-  apiTag?: string,
+  { path, apiTag, abilityPredicates: controllerAbilityPredicates }: ControllerOptions<Entity>,
+  {
+    type: routeType,
+    description,
+    dTOs,
+    abilityPredicate: routeAbilityPredicate,
+  }: DynamicAPIRouteConfig<Entity>,
   version?: string,
-  description?: string,
-  DTOs?: DTOsBundle,
 ): DeleteManyControllerConstructor<Entity> {
   const displayedName = pascalCase(apiTag) ?? entity.name;
-  const { presenter: CustomPresenter } = DTOs ?? {};
+  const { presenter: CustomPresenter } = dTOs ?? {};
 
   class RoutePresenter extends (
     CustomPresenter ?? DeleteManyPresenter
@@ -40,14 +46,27 @@ function DeleteManyControllerMixin<Entity extends BaseEntity>(
     RoutePresenter,
   );
 
-  class BaseDeleteManyController<Entity extends BaseEntity>
-    implements DeleteManyController<Entity> {
+  const abilityPredicate = routeAbilityPredicate ?? getPredicateFromControllerAbilityPredicates(
+    controllerAbilityPredicates,
+    routeType,
+  );
+
+  class DeleteManyPoliciesGuard extends CreatePoliciesGuardMixin(
+    entity,
+    routeType,
+    version,
+    abilityPredicate,
+  ) {}
+
+  class BaseDeleteManyController implements DeleteManyController<Entity> {
     protected readonly entity = entity;
 
     constructor(protected readonly service: DeleteManyService<Entity>) {
     }
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
+    @UseGuards(DeleteManyPoliciesGuard)
+    @CheckPolicies((ability: AppAbility<Entity>) => ability.can(routeType, entity))
     async deleteMany(@Query('ids') ids: string[]) {
       return this.service.deleteMany(ids);
     }

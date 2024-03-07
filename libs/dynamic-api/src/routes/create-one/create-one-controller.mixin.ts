@@ -1,22 +1,27 @@
-import { Body, Type } from '@nestjs/common';
+import { Body, Type, UseGuards } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
+import { CheckPolicies } from '../../decorators';
 import { addVersionSuffix, pascalCase, RouteDecoratorsHelper } from '../../helpers';
-import { DTOsBundle } from '../../interfaces';
-import { EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
+import { getPredicateFromControllerAbilityPredicates } from '../../helpers/controller-ability-predicates.helper';
+import { AppAbility, ControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { CreatePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { CreateOneController, CreateOneControllerConstructor } from './create-one-controller.interface';
 import { CreateOneService } from './create-one-service.interface';
 
 function CreateOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
-  path: string,
-  apiTag?: string,
+  { path, apiTag, abilityPredicates: controllerAbilityPredicates }: ControllerOptions<Entity>,
+  {
+    type: routeType,
+    description,
+    dTOs,
+    abilityPredicate: routeAbilityPredicate,
+  }: DynamicAPIRouteConfig<Entity>,
   version?: string,
-  description?: string,
-  DTOs?: DTOsBundle,
 ): CreateOneControllerConstructor<Entity> {
   const displayedName = pascalCase(apiTag) ?? entity.name;
-  const { body: CustomBody, presenter: CustomPresenter } = DTOs ?? {};
+  const { body: CustomBody, presenter: CustomPresenter } = dTOs ?? {};
 
   class RouteBody extends (CustomBody ?? EntityBodyMixin(entity)) {}
 
@@ -47,14 +52,27 @@ function CreateOneControllerMixin<Entity extends BaseEntity>(
     RoutePresenter,
   );
 
-  class BaseCreateOneController<Entity extends BaseEntity>
-    implements CreateOneController<Entity>
+  const abilityPredicate = routeAbilityPredicate ?? getPredicateFromControllerAbilityPredicates(
+    controllerAbilityPredicates,
+    routeType,
+  );
+
+  class CreateOnePoliciesGuard extends CreatePoliciesGuardMixin(
+    entity,
+    routeType,
+    version,
+    abilityPredicate,
+  ) {}
+
+  class BaseCreateOneController implements CreateOneController<Entity>
   {
     protected readonly entity = entity;
 
     constructor(protected readonly service: CreateOneService<Entity>) {}
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
+    @UseGuards(CreateOnePoliciesGuard)
+    @CheckPolicies((ability: AppAbility<Entity>) => ability.can(routeType, entity))
     async createOne(@Body() body: RouteBody) {
       return this.service.createOne(body as unknown as Partial<Entity>);
     }
