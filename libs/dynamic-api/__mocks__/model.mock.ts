@@ -1,7 +1,7 @@
 import { createMock } from '@golevelup/ts-jest';
 import { Model } from 'mongoose';
 
-const buildModelMock = ({
+const buildModelMock = <T = any>({
   create,
   find,
   findOne,
@@ -20,7 +20,7 @@ const buildModelMock = ({
   deleteOne?: any[];
   updateOne?: any[];
 } = {}) => {
-  const modelMock = createMock<Model<any>>();
+  const modelMock = createMock<Model<T>>();
 
   if (create?.length) {
     create.forEach((c, i) =>
