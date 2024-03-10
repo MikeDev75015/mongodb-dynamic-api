@@ -9,11 +9,11 @@ type AuthAdditionalFields<Entity extends BaseEntity> = {
 type AuthOptions<Entity extends BaseEntity = any> = {
   user: {
     entity: Type<Entity>;
-    loginField: keyof Entity;
-    passwordField: keyof Entity;
+    loginField?: keyof Entity;
+    passwordField?: keyof Entity;
     additionalFields?: AuthAdditionalFields<Entity>;
   };
-  jwt: {
+  jwt?: {
     secret: string;
     expiresIn?: string | number;
   };

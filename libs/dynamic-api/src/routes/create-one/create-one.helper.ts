@@ -1,7 +1,8 @@
 import {
+  ClassSerializerInterceptor,
   Controller,
   Inject,
-  Type,
+  Type, UseInterceptors,
   UsePipes,
   ValidationPipe, ValidationPipeOptions,
 } from '@nestjs/common';
@@ -31,7 +32,7 @@ function createCreateOneServiceProvider<Entity extends BaseEntity>(
     constructor(
       @InjectModel(
         entity.name,
-        DynamicApiModule.connectionName,
+        DynamicApiModule.state.get('connectionName'),
       )
       protected readonly model: Model<Entity>,
     ) {
@@ -57,18 +58,18 @@ function createCreateOneController<Entity extends BaseEntity>(
   version?: string,
   validationPipeOptions?: ValidationPipeOptions,
 ): CreateOneControllerConstructor<Entity> {
-  const { path, apiTag, abilityPredicates } = controllerOptions;
-  const { type: routeType, description, dTOs, abilityPredicate } = routeConfig;
+  const { path, apiTag } = controllerOptions;
 
   @Controller({ path, version })
   @ApiTags(apiTag || entity.name)
   @UsePipes(
-    new ValidationPipe(validationPipeOptions ?? { transform: true }),
+    new ValidationPipe(validationPipeOptions),
   )
+  @UseInterceptors(ClassSerializerInterceptor)
   class CreateOneController extends CreateOneControllerMixin(
     entity,
-    { path, apiTag, abilityPredicates },
-    { type: routeType, description, dTOs, abilityPredicate },
+    controllerOptions,
+    routeConfig,
     version,
   ) {
     constructor(

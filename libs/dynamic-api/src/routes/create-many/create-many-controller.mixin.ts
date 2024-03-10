@@ -14,17 +14,32 @@ import { CreateManyService } from './create-many-service.interface';
 
 function CreateManyControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
-  { path, apiTag, abilityPredicates: controllerAbilityPredicates }: ControllerOptions<Entity>,
+  {
+    path,
+    apiTag,
+    isPublic: isPublicController,
+    abilityPredicates: controllerAbilityPredicates,
+  }: ControllerOptions<Entity>,
   {
     type: routeType,
     description,
     dTOs,
+    isPublic: isPublicRoute,
     abilityPredicate: routeAbilityPredicate,
   }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): CreateManyControllerConstructor<Entity> {
   const displayedName = pascalCase(apiTag) ?? entity.name;
   const { body: CustomBody, presenter: CustomPresenter } = dTOs ?? {};
+
+  let isPublic: boolean;
+  if (typeof isPublicRoute === 'boolean') {
+    isPublic = isPublicRoute;
+  } else if (typeof isPublicController === 'boolean') {
+    isPublic = isPublicController;
+  } else {
+    isPublic = false;
+  }
 
   class DtoBody extends EntityBodyMixin(entity) {}
 
@@ -67,10 +82,13 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
     entity,
     version,
     description,
-    undefined,
-    undefined,
-    RouteBody,
-    RoutePresenter,
+    isPublic,
+    {
+      param: undefined,
+      query: undefined,
+      body: RouteBody,
+      presenter: RoutePresenter,
+    },
   );
 
   const abilityPredicate = routeAbilityPredicate ?? getPredicateFromControllerAbilityPredicates(
@@ -88,7 +106,9 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
   class BaseCreateManyController implements CreateManyController<Entity> {
     protected readonly entity = entity;
 
-    constructor(protected readonly service: CreateManyService<Entity>) {
+    constructor(
+      protected readonly service: CreateManyService<Entity>,
+    ) {
     }
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)

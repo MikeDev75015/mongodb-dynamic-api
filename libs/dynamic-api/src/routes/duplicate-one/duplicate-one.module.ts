@@ -1,4 +1,4 @@
-import { DynamicModule, Module, Type, ValidationPipeOptions } from '@nestjs/common';
+import { DynamicModule, Module, Provider, Type, ValidationPipeOptions } from '@nestjs/common';
 import { ControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { createDuplicateOneController, createDuplicateOneServiceProvider } from './duplicate-one.helper';
@@ -12,6 +12,7 @@ export class DuplicateOneModule {
     routeConfig: DynamicAPIRouteConfig<Entity>,
     version?: string,
     validationPipeOptions?: ValidationPipeOptions,
+    extraProviders?: Provider[],
   ): DynamicModule {
     const controller = createDuplicateOneController(
       entity,
@@ -26,7 +27,7 @@ export class DuplicateOneModule {
       module: DuplicateOneModule,
       imports: [databaseModule],
       controllers: [controller],
-      providers: [ServiceProvider],
+      providers: [...(extraProviders ?? []), ServiceProvider],
     };
   }
 }

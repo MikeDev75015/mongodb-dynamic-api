@@ -20,14 +20,19 @@ export class AuthModule {
         passwordField,
         additionalFields,
       },
-      jwt: {
-        secret: jwtSecret,
-        expiresIn,
-      },
+      jwt,
       protectRegister,
     }: AuthOptions<Entity>,
     extraImports: any[] = [],
   ) {
+    const state = DynamicApiModule.state.get();
+    if (!loginField) {
+      loginField = state.credentials.loginField as keyof Entity;
+    }
+    if (!passwordField) {
+      passwordField = state.credentials.passwordField as keyof Entity;
+    }
+
     const AuthController = createAuthController(
       userEntity,
       loginField,
@@ -54,8 +59,8 @@ export class AuthModule {
         PassportModule,
         JwtModule.register({
           global: true,
-          secret: jwtSecret,
-          signOptions: { expiresIn: expiresIn ?? '1d' },
+          secret: jwt?.secret ?? state.jwtSecret,
+          signOptions: { expiresIn: jwt?.expiresIn ?? '1d' },
         }),
       ],
       providers: [

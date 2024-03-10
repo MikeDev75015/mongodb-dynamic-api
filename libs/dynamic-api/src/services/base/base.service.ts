@@ -1,7 +1,7 @@
 import { BadRequestException, Type } from '@nestjs/common';
 import { Builder } from 'builder-pattern';
 import { Model } from 'mongoose';
-import { BaseEntity } from '../models';
+import { BaseEntity } from '../../models';
 
 export abstract class BaseService<Entity extends BaseEntity> {
   protected readonly entity: Type<Entity>;
@@ -16,10 +16,10 @@ export abstract class BaseService<Entity extends BaseEntity> {
 
   protected buildInstance(document: Entity) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { _id, __v, ...rest } = document;
+    const { _id, id, __v, ...rest } = document;
 
     return Builder(this.entity, rest as Partial<Entity>)
-      .id(_id.toString())
+      .id(_id?.toString() ?? id)
       .build();
   }
 

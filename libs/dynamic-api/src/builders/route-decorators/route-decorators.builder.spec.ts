@@ -9,13 +9,14 @@ describe('RouteDecoratorsBuilder', () => {
 
   const fakeManyQuery: Type = class FakeManyQuery {
     ids: string[];
-  }
+  };
   const fakeParam: Type = class FakeParam {
     id = '';
   };
+
   class FakeBody {
     name: string;
-  };
+  }
   const fakeBody: Type = FakeBody;
   const fakeManyBody: Type = class FakeManyBody {
     list: FakeBody[];
@@ -26,6 +27,9 @@ describe('RouteDecoratorsBuilder', () => {
     routeDecoratorsBuilder = new RouteDecoratorsBuilder(
       'FakeRouteType' as RouteType,
       entity,
+      undefined,
+      undefined,
+      undefined,
     );
   });
 
@@ -65,10 +69,13 @@ describe('RouteDecoratorsBuilder', () => {
           entity,
           version,
           description,
-          param,
-          query,
-          body,
-          presenter,
+          false,
+          {
+            param,
+            query,
+            body,
+            presenter,
+          },
         );
         const decorators = routeDecoratorsBuilder.build();
 
