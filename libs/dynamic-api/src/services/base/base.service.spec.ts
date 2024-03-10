@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { BaseEntity } from '../models';
+import { BaseEntity } from '../../models';
 import { BaseService } from './base.service';
 
 describe('BaseService', () => {

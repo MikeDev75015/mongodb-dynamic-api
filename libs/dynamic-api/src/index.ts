@@ -3,6 +3,7 @@ export * from './decorators';
 export * from './dtos';
 export * from './guards';
 export * from './helpers';
+export * from './interceptors';
 export * from './interfaces';
 export * from './mixins';
 export * from './models';

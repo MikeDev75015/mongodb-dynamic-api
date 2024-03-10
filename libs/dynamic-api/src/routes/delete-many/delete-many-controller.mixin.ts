@@ -12,17 +12,32 @@ import { DeleteManyPresenter } from './delete-many.presenter';
 
 function DeleteManyControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
-  { path, apiTag, abilityPredicates: controllerAbilityPredicates }: ControllerOptions<Entity>,
+  {
+    path,
+    apiTag,
+    isPublic: isPublicController,
+    abilityPredicates: controllerAbilityPredicates,
+  }: ControllerOptions<Entity>,
   {
     type: routeType,
     description,
     dTOs,
+    isPublic: isPublicRoute,
     abilityPredicate: routeAbilityPredicate,
   }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): DeleteManyControllerConstructor<Entity> {
   const displayedName = pascalCase(apiTag) ?? entity.name;
   const { presenter: CustomPresenter } = dTOs ?? {};
+
+  let isPublic: boolean;
+  if (typeof isPublicRoute === 'boolean') {
+    isPublic = isPublicRoute;
+  } else if (typeof isPublicController === 'boolean') {
+    isPublic = isPublicController;
+  } else {
+    isPublic = false;
+  }
 
   class RoutePresenter extends (
     CustomPresenter ?? DeleteManyPresenter
@@ -40,10 +55,13 @@ function DeleteManyControllerMixin<Entity extends BaseEntity>(
     entity,
     version,
     description,
-    undefined,
-    undefined,
-    undefined,
-    RoutePresenter,
+    isPublic,
+    {
+      param: undefined,
+      query: undefined,
+      body: undefined,
+      presenter: RoutePresenter,
+    },
   );
 
   const abilityPredicate = routeAbilityPredicate ?? getPredicateFromControllerAbilityPredicates(

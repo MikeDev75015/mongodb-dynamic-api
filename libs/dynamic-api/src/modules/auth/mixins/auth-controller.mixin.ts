@@ -14,7 +14,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
   passwordField: keyof Entity,
   additionalRegisterFields: (keyof Entity)[] = [],
   additionalRequestFields: (keyof Entity)[] = [],
-  protectRegister: boolean | undefined,
+  protectRegister: boolean = false,
 ): AuthControllerConstructor<Entity> {
   class AuthBodyPasswordFieldDto {
     @ApiProperty()

@@ -1,11 +1,24 @@
-import { CacheInterceptor, CacheModule } from '@nestjs/cache-manager';
+import { CACHE_MANAGER, CacheModule } from '@nestjs/cache-manager';
 import { DynamicModule, Module } from '@nestjs/common';
-import { APP_INTERCEPTOR } from '@nestjs/core';
-import { MongooseModule, SchemaFactory } from '@nestjs/mongoose';
-import { DYNAMIC_API_SCHEMA_OPTIONS_METADATA } from './decorators';
-import { getDefaultRouteDescription, isValidVersion } from './helpers';
-import { DynamicApiForFeatureOptions, DynamicApiForRootOptions, DynamicAPISchemaOptionsInterface } from './interfaces';
+import { APP_GUARD, APP_INTERCEPTOR, Reflector } from '@nestjs/core';
+import { HttpAdapterHost } from '@nestjs/core/helpers/http-adapter-host';
+import { MongooseModule } from '@nestjs/mongoose';
+import { Cache } from 'cache-manager';
+import { firstValueFrom } from 'rxjs';
+import { DynamicApiJwtAuthGuard } from './guards';
+import { buildSchemaFromEntity, getDefaultRouteDescription, isValidVersion } from './helpers';
+import { DynamicApiCacheInterceptor } from './interceptors';
+import {
+  DYNAMIC_API_GLOBAL_STATE,
+  DynamicApiForFeatureOptions,
+  DynamicApiForRootOptions,
+  DynamicApiGlobalState,
+  DynamicAPIRouteConfig,
+  RouteModule,
+  RouteType,
+} from './interfaces';
 import { BaseEntity } from './models';
+import { AuthModule, DynamicApiConfigModule } from './modules';
 import {
   CreateManyModule,
   CreateOneModule,
@@ -19,16 +32,26 @@ import {
   UpdateManyModule,
   UpdateOneModule,
 } from './routes';
+import { DynamicApiGlobalStateService } from './services';
 
 @Module({})
 export class DynamicApiModule {
-  static readonly connectionName = 'dynamic-api-connection';
-
-  static isGlobalCacheEnabled = true;
+  static readonly state = new DynamicApiGlobalStateService({
+    connectionName: 'dynamic-api-connection',
+    isGlobalCacheEnabled: true,
+    isAuthEnabled: false,
+    credentials: null,
+    jwtSecret: undefined,
+    cacheExcludedPaths: [],
+  });
 
   static forRoot(
     uri: string,
-    { useGlobalCache = true, cacheOptions = {} }: DynamicApiForRootOptions = {},
+    {
+      useGlobalCache = true,
+      cacheOptions = {},
+      useAuth,
+    }: DynamicApiForRootOptions = {},
   ): DynamicModule {
     if (!uri) {
       throw new Error(
@@ -36,21 +59,42 @@ export class DynamicApiModule {
       );
     }
 
-    if (!useGlobalCache) {
-      DynamicApiModule.isGlobalCacheEnabled = false;
-    }
+    this.state.set([
+      'partial', {
+        initialized: true,
+        isGlobalCacheEnabled: useGlobalCache,
+        ...(
+          cacheOptions?.excludePaths ? { cacheExcludedPaths: cacheOptions?.excludePaths } : {}
+        ),
+        ...(
+          useAuth?.user ? {
+            isAuthEnabled: true,
+            credentials: {
+              loginField: !useAuth.user.loginField ? 'email' : String(useAuth.user.loginField),
+              passwordField: !useAuth.user.passwordField ? 'password' : String(useAuth.user.passwordField),
+            },
+            jwtSecret: useAuth.jwt?.secret ?? 'dynamic-api-jwt-secret',
+          } : {}
+        ),
+      },
+    ]);
 
     return {
       module: DynamicApiModule,
       imports: [
-        ...(
-          useGlobalCache ? [CacheModule.register({ isGlobal: true, ...cacheOptions })] : []
-        ),
+        DynamicApiConfigModule.register(this.state.get()),
+        CacheModule.register({ isGlobal: true, ...cacheOptions }),
         MongooseModule.forRoot(
           uri,
-          { connectionName: DynamicApiModule.connectionName },
+          { connectionName: this.state.get('connectionName') },
+        ),
+        ...(
+          useAuth?.user ? [
+            AuthModule.forRoot(useAuth),
+          ] : []
         ),
       ],
+      exports: [DynamicApiConfigModule],
     };
   }
 
@@ -58,39 +102,132 @@ export class DynamicApiModule {
     entity,
     controllerOptions,
     routes = [],
-  }: DynamicApiForFeatureOptions<Entity>): DynamicModule {
-    const { indexes, hooks } = Reflect.getOwnMetadata(
-      DYNAMIC_API_SCHEMA_OPTIONS_METADATA,
-      entity,
-    ) as DynamicAPISchemaOptionsInterface ?? {};
-
-    const schema = SchemaFactory.createForClass(entity);
-    schema.set('timestamps', true);
-
-    if (indexes) {
-      indexes.forEach(({ fields, options }) => {
-        schema.index(fields, options);
-      });
-    }
-
-    if (hooks?.length) {
-      hooks.forEach(({ type, method, callback, options }) => {
-        // @ts-ignore
-        schema[method](
-          type,
-          { document: true, query: true, ...options },
-          callback,
-        );
-      });
-    }
-
+  }: DynamicApiForFeatureOptions<Entity>): Promise<DynamicModule> {
     const databaseModule = MongooseModule.forFeature(
-      [{ name: entity.name, schema }],
-      DynamicApiModule.connectionName,
+      [{ name: entity.name, schema: buildSchemaFromEntity(entity) }],
+      this.state.get('connectionName'),
     );
 
+    routes = this.setDefaultRoutesIfNotConfigured([...routes]);
+
+    return new Promise((resolve, reject) => {
+      const waitInitializedStateInterval = setInterval(async () => {
+        const stateInitialized = await firstValueFrom(this.state.get().onInitialized());
+        if (!stateInitialized) {
+          return;
+        }
+
+        if (waitForState) {
+          clearTimeout(waitForState);
+        }
+        clearInterval(waitInitializedStateInterval);
+
+        const {
+          version: controllerVersion,
+          validationPipeOptions: controllerValidationPipeOptions,
+        } = controllerOptions;
+
+        const castType = (t: RouteType) => t;
+        const castModule = (m: RouteModule) => m;
+
+        const moduleByRouteType: Map<RouteType, RouteModule> = new Map([
+          [castType('CreateMany'), castModule(CreateManyModule)],
+          [castType('CreateOne'), castModule(CreateOneModule)],
+          [castType('DeleteMany'), castModule(DeleteManyModule)],
+          [castType('DeleteOne'), castModule(DeleteOneModule)],
+          [castType('DuplicateMany'), castModule(DuplicateManyModule)],
+          [castType('DuplicateOne'), castModule(DuplicateOneModule)],
+          [castType('GetMany'), castModule(GetManyModule)],
+          [castType('GetOne'), castModule(GetOneModule)],
+          [castType('ReplaceOne'), castModule(ReplaceOneModule)],
+          [castType('UpdateMany'), castModule(UpdateManyModule)],
+          [castType('UpdateOne'), castModule(UpdateOneModule)],
+        ]);
+
+        const apiModule = {
+          module: DynamicApiModule,
+          imports: [
+            ...routes.map((routeConfig) => {
+              const {
+                type,
+                description: routeDescription,
+                version: routeVersion,
+                validationPipeOptions: routeValidationPipeOptions,
+              } = routeConfig;
+
+              const module = moduleByRouteType.get(type);
+
+              if (!module) {
+                reject(new Error(`Route module for ${type} not found`));
+                return;
+              }
+
+              const description = routeDescription ?? getDefaultRouteDescription(type, entity.name);
+
+              const version = routeVersion ?? controllerVersion;
+              if (version && !isValidVersion(version)) {
+                reject(
+                  new Error(
+                    `Invalid version ${version} for ${type} route.`
+                    + ' Version must be a string that matches numeric format, e.g. 1, 2, 3, ..., 99.',
+                  ),
+                );
+                return;
+              }
+
+              const validationPipeOptions = routeValidationPipeOptions ?? controllerValidationPipeOptions;
+
+              // @ts-ignore
+              return module.forFeature(
+                databaseModule,
+                entity,
+                controllerOptions,
+                { ...routeConfig, description },
+                version,
+                validationPipeOptions ?? { transform: true },
+              );
+            }),
+          ],
+          providers: [
+            {
+              provide: APP_INTERCEPTOR,
+              inject: [CACHE_MANAGER, Reflector, HttpAdapterHost, DYNAMIC_API_GLOBAL_STATE],
+              useFactory: (
+                cacheManager: Cache,
+                reflector: Reflector,
+                httpAdapterHost: HttpAdapterHost,
+                state: DynamicApiGlobalState,
+              ) => {
+                return new DynamicApiCacheInterceptor(cacheManager, reflector, httpAdapterHost, state);
+              },
+            },
+            {
+              provide: APP_GUARD,
+              inject: [Reflector, DYNAMIC_API_GLOBAL_STATE],
+              useFactory: (
+                reflector: Reflector,
+                state: DynamicApiGlobalState,
+              ) => {
+                return new DynamicApiJwtAuthGuard(reflector, state);
+              },
+            },
+          ],
+        };
+
+        resolve(apiModule);
+      }, 500);
+
+      const waitForState = setTimeout(() => {
+        clearInterval(waitInitializedStateInterval);
+        reject(new Error('Dynamic API state could not be initialized. Please check your configuration.'));
+      }, 5000);
+    });
+  }
+
+  private static setDefaultRoutesIfNotConfigured<Entity extends BaseEntity>(
+    routes: DynamicAPIRouteConfig<Entity>[]): DynamicAPIRouteConfig<Entity>[] {
     if (!routes.length) {
-      routes = [
+      return [
         { type: 'GetMany' },
         { type: 'GetOne' },
         { type: 'CreateMany' },
@@ -105,116 +242,6 @@ export class DynamicApiModule {
       ];
     }
 
-    const {
-      version: controllerVersion,
-      validationPipeOptions: controllerValidationPipeOptions,
-    } = controllerOptions;
-
-    return {
-      module: DynamicApiModule,
-      imports: [
-        ...routes
-        .map((routeConfig) => {
-          const {
-            type,
-            description: routeDescription,
-            version: routeVersion,
-            validationPipeOptions: routeValidationPipeOptions,
-          } = routeConfig;
-
-          let module: CreateManyModule
-            | CreateOneModule
-            | DeleteManyModule
-            | DeleteOneModule
-            | DuplicateOneModule
-            | GetManyModule
-            | GetOneModule
-            | ReplaceOneModule
-            | UpdateManyModule
-            | UpdateOneModule;
-
-          switch (type) {
-            case 'CreateMany':
-              module = CreateManyModule;
-              break;
-
-            case 'CreateOne':
-              module = CreateOneModule;
-              break;
-
-            case 'DeleteMany':
-              module = DeleteManyModule;
-              break;
-
-            case 'DeleteOne':
-              module = DeleteOneModule;
-              break;
-
-            case 'DuplicateMany':
-              module = DuplicateManyModule;
-              break;
-
-            case 'DuplicateOne':
-              module = DuplicateOneModule;
-              break;
-
-            case 'GetMany':
-              module = GetManyModule;
-              break;
-
-            case 'GetOne':
-              module = GetOneModule;
-              break;
-
-            case 'ReplaceOne':
-              module = ReplaceOneModule;
-              break;
-
-            case 'UpdateMany':
-              module = UpdateManyModule;
-              break;
-
-            case 'UpdateOne':
-              module = UpdateOneModule;
-              break;
-
-            default:
-              throw new Error(`Route for ${type} is not implemented`);
-          }
-
-          const description = routeDescription ?? getDefaultRouteDescription(type, entity.name);
-          const version = routeVersion ?? controllerVersion;
-
-          if (version && !isValidVersion(version)) {
-            throw new Error(
-              `Invalid version ${version} for ${type} route. Version must be a string that matches numeric format, e.g. 1, 2, 3, ..., 99.`,
-            );
-          }
-
-          const validationPipeOptions = routeValidationPipeOptions ?? controllerValidationPipeOptions;
-
-          // @ts-ignore
-          return module.forFeature(
-            databaseModule,
-            entity,
-            controllerOptions,
-            { ...routeConfig, description },
-            version,
-            validationPipeOptions,
-          );
-        })
-        .filter((module) => module),
-      ],
-      providers: [
-        ...(
-          DynamicApiModule.isGlobalCacheEnabled ? [
-            {
-              provide: APP_INTERCEPTOR,
-              useClass: CacheInterceptor,
-            },
-          ] : []
-        ),
-      ],
-    };
+    return routes;
   }
 }

@@ -12,11 +12,17 @@ import { DuplicateOneService } from './duplicate-one-service.interface';
 
 function DuplicateOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
-  { path, apiTag, abilityPredicates: controllerAbilityPredicates }: ControllerOptions<Entity>,
+  {
+    path,
+    apiTag,
+    isPublic: isPublicController,
+    abilityPredicates: controllerAbilityPredicates,
+  }: ControllerOptions<Entity>,
   {
     type: routeType,
     description,
     dTOs,
+    isPublic: isPublicRoute,
     abilityPredicate: routeAbilityPredicate,
   }: DynamicAPIRouteConfig<Entity>,
   version?: string,
@@ -27,6 +33,15 @@ function DuplicateOneControllerMixin<Entity extends BaseEntity>(
     param: CustomParam,
     presenter: CustomPresenter,
   } = dTOs ?? {};
+
+  let isPublic: boolean;
+  if (typeof isPublicRoute === 'boolean') {
+    isPublic = isPublicRoute;
+  } else if (typeof isPublicController === 'boolean') {
+    isPublic = isPublicController;
+  } else {
+    isPublic = false;
+  }
 
   class RouteBody extends (
     CustomBody ?? EntityBodyMixin(entity, true)
@@ -66,10 +81,13 @@ function DuplicateOneControllerMixin<Entity extends BaseEntity>(
     entity,
     version,
     description,
-    RouteParam,
-    undefined,
-    RouteBody,
-    RoutePresenter,
+    isPublic,
+    {
+      param: RouteParam,
+      query: undefined,
+      body: RouteBody,
+      presenter: RoutePresenter,
+    },
   );
 
   const abilityPredicate = routeAbilityPredicate ?? getPredicateFromControllerAbilityPredicates(

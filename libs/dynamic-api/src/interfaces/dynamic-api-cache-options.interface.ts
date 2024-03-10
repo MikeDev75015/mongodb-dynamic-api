@@ -19,6 +19,8 @@ interface DynamicApiCacheOptions {
   store?: string | CacheStoreFactory | CacheStore;
 
   isCacheableValue?: (value: any) => boolean;
+
+  excludePaths?: string[];
 }
 
 export { DynamicApiCacheOptions };

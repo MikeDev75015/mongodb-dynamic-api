@@ -23,6 +23,11 @@ describe('DynamicApiModule', () => {
     jest.spyOn(MongooseModule, 'forFeature').mockReturnValue(null);
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.useRealTimers();
+  });
+
   describe('forRoot', () => {
     it('should throw an error if no uri or invalid is provided', () => {
       expect(() => DynamicApiModule.forRoot('')).toThrowError(
@@ -31,7 +36,7 @@ describe('DynamicApiModule', () => {
     });
 
     it('should have default connection name value', () => {
-      expect(DynamicApiModule.connectionName).toStrictEqual('dynamic-api-connection');
+      expect(DynamicApiModule.state.get('connectionName')).toStrictEqual('dynamic-api-connection');
     });
 
     it('should call MongooseModule.forRoot with uri and DynamicApiModule.connectionName', () => {
@@ -39,7 +44,7 @@ describe('DynamicApiModule', () => {
       DynamicApiModule.forRoot(uri);
 
       expect(MongooseModule.forRoot).toHaveBeenCalledWith(uri, {
-        connectionName: DynamicApiModule.connectionName,
+        connectionName: DynamicApiModule.state.get('connectionName'),
       });
     });
 
@@ -56,10 +61,9 @@ describe('DynamicApiModule', () => {
 
       it('should register CacheModule globally by default', () => {
         const uri = 'fake-uri';
-        const module = DynamicApiModule.forRoot(uri);
+        DynamicApiModule.forRoot(uri);
 
         expect(spyCacheModuleRegister).toHaveBeenCalledWith({ isGlobal: true });
-        expect(module.imports.length).toStrictEqual(2);
       });
 
       it('should pass cacheOptions to CacheModule.register', () => {
@@ -68,15 +72,6 @@ describe('DynamicApiModule', () => {
         DynamicApiModule.forRoot(uri, { cacheOptions });
 
         expect(spyCacheModuleRegister).toHaveBeenCalledWith({ isGlobal: true, ...cacheOptions });
-      });
-
-      it('should not register CacheModule globally if useGlobalCache is set to false', () => {
-        const uri = 'fake-uri';
-        const options = { useGlobalCache: false };
-        const module = DynamicApiModule.forRoot(uri, options);
-
-        expect(spyCacheModuleRegister).not.toHaveBeenCalled();
-        expect(module.imports.length).toStrictEqual(1);
       });
     });
   });
@@ -96,10 +91,10 @@ describe('DynamicApiModule', () => {
       .mockReturnValue(fakeDatabaseModule as any);
     });
 
-    it('should call MongooseModule.forFeature with DynamicApiModule.connectionName', () => {
+    it('should call MongooseModule.forFeature with DynamicApiModule.connectionName', async () => {
       const { entity, controllerOptions, routes } = defaultOptions;
 
-      const module = DynamicApiModule.forFeature({
+      const module = await DynamicApiModule.forFeature({
         entity,
         controllerOptions,
         routes,
@@ -107,9 +102,15 @@ describe('DynamicApiModule', () => {
 
       expect(MongooseModule.forFeature).toHaveBeenCalledWith(
         [{ name: entity.name, schema: expect.any(Object) }],
-        DynamicApiModule.connectionName,
+        DynamicApiModule.state.get('connectionName'),
       );
       expect(module.imports.length).toStrictEqual(11);
+    });
+
+    it('should set timestamps to true', () => {
+      DynamicApiModule.forFeature(defaultOptions);
+
+      expect(fakeSchema.set).toHaveBeenCalledWith('timestamps', true);
     });
 
     it('should add schema indexes', () => {
@@ -151,24 +152,24 @@ describe('DynamicApiModule', () => {
       );
     });
 
-    it('should throw an error if route type is not implemented', () => {
-      const options = buildDynamicApiModuleOptionsMock({
-        routes: [{ type: 'FakeType' as RouteType }],
+    it('should reject if DynamicApiModule state could not be initialized ', async () => {
+      jest.spyOn(global, 'setInterval').mockReturnValueOnce({ hasRef: () => false } as NodeJS.Timeout);
+      jest.spyOn(global, 'setTimeout').mockImplementationOnce((callback) => {
+        if (typeof callback === 'function') {
+          callback();
+        }
+        return { hasRef: () => false } as NodeJS.Timeout;
       });
 
-      expect(() => DynamicApiModule.forFeature(options)).toThrowError(
-        'Route for FakeType is not implemented',
-      );
-    });
-
-    it('should throw an error if version not match a numeric string', () => {
       const options = buildDynamicApiModuleOptionsMock({
-        controllerOptions: { path: '/version', version: 'v1' },
+        controllerOptions: { path: 'fake-path', version: '1' },
+        routes: [{ type: 'GetMany' }],
       });
 
-      expect(() => DynamicApiModule.forFeature(options)).toThrowError(
-        'Invalid version v1 for GetMany route. Version must be a string that matches numeric format, e.g. 1, 2, 3, ..., 99.',
+      await expect(DynamicApiModule.forFeature(options)).rejects.toStrictEqual(
+        new Error('Dynamic API state could not be initialized. Please check your configuration.'),
       );
+      expect(setInterval).toHaveBeenCalledTimes(1);
     });
 
     describe('with routes', () => {
@@ -206,9 +207,33 @@ describe('DynamicApiModule', () => {
         spyReplaceOneModule = jest.spyOn(ReplaceOneModule, 'forFeature');
         spyUpdateManyModule = jest.spyOn(UpdateManyModule, 'forFeature');
         spyUpdateOneModule = jest.spyOn(UpdateOneModule, 'forFeature');
+
+        DynamicApiModule.state.set(['initialized', true]);
       });
 
-      it('should import route modules with controller options', () => {
+      it('should throw an error if route type is not implemented', async () => {
+        const options = buildDynamicApiModuleOptionsMock({
+          routes: [{ type: 'FakeType' as RouteType }],
+        });
+
+        await expect(DynamicApiModule.forFeature(options)).rejects.toStrictEqual(
+          new Error('Route module for FakeType not found'),
+        );
+      });
+
+      it('should throw an error if version not match a numeric string', async () => {
+        const options = buildDynamicApiModuleOptionsMock({
+          controllerOptions: { path: '/version', version: 'v1' },
+        });
+
+        await expect(DynamicApiModule.forFeature(options)).rejects.toStrictEqual(
+          new Error(
+            'Invalid version v1 for GetMany route. Version must be a string that matches numeric format, e.g. 1, 2, 3, ..., 99.',
+          ),
+        );
+      });
+
+      it('should import route modules with controller options', async () => {
         const createManyRoute: DynamicAPIRouteConfig<any> = { type: 'CreateMany' };
         const createOneRoute: DynamicAPIRouteConfig<any> = { type: 'CreateOne' };
         const deleteManyRoute: DynamicAPIRouteConfig<any> = { type: 'DeleteMany' };
@@ -238,7 +263,7 @@ describe('DynamicApiModule', () => {
           ],
         });
 
-        const module = DynamicApiModule.forFeature(options);
+        const module = await DynamicApiModule.forFeature(options);
 
         expect(module.imports.length).toStrictEqual(11);
         expect(spyCreateManyModule).toHaveBeenCalledWith(
@@ -331,7 +356,7 @@ describe('DynamicApiModule', () => {
         );
       });
 
-      it('should import route modules with route options', () => {
+      it('should import route modules with route options', async () => {
         const createManyRoute: DynamicAPIRouteConfig<any> = {
           type: 'CreateMany',
           description: 'Create many items',
@@ -430,7 +455,7 @@ describe('DynamicApiModule', () => {
           ],
         });
 
-        const module = DynamicApiModule.forFeature(options);
+        const module = await DynamicApiModule.forFeature(options);
 
         expect(module.imports.length).toStrictEqual(11);
         expect(spyCreateManyModule).toHaveBeenCalledWith(
@@ -522,23 +547,26 @@ describe('DynamicApiModule', () => {
           updateOneRoute.validationPipeOptions,
         );
       });
-    });
 
-    it('should provide CacheInterceptor if isGlobalCacheEnabled is true', () => {
-      DynamicApiModule.isGlobalCacheEnabled = true;
-      const options = buildDynamicApiModuleOptionsMock();
-      const module = DynamicApiModule.forFeature(options);
+      it('should provide APP_INTERCEPTOR with factory', async () => {
+        const options = buildDynamicApiModuleOptionsMock();
+        const module = await DynamicApiModule.forFeature(options);
 
-      // @ts-ignore
-      expect(module.providers[0].useClass.name).toStrictEqual('CacheInterceptor');
-    });
+        // @ts-ignore
+        expect(module.providers[0].provide).toStrictEqual('APP_INTERCEPTOR');
+        // @ts-ignore
+        expect(module.providers[0].useFactory).toBeInstanceOf(Function);
+      });
 
-    it('should not provide CacheInterceptor if isGlobalCacheEnabled is false', () => {
-      DynamicApiModule.isGlobalCacheEnabled = false;
-      const options = buildDynamicApiModuleOptionsMock();
-      const module = DynamicApiModule.forFeature(options);
+      it('should provide APP_GUARD with factory', async () => {
+        const options = buildDynamicApiModuleOptionsMock();
+        const module = await DynamicApiModule.forFeature(options);
 
-      expect(module.providers).toStrictEqual([]);
+        // @ts-ignore
+        expect(module.providers[1].provide).toStrictEqual('APP_GUARD');
+        // @ts-ignore
+        expect(module.providers[1].useFactory).toBeInstanceOf(Function);
+      });
     });
   });
 });

@@ -11,17 +11,32 @@ import { CreateOneService } from './create-one-service.interface';
 
 function CreateOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
-  { path, apiTag, abilityPredicates: controllerAbilityPredicates }: ControllerOptions<Entity>,
+  {
+    path,
+    apiTag,
+    isPublic: isPublicController,
+    abilityPredicates: controllerAbilityPredicates,
+  }: ControllerOptions<Entity>,
   {
     type: routeType,
     description,
     dTOs,
+    isPublic: isPublicRoute,
     abilityPredicate: routeAbilityPredicate,
   }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): CreateOneControllerConstructor<Entity> {
   const displayedName = pascalCase(apiTag) ?? entity.name;
   const { body: CustomBody, presenter: CustomPresenter } = dTOs ?? {};
+
+  let isPublic: boolean;
+  if (typeof isPublicRoute === 'boolean') {
+    isPublic = isPublicRoute;
+  } else if (typeof isPublicController === 'boolean') {
+    isPublic = isPublicController;
+  } else {
+    isPublic = false;
+  }
 
   class RouteBody extends (CustomBody ?? EntityBodyMixin(entity)) {}
 
@@ -46,10 +61,13 @@ function CreateOneControllerMixin<Entity extends BaseEntity>(
     entity,
     version,
     description,
-    undefined,
-    undefined,
-    RouteBody,
-    RoutePresenter,
+    isPublic,
+    {
+      param: undefined,
+      query: undefined,
+      body: RouteBody,
+      presenter: RoutePresenter,
+    },
   );
 
   const abilityPredicate = routeAbilityPredicate ?? getPredicateFromControllerAbilityPredicates(

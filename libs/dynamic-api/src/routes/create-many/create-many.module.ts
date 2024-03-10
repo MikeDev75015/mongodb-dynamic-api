@@ -5,14 +5,14 @@ import { createCreateManyController, createCreateManyServiceProvider } from './c
 
 @Module({})
 export class CreateManyModule {
-  static forFeature<Entity extends BaseEntity>(
+  static async forFeature<Entity extends BaseEntity>(
     databaseModule: DynamicModule,
     entity: Type<Entity>,
     controllerOptions: ControllerOptions<Entity>,
     routeConfig: DynamicAPIRouteConfig<Entity>,
     version?: string,
     validationPipeOptions?: ValidationPipeOptions,
-  ): DynamicModule {
+  ): Promise<DynamicModule> {
     const controller = createCreateManyController(
       entity,
       controllerOptions,

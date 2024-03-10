@@ -1,4 +1,13 @@
-import { Controller, Inject, Type, UsePipes, ValidationPipe, ValidationPipeOptions } from '@nestjs/common';
+import {
+  ClassSerializerInterceptor,
+  Controller,
+  Inject,
+  Type,
+  UseInterceptors,
+  UsePipes,
+  ValidationPipe,
+  ValidationPipeOptions,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
@@ -25,7 +34,7 @@ function createGetManyServiceProvider<Entity extends BaseEntity>(
     constructor(
       @InjectModel(
         entity.name,
-        DynamicApiModule.connectionName,
+        DynamicApiModule.state.get('connectionName'),
       )
       protected readonly model: Model<Entity>,
     ) {
@@ -51,18 +60,18 @@ function createGetManyController<Entity extends BaseEntity>(
   version?: string,
   validationPipeOptions?: ValidationPipeOptions,
 ): GetManyControllerConstructor<Entity> {
-  const { path, apiTag, abilityPredicates } = controllerOptions;
-  const { type: routeType, description, dTOs, abilityPredicate } = routeConfig;
+  const { path, apiTag } = controllerOptions;
 
   @Controller({ path, version })
   @ApiTags(apiTag || entity.name)
   @UsePipes(
-    new ValidationPipe(validationPipeOptions ?? { transform: true }),
+    new ValidationPipe(validationPipeOptions),
   )
+  @UseInterceptors(ClassSerializerInterceptor)
   class GetManyController extends GetManyControllerMixin(
     entity,
-    { path, apiTag, abilityPredicates },
-    { type: routeType, description, dTOs, abilityPredicate },
+    controllerOptions,
+    routeConfig,
     version,
   ) {
     constructor(
@@ -74,7 +83,7 @@ function createGetManyController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(GetManyController, 'name', {
-    value: `${routeType}${entity.name}${addVersionSuffix(version)}Controller`,
+    value: `GetMany${entity.name}${addVersionSuffix(version)}Controller`,
     writable: false,
   });
 

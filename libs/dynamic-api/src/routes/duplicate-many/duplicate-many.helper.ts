@@ -1,7 +1,8 @@
 import {
+  ClassSerializerInterceptor,
   Controller,
   Inject,
-  Type,
+  Type, UseInterceptors,
   UsePipes,
   ValidationPipe, ValidationPipeOptions,
 } from '@nestjs/common';
@@ -10,7 +11,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { addVersionSuffix } from '../../helpers';
-import { ControllerOptions, DTOsBundle, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
+import { ControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseDuplicateManyService } from './base-duplicate-many.service';
 import { DuplicateManyControllerConstructor } from './duplicate-many-controller.interface';
@@ -31,7 +32,7 @@ function createDuplicateManyServiceProvider<Entity extends BaseEntity>(
     constructor(
       @InjectModel(
         entity.name,
-        DynamicApiModule.connectionName,
+        DynamicApiModule.state.get('connectionName'),
       )
       protected readonly model: Model<Entity>,
     ) {
@@ -57,18 +58,18 @@ function createDuplicateManyController<Entity extends BaseEntity>(
   version?: string,
   validationPipeOptions?: ValidationPipeOptions,
 ): DuplicateManyControllerConstructor<Entity> {
-  const { path, apiTag, abilityPredicates } = controllerOptions;
-  const { type: routeType, description, dTOs, abilityPredicate } = routeConfig;
+  const { path, apiTag } = controllerOptions;
 
   @Controller({ path, version })
   @ApiTags(apiTag || entity.name)
   @UsePipes(
-    new ValidationPipe(validationPipeOptions ?? { transform: true }),
+    new ValidationPipe(validationPipeOptions),
   )
+  @UseInterceptors(ClassSerializerInterceptor)
   class DuplicateManyController extends DuplicateManyControllerMixin(
     entity,
-    { path, apiTag, abilityPredicates },
-    { type: routeType, description, dTOs, abilityPredicate },
+    controllerOptions,
+    routeConfig,
     version,
   ) {
     constructor(

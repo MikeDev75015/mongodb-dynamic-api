@@ -12,11 +12,17 @@ import { GetOneService } from './get-one-service.interface';
 
 function GetOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
-  { path, apiTag, abilityPredicates: controllerAbilityPredicates }: ControllerOptions<Entity>,
+  {
+    path,
+    apiTag,
+    isPublic: isPublicController,
+    abilityPredicates: controllerAbilityPredicates,
+  }: ControllerOptions<Entity>,
   {
     type: routeType,
     description,
     dTOs,
+    isPublic: isPublicRoute,
     abilityPredicate: routeAbilityPredicate,
   }: DynamicAPIRouteConfig<Entity>,
   version?: string,
@@ -27,6 +33,15 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
     query: CustomQuery,
     presenter: CustomPresenter,
   } = dTOs ?? {};
+
+  let isPublic: boolean;
+  if (typeof isPublicRoute === 'boolean') {
+    isPublic = isPublicRoute;
+  } else if (typeof isPublicController === 'boolean') {
+    isPublic = isPublicController;
+  } else {
+    isPublic = false;
+  }
 
   class RouteParam extends (
     CustomParam ?? EntityParam
@@ -66,10 +81,13 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
     entity,
     version,
     description,
-    RouteParam,
-    RouteQuery,
-    undefined,
-    RoutePresenter,
+    isPublic,
+    {
+      param: RouteParam,
+      query: RouteQuery,
+      body: undefined,
+      presenter: RoutePresenter,
+    },
   );
 
   const abilityPredicate = routeAbilityPredicate ?? getPredicateFromControllerAbilityPredicates(

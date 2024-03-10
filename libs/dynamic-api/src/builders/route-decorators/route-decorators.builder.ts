@@ -1,10 +1,12 @@
 import { Delete, Get, Patch, Post, Put, Type } from '@nestjs/common';
-import { ApiBody, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
-import { lowerCase, upperFirst, keys, lowerFirst } from 'lodash';
-import { RouteType } from '../../interfaces';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
+import { keys, lowerCase, lowerFirst, upperFirst } from 'lodash';
+import { Public } from '../../decorators';
+import { DynamicApiModule } from '../../dynamic-api.module';
+import { DecoratorBuilder, RouteType } from '../../interfaces';
 import { BaseEntity } from '../../models';
 
-class RouteDecoratorsBuilder<Entity extends BaseEntity> {
+class RouteDecoratorsBuilder<Entity extends BaseEntity> implements DecoratorBuilder<Entity> {
   private readonly responseRouteTypeIsArray: RouteType[] = [
     'GetMany',
     'CreateMany',
@@ -19,16 +21,20 @@ class RouteDecoratorsBuilder<Entity extends BaseEntity> {
   constructor(
     private readonly routeType: RouteType,
     private readonly entity: Type<Entity>,
-    private readonly version?: string,
-    private readonly description?: string,
-    private readonly param?: Type,
-    private readonly query?: Type,
-    private readonly body?: Type,
-    private readonly presenter?: Type,
-  ) {}
+    private readonly version: string | undefined,
+    private readonly description: string | undefined,
+    private readonly isPublic: boolean | undefined,
+    private readonly dTOs: {
+      param?: Type;
+      query?: Type;
+      body?: Type;
+      presenter?: Type;
+    } = {},
+  ) {
+  }
 
   public build() {
-    const [paramKey] = this.param ? keys(new this.param()) : [];
+    const [paramKey] = this.dTOs.param ? keys(new this.dTOs.param()) : [];
 
     return [
       ...this.getRouteDecorators(paramKey),
@@ -37,34 +43,56 @@ class RouteDecoratorsBuilder<Entity extends BaseEntity> {
   }
 
   private getRouteDecorators(paramKey?: string) {
+    let routeDecorators: any[] = [];
+    const isAuthEnabled = DynamicApiModule.state.get('isAuthEnabled');
+
+    if (this.isPublic) {
+      routeDecorators.push(Public());
+    } else if (isAuthEnabled) {
+      routeDecorators.push(ApiBearerAuth());
+    }
+
     switch (this.routeType) {
       case 'GetMany':
-        return [Get()];
+        routeDecorators.push(Get());
+        break;
       case 'GetOne':
-        return [Get(`:${paramKey}`)];
+        routeDecorators.push(Get(`:${paramKey}`));
+        break;
       case 'CreateMany':
-        return [Post('many')];
+        routeDecorators.push(Post('many'));
+        break;
       case 'CreateOne':
-        return [Post()];
+        routeDecorators.push(Post());
+        break;
       case 'UpdateMany':
-        return [Patch()];
+        routeDecorators.push(Patch());
+        break;
       case 'UpdateOne':
-        return [Patch(`:${paramKey}`)];
+        routeDecorators.push(Patch(`:${paramKey}`));
+        break;
       case 'ReplaceOne':
-        return [Put(`:${paramKey}`)];
+        routeDecorators.push(Put(`:${paramKey}`));
+        break;
       case 'DuplicateMany':
-        return [Post(`duplicate`)];
+        routeDecorators.push(Post(`duplicate`));
+        break;
       case 'DuplicateOne':
-        return [Post(`duplicate/:${paramKey}`)];
+        routeDecorators.push(Post(`duplicate/:${paramKey}`));
+        break;
       case 'DeleteMany':
-        return [Delete()];
+        routeDecorators.push(Delete());
+        break;
       case 'DeleteOne':
-        return [Delete(`:${paramKey}`)];
+        routeDecorators.push(Delete(`:${paramKey}`));
+        break;
       default:
         throw new Error(
           `Unexpected route type! Cannot build route decorators. Received: ${this.routeType}`,
         );
     }
+
+    return routeDecorators;
   }
 
   private getApiDecorators(paramKey?: string) {
@@ -76,21 +104,27 @@ class RouteDecoratorsBuilder<Entity extends BaseEntity> {
           `${upperFirst(lowerCase(this.routeType))} ${lowerCase(this.entity.name)}`,
       }),
       ApiResponse({
-        type: this.presenter ?? this.entity,
+        type: this.dTOs.presenter ?? this.entity,
         isArray: this.responseRouteTypeIsArray.includes(this.routeType),
       }),
-      ...(this.body ? [ApiBody({
-        type: this.body,
-        required: !this.bodyRouteTypeIsOptional.includes(this.routeType),
-      })] : []),
-      ...(this.param && paramKey
-        ? [
+      ...(
+        this.dTOs.body ? [
+          ApiBody({
+            type: this.dTOs.body,
+            required: !this.bodyRouteTypeIsOptional.includes(this.routeType),
+          }),
+        ] : []
+      ),
+      ...(
+        this.dTOs.param && paramKey
+          ? [
             ApiParam({
-              type: typeof new this.param()[paramKey],
+              type: typeof new this.dTOs.param()[paramKey],
               name: paramKey,
             }),
           ]
-        : []),
+          : []
+      ),
     ];
   }
 }

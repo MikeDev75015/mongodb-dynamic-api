@@ -5,24 +5,39 @@ import { EntityQuery } from '../../dtos';
 import { addVersionSuffix, pascalCase, RouteDecoratorsHelper } from '../../helpers';
 import { getPredicateFromControllerAbilityPredicates } from '../../helpers/controller-ability-predicates.helper';
 import { AppAbility, ControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
-import { CreatePoliciesGuardMixin, EntityPresenterMixin } from '../../mixins';
+import { CreatePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { GetManyController, GetManyControllerConstructor } from './get-many-controller.interface';
 import { GetManyService } from './get-many-service.interface';
 
 function GetManyControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
-  { path, apiTag, abilityPredicates: controllerAbilityPredicates }: ControllerOptions<Entity>,
+  {
+    path,
+    apiTag,
+    isPublic: isPublicController,
+    abilityPredicates: controllerAbilityPredicates,
+  }: ControllerOptions<Entity>,
   {
     type: routeType,
     description,
     dTOs,
+    isPublic: isPublicRoute,
     abilityPredicate: routeAbilityPredicate,
   }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): GetManyControllerConstructor<Entity> {
   const displayedName = pascalCase(apiTag) ?? entity.name;
   const { query: CustomQuery, presenter: CustomPresenter } = dTOs ?? {};
+
+  let isPublic: boolean;
+  if (typeof isPublicRoute === 'boolean') {
+    isPublic = isPublicRoute;
+  } else if (typeof isPublicController === 'boolean') {
+    isPublic = isPublicController;
+  } else {
+    isPublic = false;
+  }
 
   class RouteQuery extends (
     CustomQuery ?? EntityQuery
@@ -35,9 +50,7 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
     });
   }
 
-  class RoutePresenter extends (
-    CustomPresenter ?? EntityPresenterMixin(entity)
-  ) {}
+  class RoutePresenter extends (CustomPresenter ?? entity) {}
 
   if (!CustomPresenter) {
     Object.defineProperty(RoutePresenter, 'name', {
@@ -51,10 +64,13 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
     entity,
     version,
     description,
-    undefined,
-    RouteQuery,
-    undefined,
-    RoutePresenter,
+    isPublic,
+    {
+      param: undefined,
+      query: RouteQuery,
+      body: undefined,
+      presenter: RoutePresenter,
+    },
   );
 
   const abilityPredicate = routeAbilityPredicate ?? getPredicateFromControllerAbilityPredicates(

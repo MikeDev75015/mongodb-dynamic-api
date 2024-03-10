@@ -1,30 +1,12 @@
-import { Type, ValidationPipeOptions } from '@nestjs/common';
+import { ValidationPipeOptions } from '@nestjs/common';
 import { BaseEntity } from '../models';
 import { DynamicApiRouteCaslAbilityPredicate } from './dynamic-api-casl-ability.interface';
+import { DTOsBundle } from './dynamic-api-route-dtos-bundle.type';
+import { RouteType } from './dynamic-api-route-type.type';
 
-type RouteType =
-  | 'CreateMany'
-  | 'CreateOne'
-  | 'DeleteMany'
-  | 'DeleteOne'
-  | 'DuplicateMany'
-  | 'DuplicateOne'
-  | 'GetMany'
-  | 'GetOne'
-  | 'ReplaceOne'
-  | 'UpdateMany'
-  | 'UpdateOne';
-
-type DTOsBundle = {
-  query?: Type;
-  param?: Type;
-  body?: Type;
-  presenter?: Type;
-};
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface DynamicAPIRouteConfig<Entity extends BaseEntity> {
   type: RouteType;
+  isPublic?: boolean;
   description?: string;
   version?: string;
   dTOs?: DTOsBundle;
@@ -32,4 +14,4 @@ interface DynamicAPIRouteConfig<Entity extends BaseEntity> {
   abilityPredicate?: DynamicApiRouteCaslAbilityPredicate<Entity>;
 }
 
-export { DTOsBundle, RouteType, DynamicAPIRouteConfig };
+export { DynamicAPIRouteConfig };
