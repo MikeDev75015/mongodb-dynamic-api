@@ -90,7 +90,23 @@ export class DynamicApiModule {
         ),
         ...(
           useAuth?.user ? [
-            AuthModule.forRoot(useAuth),
+            AuthModule.forRoot({
+              user: {
+                entity: useAuth.user.entity,
+                loginField: useAuth.user.loginField ?? 'email',
+                passwordField: useAuth.user.passwordField ?? 'password',
+                additionalFields: useAuth.user.additionalFields ?? {
+                  toRegister: [],
+                  toRequest: [],
+                },
+              },
+              jwt: {
+                secret: useAuth.jwt?.secret ?? 'dynamic-api-jwt-secret',
+                expiresIn: useAuth.jwt?.expiresIn ?? '1d',
+              },
+              protectRegister: useAuth.protectRegister ?? false,
+              registerAbilityPredicate: useAuth.registerAbilityPredicate,
+            }),
           ] : []
         ),
       ],

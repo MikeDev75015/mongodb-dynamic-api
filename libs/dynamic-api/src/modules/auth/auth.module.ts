@@ -20,25 +20,19 @@ export class AuthModule {
         passwordField,
         additionalFields,
       },
-      jwt,
+      jwt: { secret, expiresIn },
       protectRegister,
+      registerAbilityPredicate,
     }: AuthOptions<Entity>,
     extraImports: any[] = [],
   ) {
-    const state = DynamicApiModule.state.get();
-    if (!loginField) {
-      loginField = state.credentials.loginField as keyof Entity;
-    }
-    if (!passwordField) {
-      passwordField = state.credentials.passwordField as keyof Entity;
-    }
-
     const AuthController = createAuthController(
       userEntity,
       loginField,
       passwordField,
       additionalFields,
       protectRegister,
+      registerAbilityPredicate,
     );
     const AuthServiceProvider = createAuthServiceProvider(userEntity, loginField, passwordField, additionalFields);
     const LocalStrategyProvider = createLocalStrategyProvider(loginField, passwordField);
@@ -59,8 +53,8 @@ export class AuthModule {
         PassportModule,
         JwtModule.register({
           global: true,
-          secret: jwt?.secret ?? state.jwtSecret,
-          signOptions: { expiresIn: jwt?.expiresIn ?? '1d' },
+          secret,
+          signOptions: { expiresIn },
         }),
       ],
       providers: [

@@ -2,11 +2,13 @@ import { Body, Get, HttpCode, HttpStatus, Post, Request, Type, UseGuards } from 
 import { ApiBearerAuth, ApiOkResponse, ApiProperty, IntersectionType, PickType } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
 import { AuthDecoratorsBuilder } from '../../../builders';
-import { Public } from '../../../decorators';
+import { CheckPolicies, Public } from '../../../decorators';
 import { RouteDecoratorsHelper } from '../../../helpers';
+import { AppAbility, DynamicApiAuthRegisterCaslAbilityPredicate } from '../../../interfaces';
 import { BaseEntity } from '../../../models';
 import { JwtAuthGuard, LocalAuthGuard } from '../guards';
 import { AuthController, AuthControllerConstructor, AuthService } from '../interfaces';
+import { AuthRegisterPoliciesGuardMixin, registerRouteType } from './auth-register-policies-guard.mixin';
 
 function AuthControllerMixin<Entity extends BaseEntity>(
   userEntity: Type<Entity>,
@@ -15,6 +17,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
   additionalRegisterFields: (keyof Entity)[] = [],
   additionalRequestFields: (keyof Entity)[] = [],
   protectRegister: boolean = false,
+  abilityPredicate?: DynamicApiAuthRegisterCaslAbilityPredicate,
 ): AuthControllerConstructor<Entity> {
   class AuthBodyPasswordFieldDto {
     @ApiProperty()
@@ -46,6 +49,8 @@ function AuthControllerMixin<Entity extends BaseEntity>(
 
   const authDecorators = new AuthDecoratorsBuilder(protectRegister);
 
+  class AuthRegisterPoliciesGuard extends AuthRegisterPoliciesGuardMixin(userEntity, abilityPredicate) {}
+
   class BaseAuthController implements AuthController<Entity> {
     constructor(protected readonly service: AuthService<Entity>) {
     }
@@ -72,6 +77,8 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     @HttpCode(HttpStatus.CREATED)
     @ApiOkResponse({ type: AuthPresenter })
     @Post('register')
+    @UseGuards(AuthRegisterPoliciesGuard)
+    @CheckPolicies((ability: AppAbility<Entity>) => ability.can(registerRouteType, userEntity))
     register(@Body() body: AuthRegisterDto) {
       return this.service.register(body);
     }
