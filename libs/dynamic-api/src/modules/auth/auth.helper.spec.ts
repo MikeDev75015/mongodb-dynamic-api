@@ -53,6 +53,7 @@ describe('AuthHelper', () => {
         passwordField,
         additionalFields,
         false,
+        undefined,
       );
 
       expect(controller).toEqual(expect.any(Function));

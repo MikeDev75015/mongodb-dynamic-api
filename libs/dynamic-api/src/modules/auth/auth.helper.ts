@@ -6,7 +6,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { Strategy } from 'passport-local';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { DynamicAPIServiceProvider } from '../../interfaces';
+import { DynamicApiAuthRegisterCaslAbilityPredicate, DynamicAPIServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BcryptService } from '../../services';
 import { AuthAdditionalFields, AuthControllerConstructor, AuthService } from './interfaces';
@@ -85,6 +85,7 @@ function createAuthController<Entity extends BaseEntity>(
   passwordField: keyof Entity,
   additionalFields: AuthAdditionalFields<Entity> | undefined,
   protectRegister: boolean | undefined,
+  abilityPredicate: DynamicApiAuthRegisterCaslAbilityPredicate | undefined,
 ): AuthControllerConstructor<Entity> {
   @Controller('auth')
   @ApiTags('Auth')
@@ -102,6 +103,7 @@ function createAuthController<Entity extends BaseEntity>(
     additionalFields?.toRegister,
     additionalFields?.toRequest,
     protectRegister,
+    abilityPredicate,
   ) {
     constructor(
       @Inject(authServiceProviderName)

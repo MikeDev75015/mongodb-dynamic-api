@@ -1,4 +1,5 @@
 import { Type } from '@nestjs/common';
+import { DynamicApiAuthRegisterCaslAbilityPredicate } from '../../../interfaces';
 import { BaseEntity } from '../../../models';
 
 type AuthAdditionalFields<Entity extends BaseEntity> = {
@@ -18,6 +19,7 @@ type AuthOptions<Entity extends BaseEntity = any> = {
     expiresIn?: string | number;
   };
   protectRegister?: boolean;
+  registerAbilityPredicate?: DynamicApiAuthRegisterCaslAbilityPredicate;
 };
 
 export type { AuthOptions, AuthAdditionalFields };

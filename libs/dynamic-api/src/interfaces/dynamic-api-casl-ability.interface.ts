@@ -13,6 +13,8 @@ type DynamicApiCaslActionRoutesMap = Map<CaslAction, RouteType[]>;
 
 type DynamicApiRouteCaslAbilityPredicate<Entity extends BaseEntity, T = any> = (entity: Entity, user?: T) => boolean;
 
+type DynamicApiAuthRegisterCaslAbilityPredicate<T = any> = (user?: T) => boolean;
+
 type DynamicApiControllerCaslAbilityPredicate<Entity extends BaseEntity> = {
   targets: RouteType[] | DynamicApiCaslActionRoutesMap;
   predicate: DynamicApiRouteCaslAbilityPredicate<Entity>;
@@ -21,6 +23,7 @@ type DynamicApiControllerCaslAbilityPredicate<Entity extends BaseEntity> = {
 export {
   CaslAction,
   DynamicApiRouteCaslAbilityPredicate,
+  DynamicApiAuthRegisterCaslAbilityPredicate,
   DynamicApiControllerCaslAbilityPredicate,
   DynamicApiCaslActionRoutesMap,
 };
