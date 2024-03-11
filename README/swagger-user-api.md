@@ -1,4 +1,4 @@
-[back to README](../README.md)
+[back to README](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md)
 
 ## User API - Swagger UI screenshots
 
@@ -38,4 +38,4 @@
 #### Generated Schemas
 ![Generated Schemas](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/images/dynamic-api-user-schemas.Jpeg?raw=true "Generated Schemas")
 
-[back to README](../README.md)
+[back to README](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md)

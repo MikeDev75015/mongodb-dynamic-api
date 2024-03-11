@@ -67,6 +67,16 @@
 npm install --save mongodb-dynamic-api
 ```
 
+___
+
+### Table of Contents
+
+[Swagger UI](#swagger-ui--optional-but-strongly-recommended)
+<br>[Validation](#validation--optional)
+<br>[Versioning](#versioning--optional)
+<br>[Caching](#caching--enabled-by-default)
+<br>[Authentication](#authentication--optional)
+<br>[Casl](#casl--only-with-authentication)
 
 ---
 ### HOW TO ENJOY IT
@@ -235,7 +245,7 @@ go to the swagger API path (default to `/dynamic-api`) and you will see the auto
 
 ![User API](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/images/dynamic-api-user-full.Jpeg?raw=true "User API")
 
-<a href="https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/swagger.md" target="_blank">See more User API screenshots</a>
+<a href="https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/swagger-user-api.md" target="_blank">See more User API screenshots</a>
 
 ___
 ### [Validation](https://docs.nestjs.com/techniques/validation#using-the-built-in-validationpipe) (optional)
@@ -504,6 +514,405 @@ When you request the `/users` route with the `GET` method, the response will be 
 4. GET /users
 ```
 ![Third GET request](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/images/dynamic-api-caching-4-GET-third-request.Jpeg?raw=true "Third GET request")
+
+
+___
+
+### [Authentication](https://docs.nestjs.com/security/authorization#integrating-casl) (optional)
+
+An authentication strategy like <a href="https://docs.nestjs.com/security/authentication#jwt-token" target="_blank">JWT</a> is already implemented in the Dynamic API.
+All you have to do is to pass the User object and some options to the `useAuth` property of the `DynamicApiModule.forRoot` method.
+
+**Configuration**
+
+Ok, let's update our `User` class to add a `password` field.
+
+```typescript
+// user.ts
+import { IsEmail } from 'class-validator';
+
+@Schema({ collection: 'users' })
+export class User extends BaseEntity {
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  @Prop({ type: String, required: true })
+  email: string;
+
+  @Exclude()
+  @IsNotEmpty()
+  @IsString()
+  @Prop({ type: String, required: true })
+  password: string;
+
+  @ApiPropertyOptional({ type: Boolean, default: false })
+  @IsBoolean()
+  @IsOptional()
+  @Prop({ type: Boolean, default: false })
+  isAdmin: boolean;
+
+  @ApiPropertyOptional()
+  @IsNotEmpty()
+  @IsString()
+  @IsOptional()
+  @Prop({ type: String })
+  company?: string;
+}
+```
+
+Now, we are going to add the `useAuth` property to the `DynamicApiModule.forRoot` method and pass the `User` object and some options.
+
+```typescript
+// app.module.ts
+import { DynamicApiModule } from 'mongodb-dynamic-api';
+import { User } from './users/user';
+import { UsersModule } from './users/users.module';
+
+@Module({
+  imports: [
+    DynamicApiModule.forRoot('...', {
+      // ...,
+      useAuth: { // <- add this
+        user: {
+          entity: User, // <- put here the entity which will represent a User of your API
+          loginField: 'email',
+          passwordField: 'password',
+        },
+        jwt: {
+          secret: 'my-secret', // <- replace by your own JWT secret in production
+        },
+      },
+    }),
+    UsersModule,
+  ],
+  controllers: [AppController],
+  providers: [AppService],
+})
+export class AppModule {}
+```
+
+By setting the `useAuth` property, the Dynamic API will automatically add the authentication API.
+<br>It will add the `/auth/register`, `/auth/login`, and `/auth/account` routes to the API.
+
+By default, only the `/auth/register` and `/auth/login` routes are public.
+All other routes are protected and require a valid `JWT token` to access them.
+
+**Swagger Configuration**
+
+For Swagger users, you must enable the bearer Auth option by setting the `bearerAuth` property to `true` in the enableDynamicAPISwagger method.
+This will add the Authorize button in the Swagger UI. This button will allow you to pass the `JWT Token` and unlock the protected routes.
+
+```typescript
+// main.ts
+import { enableDynamicAPISwagger } from 'mongodb-dynamic-api';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  // ...
+  enableDynamicAPISwagger(app, {
+    // ...,
+    swaggerExtraConfig: { // <- add this line in your main.ts file
+      bearerAuth: true,
+    },
+  });
+
+  await app.listen(3000);
+}
+```
+
+![Swagger UI - Authentication API](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/images/dynamic-api-authentication.Jpeg?raw=true "Swagger UI - Authentication API")
+
+<a href="https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/swagger-authentication-api.md" target="_blank">See more Authentication API screenshots</a>
+
+
+**Usage**
+
+Ok let's add a new user with the `POST` method on the `/auth/register` route.
+<br>You will receive a valid `JWT token` in the response.
+
+```text
+POST /auth/register
+
+curl -X 'POST' \
+  '<your-host>/auth/register' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "email": "<your-email>",
+  "password": "<your-password>" // <- the password will be hashed automatically before saving in the database
+}'
+```
+```json
+# Server response
+{"accessToken":"<your-jwt-token>"}
+```
+
+If you go to `/auth/login` and request the route with the `POST` method passing the `email` and `password` fields in the body.
+<br>You will also receive a valid `JWT token` in the response.
+
+```text
+POST /auth/login
+
+curl -X 'POST' \
+  '<your-host>/auth/login' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "email": "<your-email>",
+  "password": "<your-password>"
+}'
+```
+```json
+# Server response
+{"accessToken":"<your-jwt-token>"}
+```
+
+Now let's request the `/auth/account` protected route with the `GET` method and pass our valid JWT token in the `Authorization` header.
+
+```text
+GET /auth/account
+
+curl -X 'GET' \
+  '<your-host>/auth/account' \
+  -H 'accept: application/json' \
+  -H 'Authorization: Bearer <your-jwt-token>'
+```
+```json
+# Server response
+{"id":"65edc717c1ec...","email":"<your-email>"}
+```
+
+Great, now you have a fully functional authentication API.
+
+All other routes are protected and require a valid JWT token to be accessed. You can easily make it public by adding the `isPublic` property to the `controllerOptions` object or to the `route` object in the `DynamicApiModule.forFeature` method.
+    
+```typescript
+// users.module.ts
+import { DynamicApiModule } from 'mongodb-dynamic-api';
+import { User } from './user';
+
+@Module({
+  imports: [
+    DynamicApiModule.forFeature({
+      entity: User,
+      controllerOptions: {
+        path: 'users',
+        isPublic: true, // <- add this to make all user API routes public
+      },
+      // ...
+    }),
+  ],
+})
+export class UsersModule {}
+```
+```typescript
+// users.module.ts
+import { DynamicApiModule } from 'mongodb-dynamic-api';
+import { User } from './user';
+
+@Module({
+  imports: [
+    DynamicApiModule.forFeature({
+      entity: User,
+      controllerOptions: {
+        path: 'users',
+      },
+      routes: [
+        { type: 'GetMany' }, // <- protected route
+        { type: 'GetOne', isPublic: true }, // <- public route
+        { type: 'UpdateOne' }, // <- protected route
+        { type: 'DeleteOne' }, // <- protected route
+      ],
+    }),
+  ],
+})
+export class UsersModule {}
+```
+
+___
+
+### [Casl](https://docs.nestjs.com/security/authorization#integrating-casl) (only with authentication)
+
+Casl will allow you to condition the actions of your users for each protected route of your APIs.
+<br>Authentication is required, you need to enable it or implement your own strategy that adds the User object in the request.
+
+**MongoDB dynamic API** uses the `User` object in the requests to apply the ability predicates defined in the `DynamicApiModule.forFeature`.
+<br>You can define them either **in the controller options**,
+or **in each route object** declared in the routes property.
+<br>*If the ability predicates are specified in 2, those defined in the route will have priority.*
+
+**An ability predicate is an arrow function that takes a subject and the User object (optional) as arguments and returns a boolean.**
+
+Let's create a new Article content and set the ability predicates to the `UpdateOne`, `DeleteOne` and `DeleteMany` routes.
+
+**Configuration**
+
+```typescript
+// article.ts
+import { Prop } from '@nestjs/mongoose';
+import { ApiProperty } from '@nestjs/swagger';
+import { BaseEntity } from 'mongodb-dynamic-api';
+
+export class Article extends BaseEntity {
+  @ApiProperty({ type: Boolean, default: false })
+  @Prop({ type: Boolean, default: false })
+  isPublished: boolean;
+
+  @ApiProperty()
+  @Prop({ type: String })
+  authorId: string;
+}
+```
+
+```typescript
+// articles.module.ts
+import { Module } from '@nestjs/common';
+import { DynamicApiModule } from 'mongodb-dynamic-api';
+import { User } from '../users/user';
+import { Article } from './article';
+
+@Module({
+  imports: [
+    DynamicApiModule.forFeature({
+      entity: Article,
+      controllerOptions: {
+        path: 'articles',
+        abilityPredicates: [ // <- declare the ability predicates in the controller options
+          {
+            targets: ['DeleteMany', 'DeleteOne'], // <- declare the targets
+            predicate: (_: Article, user: User) => user.isAdmin, // <- add the condition
+          },
+        ],
+      },
+      routes: [
+        { type: 'GetMany', isPublic: true },
+        { type: 'GetOne', isPublic: true },
+        { type: 'CreateOne' },
+        {
+          type: 'UpdateOne',
+          abilityPredicate: (article: Article, user: User) => // <- declare the ability predicate in the route object
+            article.authorId === user.id && !article.isPublished,
+        },
+      ],
+    }),
+  ],
+})
+export class ArticlesModule {}
+```
+
+```typescript
+// app.module.ts
+import { Module } from '@nestjs/common';
+import { DynamicApiModule } from 'mongodb-dynamic-api';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { User } from './users/user';
+import { ArticlesModule } from './articles/articles.module';
+
+@Module({
+  imports: [
+    DynamicApiModule.forRoot(
+      'your-mongodb-uri',
+      {
+        useAuth: {
+          user: {
+            entity: User,
+            additionalFields: {
+              toRegister: ['isAdmin'], // <- here you can set additional fields to display in the register body
+              toRequest: ['isAdmin', 'company'], // <- here you can set additional fields to the User object in the request
+            },
+          },
+        },
+      },
+    ),
+    ArticlesModule,
+  ],
+  controllers: [AppController],
+  providers: [AppService],
+})
+export class AppModule {}
+```
+
+
+**Usage**
+
+First, let's create an admin user with the `POST` method on the `/auth/register` public route.
+```text
+POST /auth/register
+
+curl -X 'POST' \
+  '<your-host>/auth/register' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "email": "admin@test.co",
+  "isAdmin": true,
+  "password": "admin"
+}'
+```
+
+Then, we are going to protect the `/auth/register` route by setting the `protectRegister` property to `true` and add a **register ability predicate** in the useAuth Object of the `DynamicApiModule.forRoot` method.
+```typescript
+// app.module.ts
+@Module({
+  imports: [
+    DynamicApiModule.forRoot(
+      'your-mongodb-uri',
+      {
+        useAuth: {
+          // ...,
+          protectRegister: true, // <- add this line
+          registerAbilityPredicate: (user: User) => user.isAdmin,
+        },
+      },
+    ),
+```
+
+Ok, now let's create a non admin user with the `POST` method on the `/auth/register` route.
+```text
+POST /auth/register
+
+curl -X 'POST' \
+  '<your-host>/auth/register' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "email": "toto@test.co",
+  "password": "toto"
+}'
+```
+```json
+# Server response
+{"accessToken":"<toto-jwt-token>"}
+```
+
+Next, under toto's account (not admin), we will try to register a new user with the `POST` method on the `/auth/register` route.
+<br>The register ability predicate will return `false` and we will receive a `403 Forbidden` error.
+
+```text
+POST /auth/register
+
+curl -X 'POST' \
+  'http://localhost:5000/auth/register' \
+  -H 'accept: application/json' \
+  -H 'Authorization: Bearer <toto-jwt-token>' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "email": "bill@test.co",
+  "password": "bill"
+}'
+```
+```json
+# Server response
+{
+  "message": "Forbidden resource",
+  "error": "Forbidden",
+  "statusCode": 403
+}
+```
+
+The register route is now well protected and only an admin user can create new users.
+
 
 ___
 
