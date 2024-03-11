@@ -1,5 +1,18 @@
 Changelog
 
+## [1.4.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v1.3.3...v1.4.0) (2024-03-11)
+
+
+### authentication
+
+* **authentication:** add register ability predicate ([811b085](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/811b0853ed836ce33a7a56312c3e045b5f73f5ee))
+
+
+### api
+
+* **api:** add authentication ([a692b7b](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/a692b7b0fcd774dc5152b9f82ed22107c543110a))
+* **api:** add casl ability to control route access ([6202a24](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/6202a247d301a7a72ce47f596a288d66724999f1))
+
 ## [1.3.3](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v1.3.2...v1.3.3) (2024-03-06)
 
 
