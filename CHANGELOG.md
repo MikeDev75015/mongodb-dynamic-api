@@ -1,5 +1,7 @@
 Changelog
 
+## [1.4.1](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v1.4.0...v1.4.1) (2024-03-12)
+
 ## [1.4.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v1.3.3...v1.4.0) (2024-03-11)
 
 
