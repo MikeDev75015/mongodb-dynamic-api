@@ -71,12 +71,13 @@ ___
 
 ### Table of Contents
 
-[Swagger UI](#swagger-ui--optional-but-strongly-recommended)
-<br>[Validation](#validation--optional)
-<br>[Versioning](#versioning--optional)
-<br>[Caching](#caching--enabled-by-default)
-<br>[Authentication](#authentication--optional)
-<br>[Casl](#casl--only-with-authentication)
+[Introduction](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#how-to-enjoy-it)
+- [Swagger UI](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#swagger-ui-optional-but-strongly-recommended)
+- [Validation](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#validation-optional)
+- [Versioning](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#versioning-optional)
+- [Caching](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#caching-enabled-by-default)
+- [Authentication](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#authentication-optional)
+- [Casl](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#casl-only-with-authentication)
 
 ---
 ### HOW TO ENJOY IT
@@ -95,13 +96,13 @@ npm i -S mongodb-dynamic-api
 - Add `DynamicApiModule.forRoot` to your `app.module.ts` and pass your **MongoDB connection string** to the method.
 
 ```typescript
-// app.module.ts
+// src/app.module.ts
 import { DynamicApiModule } from 'mongodb-dynamic-api';
 
 @Module({
   imports: [
     DynamicApiModule.forRoot(
-      'mongodb://127.0.0.1:27017/dynamic-api-db', // <- replace by your own connection string
+      'mongodb-uri', // <- replace by your own MongoDB connection string
     ),
     // ...
   ],
@@ -113,19 +114,19 @@ export class AppModule {}
 **Basic Usage**
 
 - Ok, now let's add our first content with just 2 files. It will be a simple `User` with a `name` and an `email` field.
-- We use the `@Schema` and `@Prop` decorators from the `@nestjs/mongoose` package to define our MongoDB model. <br>*See <strong>nestjs</strong> <a href="https://docs.nestjs.com/techniques/mongodb#model-injection" target="_blank">documentation</a> for more details.*
+- We use the `@Schema` and `@Prop` decorators from the <a href="https://docs.nestjs.com/techniques/mongodb#model-injection" target="_blank">@nestjs/mongoose</a> package to define our MongoDB model.
 
 
 - You must extend the `BaseEntity` (or `SoftDeletableEntity`) class from the `mongodb-dynamic-api` package **for all your collection models**.
 - Just create a new file `user.ts` and add the following code.
 
 ```typescript
-// users/user.ts
+// src/users/user.ts
 import { Prop, Schema } from '@nestjs/mongoose';
 import { BaseEntity } from 'mongodb-dynamic-api';
 
 @Schema({ collection: 'users' })
-export class User extends BaseEntity {
+export class User extends BaseEntity { // <- extends BaseEntity
   @Prop({ type: String, required: true })
   name: string;
 
@@ -134,12 +135,12 @@ export class User extends BaseEntity {
 }
 ```
 
-- Then we will use the `DynamicApiModule.forFeature` method to add the `User` content.
+- Then we will use the `DynamicApiModule.forFeature` method to add the `User` API to our application.
 - We pass the `User` class to the `entity` property and specify the path `users` to the `controllerOptions` property.
 - Create a new file `users.module.ts` and add the following code.
 
 ```typescript
-// users/users.module.ts
+// src/users/users.module.ts
 import { DynamicApiModule } from 'mongodb-dynamic-api';
 import { User } from './user';
 
@@ -159,7 +160,7 @@ export class UsersModule {}
 - Last step, add the `UsersModule` to the **imports** in the `app.module.ts` after the `DynamicApiModule.forRoot` method.
 
 ```typescript
-// app.module.ts
+// src/app.module.ts
 import { DynamicApiModule } from 'mongodb-dynamic-api';
 import { UsersModule } from './users/users.module';
 
@@ -193,6 +194,15 @@ export class AppModule {}
 | **POST /users/duplicate**    <br>*Duplicate many* |      `{ name?: string; email?: string; }`      |      x       | `ids: string[]` |
 | **POST /users/duplicate/:id**<br>*Duplicate one*  |      `{ name?: string; email?: string; }`      | `id: string` |        x        |
 
+___
+
+- TOC > [Validation](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#validation-optional)
+/ [Versioning](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#versioning-optional)
+/ [Caching](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#caching-enabled-by-default)
+/ [Authentication](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#authentication-optional)
+/ [Casl](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#casl-only-with-authentication)
+
+___
 
 ### [Swagger UI](https://docs.nestjs.com/openapi/introduction#document-options) (optional but strongly recommended)
 `function enableDynamicAPISwagger(app: INestApplication, options?: DynamicAPISwaggerOptions): void`
@@ -200,7 +210,7 @@ export class AppModule {}
 **Configuration**
 
 ```typescript
-// main.ts
+// src/main.ts
 import { enableDynamicAPISwagger } from 'mongodb-dynamic-api';
 
 async function bootstrap() {
@@ -222,7 +232,7 @@ Add the `@ApiProperty` | `@ApiPropertyOptional` decorators to your class propert
 <br>Let's add an optional company field to the `User` class.
 
 ```typescript
-// user.ts
+// src/users/user.ts
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 @Schema({ collection: 'users' })
@@ -248,13 +258,22 @@ go to the swagger API path (default to `/dynamic-api`) and you will see the auto
 <a href="https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/swagger-user-api.md" target="_blank">See more User API screenshots</a>
 
 ___
+
+- TOC > [Introduction](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#how-to-enjoy-it)
+/ [Versioning](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#versioning-optional)
+/ [Caching](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#caching-enabled-by-default)
+/ [Authentication](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#authentication-optional)
+/ [Casl](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#casl-only-with-authentication)
+
+___
+
 ### [Validation](https://docs.nestjs.com/techniques/validation#using-the-built-in-validationpipe) (optional)
-`function enableDynamicAPIValidation(app: INestApplication, options?: ValidationPipeOptions): void`
+<br>`function enableDynamicAPIValidation(app: INestApplication, options?: ValidationPipeOptions): void`
 
 **Configuration**
 
 ```typescript
-// main.ts
+// src/main.ts
 import { enableDynamicAPIValidation } from 'mongodb-dynamic-api';
 
 async function bootstrap() {
@@ -272,7 +291,7 @@ or in each route object defined in the routes property.
 <br>*If the options are specified in 2, the options specified in the route will have priority.*
 
 ```typescript
-// users.module.ts
+// src/users/users.module.ts
 import { DynamicApiModule } from 'mongodb-dynamic-api';
 import { User } from './user';
 
@@ -306,7 +325,7 @@ Use the `Class validator` <a href="https://github.com/typestack/class-validator?
 <br>Let's add `IsEmail` decorator to the `email` field.
 
 ```typescript
-// user.ts
+// src/users/user.ts
 import { IsEmail } from 'class-validator';
 
 @Schema({ collection: 'users' })
@@ -330,8 +349,16 @@ Ok, now if you try to create a new user with an invalid email, you will get a `4
 
 ![User API Validation](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/images/dynamic-api-validation.Jpeg?raw=true "User API Validation")
 
+___
+
+- TOC > [Introduction](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#how-to-enjoy-it)
+/ [Swagger UI](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#swagger-ui-optional-but-strongly-recommended)
+/ [Caching](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#caching-enabled-by-default)
+/ [Authentication](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#authentication-optional)
+/ [Casl](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#casl-only-with-authentication)
 
 ___
+
 ### [Versioning](https://docs.nestjs.com/techniques/versioning) (optional)
 `function enableDynamicAPIVersioning(app: INestApplication, options?: VersioningOptions): void`
 
@@ -343,7 +370,7 @@ The `enableDynamicAPIVersioning` function will automatically add versioning to t
 **Configuration**
 
 ```typescript
-// main.ts
+// src/main.ts
 import { enableDynamicAPIVersioning } from 'mongodb-dynamic-api';
 
 async function bootstrap() {
@@ -363,7 +390,7 @@ Pass the `version` property to the `controllerOptions` object or to the `route` 
 Let's add a new version to the `User` content.
 
 ```typescript
-// create-one-user-v2.dto.ts
+// src/users/create-one-user-v2.dto.ts
 import { ApiProperty, ApiPropertyOptional, PickType } from '@nestjs/swagger';
 import { IsOptional, IsString } from 'class-validator';
 import { User } from './user';
@@ -385,7 +412,7 @@ export class CreateOneUserV2Dto extends PickType(User, ['email']) {
 ```
 
 ```typescript
-// user-v2.presenter.ts
+// src/users/user-v2.presenter.ts
 import { ApiProperty, ApiPropertyOptional, PickType } from '@nestjs/swagger';
 import { User } from './user';
 
@@ -402,7 +429,7 @@ export class UserV2Presenter extends PickType(User, ['email']) {
 ```
 
 ```typescript
-// users.module.ts
+// src/users/users.module.ts
 import { DynamicApiModule } from 'mongodb-dynamic-api';
 import { User } from './user';
 import { CreateOneUserV2Dto } from './create-one-user-v2.dto';
@@ -438,6 +465,13 @@ Great, now you have a versioned User API, and you can access it at the `/v1/user
 
 ![User API Versioned](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/images/dynamic-api-versioning.Jpeg?raw=true "User API Versioned")
 
+___
+
+- TOC > [Introduction](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#how-to-enjoy-it)
+/ [Swagger UI](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#swagger-ui-optional-but-strongly-recommended)
+/ [Validation](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#validation-optional)
+/ [Authentication](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#authentication-optional)
+/ [Casl](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#casl-only-with-authentication)
 
 ___
 
@@ -449,7 +483,7 @@ By default, the caching is activated globally for all the routes. It uses the ne
 **Configuration**
 
 ```typescript
-// app.module.ts
+// src/app.module.ts
 import { DynamicApiModule } from 'mongodb-dynamic-api';
 
 @Module({
@@ -473,7 +507,7 @@ export class AppModule {}
 **[Not recommended]** The cache can also be disabled globally with the `useGlobalCache` property set to `false` in the `DynamicApiModule.forRoot` method.
 
 ```typescript
-// app.module.ts
+// src/app.module.ts
 import { DynamicApiModule } from 'mongodb-dynamic-api';
 
 @Module({
@@ -515,6 +549,13 @@ When you request the `/users` route with the `GET` method, the response will be 
 ```
 ![Third GET request](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/images/dynamic-api-caching-4-GET-third-request.Jpeg?raw=true "Third GET request")
 
+___
+
+- TOC > [Introduction](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#how-to-enjoy-it)
+/ [Swagger UI](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#swagger-ui-optional-but-strongly-recommended)
+/ [Validation](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#validation-optional)
+/ [Versioning](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#versioning-optional)
+/ [Casl](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#casl-only-with-authentication)
 
 ___
 
@@ -528,7 +569,7 @@ All you have to do is to pass the User object and some options to the `useAuth` 
 Ok, let's update our `User` class to add a `password` field.
 
 ```typescript
-// user.ts
+// src/users/user.ts
 import { IsEmail } from 'class-validator';
 
 @Schema({ collection: 'users' })
@@ -561,9 +602,11 @@ export class User extends BaseEntity {
 ```
 
 Now, we are going to add the `useAuth` property to the `DynamicApiModule.forRoot` method and pass the `User` object and some options.
+<br>By default, the login field is `email` and the password field is `password`. Your User class must have these fields.
+<br>If you want to use other fields, you can specify them in the `user` property by passing the `loginField` and / or `passwordField` properties.
 
 ```typescript
-// app.module.ts
+// src/app.module.ts
 import { DynamicApiModule } from 'mongodb-dynamic-api';
 import { User } from './users/user';
 import { UsersModule } from './users/users.module';
@@ -575,11 +618,6 @@ import { UsersModule } from './users/users.module';
       useAuth: { // <- add this
         user: {
           entity: User, // <- put here the entity which will represent a User of your API
-          loginField: 'email',
-          passwordField: 'password',
-        },
-        jwt: {
-          secret: 'my-secret', // <- replace by your own JWT secret in production
         },
       },
     }),
@@ -603,7 +641,7 @@ For Swagger users, you must enable the bearer Auth option by setting the `bearer
 This will add the Authorize button in the Swagger UI. This button will allow you to pass the `JWT Token` and unlock the protected routes.
 
 ```typescript
-// main.ts
+// src/main.ts
 import { enableDynamicAPISwagger } from 'mongodb-dynamic-api';
 
 async function bootstrap() {
@@ -687,7 +725,7 @@ Great, now you have a fully functional authentication API.
 All other routes are protected and require a valid JWT token to be accessed. You can easily make it public by adding the `isPublic` property to the `controllerOptions` object or to the `route` object in the `DynamicApiModule.forFeature` method.
     
 ```typescript
-// users.module.ts
+// src/users/users.module.ts
 import { DynamicApiModule } from 'mongodb-dynamic-api';
 import { User } from './user';
 
@@ -706,7 +744,7 @@ import { User } from './user';
 export class UsersModule {}
 ```
 ```typescript
-// users.module.ts
+// src/users/users.module.ts
 import { DynamicApiModule } from 'mongodb-dynamic-api';
 import { User } from './user';
 
@@ -731,6 +769,14 @@ export class UsersModule {}
 
 ___
 
+- TOC > [Introduction](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#how-to-enjoy-it)
+/ [Swagger UI](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#swagger-ui-optional-but-strongly-recommended)
+/ [Validation](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#validation-optional)
+/ [Versioning](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#versioning-optional)
+/ [Caching](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md#caching-enabled-by-default)
+
+___
+
 ### [Casl](https://docs.nestjs.com/security/authorization#integrating-casl) (only with authentication)
 
 Casl will allow you to condition the actions of your users for each protected route of your APIs.
@@ -748,7 +794,7 @@ Let's create a new Article content and set the ability predicates to the `Update
 **Configuration**
 
 ```typescript
-// article.ts
+// src/articles/article.ts
 import { Prop } from '@nestjs/mongoose';
 import { ApiProperty } from '@nestjs/swagger';
 import { BaseEntity } from 'mongodb-dynamic-api';
@@ -765,7 +811,7 @@ export class Article extends BaseEntity {
 ```
 
 ```typescript
-// articles.module.ts
+// src/articles/articles.module.ts
 import { Module } from '@nestjs/common';
 import { DynamicApiModule } from 'mongodb-dynamic-api';
 import { User } from '../users/user';
@@ -801,7 +847,7 @@ export class ArticlesModule {}
 ```
 
 ```typescript
-// app.module.ts
+// src/app.module.ts
 import { Module } from '@nestjs/common';
 import { DynamicApiModule } from 'mongodb-dynamic-api';
 import { AppController } from './app.controller';
@@ -853,7 +899,7 @@ curl -X 'POST' \
 
 Then, we are going to protect the `/auth/register` route by setting the `protectRegister` property to `true` and add a **register ability predicate** in the useAuth Object of the `DynamicApiModule.forRoot` method.
 ```typescript
-// app.module.ts
+// src/app.module.ts
 @Module({
   imports: [
     DynamicApiModule.forRoot(
