@@ -1,6 +1,57 @@
-[back to README](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md)
+[Back to README](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md)
 
-## User API - Swagger UI screenshots
+___
+
+# [Swagger UI](https://docs.nestjs.com/openapi/introduction#document-options)
+`function enableDynamicAPISwagger(app: INestApplication, options?: DynamicAPISwaggerOptions): void`
+
+**Configuration**
+
+```typescript
+// src/main.ts
+import { enableDynamicAPISwagger } from 'mongodb-dynamic-api';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  // ...
+  enableDynamicAPISwagger(app); // <- add this line in your main.ts file
+
+  await app.listen(3000);
+}
+```
+
+The `enableDynamicAPISwagger` function will automatically build the swagger documentation.
+<br>This method can be called with optional parameters to specify more documentation options.
+<br>*See <strong>nestjs</strong> <a href="https://docs.nestjs.com/openapi/introduction#document-options" target="_blank">documentation</a> for more details.*
+
+**Usage**
+
+- Add the `@ApiProperty` | `@ApiPropertyOptional` decorators to your class properties to have a better swagger documentation.
+<br>Let's add an optional company field to the `User` class.
+
+```typescript
+// src/users/user.ts
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
+@Schema({ collection: 'users' })
+export class User extends BaseEntity {
+  @ApiProperty() // <- add this line
+  @Prop({ type: String, required: true })
+  name: string;
+  
+  @ApiProperty() // <- add this line
+  @Prop({ type: String, required: true })
+  email: string;
+
+  @ApiPropertyOptional() // <- add this line
+  @Prop({ type: String })
+  company?: string;
+}
+```
+
+- Go to the swagger API path (default to `/dynamic-api`) and you will see the auto generated API
+
+![User API](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/images/dynamic-api-user-full.Jpeg?raw=true "User API")
 
 #### Get many users
 ![Get many users](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/images/dynamic-api-get-many.Jpeg?raw=true "Get many users")
@@ -38,4 +89,11 @@
 #### Generated Schemas
 ![Generated Schemas](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/images/dynamic-api-user-schemas.Jpeg?raw=true "Generated Schemas")
 
-[back to README](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md)
+___
+
+[Back to README](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md)
+
+
+<br>
+<br>
+<br>
