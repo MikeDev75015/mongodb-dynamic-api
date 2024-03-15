@@ -34,8 +34,17 @@ import {
 } from './routes';
 import { DynamicApiGlobalStateService } from './services';
 
+/**
+ * DynamicApiModule is a module that provides dynamic API functionality.
+ * It includes methods for setting up the module at the root level and for individual features.
+ * It also includes a state service for managing global state.
+ */
 @Module({})
 export class DynamicApiModule {
+  /**
+   * The global state service for the DynamicApiModule.
+   * It is initialized with a default state.
+   */
   static readonly state = new DynamicApiGlobalStateService({
     connectionName: 'dynamic-api-connection',
     isGlobalCacheEnabled: true,
@@ -45,6 +54,13 @@ export class DynamicApiModule {
     cacheExcludedPaths: [],
   });
 
+  /**
+   * Sets up the DynamicApiModule at the root level.
+   * It requires a MongoDB URI and optionally accepts root options for configuring the module.
+   * @param {string} uri - The MongoDB URI.
+   * @param {DynamicApiForRootOptions} options - The root options for configuring the module.
+   * @returns {DynamicModule} - The configured DynamicApiModule.
+   */
   static forRoot(
     uri: string,
     {
@@ -114,6 +130,12 @@ export class DynamicApiModule {
     };
   }
 
+  /**
+   * Sets up the DynamicApiModule for a specific feature.
+   * It requires an entity and optionally accepts feature options for configuring the module.
+   * @param {DynamicApiForFeatureOptions<Entity>} options - The feature options for configuring the module.
+   * @returns {Promise<DynamicModule>} - A promise that resolves with the configured DynamicApiModule.
+   */
   static forFeature<Entity extends BaseEntity>({
     entity,
     controllerOptions,
@@ -240,6 +262,11 @@ export class DynamicApiModule {
     });
   }
 
+  /**
+   * Sets default routes if none are configured.
+   * @param {DynamicAPIRouteConfig<Entity>[]} routes - The routes to configure.
+   * @returns {DynamicAPIRouteConfig<Entity>[]} - The configured routes.
+   */
   private static setDefaultRoutesIfNotConfigured<Entity extends BaseEntity>(
     routes: DynamicAPIRouteConfig<Entity>[]): DynamicAPIRouteConfig<Entity>[] {
     if (!routes.length) {
