@@ -66,11 +66,12 @@ npm install --save mongodb-dynamic-api
 In summary, DynamicApiModule is a flexible and configurable module using NestJS 10 that provides dynamic API functionality.
 <br>It must be set up at the root level with global settings and then configured for individual features.
 <br>It has several optional features such as
-Swagger UI,
-Authentication (JWT),
-Authorization (Casl),
-Validation (Class Validator)
-and Caching (cache-manager).
+[Swagger UI](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/swagger-ui.md),
+[Versioning](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/versioning.md),
+[Validation](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/validation.md),
+[Caching](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/caching.md),
+[Authentication](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/authentication.md) and
+[Authorization](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/authorization.md).
 
 </p>
 
@@ -191,9 +192,9 @@ export class AppModule {}
 
 ___
 
-Go further with optional features like **Swagger UI**, **Validation**, **Caching**, **Authentication** and **Authorization**.
-
+Go further with optional features like:
 - **[Swagger UI](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/swagger-ui.md)**
+- **[Versioning](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/versioning.md)**
 - **[Validation](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/validation.md)** with **Class Validator**
 - **[Caching](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/caching.md)** with **cache-manager**
 - **[Authentication](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/authentication.md)** with **JWT**
