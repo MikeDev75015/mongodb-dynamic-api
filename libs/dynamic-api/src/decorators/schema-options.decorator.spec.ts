@@ -10,7 +10,7 @@ describe('DynamicAPISchema', () => {
   beforeEach(() => {
     options = {
       indexes: [{ fields: { name: 1 }, options: { unique: true } }],
-      hooks: [{ type: 'save', method: 'post', callback: () => true }],
+      hooks: [{ type: 'CreateOne', method: 'post', callback: () => true }],
     };
 
     entity = buildDynamicApiModuleOptionsMock({}, options).entity;

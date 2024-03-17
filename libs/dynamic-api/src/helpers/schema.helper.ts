@@ -2,13 +2,13 @@ import { Type } from '@nestjs/common';
 import { SchemaFactory } from '@nestjs/mongoose';
 import { Schema } from 'mongoose';
 import { DYNAMIC_API_SCHEMA_OPTIONS_METADATA } from '../decorators';
-import { DynamicAPISchemaOptionsInterface } from '../interfaces';
+import { DynamicAPISchemaOptionsInterface, queryByRouteTypeMap } from '../interfaces';
 
 /**
  * buildSchemaFromEntity is a helper function that takes an entity class and returns a Mongoose schema for that entity.
  * It uses the DynamicAPISchemaOptions metadata attached to the entity class to configure the schema.
- * @param {Type<Entity>} entity - The entity class to build the schema from.
- * @returns {Schema<Entity>} - The built Mongoose schema.
+ * @param {Type} entity - The entity class to build the schema from.
+ * @returns {Schema} - The built Mongoose schema.
  */
 function buildSchemaFromEntity<Entity>(
   entity: Type<Entity>,
@@ -19,7 +19,9 @@ function buildSchemaFromEntity<Entity>(
   ) as DynamicAPISchemaOptionsInterface ?? {};
 
   const schema = SchemaFactory.createForClass(entity);
-  schema.set('timestamps', true);
+  if (Object.getOwnPropertyNames(schema.paths).includes('createdAt')) {
+    schema.set('timestamps', true);
+  }
 
   if (indexes) {
     indexes.forEach(({ fields, options }) => {
@@ -28,10 +30,14 @@ function buildSchemaFromEntity<Entity>(
   }
 
   if (hooks?.length) {
+    const isSoftDeletable = Object.getOwnPropertyNames(schema.paths).includes('deletedAt');
+
     hooks.forEach(({ type, method, callback, options }) => {
+      const { query, softDeletableQuery } = queryByRouteTypeMap.get(type);
+
       // @ts-ignore
       schema[method](
-        type,
+        isSoftDeletable && softDeletableQuery ? softDeletableQuery : query,
         { document: true, query: true, ...options },
         callback,
       );
