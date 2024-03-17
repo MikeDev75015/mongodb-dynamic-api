@@ -1,8 +1,8 @@
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { Public } from '../../decorators';
-import { DecoratorBuilder } from '../../interfaces';
+import { DynamicApiDecoratorBuilder } from '../../interfaces';
 
-class AuthDecoratorsBuilder implements DecoratorBuilder<any> {
+class AuthDecoratorsBuilder implements DynamicApiDecoratorBuilder<any> {
   constructor(
     private readonly protectRegister: boolean | undefined,
   ) {}

@@ -1,5 +1,5 @@
 import { DynamicModule, Module, Type, ValidationPipeOptions } from '@nestjs/common';
-import { ControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { createCreateManyController, createCreateManyServiceProvider } from './create-many.helper';
 
@@ -8,7 +8,7 @@ export class CreateManyModule {
   static async forFeature<Entity extends BaseEntity>(
     databaseModule: DynamicModule,
     entity: Type<Entity>,
-    controllerOptions: ControllerOptions<Entity>,
+    controllerOptions: DynamicApiControllerOptions<Entity>,
     routeConfig: DynamicAPIRouteConfig<Entity>,
     version?: string,
     validationPipeOptions?: ValidationPipeOptions,

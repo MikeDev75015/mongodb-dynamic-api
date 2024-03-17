@@ -4,7 +4,7 @@ import { CheckPolicies } from '../../decorators';
 import { EntityParam } from '../../dtos';
 import { addVersionSuffix, pascalCase, RouteDecoratorsHelper } from '../../helpers';
 import { getPredicateFromControllerAbilityPredicates } from '../../helpers/controller-ability-predicates.helper';
-import { AppAbility, ControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { AppAbility, DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { CreatePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DuplicateOneController, DuplicateOneControllerConstructor } from './duplicate-one-controller.interface';
@@ -17,7 +17,7 @@ function DuplicateOneControllerMixin<Entity extends BaseEntity>(
     apiTag,
     isPublic: isPublicController,
     abilityPredicates: controllerAbilityPredicates,
-  }: ControllerOptions<Entity>,
+  }: DynamicApiControllerOptions<Entity>,
   {
     type: routeType,
     description,

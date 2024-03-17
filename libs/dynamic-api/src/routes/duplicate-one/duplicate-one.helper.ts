@@ -11,7 +11,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { addVersionSuffix } from '../../helpers';
-import { ControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseDuplicateOneService } from './base-duplicate-one.service';
 import { DuplicateOneControllerConstructor } from './duplicate-one-controller.interface';
@@ -53,7 +53,7 @@ function createDuplicateOneServiceProvider<Entity extends BaseEntity>(
 
 function createDuplicateOneController<Entity extends BaseEntity>(
   entity: Type<Entity>,
-  controllerOptions: ControllerOptions<Entity>,
+  controllerOptions: DynamicApiControllerOptions<Entity>,
   routeConfig: DynamicAPIRouteConfig<Entity>,
   version?: string,
   validationPipeOptions?: ValidationPipeOptions,

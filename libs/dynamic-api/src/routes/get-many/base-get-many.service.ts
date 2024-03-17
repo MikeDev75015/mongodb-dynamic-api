@@ -14,8 +14,8 @@ export abstract class BaseGetManyService<Entity extends BaseEntity>
   async getMany(query?: object): Promise<Entity[]> {
     const documents = await this.model
       .find({
-        ...(query ?? {}),
         ...(this.isSoftDeletable ? { isDeleted: false } : {}),
+        ...(query ?? {}),
       })
       .lean()
       .exec();

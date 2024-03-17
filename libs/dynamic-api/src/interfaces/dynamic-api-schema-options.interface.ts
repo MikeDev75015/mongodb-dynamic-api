@@ -15,6 +15,10 @@ type SchemaHook = {
   options?: { document?: boolean; query?: boolean };
 };
 
+/**
+ * DynamicAPISchemaOptionsInterface is an interface that defines the shape of the options
+ * that can be passed to the DynamicAPISchemaOptions decorator.
+ */
 interface DynamicAPISchemaOptionsInterface {
   indexes?: {
     fields: IndexDefinition;
