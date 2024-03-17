@@ -4,8 +4,8 @@ import { CheckPolicies } from '../../decorators';
 import { EntityQuery } from '../../dtos';
 import { addVersionSuffix, pascalCase, RouteDecoratorsHelper } from '../../helpers';
 import { getPredicateFromControllerAbilityPredicates } from '../../helpers/controller-ability-predicates.helper';
-import { AppAbility, ControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
-import { CreatePoliciesGuardMixin } from '../../mixins';
+import { AppAbility, DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { CreatePoliciesGuardMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { GetManyController, GetManyControllerConstructor } from './get-many-controller.interface';
 import { GetManyService } from './get-many-service.interface';
@@ -17,7 +17,7 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
     apiTag,
     isPublic: isPublicController,
     abilityPredicates: controllerAbilityPredicates,
-  }: ControllerOptions<Entity>,
+  }: DynamicApiControllerOptions<Entity>,
   {
     type: routeType,
     description,
@@ -50,7 +50,9 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
     });
   }
 
-  class RoutePresenter extends (CustomPresenter ?? entity) {}
+  class RoutePresenter extends (
+    CustomPresenter ?? EntityPresenterMixin(entity)
+  ) {}
 
   if (!CustomPresenter) {
     Object.defineProperty(RoutePresenter, 'name', {

@@ -13,7 +13,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { addVersionSuffix } from '../../helpers';
-import { ControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseGetManyService } from './base-get-many.service';
 import { GetManyControllerConstructor } from './get-many-controller.interface';
@@ -55,7 +55,7 @@ function createGetManyServiceProvider<Entity extends BaseEntity>(
 
 function createGetManyController<Entity extends BaseEntity>(
   entity: Type<Entity>,
-  controllerOptions: ControllerOptions<Entity>,
+  controllerOptions: DynamicApiControllerOptions<Entity>,
   routeConfig: DynamicAPIRouteConfig<Entity>,
   version?: string,
   validationPipeOptions?: ValidationPipeOptions,

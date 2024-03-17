@@ -1,9 +1,9 @@
 import { applyDecorators } from '@nestjs/common';
-import { DecoratorBuilder } from '../interfaces';
+import { DynamicApiDecoratorBuilder } from '../interfaces';
 import { BaseEntity } from '../models';
 
 function RouteDecoratorsHelper<Entity extends BaseEntity>(
-  routeDecorators: DecoratorBuilder<Entity>,
+  routeDecorators: DynamicApiDecoratorBuilder<Entity>,
 ) {
   return applyDecorators(...routeDecorators.build());
 }

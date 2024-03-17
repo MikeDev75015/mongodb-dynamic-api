@@ -6,7 +6,7 @@ import { RouteDecoratorsBuilder } from '../../builders';
 import { CheckPolicies } from '../../decorators';
 import { addVersionSuffix, pascalCase, RouteDecoratorsHelper } from '../../helpers';
 import { getPredicateFromControllerAbilityPredicates } from '../../helpers/controller-ability-predicates.helper';
-import { AppAbility, ControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { AppAbility, DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { CreatePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { CreateManyController, CreateManyControllerConstructor } from './create-many-controller.interface';
@@ -19,7 +19,7 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
     apiTag,
     isPublic: isPublicController,
     abilityPredicates: controllerAbilityPredicates,
-  }: ControllerOptions<Entity>,
+  }: DynamicApiControllerOptions<Entity>,
   {
     type: routeType,
     description,

@@ -3,7 +3,7 @@ import { RouteDecoratorsBuilder } from '../../builders';
 import { CheckPolicies } from '../../decorators';
 import { addVersionSuffix, pascalCase, RouteDecoratorsHelper } from '../../helpers';
 import { getPredicateFromControllerAbilityPredicates } from '../../helpers/controller-ability-predicates.helper';
-import { AppAbility, ControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { AppAbility, DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { CreatePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { CreateOneController, CreateOneControllerConstructor } from './create-one-controller.interface';
@@ -16,7 +16,7 @@ function CreateOneControllerMixin<Entity extends BaseEntity>(
     apiTag,
     isPublic: isPublicController,
     abilityPredicates: controllerAbilityPredicates,
-  }: ControllerOptions<Entity>,
+  }: DynamicApiControllerOptions<Entity>,
   {
     type: routeType,
     description,
@@ -38,7 +38,9 @@ function CreateOneControllerMixin<Entity extends BaseEntity>(
     isPublic = false;
   }
 
-  class RouteBody extends (CustomBody ?? EntityBodyMixin(entity)) {}
+  class RouteBody extends (
+    CustomBody ?? EntityBodyMixin(entity)
+  ) {}
 
   if (!CustomBody) {
     Object.defineProperty(RouteBody, 'name', {
@@ -47,7 +49,9 @@ function CreateOneControllerMixin<Entity extends BaseEntity>(
     });
   }
 
-  class RoutePresenter extends (CustomPresenter ?? EntityPresenterMixin(entity)) {}
+  class RoutePresenter extends (
+    CustomPresenter ?? EntityPresenterMixin(entity)
+  ) {}
 
   if (!CustomPresenter) {
     Object.defineProperty(RoutePresenter, 'name', {
@@ -82,11 +86,11 @@ function CreateOneControllerMixin<Entity extends BaseEntity>(
     abilityPredicate,
   ) {}
 
-  class BaseCreateOneController implements CreateOneController<Entity>
-  {
+  class BaseCreateOneController implements CreateOneController<Entity> {
     protected readonly entity = entity;
 
-    constructor(protected readonly service: CreateOneService<Entity>) {}
+    constructor(protected readonly service: CreateOneService<Entity>) {
+    }
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(CreateOnePoliciesGuard)

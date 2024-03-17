@@ -3,10 +3,10 @@ import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse } from '@ne
 import { keys, lowerCase, lowerFirst, upperFirst } from 'lodash';
 import { Public } from '../../decorators';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { DecoratorBuilder, RouteType } from '../../interfaces';
+import { DynamicApiDecoratorBuilder, RouteType } from '../../interfaces';
 import { BaseEntity } from '../../models';
 
-class RouteDecoratorsBuilder<Entity extends BaseEntity> implements DecoratorBuilder<Entity> {
+class RouteDecoratorsBuilder<Entity extends BaseEntity> implements DynamicApiDecoratorBuilder<Entity> {
   private readonly responseRouteTypeIsArray: RouteType[] = [
     'GetMany',
     'CreateMany',

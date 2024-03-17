@@ -3,7 +3,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Exclude } from 'class-transformer';
 import { ObjectId } from 'mongoose';
 
-export class BaseEntity {
+export abstract class BaseEntity {
   @Exclude()
   _id: ObjectId;
 

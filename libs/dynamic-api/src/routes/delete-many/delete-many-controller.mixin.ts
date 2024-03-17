@@ -3,7 +3,7 @@ import { RouteDecoratorsBuilder } from '../../builders';
 import { CheckPolicies } from '../../decorators';
 import { addVersionSuffix, pascalCase, RouteDecoratorsHelper } from '../../helpers';
 import { getPredicateFromControllerAbilityPredicates } from '../../helpers/controller-ability-predicates.helper';
-import { AppAbility, ControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { AppAbility, DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { CreatePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DeleteManyController, DeleteManyControllerConstructor } from './delete-many-controller.interface';
@@ -17,7 +17,7 @@ function DeleteManyControllerMixin<Entity extends BaseEntity>(
     apiTag,
     isPublic: isPublicController,
     abilityPredicates: controllerAbilityPredicates,
-  }: ControllerOptions<Entity>,
+  }: DynamicApiControllerOptions<Entity>,
   {
     type: routeType,
     description,
