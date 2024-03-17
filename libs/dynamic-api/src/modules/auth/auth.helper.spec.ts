@@ -7,7 +7,7 @@ import {
   createLocalStrategyProvider,
   localStrategyProviderName,
 } from './auth.helper';
-import { AuthAdditionalFields } from './interfaces';
+import { DynamicApiRegisterOptions } from './interfaces';
 
 describe('AuthHelper', () => {
   class UserEntity extends BaseEntity {
@@ -20,9 +20,10 @@ describe('AuthHelper', () => {
 
   const loginField = 'login';
   const passwordField = 'pass';
-  const additionalFields: AuthAdditionalFields<UserEntity> = {
-    toRegister: ['nickname'],
-    toRequest: ['nickname'],
+  const additionalRequestFields: (keyof UserEntity)[] = ['nickname'];
+  const registerOptions: DynamicApiRegisterOptions<UserEntity> = {
+    additionalFields: ['nickname'],
+    protected: false,
   };
 
   describe('createLocalStrategyProvider', () => {
@@ -37,7 +38,7 @@ describe('AuthHelper', () => {
   describe('createAuthServiceProvider', () => {
     it('should return a provider', () => {
       expect(
-        createAuthServiceProvider(UserEntity, loginField, passwordField, additionalFields),
+        createAuthServiceProvider(UserEntity, loginField, passwordField, additionalRequestFields),
       ).toEqual({
         provide: authServiceProviderName,
         useClass: expect.any(Function),
@@ -51,9 +52,8 @@ describe('AuthHelper', () => {
         UserEntity,
         loginField,
         passwordField,
-        additionalFields,
-        false,
-        undefined,
+        additionalRequestFields,
+        registerOptions,
       );
 
       expect(controller).toEqual(expect.any(Function));

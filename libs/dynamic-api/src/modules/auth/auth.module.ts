@@ -7,7 +7,7 @@ import { buildSchemaFromEntity } from '../../helpers';
 import { BaseEntity } from '../../models';
 import { BcryptService } from '../../services';
 import { createAuthController, createAuthServiceProvider, createLocalStrategyProvider } from './auth.helper';
-import { AuthOptions } from './interfaces';
+import { DynamicApiAuthOptions } from './interfaces';
 import { JwtStrategy } from './strategies';
 
 @Module({})
@@ -18,23 +18,26 @@ export class AuthModule {
         entity: userEntity,
         loginField,
         passwordField,
-        additionalFields,
+        requestAdditionalFields,
       },
       jwt: { secret, expiresIn },
-      protectRegister,
-      registerAbilityPredicate,
-    }: AuthOptions<Entity>,
+      register,
+    }: DynamicApiAuthOptions<Entity>,
     extraImports: any[] = [],
   ) {
     const AuthController = createAuthController(
       userEntity,
       loginField,
       passwordField,
-      additionalFields,
-      protectRegister,
-      registerAbilityPredicate,
+      requestAdditionalFields,
+      register,
     );
-    const AuthServiceProvider = createAuthServiceProvider(userEntity, loginField, passwordField, additionalFields);
+    const AuthServiceProvider = createAuthServiceProvider(
+      userEntity,
+      loginField,
+      passwordField,
+      requestAdditionalFields,
+    );
     const LocalStrategyProvider = createLocalStrategyProvider(loginField, passwordField);
 
     return {

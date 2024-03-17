@@ -111,17 +111,16 @@ export class DynamicApiModule {
                 entity: useAuth.user.entity,
                 loginField: useAuth.user.loginField ?? 'email',
                 passwordField: useAuth.user.passwordField ?? 'password',
-                additionalFields: useAuth.user.additionalFields ?? {
-                  toRegister: [],
-                  toRequest: [],
-                },
+                requestAdditionalFields: useAuth.user.requestAdditionalFields ?? [],
               },
               jwt: {
                 secret: useAuth.jwt?.secret ?? 'dynamic-api-jwt-secret',
                 expiresIn: useAuth.jwt?.expiresIn ?? '1d',
               },
-              protectRegister: useAuth.protectRegister ?? false,
-              registerAbilityPredicate: useAuth.registerAbilityPredicate,
+              register: useAuth.register ?? {
+                protected: false,
+                additionalFields: [],
+              },
             }),
           ] : []
         ),
@@ -133,7 +132,7 @@ export class DynamicApiModule {
   /**
    * Sets up the DynamicApiModule for a specific feature.
    * It requires an entity and optionally accepts feature options for configuring the module.
-   * @param {DynamicApiForFeatureOptions<Entity>} options - The feature options for configuring the module.
+   * @param {DynamicApiForFeatureOptions} options - The feature options for configuring the module.
    * @returns {Promise<DynamicModule>} - A promise that resolves with the configured DynamicApiModule.
    */
   static forFeature<Entity extends BaseEntity>({
@@ -264,8 +263,8 @@ export class DynamicApiModule {
 
   /**
    * Sets default routes if none are configured.
-   * @param {DynamicAPIRouteConfig<Entity>[]} routes - The routes to configure.
-   * @returns {DynamicAPIRouteConfig<Entity>[]} - The configured routes.
+   * @param {DynamicAPIRouteConfig[]} routes - The routes to configure.
+   * @returns {DynamicAPIRouteConfig[]} - The configured routes.
    */
   private static setDefaultRoutesIfNotConfigured<Entity extends BaseEntity>(
     routes: DynamicAPIRouteConfig<Entity>[]): DynamicAPIRouteConfig<Entity>[] {
