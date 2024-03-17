@@ -79,13 +79,14 @@ describe('DynamicApiModule', () => {
   describe('forFeature', () => {
     let defaultOptions: ReturnType<typeof buildDynamicApiModuleOptionsMock>;
     const fakeDatabaseModule = { module: 'fake-database-module' };
-    const fakeSchema = { index: jest.fn(), pre: jest.fn(), set: jest.fn() };
+    let fakeSchema;
 
     beforeEach(() => {
       defaultOptions = buildDynamicApiModuleOptionsMock();
+      fakeSchema = defaultOptions.fakeSchema;
       jest
       .spyOn(SchemaFactory, 'createForClass')
-      .mockReturnValue(fakeSchema as any);
+      .mockReturnValue(defaultOptions.fakeSchema);
       jest
       .spyOn(MongooseModule, 'forFeature')
       .mockReturnValue(fakeDatabaseModule as any);
@@ -124,12 +125,12 @@ describe('DynamicApiModule', () => {
 
       DynamicApiModule.forFeature(options);
 
-      expect(fakeSchema.index).toHaveBeenNthCalledWith(
+      expect(options.fakeSchema.index).toHaveBeenNthCalledWith(
         1,
         { name: 1 },
         { unique: true },
       );
-      expect(fakeSchema.index).toHaveBeenNthCalledWith(
+      expect(options.fakeSchema.index).toHaveBeenNthCalledWith(
         2,
         { age: -1 },
         undefined,
@@ -137,14 +138,14 @@ describe('DynamicApiModule', () => {
     });
 
     it('should add schema hooks', () => {
-      const hooks = [{ type: 'save', method: 'pre', callback: jest.fn() }];
+      const hooks = [{ type: 'CreateOne', method: 'pre', callback: jest.fn() }];
       const options = buildDynamicApiModuleOptionsMock({}, {
         hooks,
       } as DynamicAPISchemaOptionsInterface);
 
       DynamicApiModule.forFeature(options);
 
-      expect(fakeSchema.pre).toHaveBeenNthCalledWith(
+      expect(options.fakeSchema.pre).toHaveBeenNthCalledWith(
         1,
         'save',
         { document: true, query: true },
