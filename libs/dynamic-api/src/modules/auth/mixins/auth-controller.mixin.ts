@@ -1,23 +1,25 @@
 import { Body, Get, HttpCode, HttpStatus, Post, Request, Type, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiProperty, IntersectionType, PickType } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiProperty, IntersectionType, PartialType, PickType } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
 import { AuthDecoratorsBuilder } from '../../../builders';
 import { CheckPolicies, Public } from '../../../decorators';
 import { RouteDecoratorsHelper } from '../../../helpers';
-import { AppAbility, DynamicApiAuthRegisterCaslAbilityPredicate } from '../../../interfaces';
+import { AppAbility } from '../../../interfaces';
 import { BaseEntity } from '../../../models';
 import { JwtAuthGuard, LocalAuthGuard } from '../guards';
-import { AuthController, AuthControllerConstructor, AuthService } from '../interfaces';
+import { AuthController, AuthControllerConstructor, AuthService, DynamicApiRegisterOptions } from '../interfaces';
 import { AuthRegisterPoliciesGuardMixin, registerRouteType } from './auth-register-policies-guard.mixin';
 
 function AuthControllerMixin<Entity extends BaseEntity>(
   userEntity: Type<Entity>,
   loginField: keyof Entity,
   passwordField: keyof Entity,
-  additionalRegisterFields: (keyof Entity)[] = [],
   additionalRequestFields: (keyof Entity)[] = [],
-  protectRegister: boolean = false,
-  abilityPredicate?: DynamicApiAuthRegisterCaslAbilityPredicate,
+  {
+    additionalFields: additionalRegisterFields,
+    protected: registerProtected,
+    abilityPredicate: registerAbilityPredicate,
+  }: DynamicApiRegisterOptions<Entity> = {},
 ): AuthControllerConstructor<Entity> {
   class AuthBodyPasswordFieldDto {
     @ApiProperty()
@@ -33,10 +35,33 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     AuthBodyPasswordFieldDto,
   ) {}
 
+  const additionalMandatoryFields: (keyof Entity)[] = [];
+  const additionalOptionalFields: (keyof Entity)[] = [];
+
+  additionalRegisterFields.forEach((field) => {
+    if (typeof field === 'string') {
+      additionalOptionalFields.push(field);
+      return;
+    }
+
+    const { required, name } = field as { name: keyof Entity, required?: boolean };
+
+    if (required) {
+      additionalMandatoryFields.push(name);
+    } else {
+      additionalOptionalFields.push(name);
+    }
+  });
+
   // @ts-ignore
   class AuthRegisterDto extends IntersectionType(
-    PickType(userEntity, [loginField, ...additionalRegisterFields]),
-    AuthBodyPasswordFieldDto,
+    PickType(userEntity, [loginField, ...additionalMandatoryFields]),
+    additionalOptionalFields?.length
+      ? IntersectionType(
+        AuthBodyPasswordFieldDto,
+        PartialType(PickType(userEntity, additionalOptionalFields)),
+      )
+      : AuthBodyPasswordFieldDto,
   ) {}
 
   class AuthPresenter {
@@ -47,9 +72,9 @@ function AuthControllerMixin<Entity extends BaseEntity>(
   // @ts-ignore
   class AuthUserPresenter extends PickType(userEntity, ['id', loginField, ...additionalRequestFields]) {}
 
-  const authDecorators = new AuthDecoratorsBuilder(protectRegister);
+  const authDecorators = new AuthDecoratorsBuilder(registerProtected);
 
-  class AuthRegisterPoliciesGuard extends AuthRegisterPoliciesGuardMixin(userEntity, abilityPredicate) {}
+  class AuthRegisterPoliciesGuard extends AuthRegisterPoliciesGuardMixin(userEntity, registerAbilityPredicate) {}
 
   class BaseAuthController implements AuthController<Entity> {
     constructor(protected readonly service: AuthService<Entity>) {

@@ -1,25 +1,25 @@
 import { Type } from '@nestjs/common';
-import { DynamicApiAuthRegisterCaslAbilityPredicate } from '../../../interfaces';
+import { DynamicApiRegisterAbilityPredicate } from '../../../interfaces';
 import { BaseEntity } from '../../../models';
 
-type AuthAdditionalFields<Entity extends BaseEntity> = {
-  toRegister?: (keyof Entity)[];
-  toRequest?: (keyof Entity)[];
+type DynamicApiRegisterOptions<Entity extends BaseEntity = any> = {
+  protected?: boolean;
+  abilityPredicate?: DynamicApiRegisterAbilityPredicate;
+  additionalFields?: (keyof Entity | { name: keyof Entity; required?: boolean })[];
 };
 
-type AuthOptions<Entity extends BaseEntity = any> = {
+type DynamicApiAuthOptions<Entity extends BaseEntity = any> = {
   user: {
     entity: Type<Entity>;
     loginField?: keyof Entity;
     passwordField?: keyof Entity;
-    additionalFields?: AuthAdditionalFields<Entity>;
+    requestAdditionalFields?: (keyof Entity)[];
   };
+  register?: DynamicApiRegisterOptions;
   jwt?: {
     secret: string;
     expiresIn?: string | number;
   };
-  protectRegister?: boolean;
-  registerAbilityPredicate?: DynamicApiAuthRegisterCaslAbilityPredicate;
 };
 
-export type { AuthOptions, AuthAdditionalFields };
+export type { DynamicApiAuthOptions, DynamicApiRegisterOptions };

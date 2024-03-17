@@ -6,10 +6,10 @@ import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { Strategy } from 'passport-local';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { DynamicApiAuthRegisterCaslAbilityPredicate, DynamicAPIServiceProvider } from '../../interfaces';
+import { DynamicAPIServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BcryptService } from '../../services';
-import { AuthAdditionalFields, AuthControllerConstructor, AuthService } from './interfaces';
+import { AuthControllerConstructor, AuthService, DynamicApiRegisterOptions } from './interfaces';
 import { AuthControllerMixin } from './mixins';
 import { BaseAuthService } from './services';
 
@@ -51,10 +51,10 @@ function createAuthServiceProvider<Entity extends BaseEntity>(
   userEntity: Type<Entity>,
   loginField: keyof Entity,
   passwordField: keyof Entity,
-  additionalFields: AuthAdditionalFields<Entity> | undefined,
+  additionalFields: (keyof Entity)[] | undefined,
 ): DynamicAPIServiceProvider {
   class AuthService extends BaseAuthService<Entity> {
-    protected additionalRequestFields = additionalFields?.toRequest ?? [];
+    protected additionalRequestFields = additionalFields ?? [];
 
     protected loginField = loginField;
 
@@ -83,9 +83,8 @@ function createAuthController<Entity extends BaseEntity>(
   userEntity: Type<Entity>,
   loginField: keyof Entity,
   passwordField: keyof Entity,
-  additionalFields: AuthAdditionalFields<Entity> | undefined,
-  protectRegister: boolean | undefined,
-  abilityPredicate: DynamicApiAuthRegisterCaslAbilityPredicate | undefined,
+  additionalRequestFields: (keyof Entity)[] | undefined,
+  registerOptions: DynamicApiRegisterOptions<Entity> | undefined,
 ): AuthControllerConstructor<Entity> {
   @Controller('auth')
   @ApiTags('Auth')
@@ -100,10 +99,8 @@ function createAuthController<Entity extends BaseEntity>(
     userEntity,
     loginField,
     passwordField,
-    additionalFields?.toRegister,
-    additionalFields?.toRequest,
-    protectRegister,
-    abilityPredicate,
+    additionalRequestFields,
+  registerOptions ?? {},
   ) {
     constructor(
       @Inject(authServiceProviderName)
