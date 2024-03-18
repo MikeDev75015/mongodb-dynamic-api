@@ -1,5 +1,22 @@
 Changelog
 
+## [2.0.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v1.4.3...v2.0.0) (2024-03-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* **schema-options:** bind event type to route type to improve understanding
+* **authentication:** rework options
+
+### schema-options
+
+* **schema-options:** bind event type to route type to improve understanding ([8a6a391](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/8a6a391c19a68697998ed6508d88ed63c1fbde7d))
+
+
+### authentication
+
+* **authentication:** rework options ([e833898](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/e833898903279e1e1e220b065724e013b1729029))
+
 ## [1.4.3](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v1.4.2...v1.4.3) (2024-03-15)
 
 ## [1.4.2](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v1.4.1...v1.4.2) (2024-03-15)
