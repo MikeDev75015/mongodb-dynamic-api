@@ -94,9 +94,9 @@ import { ArticlesModule } from './articles/articles.module';
         useAuth: {
           user: {
             entity: User,
-            additionalFields: {
-              toRegister: ['isAdmin'], // <- here you can set additional fields to display in the register body
-              toRequest: ['isAdmin', 'company'], // <- here you can set additional fields to the User object in the request
+            requestAdditionalFields: ['isAdmin', 'company'],
+            register: {
+              additionalFields: [{ name: 'isAdmin', required: true }],
             },
           },
         },
@@ -115,7 +115,7 @@ export class AppModule {}
 
 First, let's create an admin user with the `POST` method on the `/auth/register` public route.
 ```text
-POST /auth/register
+# POST /auth/register
 
 curl -X 'POST' \
   '<your-host>/auth/register' \
@@ -126,6 +126,10 @@ curl -X 'POST' \
   "isAdmin": true,
   "password": "admin"
 }'
+```
+```json
+# Server response
+{"accessToken":"<admin-jwt-token>"}
 ```
 
 Then, we are going to protect the `/auth/register` route by setting the `protectRegister` property to `true` and add a **register ability predicate** in the useAuth Object of the `DynamicApiModule.forRoot` method.
@@ -138,8 +142,11 @@ Then, we are going to protect the `/auth/register` route by setting the `protect
       {
         useAuth: {
           // ...,
-          protectRegister: true, // <- add this line
-          registerAbilityPredicate: (user: User) => user.isAdmin,
+          register: {
+            protected: true,
+            abilityPredicate: (user: User) => user.isAdmin,
+            additionalFields: [{ name: 'isAdmin', required: true }],
+          },
         },
       },
     ),
@@ -147,7 +154,7 @@ Then, we are going to protect the `/auth/register` route by setting the `protect
 
 Ok, now let's create a non admin user with the `POST` method on the `/auth/register` route.
 ```text
-POST /auth/register
+# POST /auth/register
 
 curl -X 'POST' \
   '<your-host>/auth/register' \
@@ -167,7 +174,7 @@ Next, under toto's account (not admin), we will try to register a new user with 
 <br>The register ability predicate will return `false` and we will receive a `403 Forbidden` error.
 
 ```text
-POST /auth/register
+# POST /auth/register
 
 curl -X 'POST' \
   'http://localhost:5000/auth/register' \
