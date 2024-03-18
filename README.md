@@ -113,8 +113,13 @@ export class AppModule {}
 - Ok, now let's add our first content with just 2 files. It will be a simple `User` with a `name` and an `email` field.
 - We use the `@Schema` and `@Prop` decorators from the <a href="https://docs.nestjs.com/techniques/mongodb#model-injection" target="_blank">@nestjs/mongoose</a> package to define our MongoDB model.
 
-- You must extend the `BaseEntity` class from the `mongodb-dynamic-api` package **for all your collection models**.
-- Just create a new file `user.ts` and add the following code.
+- You must extend the `BaseEntity` | `SoftDeletableEntity` class from the `mongodb-dynamic-api` package **for all your collection models**.
+  **See more details [here](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/entities.md)**.
+
+- You can also add the `@DynamicAPISchemaOptions` decorator to pass schema options.
+**See more details [here](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/schema-options.md)**.
+
+Just create a new file `user.ts` and add the following code.
 
 ```typescript
 // src/users/user.ts
