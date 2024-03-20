@@ -14,11 +14,11 @@ type DynamicApiForFeatureOptionsMock = DynamicApiForFeatureOptions<any> & { fake
 
 function buildDynamicApiModuleOptionsMock(
   { entity, controllerOptions, routes }: Partial<DynamicApiForFeatureOptions<any>> = {},
-  { indexes, hooks }: Partial<DynamicAPISchemaOptionsInterface> = {},
+  { indexes, hooks, customInit }: Partial<DynamicAPISchemaOptionsInterface> = {},
   softDeletable = false,
 ): DynamicApiForFeatureOptionsMock {
   // @ts-ignore
-  @DynamicAPISchemaOptions({ indexes, hooks })
+  @DynamicAPISchemaOptions({ indexes, hooks, customInit })
   // @ts-ignore
   @Schema()
   class PersonEntity extends (

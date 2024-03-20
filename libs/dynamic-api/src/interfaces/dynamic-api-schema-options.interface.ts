@@ -1,4 +1,4 @@
-import { IndexDefinition, IndexOptions } from 'mongoose';
+import { IndexDefinition, IndexOptions, Schema } from 'mongoose';
 import { RouteType } from './dynamic-api-route-type.type';
 
 /**
@@ -62,6 +62,7 @@ interface DynamicAPISchemaOptionsInterface {
     options?: IndexOptions;
   }[];
   hooks?: SchemaHook[];
+  customInit?: (schema: Schema) => void;
 }
 
 export type { SchemaHook, DynamicAPISchemaOptionsInterface };
