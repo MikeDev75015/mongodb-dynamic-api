@@ -241,7 +241,7 @@ import {
 } from 'mongodb-dynamic-api';
 
 @DynamicAPISchemaOptions({
-  indexes: [{ fields: { email: 1 }, options: { unique: true } }],
+  indexes: [{ fields: { email: 1, deletedAt: -1 }, options: { unique: true } }],
 })
 @Schema({ collection: 'users' })
 export class User extends SoftDeletableEntity {

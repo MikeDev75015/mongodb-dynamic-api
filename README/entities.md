@@ -73,7 +73,7 @@ database when a delete operation is performed.
 the record from queries.
 
 *By extending the `SoftDeletableEntity` class,
-your content entity class inherits these properties and the soft deletion behavior associated with them.
+your content entity class inherits these properties (along with those of `BaseEntity`).
 This allows the entity to be soft deleted,
 with the deletion status and time of deletion tracked by the `isDeleted` and `deletedAt` properties.*
 

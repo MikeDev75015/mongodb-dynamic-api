@@ -11,9 +11,11 @@ ___
 # Schema Options
 `DynamicAPISchemaOptions(options: DynamicAPISchemaOptionsInterface): ClassDecorator`
 
-In summary, to add a hook to a Mongoose schema in this codebase, you would define a hook in the options passed to the DynamicAPISchemaOptions decorator on your entity class
+In summary, to add indexes, hooks, or custom initialization to your Mongoose schema,
+you must set it in the options passed to the DynamicAPISchemaOptions decorator
+added to your entity class.
 
-*The options object can include an **array of indexes** and an **array of hooks**.*
+*The options object can include an **array of indexes**, an **array of hooks** and a **customInit**.*
 
 ## Indexes
 
@@ -40,7 +42,7 @@ export class User extends BaseEntity {
 }
 ```
 
-In summary, the available options for an index are determined by the IndexOptions interface from [Mongoose](https://mongoosejs.com/docs/guide.html#indexes).
+In summary, the available options for an index are determined by the IndexOptions interface from [Mongoose Indexes](https://mongoosejs.com/docs/guide.html#indexes).
 
 ## Hooks
 
@@ -81,6 +83,33 @@ In summary, the available options for a hook are determined by the Mongoose Sche
 [Schema.prototype.pre()](https://mongoosejs.com/docs/api/schema.html#Schema.prototype.pre())
 or [Schema.prototype.post()](https://mongoosejs.com/docs/api/schema.html#Schema.prototype.post())
 for more details.
+
+## Custom Initialization
+
+The customInit is a function that will be executed when the schema is initialized.
+This function can be used to perform any custom initialization logic, such as adding your usual methods to the schema.
+
+For example, the following code adds a customInit function that will be executed when the schema is initialized:
+
+```typescript
+@DynamicAPISchemaOptions({
+  customInit: (schema) => {
+    schema.virtual('fullName').get(function () {
+      return this.name + ' ' + this.email;
+    });
+  },
+})
+@Schema({ collection: 'users' })
+export class User extends BaseEntity { // <- extends BaseEntity
+  @Prop({ type: String, required: true })
+  name: string;
+
+  @Prop({ type: String, required: true })
+  email: string;
+}
+```
+
+In summary, the customInit function is a function that takes a schema as an argument and can be used to add any schema methods. See [Mongoose Schema API](https://mongoosejs.com/docs/api/schema.html) for more details.
 
 ___
 

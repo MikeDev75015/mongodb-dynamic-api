@@ -132,7 +132,7 @@ curl -X 'POST' \
 {"accessToken":"<admin-jwt-token>"}
 ```
 
-Then, we are going to protect the `/auth/register` route by setting the `protectRegister` property to `true` and add a **register ability predicate** in the useAuth Object of the `DynamicApiModule.forRoot` method.
+Then, we are going to protect the `/auth/register` route by setting the `protected` property to `true` and add an **ability predicate** in the `register` property of the useAuth Object.
 ```typescript
 // src/app.module.ts
 @Module({
