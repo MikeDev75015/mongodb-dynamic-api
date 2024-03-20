@@ -1,5 +1,12 @@
 Changelog
 
+## [2.1.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.0.0...v2.1.0) (2024-03-20)
+
+
+### schema
+
+* **schema:** add the possibility to customize initialization ([7fd541b](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/7fd541b055bb0baa60409651a54d42244d8f3042))
+
 ## [2.0.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v1.4.3...v2.0.0) (2024-03-18)
 
 
