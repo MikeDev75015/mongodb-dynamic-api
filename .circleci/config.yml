@@ -64,6 +64,10 @@ commands:
       - store_artifacts:
           path: reports/sonar
           destination: reports/sonar
+      - persist_to_workspace:
+          root: .
+          paths:
+            - 'reports'
 
   git-config-local-user-command:
     description: "Configure the default identity for the git account"
@@ -230,7 +234,7 @@ jobs:
       - *notify-fail
       - *notify-success
 
-  sonarcloud-job:
+  test-for-sonarcloud-job:
     docker:
       - image: cimg/node:20.5.0
     resource_class: medium
@@ -238,6 +242,18 @@ jobs:
       - checkout
       - *restore-cache
       - unit-tests-not-parallelized-command
+      - *notify-fail
+      - *notify-success
+
+  sonarcloud-job:
+    docker:
+      - image: cimg/node:20.5.0
+    resource_class: medium
+    steps:
+      - checkout
+      - *restore-cache
+      - attach_workspace:
+          at: .
       - sonarcloud/scan
       - *notify-fail
       - *notify-success
@@ -378,9 +394,17 @@ workflows:
           filters:
             branches:
               only: develop
-      - sonarcloud-job:
+      - test-for-sonarcloud-job:
           requires:
             - dependencies-job
+          context:
+            - SLACK
+          filters:
+            branches:
+              only: develop
+      - sonarcloud-job:
+          requires:
+            - test-for-sonarcloud-job
           context:
             - SONARCLOUD
             - SLACK
