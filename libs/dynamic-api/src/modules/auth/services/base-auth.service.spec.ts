@@ -56,8 +56,8 @@ describe('BaseAuthService', () => {
       sign: jest.fn(),
     } as unknown as JwtService;
     bcryptService = {
-      compare: jest.fn(),
-      hash: jest.fn(),
+      comparePassword: jest.fn(),
+      hashPassword: jest.fn(),
     } as unknown as BcryptService;
     service = new AuthService(model, jwtService, bcryptService);
   });
@@ -106,7 +106,7 @@ describe('BaseAuthService', () => {
           exec: jest.fn().mockResolvedValue({ pass: '****' }),
         }),
       } as unknown as any);
-      jest.spyOn(bcryptService, 'compare').mockResolvedValue(false);
+      jest.spyOn(bcryptService, 'comparePassword').mockResolvedValue(false);
 
       const result = await service['validateUser']('login', 'pass');
       expect(result).toBeNull();
@@ -118,7 +118,7 @@ describe('BaseAuthService', () => {
           exec: jest.fn().mockResolvedValue(fakeUser),
         }),
       } as unknown as any);
-      jest.spyOn(bcryptService, 'compare').mockResolvedValue(true);
+      jest.spyOn(bcryptService, 'comparePassword').mockResolvedValue(true);
 
       const result = await service['validateUser']('login', 'pass');
       expect(result).toEqual({ id: fakeUser._id, login: fakeUser.login });
@@ -131,7 +131,7 @@ describe('BaseAuthService', () => {
           exec: jest.fn().mockResolvedValue(fakeUser),
         }),
       } as unknown as any);
-      jest.spyOn(bcryptService, 'compare').mockResolvedValue(true);
+      jest.spyOn(bcryptService, 'comparePassword').mockResolvedValue(true);
 
       const result = await service['validateUser']('login', 'pass');
       expect(result).toEqual({ id: fakeUser._id, login: fakeUser.login, nickname: fakeUser.nickname });
@@ -150,7 +150,7 @@ describe('BaseAuthService', () => {
   describe('register', () => {
     it('should return token', async () => {
       const { _id, id, __v, createdAt, updatedAt, ...userToCreate } = fakeUser;
-      jest.spyOn(bcryptService, 'hash').mockResolvedValue(fakeHash);
+      jest.spyOn(bcryptService, 'hashPassword').mockResolvedValue(fakeHash);
       jest.spyOn(jwtService, 'sign').mockReturnValue(accessToken);
       const modelCreateSpy = jest.spyOn(model, 'create').mockResolvedValue(fakeUser as any);
       const modelFindOneSpy = jest.spyOn(model, 'findOne').mockReturnValue({
@@ -161,7 +161,7 @@ describe('BaseAuthService', () => {
       const result = await service['register'](userToCreate);
 
       expect(result).toEqual({ accessToken });
-      expect(bcryptService.hash).toHaveBeenCalledWith(userToCreate.pass);
+      expect(bcryptService.hashPassword).toHaveBeenCalledWith(userToCreate.pass);
       expect(modelCreateSpy).toHaveBeenCalledWith({ ...userToCreate, pass: fakeHash });
       expect(modelFindOneSpy).toHaveBeenCalledWith({ _id: fakeUser._id });
     });

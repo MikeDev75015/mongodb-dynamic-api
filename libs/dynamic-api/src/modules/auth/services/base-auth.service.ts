@@ -28,7 +28,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     ) as Entity;
 
     // @ts-ignore
-    if (!user || !await this.bcryptService.compare(pass, user[this.passwordField])) {
+    if (!user || !await this.bcryptService.comparePassword(pass, user[this.passwordField])) {
       return null;
     }
 
@@ -72,7 +72,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
 
   protected async register(userToCreate: Partial<Entity>) {
     // @ts-ignore
-    const hashedPassword = await this.bcryptService.hash(userToCreate[this.passwordField]);
+    const hashedPassword = await this.bcryptService.hashPassword(userToCreate[this.passwordField]);
     const { _id } = await this.model.create({ ...userToCreate, [this.passwordField]: hashedPassword });
     const user = await this.getUserById(_id.toString());
 
@@ -100,7 +100,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
 
   protected async changePassword(userId: string, newPassword: string) {
     // @ts-ignore
-    const hashedPassword = await this.bcryptService.hash(newPassword);
+    const hashedPassword = await this.bcryptService.hashPassword(newPassword);
     // @ts-ignore
     const { _id } = await this.model.findOneAndUpdate(
       { _id: userId },
