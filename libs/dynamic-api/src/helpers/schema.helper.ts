@@ -13,12 +13,13 @@ import { DynamicAPISchemaOptionsInterface, queryByRouteTypeMap } from '../interf
 function buildSchemaFromEntity<Entity>(
   entity: Type<Entity>,
 ): Schema<Entity> {
-  const { indexes, hooks } = Reflect.getOwnMetadata(
+  const { indexes, hooks, customInit } = Reflect.getOwnMetadata(
     DYNAMIC_API_SCHEMA_OPTIONS_METADATA,
     entity,
   ) as DynamicAPISchemaOptionsInterface ?? {};
 
   const schema = SchemaFactory.createForClass(entity);
+
   if (Object.getOwnPropertyNames(schema.paths).includes('createdAt')) {
     schema.set('timestamps', true);
   }
@@ -43,6 +44,11 @@ function buildSchemaFromEntity<Entity>(
       );
     });
   }
+
+  if (customInit) {
+    customInit(schema);
+  }
+
   return schema;
 }
 
