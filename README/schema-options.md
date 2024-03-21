@@ -15,7 +15,7 @@ In summary, to add indexes, hooks, or custom initialization to your Mongoose sch
 you must set it in the options passed to the DynamicAPISchemaOptions decorator
 added to your entity class.
 
-*The options object can include an **array of indexes**, an **array of hooks** and a **customInit**.*
+*The options object can include an **array of indexes**, an **array of hooks** and a **customInit function**.*
 
 ## Indexes
 
