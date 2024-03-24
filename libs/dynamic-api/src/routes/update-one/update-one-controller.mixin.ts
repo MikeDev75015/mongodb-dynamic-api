@@ -2,7 +2,7 @@ import { Body, Param, Type, UseGuards } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { CheckPolicies } from '../../decorators';
 import { EntityParam } from '../../dtos';
-import { addVersionSuffix, pascalCase, RouteDecoratorsHelper } from '../../helpers';
+import { addVersionSuffix, getFormattedApiTag, RouteDecoratorsHelper } from '../../helpers';
 import { getPredicateFromControllerAbilityPredicates } from '../../helpers/controller-ability-predicates.helper';
 import { AppAbility, DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { CreatePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
@@ -27,7 +27,7 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
   }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): UpdateOneControllerConstructor<Entity> {
-  const displayedName = pascalCase(apiTag) ?? entity.name;
+  const displayedName = getFormattedApiTag(apiTag, entity.name);
   const {
     body: CustomBody,
     param: CustomParam,
@@ -43,38 +43,32 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
     isPublic = false;
   }
 
-  class RouteBody extends (
-    CustomBody ?? EntityBodyMixin(entity, true)
-  ) {}
-
-  if (!CustomBody) {
-    Object.defineProperty(RouteBody, 'name', {
-      value: `UpdateOne${displayedName}${addVersionSuffix(version)}Dto`,
-      writable: false,
-    });
-  }
-
   class RouteParam extends (
     CustomParam ?? EntityParam
   ) {}
 
-  if (!CustomParam) {
-    Object.defineProperty(RouteParam, 'name', {
-      value: `UpdateOne${displayedName}${addVersionSuffix(version)}Param`,
-      writable: false,
-    });
-  }
+  Object.defineProperty(RouteParam, 'name', {
+    value: CustomParam ? CustomParam.name : `UpdateOne${displayedName}${addVersionSuffix(version)}Param`,
+    writable: false,
+  });
+
+  class RouteBody extends (
+    CustomBody ?? EntityBodyMixin(entity, true)
+  ) {}
+
+  Object.defineProperty(RouteBody, 'name', {
+    value: CustomBody ? CustomBody.name : `UpdateOne${displayedName}${addVersionSuffix(version)}Dto`,
+    writable: false,
+  });
 
   class RoutePresenter extends (
     CustomPresenter ?? EntityPresenterMixin(entity)
   ) {}
 
-  if (!CustomPresenter) {
-    Object.defineProperty(RoutePresenter, 'name', {
-      value: `${displayedName}${addVersionSuffix(version)}Presenter`,
-      writable: false,
-    });
-  }
+  Object.defineProperty(RoutePresenter, 'name', {
+    value: CustomPresenter ? CustomPresenter.name : `${displayedName}${addVersionSuffix(version)}Presenter`,
+    writable: false,
+  });
 
   const routeDecoratorsBuilder = new RouteDecoratorsBuilder(
     'UpdateOne',
