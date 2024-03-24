@@ -1,7 +1,7 @@
 import { Query, Type, UseGuards } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { CheckPolicies } from '../../decorators';
-import { addVersionSuffix, pascalCase, RouteDecoratorsHelper } from '../../helpers';
+import { addVersionSuffix, getFormattedApiTag, RouteDecoratorsHelper } from '../../helpers';
 import { getPredicateFromControllerAbilityPredicates } from '../../helpers/controller-ability-predicates.helper';
 import { AppAbility, DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { CreatePoliciesGuardMixin } from '../../mixins';
@@ -27,7 +27,7 @@ function DeleteManyControllerMixin<Entity extends BaseEntity>(
   }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): DeleteManyControllerConstructor<Entity> {
-  const displayedName = pascalCase(apiTag) ?? entity.name;
+  const displayedName = getFormattedApiTag(apiTag, entity.name);
   const { presenter: CustomPresenter } = dTOs ?? {};
 
   let isPublic: boolean;
@@ -43,12 +43,10 @@ function DeleteManyControllerMixin<Entity extends BaseEntity>(
     CustomPresenter ?? DeleteManyPresenter
   ) {}
 
-  if (!CustomPresenter) {
-    Object.defineProperty(RoutePresenter, 'name', {
-      value: `DeleteMany${displayedName}${addVersionSuffix(version)}Presenter`,
-      writable: false,
-    });
-  }
+  Object.defineProperty(RoutePresenter, 'name', {
+    value: CustomPresenter ? CustomPresenter.name : `DeleteMany${displayedName}${addVersionSuffix(version)}Presenter`,
+    writable: false,
+  });
 
   const routeDecoratorsBuilder = new RouteDecoratorsBuilder(
     'DeleteMany',

@@ -1,7 +1,7 @@
 import { Body, Query, Type, UseGuards } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { CheckPolicies } from '../../decorators';
-import { addVersionSuffix, pascalCase, RouteDecoratorsHelper } from '../../helpers';
+import { addVersionSuffix, getFormattedApiTag, RouteDecoratorsHelper } from '../../helpers';
 import { getPredicateFromControllerAbilityPredicates } from '../../helpers/controller-ability-predicates.helper';
 import { AppAbility, DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { CreatePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
@@ -26,7 +26,7 @@ function DuplicateManyControllerMixin<Entity extends BaseEntity>(
   }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): DuplicateManyControllerConstructor<Entity> {
-  const displayedName = pascalCase(apiTag) ?? entity.name;
+  const displayedName = getFormattedApiTag(apiTag, entity.name);
   const {
     body: CustomBody,
     presenter: CustomPresenter,
@@ -45,23 +45,19 @@ function DuplicateManyControllerMixin<Entity extends BaseEntity>(
     CustomBody ?? EntityBodyMixin(entity, true)
   ) {}
 
-  if (!CustomBody) {
-    Object.defineProperty(RouteBody, 'name', {
-      value: `DuplicateMany${displayedName}${addVersionSuffix(version)}Dto`,
-      writable: false,
-    });
-  }
+  Object.defineProperty(RouteBody, 'name', {
+    value: CustomBody ? CustomBody.name : `DuplicateMany${displayedName}${addVersionSuffix(version)}Dto`,
+    writable: false,
+  });
 
   class RoutePresenter extends (
     CustomPresenter ?? EntityPresenterMixin(entity)
   ) {}
 
-  if (!CustomPresenter) {
-    Object.defineProperty(RoutePresenter, 'name', {
-      value: `${displayedName}${addVersionSuffix(version)}Presenter`,
-      writable: false,
-    });
-  }
+  Object.defineProperty(RoutePresenter, 'name', {
+    value: CustomPresenter ? CustomPresenter.name : `${displayedName}${addVersionSuffix(version)}Presenter`,
+    writable: false,
+  });
 
   const routeDecoratorsBuilder = new RouteDecoratorsBuilder(
     'DuplicateMany',

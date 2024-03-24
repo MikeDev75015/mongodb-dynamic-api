@@ -1,4 +1,4 @@
-import { isValidVersion, pascalCase } from './format.helper';
+import { getFormattedApiTag, isValidVersion, pascalCase } from './format.helper';
 
 describe('FormatHelper', () => {
   describe('pascalCase', () => {
@@ -23,6 +23,16 @@ describe('FormatHelper', () => {
 
     it('should return false for invalid version', () => {
       expect(isValidVersion('v1')).toBe(false);
+    });
+  });
+
+  describe('getFormattedApiTag', () => {
+    it('should return formatted api tag', () => {
+      expect(getFormattedApiTag('api tag', 'entityName')).toBe('ApiTag');
+    });
+
+    it('should return entity name when no api tag is provided', () => {
+      expect(getFormattedApiTag(undefined, 'entityName')).toBe('entityName');
     });
   });
 });
