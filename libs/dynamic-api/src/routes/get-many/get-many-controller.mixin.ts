@@ -2,7 +2,7 @@ import { Query, Type, UseGuards } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { CheckPolicies } from '../../decorators';
 import { EntityQuery } from '../../dtos';
-import { addVersionSuffix, pascalCase, RouteDecoratorsHelper } from '../../helpers';
+import { addVersionSuffix, getFormattedApiTag, RouteDecoratorsHelper } from '../../helpers';
 import { getPredicateFromControllerAbilityPredicates } from '../../helpers/controller-ability-predicates.helper';
 import { AppAbility, DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { CreatePoliciesGuardMixin, EntityPresenterMixin } from '../../mixins';
@@ -27,7 +27,7 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
   }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): GetManyControllerConstructor<Entity> {
-  const displayedName = pascalCase(apiTag) ?? entity.name;
+  const displayedName = getFormattedApiTag(apiTag, entity.name);
   const { query: CustomQuery, presenter: CustomPresenter } = dTOs ?? {};
 
   let isPublic: boolean;
@@ -43,23 +43,19 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
     CustomQuery ?? EntityQuery
   ) {}
 
-  if (!CustomQuery) {
-    Object.defineProperty(RouteQuery, 'name', {
-      value: `${routeType}${displayedName}${addVersionSuffix(version)}Query`,
-      writable: false,
-    });
-  }
+  Object.defineProperty(RouteQuery, 'name', {
+    value: CustomQuery ? CustomQuery.name : `${routeType}${displayedName}${addVersionSuffix(version)}Query`,
+    writable: false,
+  });
 
   class RoutePresenter extends (
     CustomPresenter ?? EntityPresenterMixin(entity)
   ) {}
 
-  if (!CustomPresenter) {
-    Object.defineProperty(RoutePresenter, 'name', {
-      value: `${displayedName}${addVersionSuffix(version)}Presenter`,
-      writable: false,
-    });
-  }
+  Object.defineProperty(RoutePresenter, 'name', {
+    value: CustomPresenter ? CustomPresenter.name : `${displayedName}${addVersionSuffix(version)}Presenter`,
+    writable: false,
+  });
 
   const routeDecoratorsBuilder = new RouteDecoratorsBuilder(
     routeType,

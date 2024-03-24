@@ -7,3 +7,7 @@ export function pascalCase(str ?: string) {
 export function isValidVersion(version: string) {
     return /^\d+$/.test(version);
 }
+
+export function getFormattedApiTag<Entity>(apiTag: string | undefined, entityName: string) {
+    return pascalCase(apiTag) ?? entityName;
+}

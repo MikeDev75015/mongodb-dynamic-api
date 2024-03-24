@@ -2,7 +2,7 @@ import { Body, Param, Type, UseGuards } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { CheckPolicies } from '../../decorators';
 import { EntityParam } from '../../dtos';
-import { addVersionSuffix, pascalCase, RouteDecoratorsHelper } from '../../helpers';
+import { addVersionSuffix, getFormattedApiTag, RouteDecoratorsHelper } from '../../helpers';
 import { getPredicateFromControllerAbilityPredicates } from '../../helpers/controller-ability-predicates.helper';
 import { AppAbility, DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { CreatePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
@@ -27,10 +27,9 @@ function ReplaceOneControllerMixin<Entity extends BaseEntity>(
   }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): ReplaceOneControllerConstructor<Entity> {
-  const displayedName = pascalCase(apiTag) ?? entity.name;
+  const displayedName = getFormattedApiTag(apiTag, entity.name);
   const {
     body: CustomBody,
-    param: CustomParam,
     presenter: CustomPresenter,
   } = dTOs ?? {};
 
@@ -43,38 +42,28 @@ function ReplaceOneControllerMixin<Entity extends BaseEntity>(
     isPublic = false;
   }
 
+  Object.defineProperty(EntityParam, 'name', {
+    value: `ReplaceOne${displayedName}${addVersionSuffix(version)}Param`,
+    writable: false,
+  });
+
   class RouteBody extends (
     CustomBody ?? EntityBodyMixin(entity)
   ) {}
 
-  if (!CustomBody) {
-    Object.defineProperty(RouteBody, 'name', {
-      value: `ReplaceOne${displayedName}${addVersionSuffix(version)}Dto`,
-      writable: false,
-    });
-  }
-
-  class RouteParam extends (
-    CustomParam ?? EntityParam
-  ) {}
-
-  if (!CustomParam) {
-    Object.defineProperty(RouteParam, 'name', {
-      value: `ReplaceOne${displayedName}${addVersionSuffix(version)}Param`,
-      writable: false,
-    });
-  }
+  Object.defineProperty(RouteBody, 'name', {
+    value: CustomBody ? CustomBody.name : `ReplaceOne${displayedName}${addVersionSuffix(version)}Dto`,
+    writable: false,
+  });
 
   class RoutePresenter extends (
     CustomPresenter ?? EntityPresenterMixin(entity)
   ) {}
 
-  if (!CustomPresenter) {
-    Object.defineProperty(RoutePresenter, 'name', {
-      value: `${displayedName}${addVersionSuffix(version)}Presenter`,
-      writable: false,
-    });
-  }
+  Object.defineProperty(RoutePresenter, 'name', {
+    value: CustomPresenter ? CustomPresenter.name : `${displayedName}${addVersionSuffix(version)}Presenter`,
+    writable: false,
+  });
 
   const routeDecoratorsBuilder = new RouteDecoratorsBuilder(
     'ReplaceOne',
@@ -83,7 +72,7 @@ function ReplaceOneControllerMixin<Entity extends BaseEntity>(
     description,
     isPublic,
     {
-      param: RouteParam,
+      param: EntityParam,
       query: undefined,
       body: RouteBody,
       presenter: RoutePresenter,

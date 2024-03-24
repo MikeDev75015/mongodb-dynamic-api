@@ -2,7 +2,7 @@ import { Param, Type, UseGuards } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { CheckPolicies } from '../../decorators';
 import { EntityParam, EntityQuery } from '../../dtos';
-import { addVersionSuffix, pascalCase, RouteDecoratorsHelper } from '../../helpers';
+import { addVersionSuffix, getFormattedApiTag, RouteDecoratorsHelper } from '../../helpers';
 import { getPredicateFromControllerAbilityPredicates } from '../../helpers/controller-ability-predicates.helper';
 import { AppAbility, DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { CreatePoliciesGuardMixin, EntityPresenterMixin } from '../../mixins';
@@ -27,9 +27,8 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
   }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): GetOneControllerConstructor<Entity> {
-  const displayedName = pascalCase(apiTag) ?? entity.name;
+  const displayedName = getFormattedApiTag(apiTag, entity.name);
   const {
-    param: CustomParam,
     query: CustomQuery,
     presenter: CustomPresenter,
   } = dTOs ?? {};
@@ -43,38 +42,28 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
     isPublic = false;
   }
 
-  class RouteParam extends (
-    CustomParam ?? EntityParam
-  ) {}
-
-  if (!CustomParam) {
-    Object.defineProperty(RouteParam, 'name', {
-      value: `GetOne${displayedName}${addVersionSuffix(version)}Param`,
-      writable: false,
-    });
-  }
+  Object.defineProperty(EntityParam, 'name', {
+    value: `GetOne${displayedName}${addVersionSuffix(version)}Param`,
+    writable: false,
+  });
 
   class RouteQuery extends (
     CustomQuery ?? EntityQuery
   ) {}
 
-  if (!CustomQuery) {
-    Object.defineProperty(RouteQuery, 'name', {
-      value: `GetOne${displayedName}${addVersionSuffix(version)}Query`,
-      writable: false,
-    });
-  }
+  Object.defineProperty(RouteQuery, 'name', {
+    value: CustomQuery ? CustomQuery.name : `GetOne${displayedName}${addVersionSuffix(version)}Query`,
+    writable: false,
+  });
 
   class RoutePresenter extends (
     CustomPresenter ?? EntityPresenterMixin(entity)
   ) {}
 
-  if (!CustomPresenter) {
-    Object.defineProperty(RoutePresenter, 'name', {
-      value: `${displayedName}${addVersionSuffix(version)}Presenter`,
-      writable: false,
-    });
-  }
+  Object.defineProperty(RoutePresenter, 'name', {
+    value: CustomPresenter ? CustomPresenter.name : `${displayedName}${addVersionSuffix(version)}Presenter`,
+    writable: false,
+  });
 
   const routeDecoratorsBuilder = new RouteDecoratorsBuilder(
     'GetOne',
@@ -83,7 +72,7 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
     description,
     isPublic,
     {
-      param: RouteParam,
+      param: EntityParam,
       query: RouteQuery,
       body: undefined,
       presenter: RoutePresenter,

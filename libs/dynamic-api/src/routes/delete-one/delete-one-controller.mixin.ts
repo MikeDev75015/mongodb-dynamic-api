@@ -2,7 +2,7 @@ import { Param, Type, UseGuards } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { CheckPolicies } from '../../decorators';
 import { EntityParam } from '../../dtos';
-import { addVersionSuffix, pascalCase, RouteDecoratorsHelper } from '../../helpers';
+import { addVersionSuffix, getFormattedApiTag, RouteDecoratorsHelper } from '../../helpers';
 import { getPredicateFromControllerAbilityPredicates } from '../../helpers/controller-ability-predicates.helper';
 import { AppAbility, DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { CreatePoliciesGuardMixin } from '../../mixins';
@@ -28,8 +28,8 @@ function DeleteOneControllerMixin<Entity extends BaseEntity>(
   }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): DeleteOneControllerConstructor<Entity> {
-  const displayedName = pascalCase(apiTag) ?? entity.name;
-  const { param: CustomParam, presenter: CustomPresenter } = dTOs ?? {};
+  const displayedName = getFormattedApiTag(apiTag, entity.name);
+  const { presenter: CustomPresenter } = dTOs ?? {};
 
   let isPublic: boolean;
   if (typeof isPublicRoute === 'boolean') {
@@ -40,27 +40,19 @@ function DeleteOneControllerMixin<Entity extends BaseEntity>(
     isPublic = false;
   }
 
-  class RouteParam extends (
-    CustomParam ?? EntityParam
-  ) {}
-
-  if (!CustomParam) {
-    Object.defineProperty(RouteParam, 'name', {
-      value: `DeleteOne${displayedName}${addVersionSuffix(version)}Param`,
-      writable: false,
-    });
-  }
+  Object.defineProperty(EntityParam, 'name', {
+    value: `DeleteOne${displayedName}${addVersionSuffix(version)}Param`,
+    writable: false,
+  });
 
   class RoutePresenter extends (
     CustomPresenter ?? DeleteOnePresenter
   ) {}
 
-  if (!CustomPresenter) {
-    Object.defineProperty(RoutePresenter, 'name', {
-      value: `DeleteOne${displayedName}${addVersionSuffix(version)}Presenter`,
-      writable: false,
-    });
-  }
+  Object.defineProperty(RoutePresenter, 'name', {
+    value: CustomPresenter ? CustomPresenter.name : `DeleteOne${displayedName}${addVersionSuffix(version)}Presenter`,
+    writable: false,
+  });
 
   const routeDecoratorsBuilder = new RouteDecoratorsBuilder(
     'DeleteOne',
@@ -69,7 +61,7 @@ function DeleteOneControllerMixin<Entity extends BaseEntity>(
     description,
     isPublic,
     {
-      param: RouteParam,
+      param: EntityParam,
       query: undefined,
       body: undefined,
       presenter: RoutePresenter,
