@@ -1,5 +1,10 @@
 Changelog
 
+## [2.1.2](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.1.1...v2.1.2) (2024-03-26)
+
+
+* rename all custom dto to avoid swagger conflicts ([0bc7e5f](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/0bc7e5fe85f3c44ce3382839e5a502d3232e5526))
+
 ## [2.1.1](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.1.0...v2.1.1) (2024-03-21)
 
 ## [2.1.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.0.0...v2.1.0) (2024-03-20)
