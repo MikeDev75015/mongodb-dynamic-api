@@ -1,10 +1,10 @@
 import { Type } from '@nestjs/common';
-import { DynamicApiRegisterAbilityPredicate } from '../../../interfaces';
+import { RegisterAbilityPredicate } from '../../../interfaces';
 import { BaseEntity } from '../../../models';
 
 type DynamicApiRegisterOptions<Entity extends BaseEntity = any> = {
   protected?: boolean;
-  abilityPredicate?: DynamicApiRegisterAbilityPredicate;
+  abilityPredicate?: RegisterAbilityPredicate;
   additionalFields?: (keyof Entity | { name: keyof Entity; required?: boolean })[];
 };
 

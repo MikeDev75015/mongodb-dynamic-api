@@ -28,7 +28,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     ) as Entity;
 
     // @ts-ignore
-    if (!user || !await this.bcryptService.comparePassword(pass, user[this.passwordField])) {
+    if (!user || !(await this.bcryptService.comparePassword(pass, user[this.passwordField]))) {
       return null;
     }
 
@@ -38,14 +38,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
       ...this.additionalRequestFields,
     ];
 
-    return this.buildInstance(
-      fieldsToBuild.reduce<Entity>(
-        (acc, field) => (
-          user[field] ? { ...acc, [field]: user[field] } : acc
-        ),
-        {} as Entity,
-      ),
-    );
+    return this.buildUserFields(user, fieldsToBuild);
   }
 
   protected async login(user: Entity) {
@@ -56,14 +49,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
       ...this.additionalRequestFields,
     ];
 
-    const payload = this.buildInstance(
-      fieldsToBuild.reduce<Entity>(
-        (acc, field) => (
-          user[field] !== undefined ? { ...acc, [field]: user[field] } : acc
-        ),
-        {} as Entity,
-      ),
-    );
+    const payload = this.buildUserFields(user, fieldsToBuild);
 
     return {
       accessToken: this.jwtService.sign(payload),
@@ -88,14 +74,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
       ...this.additionalRequestFields,
     ];
 
-    return this.buildInstance(
-      fieldsToBuild.reduce<Entity>(
-        (acc, field) => (
-          user[field] !== undefined ? { ...acc, [field]: user[field] } : acc
-        ),
-        {} as Entity,
-      ),
-    );
+    return this.buildUserFields(user, fieldsToBuild);
   }
 
   protected async changePassword(userId: string, newPassword: string) {
@@ -119,5 +98,14 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     return (
       await this.model.findOne({ _id: userId }).lean().exec()
     ) as Entity;
+  }
+
+  private buildUserFields(user: Entity, fieldsToBuild: (keyof Entity)[]) {
+    return this.buildInstance(fieldsToBuild.reduce<Entity>(
+      (acc, field) => (
+        user[field] !== undefined ? { ...acc, [field]: user[field] } : acc
+      ),
+      {} as Entity,
+    ));
   }
 }
