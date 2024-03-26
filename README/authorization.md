@@ -132,7 +132,7 @@ Next, under toto's account (not admin), we will try to register a new user with 
 # POST /auth/register
 
 curl -X 'POST' \
-  'http://localhost:5000/auth/register' \
+  '<your-host>/auth/register' \
   -H 'accept: application/json' \
   -H 'Authorization: Bearer <toto-jwt-token>' \
   -H 'Content-Type: application/json' \
@@ -164,16 +164,40 @@ import { Prop } from '@nestjs/mongoose';
 import { ApiProperty } from '@nestjs/swagger';
 import { BaseEntity } from 'mongodb-dynamic-api';
 
+@Schema()
 export class Article extends BaseEntity {
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  @Prop({ type: String, required: true })
+  title: string;
+
   @ApiProperty({ type: Boolean, default: false })
   @Prop({ type: Boolean, default: false })
   isPublished: boolean;
 
   @ApiProperty()
-  @Prop({ type: String })
+  @Prop({ type: String, required: true })
   authorId: string;
 }
 ```
+
+We are going to add an update dto to remove the possibility to update the `authorId` field when editing an article.
+
+```typescript
+// src/articles/update-one-article.dto.ts
+import { PartialType, PickType } from '@nestjs/swagger';
+import { Article } from './article';
+
+export class UpdateOneArticleDto extends PartialType(
+  PickType(Article, ['title', 'isPublished']),
+) {}
+```
+
+*`PartialType` and `PickType` are decorators from the `@nestjs/swagger` package.
+They allow you to create a new `DTO` by picking (`PickType`) only the fields you want from the original DTO and make
+them optional (`PartialType`).
+See <strong>nestjs</strong> <a href="https://docs.nestjs.com/openapi/mapped-types" target="_blank">documentation</a> for more details.*
 
 We will allow the admins and author to get the article, only the author to update it if not published yet and only the admins to delete articles.
 
@@ -213,6 +237,9 @@ import { Article } from './article';
           type: 'UpdateOne',
           abilityPredicate: (article: Article, user: User) => // <- declare the ability predicate in the route object
             article.authorId === user.id && !article.isPublished,
+          dTOs: { // <- add yours dto here
+            body: UpdateOneArticleDto,
+          },
         },
         { type: 'DeleteMany' }, // <- protected by default and by the ability predicate set in the controller options
         { type: 'DeleteOne' },
@@ -269,38 +296,85 @@ ___
 First of all, let's try to create an article with the `POST` method on the `/articles` route without being authenticated.
 ```text
 # POST /articles
+
+curl -X 'POST' \
+  '<your-host>/articles' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "title": "My first article",
+  "authorId": "<toto-id>"
+}'
 ```
 ```json
 # Server response
+{ "message": "Unauthorized", "statusCode": 401 }
 ```
 
 Ok, now logged in as toto, we will retry to create the article.
 
 ```text
 # POST /articles
+
+curl -X 'POST' \
+  'http://localhost:5000/articles' \
+  -H 'accept: application/json' \
+  -H 'Authorization: Bearer <toto-jwt-token>' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "title": "My first article",
+  "authorId": "<toto-id>"
+}'
 ```
 ```json
 # Server response
+{
+  "id": "65ffeb449499d022eb77c6f2",
+  "title": "My first article",
+  "isPublished": false,
+  "authorId": "<toto-id>",
+  "createdAt": "2024-03-24T08:58:44.449Z",
+  "updatedAt": "2024-03-24T08:58:44.449Z"
+}
 ```
 
 **GetMany test**
 
-Next, we will try to get all the articles with the `GET` method on the `/articles` route.
+Next, we will try to get all the articles with the `GET` method on the `/articles` route without being authenticated.
 ```text
 # GET /articles
+
+curl -X 'GET' \
+  'http://localhost:5000/articles' \
+  -H 'accept: application/json'
 ```
 ```json
 # Server response
+[
+  {
+    "title": "My first article",
+    "isPublished": false,
+    "authorId": "65ee92a572a476931b6f077c",
+    "createdAt": "2024-03-24T08:58:44.449Z",
+    "updatedAt": "2024-03-24T08:58:44.449Z",
+    "id": "65ffeb449499d022eb77c6f2"
+  }
+]
 ```
 
 **GetOne test**
 
-Next, not logged in, we will try to get the article with the `GET` method on the `/articles/:id` route.
+Now, we will try to get the article with the `GET` method on the `/articles/:id` route without being authenticated.
 ```text
 # GET /articles/:id
+
+curl -X 'GET' \
+  'http://localhost:5000/articles/65ffeb449499d022eb77c6f2' \
+  -H 'accept: application/json'
 ```
 ```json
 # Server response
+{ "message": "Unauthorized", "statusCode": 401 }
 ```
 
 Then, logged in as toto, we will retry to get the article.
