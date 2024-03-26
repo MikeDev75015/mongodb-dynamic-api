@@ -4,7 +4,7 @@ import { Reflector } from '@nestjs/core';
 import { CHECK_POLICIES_KEY } from '../../../decorators';
 import {
   AppAbility,
-  DynamicApiRegisterAbilityPredicate,
+  RegisterAbilityPredicate,
   PoliciesGuardConstructor,
   PolicyHandler,
   RouteType,
@@ -15,7 +15,7 @@ const registerRouteType = 'register' as RouteType;
 
 function AuthRegisterPoliciesGuardMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
-  abilityPredicate: DynamicApiRegisterAbilityPredicate | undefined,
+  abilityPredicate: RegisterAbilityPredicate | undefined,
 ): PoliciesGuardConstructor<Entity> {
   @Injectable()
   class BaseAuthRegisterPoliciesGuard {
