@@ -1,14 +1,14 @@
 import {
-  DynamicApiControllerAbilityPredicate,
-  DynamicApiRouteCaslAbilityPredicate,
+  ControllerAbilityPredicate,
+  RouteAbilityPredicate,
   RouteType,
 } from '../interfaces';
 import { BaseEntity } from '../models';
 
 function getPredicateFromControllerAbilityPredicates<Entity extends BaseEntity>(
-  controllerAbilityPredicates: DynamicApiControllerAbilityPredicate<Entity>[],
-  route: RouteType): DynamicApiRouteCaslAbilityPredicate<Entity> {
-  let routePredicate: DynamicApiRouteCaslAbilityPredicate<Entity>;
+  controllerAbilityPredicates: ControllerAbilityPredicate<Entity>[],
+  route: RouteType): RouteAbilityPredicate<Entity> {
+  let routePredicate: RouteAbilityPredicate<Entity>;
 
   if (!controllerAbilityPredicates?.length) {
     return;

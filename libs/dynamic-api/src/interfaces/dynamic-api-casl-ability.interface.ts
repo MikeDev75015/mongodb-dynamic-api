@@ -1,17 +1,24 @@
+import { AbilityTuple, MatchConditions, PureAbility } from '@casl/ability';
 import { BaseEntity } from '../models';
 import { RouteType } from './dynamic-api-route-type.type';
 
-type DynamicApiRouteCaslAbilityPredicate<Entity extends BaseEntity, T = any> = (entity: Entity, user?: T) => boolean;
+type AppAbility<Entity extends BaseEntity> = PureAbility<AbilityTuple, MatchConditions<Entity>>;
 
-type DynamicApiRegisterAbilityPredicate<T = any> = (user?: T) => boolean;
+const lambdaMatcher = <Entity extends BaseEntity>(matchConditions: MatchConditions<Entity>) => matchConditions;
 
-type DynamicApiControllerAbilityPredicate<Entity extends BaseEntity> = {
+type RouteAbilityPredicate<Entity extends BaseEntity, User = any> = (entity: Entity, user: User) => boolean;
+
+type RegisterAbilityPredicate<User = any> = (user: User) => boolean;
+
+type ControllerAbilityPredicate<Entity extends BaseEntity> = {
   targets: RouteType[];
-  predicate: DynamicApiRouteCaslAbilityPredicate<Entity>;
+  predicate: RouteAbilityPredicate<Entity>;
 };
 
 export {
-  DynamicApiRouteCaslAbilityPredicate,
-  DynamicApiRegisterAbilityPredicate,
-  DynamicApiControllerAbilityPredicate,
+  AppAbility,
+  ControllerAbilityPredicate,
+  RegisterAbilityPredicate,
+  RouteAbilityPredicate,
+  lambdaMatcher,
 };

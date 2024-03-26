@@ -3,7 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { BasePoliciesGuard } from '../guards';
 import { addVersionSuffix } from '../helpers';
 import {
-  DynamicApiRouteCaslAbilityPredicate,
+  RouteAbilityPredicate,
   PoliciesGuard,
   PoliciesGuardConstructor,
   RouteType,
@@ -14,13 +14,13 @@ function CreatePoliciesGuardMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   routeType: RouteType,
   version: string | undefined,
-  abilityPredicate: DynamicApiRouteCaslAbilityPredicate<Entity> | undefined,
+  abilityPredicate: RouteAbilityPredicate<Entity> | undefined,
 ): PoliciesGuardConstructor<Entity> {
   @Injectable()
   class RoutePoliciesGuard extends BasePoliciesGuard<Entity> implements PoliciesGuard<Entity> {
     protected routeType = routeType;
     protected entity = entity;
-    protected abilityPredicate: DynamicApiRouteCaslAbilityPredicate<Entity> | undefined = abilityPredicate;
+    protected abilityPredicate: RouteAbilityPredicate<Entity> | undefined = abilityPredicate;
 
     constructor(protected readonly reflector: Reflector) {
       super(reflector);
