@@ -1,11 +1,11 @@
-import { DynamicApiRouteCaslAbilityPredicate, RouteType } from '../interfaces';
+import { RouteAbilityPredicate, RouteType } from '../interfaces';
 import { getPredicateFromControllerAbilityPredicates } from './controller-ability-predicates.helper';
 
 describe('ControllerAbilityPredicatesHelper', () => {
   describe('getPredicateFromControllerAbilityPredicates', () => {
     const route: RouteType = 'GetMany';
     const routeNotConfigured: RouteType = 'CreateMany';
-    const predicate: DynamicApiRouteCaslAbilityPredicate<any> = (entity, user) => !!user;
+    const predicate: RouteAbilityPredicate<any> = (entity, user) => !!user;
 
     const controllerAbilityPredicatesWithArray = [
       {

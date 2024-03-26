@@ -1,6 +1,6 @@
 import { ValidationPipeOptions } from '@nestjs/common';
 import { BaseEntity } from '../models';
-import { DynamicApiControllerAbilityPredicate } from './dynamic-api-casl-ability.interface';
+import { ControllerAbilityPredicate } from './dynamic-api-casl-ability.interface';
 
 interface DynamicApiControllerOptions<Entity extends BaseEntity> {
   path: string;
@@ -8,7 +8,7 @@ interface DynamicApiControllerOptions<Entity extends BaseEntity> {
   version?: string;
   isPublic?: boolean;
   validationPipeOptions?: ValidationPipeOptions;
-  abilityPredicates?: DynamicApiControllerAbilityPredicate<Entity>[];
+  abilityPredicates?: ControllerAbilityPredicate<Entity>[];
 }
 
 export { DynamicApiControllerOptions };

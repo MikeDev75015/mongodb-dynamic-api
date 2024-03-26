@@ -2,13 +2,13 @@ import { CanActivate, ExecutionContext, ForbiddenException, Type } from '@nestjs
 import { Reflector } from '@nestjs/core';
 import { CaslAbilityBuilder } from '../builders';
 import { CHECK_POLICIES_KEY } from '../decorators';
-import { AppAbility, DynamicApiRouteCaslAbilityPredicate, PolicyHandler, RouteType } from '../interfaces';
+import { AppAbility, RouteAbilityPredicate, PolicyHandler, RouteType } from '../interfaces';
 import { BaseEntity } from '../models';
 
 export abstract class BasePoliciesGuard<Entity extends BaseEntity> implements CanActivate {
   protected routeType: RouteType;
   protected entity: Type<Entity>;
-  protected abilityPredicate: DynamicApiRouteCaslAbilityPredicate<Entity> | undefined;
+  protected abilityPredicate: RouteAbilityPredicate<Entity> | undefined;
 
   protected constructor(protected readonly reflector: Reflector) {}
 
