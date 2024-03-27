@@ -1,70 +1,42 @@
 import { Query, Type, UseGuards } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { CheckPolicies } from '../../decorators';
-import { addVersionSuffix, getFormattedApiTag, RouteDecoratorsHelper } from '../../helpers';
-import { getPredicateFromControllerAbilityPredicates } from '../../helpers/controller-ability-predicates.helper';
+import { addVersionSuffix, RouteDecoratorsHelper } from '../../helpers';
+import { getControllerMixinData } from '../../helpers/controller-mixin.helper';
 import { AppAbility, DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { CreatePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DeleteManyController, DeleteManyControllerConstructor } from './delete-many-controller.interface';
 import { DeleteManyService } from './delete-many-service.interface';
-import { DeleteManyPresenter } from './delete-many.presenter';
 
 function DeleteManyControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
-  {
-    path,
-    apiTag,
-    isPublic: isPublicController,
-    abilityPredicates: controllerAbilityPredicates,
-  }: DynamicApiControllerOptions<Entity>,
-  {
-    type: routeType,
-    description,
-    dTOs,
-    isPublic: isPublicRoute,
-    abilityPredicate: routeAbilityPredicate,
-  }: DynamicAPIRouteConfig<Entity>,
+  controllerOptions: DynamicApiControllerOptions<Entity>,
+  routeConfig: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): DeleteManyControllerConstructor<Entity> {
-  const displayedName = getFormattedApiTag(apiTag, entity.name);
-  const { presenter: CustomPresenter } = dTOs ?? {};
-
-  let isPublic: boolean;
-  if (typeof isPublicRoute === 'boolean') {
-    isPublic = isPublicRoute;
-  } else if (typeof isPublicController === 'boolean') {
-    isPublic = isPublicController;
-  } else {
-    isPublic = false;
-  }
-
-  class RoutePresenter extends (
-    CustomPresenter ?? DeleteManyPresenter
-  ) {}
-
-  Object.defineProperty(RoutePresenter, 'name', {
-    value: CustomPresenter ? CustomPresenter.name : `DeleteMany${displayedName}${addVersionSuffix(version)}Presenter`,
-    writable: false,
-  });
+  const {
+    routeType,
+    description,
+    isPublic,
+    RoutePresenter,
+    abilityPredicate,
+  } = getControllerMixinData(
+    entity,
+    controllerOptions,
+    routeConfig,
+    version,
+  );
 
   const routeDecoratorsBuilder = new RouteDecoratorsBuilder(
-    'DeleteMany',
+    routeType,
     entity,
     version,
     description,
     isPublic,
     {
-      param: undefined,
-      query: undefined,
-      body: undefined,
       presenter: RoutePresenter,
     },
-  );
-
-  const abilityPredicate = routeAbilityPredicate ?? getPredicateFromControllerAbilityPredicates(
-    controllerAbilityPredicates,
-    routeType,
   );
 
   class DeleteManyPoliciesGuard extends CreatePoliciesGuardMixin(

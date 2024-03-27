@@ -1,14 +1,14 @@
 import { Builder } from 'builder-pattern';
 import { Model } from 'mongoose';
 import { buildModelMock } from '../../../__mocks__/model.mock';
+import { DeletePresenter } from '../../dtos';
 import { BaseDeleteOneService } from './base-delete-one.service';
-import { DeleteOnePresenter } from './delete-one.presenter';
 
 describe('BaseDeleteOneService', () => {
   let service: any;
   const id = 'ObjectId';
   const deleted = { deletedCount: 1 };
-  let presenter: DeleteOnePresenter;
+  let presenter: DeletePresenter;
   const modelMock = buildModelMock({ deleteOne: [deleted] });
 
   beforeEach(() => {
@@ -19,7 +19,7 @@ describe('BaseDeleteOneService', () => {
     }
 
     service = new TestService(modelMock);
-    presenter = Builder(DeleteOnePresenter, deleted).build();
+    presenter = Builder(DeletePresenter, deleted).build();
   });
 
   it('should have deleteOne method', () => {
