@@ -1,61 +1,33 @@
 import { Query, Type, UseGuards } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { CheckPolicies } from '../../decorators';
-import { EntityQuery } from '../../dtos';
-import { addVersionSuffix, getFormattedApiTag, RouteDecoratorsHelper } from '../../helpers';
-import { getPredicateFromControllerAbilityPredicates } from '../../helpers/controller-ability-predicates.helper';
+import { addVersionSuffix, RouteDecoratorsHelper } from '../../helpers';
+import { getControllerMixinData } from '../../helpers/controller-mixin.helper';
 import { AppAbility, DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
-import { CreatePoliciesGuardMixin, EntityPresenterMixin } from '../../mixins';
+import { CreatePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { GetManyController, GetManyControllerConstructor } from './get-many-controller.interface';
 import { GetManyService } from './get-many-service.interface';
 
 function GetManyControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
-  {
-    path,
-    apiTag,
-    isPublic: isPublicController,
-    abilityPredicates: controllerAbilityPredicates,
-  }: DynamicApiControllerOptions<Entity>,
-  {
-    type: routeType,
-    description,
-    dTOs,
-    isPublic: isPublicRoute,
-    abilityPredicate: routeAbilityPredicate,
-  }: DynamicAPIRouteConfig<Entity>,
+  controllerOptions: DynamicApiControllerOptions<Entity>,
+  routeConfig: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): GetManyControllerConstructor<Entity> {
-  const displayedName = getFormattedApiTag(apiTag, entity.name);
-  const { query: CustomQuery, presenter: CustomPresenter } = dTOs ?? {};
-
-  let isPublic: boolean;
-  if (typeof isPublicRoute === 'boolean') {
-    isPublic = isPublicRoute;
-  } else if (typeof isPublicController === 'boolean') {
-    isPublic = isPublicController;
-  } else {
-    isPublic = false;
-  }
-
-  class RouteQuery extends (
-    CustomQuery ?? EntityQuery
-  ) {}
-
-  Object.defineProperty(RouteQuery, 'name', {
-    value: CustomQuery ? CustomQuery.name : `${routeType}${displayedName}${addVersionSuffix(version)}Query`,
-    writable: false,
-  });
-
-  class RoutePresenter extends (
-    CustomPresenter ?? EntityPresenterMixin(entity)
-  ) {}
-
-  Object.defineProperty(RoutePresenter, 'name', {
-    value: CustomPresenter ? CustomPresenter.name : `${displayedName}${addVersionSuffix(version)}Presenter`,
-    writable: false,
-  });
+  const {
+    routeType,
+    description,
+    isPublic,
+    RouteQuery,
+    RoutePresenter,
+    abilityPredicate,
+  } = getControllerMixinData(
+    entity,
+    controllerOptions,
+    routeConfig,
+    version,
+  );
 
   const routeDecoratorsBuilder = new RouteDecoratorsBuilder(
     routeType,
@@ -64,16 +36,9 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
     description,
     isPublic,
     {
-      param: undefined,
       query: RouteQuery,
-      body: undefined,
       presenter: RoutePresenter,
     },
-  );
-
-  const abilityPredicate = routeAbilityPredicate ?? getPredicateFromControllerAbilityPredicates(
-    controllerAbilityPredicates,
-    routeType,
   );
 
   class GetManyPoliciesGuard extends CreatePoliciesGuardMixin(
@@ -92,6 +57,7 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(GetManyPoliciesGuard)
     @CheckPolicies((ability: AppAbility<Entity>) => ability.can(routeType, entity))
+    // @ts-ignore
     async getMany(@Query() query: RouteQuery) {
       return this.service.getMany(query);
     }
