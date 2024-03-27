@@ -2,68 +2,33 @@ import { Body, Param, Type, UseGuards } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { CheckPolicies } from '../../decorators';
 import { EntityParam } from '../../dtos';
-import { addVersionSuffix, getFormattedApiTag, RouteDecoratorsHelper } from '../../helpers';
-import { getPredicateFromControllerAbilityPredicates } from '../../helpers/controller-ability-predicates.helper';
+import { addVersionSuffix, RouteDecoratorsHelper } from '../../helpers';
+import { getControllerMixinData } from '../../helpers/controller-mixin.helper';
 import { AppAbility, DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
-import { CreatePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
+import { CreatePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DuplicateOneController, DuplicateOneControllerConstructor } from './duplicate-one-controller.interface';
 import { DuplicateOneService } from './duplicate-one-service.interface';
 
 function DuplicateOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
-  {
-    path,
-    apiTag,
-    isPublic: isPublicController,
-    abilityPredicates: controllerAbilityPredicates,
-  }: DynamicApiControllerOptions<Entity>,
-  {
-    type: routeType,
-    description,
-    dTOs,
-    isPublic: isPublicRoute,
-    abilityPredicate: routeAbilityPredicate,
-  }: DynamicAPIRouteConfig<Entity>,
+  controllerOptions: DynamicApiControllerOptions<Entity>,
+  routeConfig: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): DuplicateOneControllerConstructor<Entity> {
-  const displayedName = getFormattedApiTag(apiTag, entity.name);
   const {
-    body: CustomBody,
-    presenter: CustomPresenter,
-  } = dTOs ?? {};
-
-  let isPublic: boolean;
-  if (typeof isPublicRoute === 'boolean') {
-    isPublic = isPublicRoute;
-  } else if (typeof isPublicController === 'boolean') {
-    isPublic = isPublicController;
-  } else {
-    isPublic = false;
-  }
-
-  Object.defineProperty(EntityParam, 'name', {
-    value: `DuplicateOne${displayedName}${addVersionSuffix(version)}Param`,
-    writable: false,
-  });
-
-  class RouteBody extends (
-    CustomBody ?? EntityBodyMixin(entity, true)
-  ) {}
-
-  Object.defineProperty(RouteBody, 'name', {
-    value: CustomBody ? CustomBody.name : `DuplicateOne${displayedName}${addVersionSuffix(version)}Dto`,
-    writable: false,
-  });
-
-  class RoutePresenter extends (
-    CustomPresenter ?? EntityPresenterMixin(entity)
-  ) {}
-
-  Object.defineProperty(RoutePresenter, 'name', {
-    value: CustomPresenter ? CustomPresenter.name : `${displayedName}${addVersionSuffix(version)}Presenter`,
-    writable: false,
-  });
+    routeType,
+    description,
+    isPublic,
+    RouteBody,
+    RoutePresenter,
+    abilityPredicate,
+  } = getControllerMixinData(
+    entity,
+    controllerOptions,
+    routeConfig,
+    version,
+  );
 
   const routeDecoratorsBuilder = new RouteDecoratorsBuilder(
     'DuplicateOne',
@@ -73,15 +38,9 @@ function DuplicateOneControllerMixin<Entity extends BaseEntity>(
     isPublic,
     {
       param: EntityParam,
-      query: undefined,
       body: RouteBody,
       presenter: RoutePresenter,
     },
-  );
-
-  const abilityPredicate = routeAbilityPredicate ?? getPredicateFromControllerAbilityPredicates(
-    controllerAbilityPredicates,
-    routeType,
   );
 
   class DuplicateOnePoliciesGuard extends CreatePoliciesGuardMixin(
@@ -100,6 +59,7 @@ function DuplicateOneControllerMixin<Entity extends BaseEntity>(
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(DuplicateOnePoliciesGuard)
     @CheckPolicies((ability: AppAbility<Entity>) => ability.can(routeType, entity))
+    // @ts-ignore
     async duplicateOne(@Param('id') id: string, @Body() body?: RouteBody) {
       return this.service.duplicateOne(id, body as any);
     }

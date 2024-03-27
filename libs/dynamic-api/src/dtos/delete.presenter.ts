@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-export class DeleteOnePresenter {
+export class DeletePresenter {
   @ApiProperty()
   deletedCount: number;
 }
