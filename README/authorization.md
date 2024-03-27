@@ -279,7 +279,6 @@ import { ArticlesModule } from './articles/articles.module';
     ),
     ArticlesModule, // <- add the new module here
   ],
-  // ...
 })
 export class AppModule {}
 ```
@@ -317,7 +316,7 @@ Ok, now logged in as toto, we will retry to create the article.
 # POST /articles
 
 curl -X 'POST' \
-  'http://localhost:5000/articles' \
+  '<your-host>/articles' \
   -H 'accept: application/json' \
   -H 'Authorization: Bearer <toto-jwt-token>' \
   -H 'Content-Type: application/json' \
@@ -329,7 +328,7 @@ curl -X 'POST' \
 ```json
 # Server response
 {
-  "id": "65ffeb449499d022eb77c6f2",
+  "id": "<article-id>",
   "title": "My first article",
   "isPublished": false,
   "authorId": "<toto-id>",
@@ -345,19 +344,19 @@ Next, we will try to get all the articles with the `GET` method on the `/article
 # GET /articles
 
 curl -X 'GET' \
-  'http://localhost:5000/articles' \
+  '<your-host>/articles' \
   -H 'accept: application/json'
 ```
 ```json
 # Server response
 [
   {
+    "id": "<article-id>",
     "title": "My first article",
     "isPublished": false,
-    "authorId": "65ee92a572a476931b6f077c",
+    "authorId": "<toto-id>",
     "createdAt": "2024-03-24T08:58:44.449Z",
-    "updatedAt": "2024-03-24T08:58:44.449Z",
-    "id": "65ffeb449499d022eb77c6f2"
+    "updatedAt": "2024-03-24T08:58:44.449Z"
   }
 ]
 ```
@@ -369,7 +368,7 @@ Now, we will try to get the article with the `GET` method on the `/articles/:id`
 # GET /articles/:id
 
 curl -X 'GET' \
-  'http://localhost:5000/articles/65ffeb449499d022eb77c6f2' \
+  '<your-host>/articles/<article-id>' \
   -H 'accept: application/json'
 ```
 ```json
