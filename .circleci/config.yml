@@ -446,6 +446,23 @@ workflows:
           filters:
             branches:
               only: main
+      - test-for-sonarcloud-job:
+          requires:
+            - dependencies-job
+          context:
+            - SLACK
+          filters:
+            branches:
+              only: main
+      - sonarcloud-job:
+          requires:
+            - test-for-sonarcloud-job
+          context:
+            - SONARCLOUD
+            - SLACK
+          filters:
+            branches:
+              only: main
 
   ci-release-tags-workflow:
     when:
