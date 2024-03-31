@@ -21,6 +21,10 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     abilityPredicate: registerAbilityPredicate,
   }: DynamicApiRegisterOptions<Entity> = {},
 ): AuthControllerConstructor<Entity> {
+  if (!loginField || !passwordField) {
+    throw new Error('Login and password fields are required');
+  }
+
   class AuthBodyPasswordFieldDto {
     @ApiProperty()
     @IsString()
@@ -37,6 +41,10 @@ function AuthControllerMixin<Entity extends BaseEntity>(
 
   const additionalMandatoryFields: (keyof Entity)[] = [];
   const additionalOptionalFields: (keyof Entity)[] = [];
+
+  if (!additionalRegisterFields) {
+    additionalRegisterFields = [];
+  }
 
   additionalRegisterFields.forEach((field) => {
     if (typeof field === 'string') {

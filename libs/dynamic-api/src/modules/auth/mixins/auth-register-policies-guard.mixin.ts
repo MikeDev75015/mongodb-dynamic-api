@@ -1,4 +1,4 @@
-import { AbilityBuilder, createMongoAbility, ExtractSubjectType } from '@casl/ability';
+import { AbilityBuilder, ExtractSubjectType, PureAbility } from '@casl/ability';
 import { ExecutionContext, ForbiddenException, Injectable, Type } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { CHECK_POLICIES_KEY } from '../../../decorators';
@@ -36,11 +36,9 @@ function AuthRegisterPoliciesGuardMixin<Entity extends BaseEntity>(
         throw new ForbiddenException('Forbidden resource');
       }
 
-      const { can, build } = new AbilityBuilder<AppAbility<Entity>>(createMongoAbility);
+      const { can, build } = new AbilityBuilder<AppAbility<Entity>>(PureAbility);
 
-      if (abilityPredicate(user)) {
-        can(registerRouteType, entity);
-      }
+      can(registerRouteType, entity, abilityPredicate);
 
       const ability = build({
         detectSubjectType: (object: Entity) => object.constructor as ExtractSubjectType<Type<Entity>>,
