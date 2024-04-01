@@ -8,9 +8,9 @@
 
 ___
 
-# [Casl](https://docs.nestjs.com/security/authorization#integrating-casl) ([Authentication](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/authentication.md) required)
+# [Authorization]() ([Authentication](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/authentication.md) required)
 
-Casl will allow you to condition the actions of your users for each protected route of your APIs.
+**Ability predicates** will allow you to condition the actions of your users for each protected route of your APIs.
 <br>Authentication is required, you need to enable it or implement your own strategy that adds the User object in the request.
 
 **MongoDB dynamic API** uses the `User` object in the requests to apply the ability predicates defined in the `DynamicApiModule.forFeature`.
@@ -19,6 +19,7 @@ or **in each route object** declared in the routes property.
 <br>*If the ability predicates are specified in 2, those defined in the route will have priority.*
 
 ## Register
+#### Ability predicate: `(user: User) => boolean;`
 
 By default, the `User` object is added to the request by the `useAuth` configuration.
 It contains the `id` and `email` fields of the authenticated user.
@@ -47,9 +48,9 @@ import { ArticlesModule } from './articles/articles.module';
           user: {
             entity: User,
             requestAdditionalFields: ['isAdmin'], // <- add the isAdmin field to the request User object
-            register: {
-              additionalFields: [{ name: 'isAdmin', required: true }], // <- add the isAdmin field to the register body
-            },
+          },
+          register: {
+            additionalFields: [{ name: 'isAdmin', required: true }], // <- add the isAdmin field to the register body
           },
         },
       },
@@ -73,8 +74,8 @@ curl -X 'POST' \
   -H 'Content-Type: application/json' \
   -d '{
   "email": "admin@test.co",
-  "isAdmin": true,
-  "password": "admin"
+  "password": "admin",
+  "isAdmin": true
 }'
 ```
 ```json
@@ -82,7 +83,9 @@ curl -X 'POST' \
 {"accessToken":"<admin-jwt-token>"}
 ```
 
-Then, in the **register configuration**, we are going to protect the `/auth/register` route by setting the `protected` property to `true` and add a **special register ability predicate** that takes **only the user** as argument and returns `true` if the user is an admin.
+Then, in the **register configuration**, we are going to protect the `/auth/register` route by setting
+the `abilityPredicate` property with a **special register ability predicate** that takes
+**only the user** as argument and returns `true` if the user is an admin.
 
 ```typescript
 // src/app.module.ts
@@ -96,7 +99,6 @@ Then, in the **register configuration**, we are going to protect the `/auth/regi
           register: {
             additionalFields: [{ name: 'isAdmin', required: true }],
             abilityPredicate: (user: User) => user.isAdmin, // <- only admin users can create new users
-            protected: true, // <- needs to be authenticated to access the route
           },
         },
       },
@@ -117,7 +119,8 @@ curl -X 'POST' \
   -H 'Content-Type: application/json' \
   -d '{
   "email": "toto@test.co",
-  "password": "toto"
+  "password": "toto",
+  "isAdmin": false
 }'
 ```
 ```json
@@ -137,14 +140,15 @@ curl -X 'POST' \
   -H 'Authorization: Bearer <toto-jwt-token>' \
   -H 'Content-Type: application/json' \
   -d '{
-  "email": "bill@test.co",
-  "password": "bill"
+  "email": "user@test.co",
+  "password": "user",
+  "isAdmin": false
 }'
 ```
 ```json
 # Server response
 {
-  "message": "Forbidden resource",
+  "message": "Access denied",
   "error": "Forbidden",
   "statusCode": 403
 }
@@ -153,8 +157,13 @@ curl -X 'POST' \
 The register route is now well protected and only an admin user can create new users.
 
 ## Articles
+#### Ability predicate: `(article: Article, user: User) => boolean;`
 
-We are going to add a new content `Article` and protect the get one, update and delete routes with ability predicates.
+We are going to add a new content `Article` and protect the get one, update and delete routes with
+ability predicates.
+<br>We will also add custom DTOs:
+- to the `CreateOne` route to define the fields required to create an article.
+- to the `UpdateOne` route to remove the possibility to update the `authorId` field when editing an article.
 
 **Configuration**
 
@@ -182,7 +191,16 @@ export class Article extends BaseEntity {
 }
 ```
 
-We are going to add an update dto to remove the possibility to update the `authorId` field when editing an article.
+```typescript
+// src/articles/create-one-article.dto.ts
+import { PickType } from '@nestjs/swagger';
+import { Article } from './article';
+
+export class CreateOneArticleDto extends PickType(Article, [
+  'title',
+  'authorId',
+]) {}
+```
 
 ```typescript
 // src/articles/update-one-article.dto.ts
@@ -195,11 +213,12 @@ export class UpdateOneArticleDto extends PartialType(
 ```
 
 *`PartialType` and `PickType` are decorators from the `@nestjs/swagger` package.
-They allow you to create a new `DTO` by picking (`PickType`) only the fields you want from the original DTO and make
-them optional (`PartialType`).
-See <strong>nestjs</strong> <a href="https://docs.nestjs.com/openapi/mapped-types" target="_blank">documentation</a> for more details.*
+They allow you to create a new `DTO` by picking (`PickType`) only the fields you want from the
+original DTO and make them optional (`PartialType`).
+<br>See <strong>nestjs</strong> <a href="https://docs.nestjs.com/openapi/mapped-types" target="_blank">documentation</a> for more details.*
 
-We will allow the admins and author to get the article, only the author to update it if not published yet and only the admins to delete articles.
+We will allow only the author to get, update or delete the article if not published yet
+and only the admins to delete articles even if they are published.
 
 Let's add our **ability predicates** to the `GetOne`, `UpdateOne`, `DeleteOne` and `DeleteMany` routes.
 <br>*The ability predicate is an arrow function that takes the **Content (the entity)** and the **User** request object (optional) as arguments and returns a boolean.*
@@ -221,7 +240,9 @@ import { Article } from './article';
         abilityPredicates: [ // <- declare the ability predicates in the controller options
           {
             targets: ['DeleteMany', 'DeleteOne'], // <- declare the targeted routes
-            predicate: (_: Article, user: User) => user.isAdmin, // <- add the condition
+            predicate: (article: Article, user: User) =>
+              user.isAdmin ||
+              (article.authorId === user.id && !article.isPublished), // <- add the condition
           },
         ],
       },
@@ -232,14 +253,15 @@ import { Article } from './article';
           abilityPredicate: (article: Article, user: User) =>
             article.authorId === user.id || user.isAdmin || article.isPublished,
         },
-        { type: 'CreateOne' }, // <- protected by default, needs the user to be authenticated to access it
+        {
+          type: 'CreateOne', // <- protected by default, needs the user to be authenticated to access it
+          dTOs: { body: CreateOneArticleDto }, // <- add yours dto here
+        },
         {
           type: 'UpdateOne',
           abilityPredicate: (article: Article, user: User) => // <- declare the ability predicate in the route object
             article.authorId === user.id && !article.isPublished,
-          dTOs: { // <- add yours dto here
-            body: UpdateOneArticleDto,
-          },
+          dTOs: { body: UpdateOneArticleDto }, // <- add yours dto here
         },
         { type: 'DeleteMany' }, // <- protected by default and by the ability predicate set in the controller options
         { type: 'DeleteOne' },
@@ -270,9 +292,10 @@ import { ArticlesModule } from './articles/articles.module';
           user: {
             entity: User,
             requestAdditionalFields: ['isAdmin'],
-            register: {
-              additionalFields: [{ name: 'isAdmin', required: true }],
-            },
+          },
+          register: {
+            additionalFields: [{ name: 'isAdmin', required: true }],
+            abilityPredicate: (user: User) => user.isAdmin,
           },
         },
       },
@@ -292,8 +315,9 @@ ___
 
 **CreateOne test**
 
-First of all, let's try to create an article with the `POST` method on the `/articles` route without being authenticated.
-```text
+*First of all, let's try to create an article with the `POST` method on the `/articles` route without being authenticated.*
+
+```shell
 # POST /articles
 
 curl -X 'POST' \
@@ -302,7 +326,7 @@ curl -X 'POST' \
   -H 'Content-Type: application/json' \
   -d '{
   "title": "My first article",
-  "authorId": "<toto-id>"
+  "authorId": "<author-id>"
 }'
 ```
 ```json
@@ -310,37 +334,38 @@ curl -X 'POST' \
 { "message": "Unauthorized", "statusCode": 401 }
 ```
 
-Ok, now logged in as toto, we will retry to create the article.
+*Ok, now logged in as toto, we will retry to create the article.*
 
-```text
+```shell
 # POST /articles
 
 curl -X 'POST' \
   '<your-host>/articles' \
   -H 'accept: application/json' \
-  -H 'Authorization: Bearer <toto-jwt-token>' \
+  -H 'Authorization: Bearer <toto-jwt-token>' \ # <- replace by the toto jwt token
   -H 'Content-Type: application/json' \
   -d '{
   "title": "My first article",
-  "authorId": "<toto-id>"
+  "authorId": "<toto-id>" # <- replace by the toto id
 }'
 ```
 ```json
 # Server response
 {
-  "id": "<article-id>",
   "title": "My first article",
   "isPublished": false,
   "authorId": "<toto-id>",
-  "createdAt": "2024-03-24T08:58:44.449Z",
-  "updatedAt": "2024-03-24T08:58:44.449Z"
+  "createdAt": "article-created-at",
+  "updatedAt": "article-updated-at",
+  "id": "<article-id>"
 }
 ```
 
 **GetMany test**
 
-Next, we will try to get all the articles with the `GET` method on the `/articles` route without being authenticated.
-```text
+*Next, we will try to get all the articles with the `GET` method on the `/articles` route without being authenticated.*
+
+```shell
 # GET /articles
 
 curl -X 'GET' \
@@ -355,20 +380,21 @@ curl -X 'GET' \
     "title": "My first article",
     "isPublished": false,
     "authorId": "<toto-id>",
-    "createdAt": "2024-03-24T08:58:44.449Z",
-    "updatedAt": "2024-03-24T08:58:44.449Z"
+    "createdAt": "article-created-at",
+    "updatedAt": "article-updated-at"
   }
 ]
 ```
 
 **GetOne test**
 
-Now, we will try to get the article with the `GET` method on the `/articles/:id` route without being authenticated.
-```text
+*Now, we will try to get the article with the `GET` method on the `/articles/:id` route without being authenticated.*
+
+```shell
 # GET /articles/:id
 
 curl -X 'GET' \
-  '<your-host>/articles/<article-id>' \
+  '<your-host>/articles/<article-id>' \ # <- replace by the article id
   -H 'accept: application/json'
 ```
 ```json
@@ -376,61 +402,163 @@ curl -X 'GET' \
 { "message": "Unauthorized", "statusCode": 401 }
 ```
 
-Then, logged in as toto, we will retry to get the article.
-```text 
+*Then, logged in as toto, we will retry to get the article.*
+
+```shell 
 # GET /articles/:id
+
+curl -X 'GET' \
+  '<your-host>/articles/<article-id>' \ # <- replace by the article id
+  -H 'accept: application/json' \
+  -H 'Authorization: Bearer <toto-jwt-token>' # <- replace by the toto jwt token
 ```
 ```json
 # Server response
+{
+  "id": "<article-id>",
+  "title": "My first article",
+  "isPublished": false,
+  "authorId": "<toto-id>",
+  "createdAt": "article-created-at",
+  "updatedAt": "article-updated-at"
+}
 ```
 
-Finally, logged in as admin, we will retry to get the article.
-```text
+*Finally, logged in as admin, we will retry to get the article.*
+
+```shell
 # GET /articles/:id
+
+curl -X 'GET' \
+  '<your-host>/articles/<article-id>' \ # <- replace by the article id
+  -H 'accept: application
+  -H 'Authorization: Bearer <admin-jwt-token>' # <- replace by the admin jwt token
 ```
 ```json
 # Server response
+{
+  "message": "Forbidden resource",
+  "error": "Forbidden",
+  "statusCode": 403
+}
 ```
+
+*Ok, the `GetOne` route is well protected and only the author can access the article if not published yet.*
 
 **UpdateOne test**
+<br>*Next, logged in as admin, we will try to update the article with the `PUT` method on the `/articles/:id` route.*
 
-Next, logged in as admin, we will try to update the article with the `PUT` method on the `/articles/:id` route.
-```text
+```shell
 # PUT /articles/:id
+
+curl -X 'PATCH' \
+  '<your-host>/articles/<article-id>' \ # <- replace by the article id
+  -H 'accept: application/json' \
+  -H 'Authorization: Bearer <admin-jwt-token>' \ # <- replace by the admin jwt token
+  -H 'Content-Type: application/json' \
+  -d '{
+  "isPublished": true
+}'
 ```
 ```json
 # Server response
+{
+  "message": "Forbidden resource",
+  "error": "Forbidden",
+  "statusCode": 403
+}
 ```
 
-Let's retry, logged in as toto, to update the article.
-```text
+*Let's retry, logged in as toto, to update the article.*
+
+```shell
 # PUT /articles/:id
+
+curl -X 'PATCH' \
+  '<your-host>/articles/<article-id>' \ # <- replace by the article id
+  -H 'accept: application/json' \
+  -H 'Authorization: Bearer <toto-jwt-token>' \ # <- replace by the toto jwt token
+  -H 'Content-Type: application/json' \
+  -d '{
+  "isPublished": true
+}''
 ```
 ```json
 # Server response
+{
+  "id": "<article-id>",
+  "title": "My first article",
+  "isPublished": true,
+  "authorId": "<toto-id>",
+  "createdAt": "article-created-at",
+  "updatedAt": "new-article-updated-at"
+}
 ```
+
+**GetOne (admin) test**
+<br>*Finally, logged in as admin, we will retry to get the published article.*
+
+```shell
+# GET /articles/:id
+
+curl -X 'GET' \
+  '<your-host>/articles/<article-id>' \ # <- replace by the article id
+  -H 'accept: application
+    -H 'Authorization
+    -H 'Authorization: Bearer <admin-jwt-token>' # <- replace by the admin jwt token
+```
+```json
+# Server response
+{
+  "id": "<article-id>",
+  "title": "My first article",
+  "isPublished": true,
+  "authorId": "<toto-id>",
+  "createdAt": "article-created-at",
+  "updatedAt": "new-article-updated-at"
+}
+```
+*Great, the published article is now accessible to the admin.*
 
 **DeleteOne test**
+<br>*Here, logged in as toto, we will try to delete the article with the `DELETE` method on the `/articles/:id` route.*
 
-Here, logged in as toto, we will try to delete the article with the `DELETE` method on the `/articles/:id` route.
-```text
+```shell
 # DELETE /articles/:id
+
+curl -X 'DELETE' \
+  '<your-host>/articles/<article-id>' \
+  -H 'accept: application/json' \
+  -H 'Authorization: Bearer <toto-jwt-token>' # <- replace by the toto jwt token
 ```
 ```json
 # Server response
+{
+  "message": "Forbidden resource",
+  "error": "Forbidden",
+  "statusCode": 403
+}
 ```
 
-Finally, logged in as admin, we will retry to delete the article.
-```text
+*Finally, logged in as admin, we will retry to delete the article.*
+
+```shell
 # DELETE /articles/:id
+
+curl -X 'DELETE' \
+  '<your-host>/articles/<article-id>' \
+  -H 'accept: application/json' \
+  -H 'Authorization: Bearer <admin-jwt-token>' # <- replace by the admin jwt token
 ```
 ```json
 # Server response
+{ "deletedCount": 1 }
 ```
+
+*As expected, the article is well deleted.*
 
 **DeleteMany test**
-
-Same behavior as the `DeleteOne` route, but for multiple articles.
+<br>*Same behavior as the `DeleteOne` route, but for multiple articles.*
 
 ___
 
