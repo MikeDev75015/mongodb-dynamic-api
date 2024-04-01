@@ -1,9 +1,12 @@
-import { BadRequestException, Type } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Type } from '@nestjs/common';
 import { Builder } from 'builder-pattern';
-import { Model } from 'mongoose';
+import { FilterQuery, Model, Schema } from 'mongoose';
+import { AbilityPredicate } from '../../interfaces';
 import { BaseEntity } from '../../models';
 
 export abstract class BaseService<Entity extends BaseEntity> {
+  public abilityPredicate: AbilityPredicate<Entity> | undefined;
+  public user: unknown;
   protected readonly entity: Type<Entity>;
 
   protected constructor(protected readonly model: Model<Entity>) {}
@@ -14,6 +17,39 @@ export abstract class BaseService<Entity extends BaseEntity> {
     );
   }
 
+  public async findManyDocuments(conditions: FilterQuery<Entity> = {}) {
+    const documents = await this.model
+    .find(conditions)
+    .lean()
+    .exec();
+
+    if (this.abilityPredicate) {
+      documents.forEach((d) => this.handleAbilityPredicate(d as Entity));
+    }
+
+    return documents as Entity[];
+  }
+
+  public async findOneDocument(_id: string | Schema.Types.ObjectId, conditions: FilterQuery<Entity> = {}) {
+    const document = await this.model
+    .findOne({
+      _id,
+      ...conditions,
+    })
+    .lean()
+    .exec();
+
+    if (!document) {
+      throw new BadRequestException('Document not found');
+    }
+
+    if (this.abilityPredicate) {
+      this.handleAbilityPredicate(document as Entity);
+    }
+
+    return document as Entity;
+  }
+
   protected buildInstance(document: Entity) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { _id, id, __v, ...rest } = document;
@@ -21,6 +57,13 @@ export abstract class BaseService<Entity extends BaseEntity> {
     return Builder(this.entity, rest as Partial<Entity>)
       .id(_id?.toString() ?? id)
       .build();
+  }
+
+  protected handleAbilityPredicate(document: Entity) {
+    const isAllowed = this.abilityPredicate(document, this.user);
+    if (!isAllowed) {
+      throw new ForbiddenException('Forbidden resource');
+    }
   }
 
   protected handleDuplicateKeyError(error: any) {

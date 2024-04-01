@@ -26,7 +26,6 @@ class RouteDecoratorsBuilder<Entity extends BaseEntity> implements DynamicApiDec
     private readonly isPublic: boolean | undefined,
     private readonly dTOs: {
       param?: Type;
-      query?: Type;
       body?: Type;
       presenter?: Type;
     } = {},

@@ -10,7 +10,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { addVersionSuffix } from '../../helpers';
+import { getNamePrefix } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseUpdateManyService } from './base-update-many.service';
@@ -19,7 +19,7 @@ import { UpdateManyControllerMixin } from './update-many-controller.mixin';
 import { UpdateManyService } from './update-many-service.interface';
 
 function provideServiceName(entityName, version: string | undefined) {
-  return `UpdateMany${entityName}${addVersionSuffix(version)}Service`;
+  return `${getNamePrefix('UpdateMany', entityName, version)}Service`;
 }
 
 function createUpdateManyServiceProvider<Entity extends BaseEntity>(
@@ -81,7 +81,7 @@ function createUpdateManyController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(UpdateManyController, 'name', {
-    value: `UpdateMany${entity.name}${addVersionSuffix(version)}Controller`,
+    value: `${getNamePrefix('UpdateMany', entity.name, version)}Controller`,
     writable: false,
   });
 

@@ -1,9 +1,8 @@
 import { Body, Type, UseGuards } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
-import { CheckPolicies } from '../../decorators';
 import { addVersionSuffix, RouteDecoratorsHelper } from '../../helpers';
 import { getControllerMixinData } from '../../helpers/controller-mixin.helper';
-import { AppAbility, DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { CreatePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { CreateManyController, CreateManyControllerConstructor } from './create-many-controller.interface';
@@ -58,7 +57,6 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(CreateManyPoliciesGuard)
-    @CheckPolicies((ability: AppAbility<Entity>) => ability.can(routeType, entity))
     // @ts-ignore
     async createMany(@Body() body: RouteBody) {
       return this.service.createMany(body.list as unknown as Partial<Entity>[]);

@@ -1,14 +1,14 @@
 import {
   ControllerAbilityPredicate,
-  RouteAbilityPredicate,
+  AbilityPredicate,
   RouteType,
 } from '../interfaces';
 import { BaseEntity } from '../models';
 
 function getPredicateFromControllerAbilityPredicates<Entity extends BaseEntity>(
   controllerAbilityPredicates: ControllerAbilityPredicate<Entity>[],
-  route: RouteType): RouteAbilityPredicate<Entity> {
-  let routePredicate: RouteAbilityPredicate<Entity>;
+  route: RouteType): AbilityPredicate<Entity> {
+  let routePredicate: AbilityPredicate<Entity>;
 
   if (!controllerAbilityPredicates?.length) {
     return;

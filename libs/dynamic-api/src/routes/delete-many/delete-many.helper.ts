@@ -10,7 +10,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { addVersionSuffix } from '../../helpers';
+import { getNamePrefix } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseDeleteManyService } from './base-delete-many.service';
@@ -19,7 +19,7 @@ import { DeleteManyControllerMixin } from './delete-many-controller.mixin';
 import { DeleteManyService } from './delete-many-service.interface';
 
 function provideServiceName(entityName, version: string | undefined) {
-  return `DeleteMany${entityName}${addVersionSuffix(version)}Service`;
+  return `${getNamePrefix('DeleteMany', entityName, version)}Service`;
 }
 
 function createDeleteManyServiceProvider<Entity extends BaseEntity>(
@@ -81,7 +81,7 @@ function createDeleteManyController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(DeleteManyController, 'name', {
-    value: `DeleteMany${entity.name}${addVersionSuffix(version)}Controller`,
+    value: `${getNamePrefix('DeleteMany', entity.name, version)}Controller`,
     writable: false,
   });
 

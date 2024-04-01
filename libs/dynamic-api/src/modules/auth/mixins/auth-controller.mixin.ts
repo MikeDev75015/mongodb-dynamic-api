@@ -2,13 +2,12 @@ import { Body, Get, HttpCode, HttpStatus, Post, Request, Type, UseGuards } from 
 import { ApiBearerAuth, ApiOkResponse, ApiProperty, IntersectionType, PartialType, PickType } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
 import { AuthDecoratorsBuilder } from '../../../builders';
-import { CheckPolicies, Public } from '../../../decorators';
+import { Public } from '../../../decorators';
 import { RouteDecoratorsHelper } from '../../../helpers';
-import { AppAbility } from '../../../interfaces';
 import { BaseEntity } from '../../../models';
 import { JwtAuthGuard, LocalAuthGuard } from '../guards';
 import { AuthController, AuthControllerConstructor, AuthService, DynamicApiRegisterOptions } from '../interfaces';
-import { AuthRegisterPoliciesGuardMixin, registerRouteType } from './auth-register-policies-guard.mixin';
+import { AuthRegisterPoliciesGuardMixin } from './auth-register-policies-guard.mixin';
 
 function AuthControllerMixin<Entity extends BaseEntity>(
   userEntity: Type<Entity>,
@@ -111,7 +110,6 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     @ApiOkResponse({ type: AuthPresenter })
     @Post('register')
     @UseGuards(AuthRegisterPoliciesGuard)
-    @CheckPolicies((ability: AppAbility<Entity>) => ability.can(registerRouteType, userEntity))
     register(@Body() body: AuthRegisterDto) {
       return this.service.register(body);
     }

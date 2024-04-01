@@ -1,9 +1,8 @@
 import { Body, Param, Type, UseGuards } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
-import { CheckPolicies } from '../../decorators';
 import { addVersionSuffix, RouteDecoratorsHelper } from '../../helpers';
 import { getControllerMixinData } from '../../helpers/controller-mixin.helper';
-import { AppAbility, DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { CreatePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { UpdateOneController, UpdateOneControllerConstructor } from './update-one-controller.interface';
@@ -31,7 +30,7 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
   );
 
   const routeDecoratorsBuilder = new RouteDecoratorsBuilder(
-    'UpdateOne',
+    routeType,
     entity,
     version,
     description,
@@ -58,7 +57,6 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(UpdateOnePoliciesGuard)
-    @CheckPolicies((ability: AppAbility<Entity>) => ability.can(routeType, entity))
     // @ts-ignore
     async updateOne(@Param('id') id: string, @Body() body: RouteBody) {
       return this.service.updateOne(id, body as any);

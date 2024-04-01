@@ -82,10 +82,6 @@ describe('BaseAuthService', () => {
     it('should have changePassword method', () => {
       expect(service).toHaveProperty('changePassword');
     });
-
-    it('should have getUserById method', () => {
-      expect(service).toHaveProperty('getUserById');
-    });
   });
 
   describe('validateUser', () => {

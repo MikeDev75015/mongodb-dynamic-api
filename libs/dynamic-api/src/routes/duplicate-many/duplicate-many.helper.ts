@@ -10,7 +10,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { addVersionSuffix } from '../../helpers';
+import { getNamePrefix } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseDuplicateManyService } from './base-duplicate-many.service';
@@ -19,7 +19,7 @@ import { DuplicateManyControllerMixin } from './duplicate-many-controller.mixin'
 import { DuplicateManyService } from './duplicate-many-service.interface';
 
 function provideServiceName(entityName, version: string | undefined) {
-  return `DuplicateMany${entityName}${addVersionSuffix(version)}Service`;
+  return `${getNamePrefix('DuplicateMany', entityName, version)}Service`;
 }
 
 function createDuplicateManyServiceProvider<Entity extends BaseEntity>(
@@ -81,7 +81,7 @@ function createDuplicateManyController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(DuplicateManyController, 'name', {
-    value: `DuplicateMany${entity.name}${addVersionSuffix(version)}Controller`,
+    value: `${getNamePrefix('DuplicateMany', entity.name, version)}Controller`,
     writable: false,
   });
 

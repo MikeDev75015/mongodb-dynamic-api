@@ -1,34 +1,37 @@
-import { Injectable, Type } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
+import { Inject, Injectable, Type } from '@nestjs/common';
 import { BasePoliciesGuard } from '../guards';
-import { addVersionSuffix } from '../helpers';
+import { getNamePrefix } from '../helpers';
 import {
-  RouteAbilityPredicate,
+  AbilityPredicate,
   PoliciesGuard,
   PoliciesGuardConstructor,
   RouteType,
 } from '../interfaces';
 import { BaseEntity } from '../models';
+import { BaseService } from '../services';
 
-function CreatePoliciesGuardMixin<Entity extends BaseEntity>(
+function CreatePoliciesGuardMixin<Entity extends BaseEntity, Service extends BaseService<Entity>>(
   entity: Type<Entity>,
   routeType: RouteType,
   version: string | undefined,
-  abilityPredicate: RouteAbilityPredicate<Entity> | undefined,
+  abilityPredicate: AbilityPredicate<Entity> | undefined,
 ): PoliciesGuardConstructor<Entity> {
   @Injectable()
-  class RoutePoliciesGuard extends BasePoliciesGuard<Entity> implements PoliciesGuard<Entity> {
+  class RoutePoliciesGuard extends BasePoliciesGuard<Entity, Service> implements PoliciesGuard<Entity> {
     protected routeType = routeType;
     protected entity = entity;
-    protected abilityPredicate: RouteAbilityPredicate<Entity> | undefined = abilityPredicate;
+    protected abilityPredicate: AbilityPredicate<Entity> | undefined = abilityPredicate;
 
-    constructor(protected readonly reflector: Reflector) {
-      super(reflector);
+    constructor(
+      @Inject(`${getNamePrefix(routeType, entity.name, version)}Service`)
+      protected readonly service: Service,
+    ) {
+      super(service);
     }
   }
 
   Object.defineProperty(RoutePoliciesGuard, 'name', {
-    value: `${routeType}${entity.name}${addVersionSuffix(version)}PoliciesGuard`,
+    value: `${getNamePrefix(routeType, entity.name, version)}PoliciesGuard`,
     writable: false,
   });
 

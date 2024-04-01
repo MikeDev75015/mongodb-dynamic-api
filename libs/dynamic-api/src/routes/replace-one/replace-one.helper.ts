@@ -10,7 +10,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { addVersionSuffix } from '../../helpers';
+import { getNamePrefix } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseReplaceOneService } from './base-replace-one.service';
@@ -19,7 +19,7 @@ import { ReplaceOneControllerMixin } from './replace-one-controller.mixin';
 import { ReplaceOneService } from './replace-one-service.interface';
 
 function provideServiceName(entityName, version: string | undefined) {
-  return `ReplaceOne${entityName}${addVersionSuffix(version)}Service`;
+  return `${getNamePrefix('ReplaceOne', entityName, version)}Service`;
 }
 
 function createReplaceOneServiceProvider<Entity extends BaseEntity>(
@@ -81,7 +81,7 @@ function createReplaceOneController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(ReplaceOneController, 'name', {
-    value: `ReplaceOne${entity.name}${addVersionSuffix(version)}Controller`,
+    value: `${getNamePrefix('ReplaceOne', entity.name, version)}Controller`,
     writable: false,
   });
 

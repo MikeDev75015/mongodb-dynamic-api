@@ -1,6 +1,6 @@
 import { ValidationPipeOptions } from '@nestjs/common';
 import { BaseEntity } from '../models';
-import { RouteAbilityPredicate } from './dynamic-api-casl-ability.interface';
+import { AbilityPredicate } from './dynamic-api-ability.interface';
 import { DTOsBundle } from './dynamic-api-route-dtos-bundle.type';
 import { RouteType } from './dynamic-api-route-type.type';
 
@@ -11,7 +11,7 @@ interface DynamicAPIRouteConfig<Entity extends BaseEntity> {
   version?: string;
   dTOs?: DTOsBundle;
   validationPipeOptions?: ValidationPipeOptions;
-  abilityPredicate?: RouteAbilityPredicate<Entity>;
+  abilityPredicate?: AbilityPredicate<Entity>;
 }
 
 export { DynamicAPIRouteConfig };

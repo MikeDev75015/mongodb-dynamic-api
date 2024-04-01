@@ -1,9 +1,9 @@
 import { Query, Type, UseGuards } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
-import { CheckPolicies } from '../../decorators';
-import { addVersionSuffix, RouteDecoratorsHelper } from '../../helpers';
+import { EntityQuery } from '../../dtos';
+import { addVersionSuffix, getFormattedApiTag, RouteDecoratorsHelper } from '../../helpers';
 import { getControllerMixinData } from '../../helpers/controller-mixin.helper';
-import { AppAbility, DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { CreatePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { GetManyController, GetManyControllerConstructor } from './get-many-controller.interface';
@@ -19,7 +19,6 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
     routeType,
     description,
     isPublic,
-    RouteQuery,
     RoutePresenter,
     abilityPredicate,
   } = getControllerMixinData(
@@ -29,6 +28,15 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
     version,
   );
 
+  class RouteQuery extends (
+    routeConfig.dTOs?.query ?? EntityQuery
+  ) {}
+
+  Object.defineProperty(RouteQuery, 'name', {
+    value: `${routeType}${getFormattedApiTag(controllerOptions.apiTag, entity.name)}${addVersionSuffix(version)}Query`,
+    writable: false,
+  });
+
   const routeDecoratorsBuilder = new RouteDecoratorsBuilder(
     routeType,
     entity,
@@ -36,7 +44,6 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
     description,
     isPublic,
     {
-      query: RouteQuery,
       presenter: RoutePresenter,
     },
   );
@@ -56,8 +63,6 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(GetManyPoliciesGuard)
-    @CheckPolicies((ability: AppAbility<Entity>) => ability.can(routeType, entity))
-    // @ts-ignore
     async getMany(@Query() query: RouteQuery) {
       return this.service.getMany(query);
     }

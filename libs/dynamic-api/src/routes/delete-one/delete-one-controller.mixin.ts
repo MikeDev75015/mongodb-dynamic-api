@@ -1,9 +1,8 @@
 import { Param, Type, UseGuards } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
-import { CheckPolicies } from '../../decorators';
 import { addVersionSuffix, RouteDecoratorsHelper } from '../../helpers';
 import { getControllerMixinData } from '../../helpers/controller-mixin.helper';
-import { AppAbility, DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { CreatePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DeleteOneController, DeleteOneControllerConstructor } from './delete-one-controller.interface';
@@ -56,7 +55,6 @@ function DeleteOneControllerMixin<Entity extends BaseEntity>(
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(DeleteOnePoliciesGuard)
-    @CheckPolicies((ability: AppAbility<Entity>) => ability.can(routeType, entity))
     async deleteOne(@Param('id') id: string) {
       return this.service.deleteOne(id);
     }

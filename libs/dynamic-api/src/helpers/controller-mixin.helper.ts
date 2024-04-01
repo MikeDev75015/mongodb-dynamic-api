@@ -2,7 +2,7 @@ import { Type } from '@nestjs/common';
 import { ApiProperty, PickType } from '@nestjs/swagger';
 import { Type as TypeTransformer } from 'class-transformer';
 import { ArrayMinSize, IsInstance, ValidateNested } from 'class-validator';
-import { DeletePresenter, EntityParam, EntityQuery } from '../dtos';
+import { DeletePresenter, EntityParam } from '../dtos';
 import { DTOsBundle, DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../interfaces';
 import { EntityBodyMixin, EntityPresenterMixin } from '../mixins';
 import { BaseEntity } from '../models';
@@ -52,30 +52,11 @@ function buildDeletePresenterDTO(
   ) {}
 
   Object.defineProperty(RoutePresenter, 'name', {
-    value: CustomPresenter ? CustomPresenter.name : `Delete${displayedName}${addVersionSuffix(version)}Presenter`,
+    value: `Delete${displayedName}${addVersionSuffix(version)}Presenter`,
     writable: false,
   });
 
   return RoutePresenter;
-}
-
-function buildDefaultRouteQuery<Entity extends BaseEntity>(
-  entity: Type<Entity>,
-  routeType: string,
-  displayedName: string,
-  version: string,
-  CustomQuery: Type,
-): Type {
-  class RouteQuery extends (
-    CustomQuery ?? EntityQuery
-  ) {}
-
-  Object.defineProperty(RouteQuery, 'name', {
-    value: CustomQuery ? CustomQuery.name : `${routeType}${displayedName}${addVersionSuffix(version)}Query`,
-    writable: false,
-  });
-
-  return RouteQuery;
 }
 
 function buildDefaultRouteBody<Entity extends BaseEntity>(
@@ -92,7 +73,7 @@ function buildDefaultRouteBody<Entity extends BaseEntity>(
   ) {}
 
   Object.defineProperty(RouteBody, 'name', {
-    value: CustomBody ? CustomBody.name : `${routeType}${displayedName}${addVersionSuffix(version)}Dto`,
+    value: `${routeType}${displayedName}${addVersionSuffix(version)}Dto`,
     writable: false,
   });
 
@@ -111,7 +92,9 @@ function buildDefaultRoutePresenter<Entity extends BaseEntity>(
   ) {}
 
   Object.defineProperty(RoutePresenter, 'name', {
-    value: CustomPresenter ? CustomPresenter.name : `${displayedName}${addVersionSuffix(version)}Presenter`,
+    value: CustomPresenter
+      ? `${routeType}${displayedName}${addVersionSuffix(version)}Presenter`
+      : `${displayedName}${addVersionSuffix(version)}Presenter`,
     writable: false,
   });
 
@@ -126,7 +109,6 @@ function getDTOsByRouteType<Entity extends BaseEntity>(
   dTOs: DTOsBundle,
 ) {
   const {
-    query: CustomQuery,
     body: CustomBody,
     presenter: CustomPresenter,
   } = dTOs ?? {};
@@ -136,7 +118,6 @@ function getDTOsByRouteType<Entity extends BaseEntity>(
     writable: false,
   });
 
-  const RouteQuery = buildDefaultRouteQuery(entity, routeType, displayedName, version, CustomQuery);
   const RouteBody = buildDefaultRouteBody(entity, routeType, displayedName, version, CustomBody);
   const RoutePresenter = buildDefaultRoutePresenter(entity, routeType, displayedName, version, CustomPresenter);
 
@@ -177,14 +158,12 @@ function getDTOsByRouteType<Entity extends BaseEntity>(
 
     case 'GetMany':
       return {
-        RouteQuery,
         RoutePresenter,
       };
 
     case 'GetOne':
       return {
         EntityParam,
-        RouteQuery,
         RoutePresenter,
       };
 
