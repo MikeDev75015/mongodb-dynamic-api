@@ -1,9 +1,8 @@
 import { Body, Query, Type, UseGuards } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
-import { CheckPolicies } from '../../decorators';
 import { addVersionSuffix, RouteDecoratorsHelper } from '../../helpers';
 import { getControllerMixinData } from '../../helpers/controller-mixin.helper';
-import { AppAbility, DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { CreatePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DuplicateManyController, DuplicateManyControllerConstructor } from './duplicate-many-controller.interface';
@@ -56,7 +55,6 @@ function DuplicateManyControllerMixin<Entity extends BaseEntity>(
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(DuplicateManyPoliciesGuard)
-    @CheckPolicies((ability: AppAbility<Entity>) => ability.can(routeType, entity))
     // @ts-ignore
     async duplicateMany(@Query('ids') ids: string[], @Body() body?: RouteBody) {
       return this.service.duplicateMany(ids, body as any);

@@ -12,7 +12,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { addVersionSuffix } from '../../helpers';
+import { getNamePrefix } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseGetManyService } from './base-get-many.service';
@@ -21,7 +21,7 @@ import { GetManyControllerMixin } from './get-many-controller.mixin';
 import { GetManyService } from './get-many-service.interface';
 
 function provideServiceName(entityName, version: string | undefined) {
-  return `GetMany${entityName}${addVersionSuffix(version)}Service`;
+  return `${getNamePrefix('GetMany', entityName, version)}Service`;
 }
 
 function createGetManyServiceProvider<Entity extends BaseEntity>(
@@ -83,7 +83,7 @@ function createGetManyController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(GetManyController, 'name', {
-    value: `GetMany${entity.name}${addVersionSuffix(version)}Controller`,
+    value: `${getNamePrefix('GetMany', entity.name, version)}Controller`,
     writable: false,
   });
 

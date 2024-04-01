@@ -60,13 +60,13 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     // @ts-ignore
     const hashedPassword = await this.bcryptService.hashPassword(userToCreate[this.passwordField]);
     const { _id } = await this.model.create({ ...userToCreate, [this.passwordField]: hashedPassword });
-    const user = await this.getUserById(_id.toString());
+    const user = await this.findOneDocument(_id);
 
     return this.login(user);
   }
 
   protected async getAccount({ id }: Entity): Promise<Entity> {
-    const user = await this.getUserById(id);
+    const user = await this.findOneDocument(id);
 
     const fieldsToBuild = [
       '_id' as keyof Entity,
@@ -88,16 +88,9 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
       { new: true },
     );
 
-    const user = await this.getUserById(_id.toString());
+    const user = await this.findOneDocument(_id);
 
     return this.login(user);
-  }
-
-  private async getUserById(userId: string) {
-    // @ts-ignore
-    return (
-      await this.model.findOne({ _id: userId }).lean().exec()
-    ) as Entity;
   }
 
   private buildUserFields(user: Entity, fieldsToBuild: (keyof Entity)[]) {

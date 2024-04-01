@@ -1,10 +1,9 @@
 import { Param, Type, UseGuards } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
-import { CheckPolicies } from '../../decorators';
 import { EntityParam } from '../../dtos';
 import { addVersionSuffix, RouteDecoratorsHelper } from '../../helpers';
 import { getControllerMixinData } from '../../helpers/controller-mixin.helper';
-import { AppAbility, DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { CreatePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { GetOneController, GetOneControllerConstructor } from './get-one-controller.interface';
@@ -20,7 +19,6 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
     routeType,
     description,
     isPublic,
-    RouteQuery,
     RoutePresenter,
     abilityPredicate,
   } = getControllerMixinData(
@@ -38,7 +36,6 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
     isPublic,
     {
       param: EntityParam,
-      query: RouteQuery,
       presenter: RoutePresenter,
     },
   );
@@ -58,7 +55,6 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(GetOnePoliciesGuard)
-    @CheckPolicies((ability: AppAbility<Entity>) => ability.can(routeType, entity))
     async getOne(@Param('id') id: string) {
       return this.service.getOne(id);
     }

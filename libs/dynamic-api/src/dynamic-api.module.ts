@@ -10,6 +10,7 @@ import { buildSchemaFromEntity, getDefaultRouteDescription, isValidVersion } fro
 import { DynamicApiCacheInterceptor } from './interceptors';
 import {
   DYNAMIC_API_GLOBAL_STATE,
+  DynamicApiCacheOptions,
   DynamicApiForFeatureOptions,
   DynamicApiForRootOptions,
   DynamicApiGlobalState,
@@ -18,7 +19,7 @@ import {
   RouteType,
 } from './interfaces';
 import { BaseEntity } from './models';
-import { AuthModule, DynamicApiConfigModule } from './modules';
+import { AuthModule, DynamicApiAuthOptions, DynamicApiConfigModule } from './modules';
 import {
   CreateManyModule,
   CreateOneModule,
@@ -76,23 +77,8 @@ export class DynamicApiModule {
     }
 
     this.state.set([
-      'partial', {
-        initialized: true,
-        isGlobalCacheEnabled: useGlobalCache,
-        ...(
-          cacheOptions?.excludePaths ? { cacheExcludedPaths: cacheOptions?.excludePaths } : {}
-        ),
-        ...(
-          useAuth?.user ? {
-            isAuthEnabled: true,
-            credentials: {
-              loginField: !useAuth.user.loginField ? 'email' : String(useAuth.user.loginField),
-              passwordField: !useAuth.user.passwordField ? 'password' : String(useAuth.user.passwordField),
-            },
-            jwtSecret: useAuth.jwt?.secret ?? 'dynamic-api-jwt-secret',
-          } : {}
-        ),
-      },
+      'partial',
+      this.buildStateFromOptions(useGlobalCache, cacheOptions, useAuth),
     ]);
 
     return {
@@ -106,22 +92,7 @@ export class DynamicApiModule {
         ),
         ...(
           useAuth?.user ? [
-            AuthModule.forRoot({
-              user: {
-                entity: useAuth.user.entity,
-                loginField: useAuth.user.loginField ?? 'email',
-                passwordField: useAuth.user.passwordField ?? 'password',
-                requestAdditionalFields: useAuth.user.requestAdditionalFields ?? [],
-              },
-              jwt: {
-                secret: useAuth.jwt?.secret ?? 'dynamic-api-jwt-secret',
-                expiresIn: useAuth.jwt?.expiresIn ?? '1d',
-              },
-              register: useAuth.register ?? {
-                protected: false,
-                additionalFields: [],
-              },
-            }),
+            AuthModule.forRoot(this.initializeAuthOptions(useAuth)),
           ] : []
         ),
       ],
@@ -262,12 +233,71 @@ export class DynamicApiModule {
   }
 
   /**
+   * Builds the global state from the provided options.
+   * @param {boolean} useGlobalCache - Whether to use global cache.
+   * @param {DynamicApiCacheOptions} cacheOptions - The cache options.
+   * @param {DynamicApiAuthOptions} useAuth - The auth options.
+   * @returns {{ initialized: boolean; isGlobalCacheEnabled: boolean }} - The built state.
+   */
+  private static buildStateFromOptions(
+    useGlobalCache: boolean,
+    cacheOptions: DynamicApiCacheOptions,
+    useAuth: DynamicApiAuthOptions,
+  ): Partial<DynamicApiGlobalState> {
+    return {
+      initialized: true,
+      isGlobalCacheEnabled: useGlobalCache,
+      ...(
+        cacheOptions?.excludePaths ? { cacheExcludedPaths: cacheOptions?.excludePaths } : {}
+      ),
+      ...(
+        useAuth?.user ? {
+          isAuthEnabled: true,
+          credentials: {
+            loginField: !useAuth.user.loginField ? 'email' : String(useAuth.user.loginField),
+            passwordField: !useAuth.user.passwordField ? 'password' : String(useAuth.user.passwordField),
+          },
+          jwtSecret: useAuth.jwt?.secret ?? 'dynamic-api-jwt-secret',
+        } : {}
+      ),
+    };
+  }
+
+  /**
+   * Initializes the auth options with default values.
+   * @param {DynamicApiAuthOptions} useAuth - The auth options.
+   * @returns {DynamicApiAuthOptions} - The initialized auth options.
+   */
+  private static initializeAuthOptions(useAuth: DynamicApiAuthOptions): DynamicApiAuthOptions {
+    return {
+      user: {
+        entity: useAuth.user.entity,
+        loginField: useAuth.user.loginField ?? 'email',
+        passwordField: useAuth.user.passwordField ?? 'password',
+        requestAdditionalFields: useAuth.user.requestAdditionalFields ?? [],
+      },
+      jwt: {
+        secret: useAuth.jwt?.secret ?? 'dynamic-api-jwt-secret',
+        expiresIn: useAuth.jwt?.expiresIn ?? '1d',
+      },
+      register: useAuth.register ? {
+        ...useAuth.register,
+        protected: useAuth.register.protected ?? !!useAuth.register.abilityPredicate,
+      } : {
+        protected: false,
+        additionalFields: [],
+      },
+    };
+  }
+
+  /**
    * Sets default routes if none are configured.
    * @param {DynamicAPIRouteConfig[]} routes - The routes to configure.
    * @returns {DynamicAPIRouteConfig[]} - The configured routes.
    */
   private static setDefaultRoutesIfNotConfigured<Entity extends BaseEntity>(
-    routes: DynamicAPIRouteConfig<Entity>[]): DynamicAPIRouteConfig<Entity>[] {
+    routes: DynamicAPIRouteConfig<Entity>[],
+  ): DynamicAPIRouteConfig<Entity>[] {
     if (!routes.length) {
       return [
         { type: 'GetMany' },

@@ -1,148 +1,65 @@
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { AppAbility, PolicyHandler, RouteType } from '../interfaces';
 import { BaseEntity } from '../models';
+import { BaseService } from '../services';
 import { BasePoliciesGuard } from './base-policies.guard';
 
-jest.mock('@casl/ability', () => {
-  class AbilityBuilderMock {
-    can = jest.fn();
-
-    build = jest.fn().mockReturnValue({} as AppAbility<any>);
-  }
-
-  return { AbilityBuilder: AbilityBuilderMock };
-});
-
 describe('BasePoliciesGuard', () => {
-  class Test extends BaseEntity {}
+  class PoliciesGuard<
+    Entity extends BaseEntity = any,
+    Service extends BaseService<Entity> = any
+  > extends BasePoliciesGuard<Entity, Service> {}
 
-  const entity = Test;
-  const routeType: RouteType = 'GetMany';
+  let guard: PoliciesGuard;
+  let context: ExecutionContext;
+  let service: any;
 
-  class User {
-    readonly isAdmin: boolean;
+  beforeEach(() => {
+    service = {};
+    // @ts-ignore
+    guard = new PoliciesGuard(service);
+    context = {
+      switchToHttp: jest.fn().mockReturnValue({
+        getRequest: jest.fn().mockReturnValue({}),
+      }),
+    } as unknown as ExecutionContext;
+  });
 
-    constructor(isAdmin: boolean) {
-      this.isAdmin = isAdmin;
-    }
-  }
+  it('should throw ForbiddenException if user is not defined and abilityPredicate is defined', async () => {
+    guard['abilityPredicate'] = jest.fn();
+    await expect(guard.canActivate(context)).rejects.toThrow(ForbiddenException);
+  });
 
-  const abilityPredicate = <Entity>(entity: Entity, user: User) => user.isAdmin;
+  it('should not throw ForbiddenException if user is not defined and abilityPredicate is not defined', async () => {
+    guard['abilityPredicate'] = undefined;
+    await expect(guard.canActivate(context)).resolves.not.toThrow();
+  });
 
-  const fakePolicyHandlers = {
-    every: jest.fn().mockReturnValue(false),
-  } as unknown as PolicyHandler<any>[];
+  it('should call findOneDocument if params.id is defined', async () => {
+    service.findOneDocument = jest.fn();
+    context.switchToHttp().getRequest().params = { id: '1' };
+    guard['abilityPredicate'] = jest.fn();
+    context.switchToHttp().getRequest().user = {};
+    await guard.canActivate(context);
+    expect(service.findOneDocument).toHaveBeenCalled();
+  });
 
-  describe('canActivate', () => {
-    let context: ExecutionContext;
+  it('should call findManyDocuments if params.id is not defined', async () => {
+    service.findManyDocuments = jest.fn();
+    guard['abilityPredicate'] = jest.fn();
+    context.switchToHttp().getRequest().user = {};
+    await guard.canActivate(context);
+    expect(service.findManyDocuments).toHaveBeenCalled();
+  });
 
-    beforeEach(() => {
-      context = {
-        getHandler: jest.fn().mockReturnValue(undefined),
-        switchToHttp: jest.fn(),
-      } as unknown as ExecutionContext;
-    });
+  it('should return true if abilityPredicate is not defined', async () => {
+    guard['abilityPredicate'] = undefined;
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+  });
 
-    it('should return true if policyHandlers is not defined', () => {
-      class TestPoliciesGuard extends BasePoliciesGuard<BaseEntity> {
-        protected abilityPredicate = abilityPredicate;
-
-        protected entity = entity;
-
-        protected routeType = routeType;
-
-        constructor(reflector: Reflector) {
-          super(reflector);
-        }
-      }
-
-      const reflector = { get: jest.fn().mockReturnValue(undefined) } as unknown as Reflector;
-      const guard = new TestPoliciesGuard(reflector);
-
-      expect(guard.canActivate(context)).toBe(true);
-    });
-
-    it('should return true if abilityPredicate is not defined', () => {
-      class TestPoliciesGuard extends BasePoliciesGuard<BaseEntity> {
-        protected abilityPredicate = undefined;
-
-        protected entity = entity;
-
-        protected routeType = routeType;
-
-        constructor(reflector: Reflector) {
-          super(reflector);
-        }
-      }
-
-      const reflector = { get: jest.fn().mockReturnValue([]) } as unknown as Reflector;
-      const guard = new TestPoliciesGuard(reflector);
-
-      expect(guard.canActivate(context)).toBe(true);
-    });
-
-    it('should throw an UnauthorizedException', () => {
-      class TestPoliciesGuard extends BasePoliciesGuard<BaseEntity> {
-        protected abilityPredicate = abilityPredicate;
-
-        protected entity = entity;
-
-        protected routeType = routeType;
-
-        constructor(reflector: Reflector) {
-          super(reflector);
-        }
-      }
-
-      const reflector = { get: jest.fn().mockReturnValue([]) } as unknown as Reflector;
-      const guard = new TestPoliciesGuard(reflector);
-      context.switchToHttp = jest.fn().mockReturnValue({ getRequest: jest.fn().mockReturnValue({ user: undefined }) });
-
-      expect(() => guard.canActivate(context))
-      .toThrow(new ForbiddenException('Forbidden resource'));
-    });
-
-    it('should return true if user has ability', () => {
-      class TestPoliciesGuard extends BasePoliciesGuard<BaseEntity> {
-        protected abilityPredicate = abilityPredicate;
-
-        protected entity = entity;
-
-        protected routeType = routeType;
-
-        constructor(reflector: Reflector) {
-          super(reflector);
-        }
-      }
-
-      const reflector = { get: jest.fn().mockReturnValue([]) } as unknown as Reflector;
-      const guard = new TestPoliciesGuard(reflector);
-      const user = new User(true);
-      context.switchToHttp = jest.fn().mockReturnValue({ getRequest: jest.fn().mockReturnValue({ user }) });
-
-      expect(guard.canActivate(context)).toBe(true);
-    });
-
-    it('should return false if user does not have ability', () => {
-      class TestPoliciesGuard extends BasePoliciesGuard<BaseEntity> {
-        protected abilityPredicate = abilityPredicate;
-
-        protected entity = entity;
-
-        protected routeType = routeType;
-
-        constructor(reflector: Reflector) {
-          super(reflector);
-        }
-      }
-
-      const reflector = { get: jest.fn().mockReturnValue(fakePolicyHandlers) } as unknown as Reflector;
-      const guard = new TestPoliciesGuard(reflector);
-      const user = new User(false);
-      context.switchToHttp = jest.fn().mockReturnValue({ getRequest: jest.fn().mockReturnValue({ user }) });
-
-      expect(guard.canActivate(context)).toBe(false);
-    });
+  it('should return true if abilityPredicate is defined', async () => {
+    service.findManyDocuments = jest.fn();
+    guard['abilityPredicate'] = jest.fn();
+    context.switchToHttp().getRequest().user = {};
+    await expect(guard.canActivate(context)).resolves.toBe(true);
   });
 });

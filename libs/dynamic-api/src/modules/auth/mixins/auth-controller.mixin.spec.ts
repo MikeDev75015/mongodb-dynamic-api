@@ -8,7 +8,11 @@ describe('AuthControllerMixin', () => {
 
     passwordField: string;
 
-    additionalField?: string;
+    field1?: string;
+
+    field2?: string;
+
+    field3?: string;
   }
 
   let service: AuthService<TestEntity>;
@@ -21,27 +25,6 @@ describe('AuthControllerMixin', () => {
     } as unknown as AuthService<TestEntity>;
   });
 
-  it('should create AuthController with login endpoint', () => {
-    const AuthController = AuthControllerMixin(TestEntity, 'loginField', 'passwordField', ['additionalField']);
-    const controller = new AuthController(service);
-
-    expect(controller.login).toBeDefined();
-  });
-
-  it('should create AuthController with register endpoint', () => {
-    const AuthController = AuthControllerMixin(TestEntity, 'loginField', 'passwordField');
-    const controller = new AuthController(service);
-
-    expect(controller.register).toBeDefined();
-  });
-
-  it('should create AuthController with getAccount endpoint', () => {
-    const AuthController = AuthControllerMixin(TestEntity, 'loginField', 'passwordField');
-    const controller = new AuthController(service);
-
-    expect(controller.getAccount).toBeDefined();
-  });
-
   it('should throw error when invalid entity is provided', () => {
     expect(() => AuthControllerMixin<TestEntity>(null, 'loginField', 'passwordField')).toThrow();
   });
@@ -52,5 +35,37 @@ describe('AuthControllerMixin', () => {
 
   it('should throw error when invalid passwordField is provided', () => {
     expect(() => AuthControllerMixin(TestEntity, 'loginField', null)).toThrow();
+  });
+
+  it('should create AuthController with login, register and getAccount endpoints', () => {
+    const AuthController = AuthControllerMixin(
+      TestEntity,
+      'loginField',
+      'passwordField',
+    );
+    const controller = new AuthController(service);
+
+    expect(controller.login).toBeDefined();
+    expect(controller.register).toBeDefined();
+    expect(controller.getAccount).toBeDefined();
+  });
+
+  it('should create AuthController with additional fields', () => {
+    const AuthController = AuthControllerMixin(
+      TestEntity,
+      'loginField',
+      'passwordField',
+      ['field1'],
+      {
+        additionalFields: ['field1', { name: 'field2', required: true }, { name: 'field3', required: false }],
+        abilityPredicate: (user: any) => user.isAdmin,
+        protected: true,
+      }
+    );
+    const controller = new AuthController(service);
+
+    expect(controller.login).toBeDefined();
+    expect(controller.register).toBeDefined();
+    expect(controller.getAccount).toBeDefined();
   });
 });

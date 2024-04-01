@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { BaseEntity } from '../../models';
 import { BaseService } from './base.service';
 
@@ -94,6 +94,113 @@ describe('BaseService', () => {
       const service = new TestService({} as any);
 
       expect(() => service['handleDocumentNotFound']()).toThrow(
+        new BadRequestException('Document not found'),
+      );
+    });
+  });
+
+  describe('findManyDocuments', () => {
+    it('should not call handleAbilityPredicate return an array of documents', async () => {
+      const documents = [{ name: 'toto' }, { name: 'unit' }];
+      const model = {
+        find: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(documents),
+      };
+      const service = new TestService(model);
+
+      const result = await service.findManyDocuments();
+
+      expect(result).toEqual(documents);
+    });
+
+    it('should call handleAbilityPredicate for each document and return an array of documents', async () => {
+      const documents = [{ name: 'toto' }, { name: 'unit' }];
+      const model = {
+        find: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(documents),
+      };
+      const service = new TestService(model);
+      service.abilityPredicate = jest.fn().mockReturnValue(true);
+
+      const result = await service.findManyDocuments();
+
+      expect(result).toEqual(documents);
+      expect(service.abilityPredicate).toHaveBeenCalledTimes(documents.length);
+    });
+
+    it('should throw a ForbiddenException if the abilityPredicate returns false', async () => {
+      const documents = [{ name: 'toto' }, { name: 'unit' }];
+      const model = {
+        find: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(documents),
+      };
+      const service = new TestService(model);
+      service.abilityPredicate = jest.fn().mockReturnValue(false);
+
+      await expect(service.findManyDocuments()).rejects.toThrowError(
+        new ForbiddenException('Forbidden resource'),
+      );
+    });
+  });
+
+  describe('findOneDocument', () => {
+    it('should not call handleAbilityPredicate return the document', async () => {
+      const document = { name: 'toto' };
+      const model = {
+        findOne: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(document),
+      };
+      const service = new TestService(model);
+
+      const result = await service.findOneDocument('id', { test: 'unit' });
+
+      expect(result).toEqual(document);
+    });
+
+    it('should call handleAbilityPredicate for the document and return the document', async () => {
+      const document = { name: 'toto' };
+      const model = {
+        findOne: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(document),
+      };
+      const service = new TestService(model);
+      service.abilityPredicate = jest.fn().mockReturnValue(true);
+
+      const result = await service.findOneDocument('id');
+
+      expect(result).toEqual(document);
+      expect(service.abilityPredicate).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw a ForbiddenException if the abilityPredicate returns false', async () => {
+      const document = { name: 'toto' };
+      const model = {
+        findOne: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(document),
+      };
+      const service = new TestService(model);
+      service.abilityPredicate = jest.fn().mockReturnValue(false);
+
+      await expect(service.findOneDocument('id')).rejects.toThrow(
+        new ForbiddenException('Forbidden resource'),
+      );
+    });
+
+    it('should throw a BadRequestException if the document is not found', async () => {
+      const model = {
+        findOne: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(null),
+      };
+      const service = new TestService(model);
+
+      await expect(service.findOneDocument('id')).rejects.toThrow(
         new BadRequestException('Document not found'),
       );
     });
