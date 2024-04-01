@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Type } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException, Type } from '@nestjs/common';
 import { Builder } from 'builder-pattern';
 import { FilterQuery, Model, Schema } from 'mongoose';
 import { AbilityPredicate } from '../../interfaces';
@@ -81,6 +81,6 @@ export abstract class BaseService<Entity extends BaseEntity> {
   }
 
   protected handleDocumentNotFound() {
-    throw new BadRequestException('Document not found');
+    throw new NotFoundException('Document not found');
   }
 }
