@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { BaseEntity } from '../../models';
 import { BaseService } from './base.service';
 
@@ -192,7 +192,7 @@ describe('BaseService', () => {
       );
     });
 
-    it('should throw a BadRequestException if the document is not found', async () => {
+    it('should throw a NotFoundException if the document is not found', async () => {
       const model = {
         findOne: jest.fn().mockReturnThis(),
         lean: jest.fn().mockReturnThis(),
@@ -201,7 +201,7 @@ describe('BaseService', () => {
       const service = new TestService(model);
 
       await expect(service.findOneDocument('id')).rejects.toThrow(
-        new BadRequestException('Document not found'),
+        new NotFoundException('Document not found'),
       );
     });
   });
