@@ -251,7 +251,7 @@ import { Article } from './article';
         {
           type: 'GetOne',
           abilityPredicate: (article: Article, user: User) =>
-            article.authorId === user.id || user.isAdmin || article.isPublished,
+            article.authorId === user.id || article.isPublished,
         },
         {
           type: 'CreateOne', // <- protected by default, needs the user to be authenticated to access it
@@ -314,8 +314,7 @@ Ok now we have 2 APIs, **Auth** and **Articles**, with routes strongly protected
 ___
 
 **CreateOne test**
-
-*First of all, let's try to create an article with the `POST` method on the `/articles` route without being authenticated.*
+<br>*First of all, let's try to create an article with the `POST` method on the `/articles` route without being authenticated.*
 
 ```shell
 # POST /articles
@@ -362,8 +361,7 @@ curl -X 'POST' \
 ```
 
 **GetMany test**
-
-*Next, we will try to get all the articles with the `GET` method on the `/articles` route without being authenticated.*
+<br>*Next, we will try to get all the articles with the `GET` method on the `/articles` route without being authenticated.*
 
 ```shell
 # GET /articles
@@ -387,8 +385,7 @@ curl -X 'GET' \
 ```
 
 **GetOne test**
-
-*Now, we will try to get the article with the `GET` method on the `/articles/:id` route without being authenticated.*
+<br>*Now, we will try to get the article with the `GET` method on the `/articles/:id` route without being authenticated.*
 
 ```shell
 # GET /articles/:id
