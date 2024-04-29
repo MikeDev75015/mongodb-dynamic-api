@@ -16,6 +16,7 @@ import {
   DynamicApiGlobalState,
   DynamicAPIRouteConfig,
   RouteModule,
+  RoutesConfig,
   RouteType,
 } from './interfaces';
 import { BaseEntity } from './models';
@@ -53,6 +54,22 @@ export class DynamicApiModule {
     credentials: null,
     jwtSecret: undefined,
     cacheExcludedPaths: [],
+    routesConfig: {
+      excluded: [],
+      defaults: [
+        'GetMany',
+        'GetOne',
+        'CreateMany',
+        'CreateOne',
+        'UpdateMany',
+        'UpdateOne',
+        'ReplaceOne',
+        'DuplicateMany',
+        'DuplicateOne',
+        'DeleteMany',
+        'DeleteOne',
+      ],
+    },
   });
 
   /**
@@ -68,6 +85,7 @@ export class DynamicApiModule {
       useGlobalCache = true,
       cacheOptions = {},
       useAuth,
+      routesConfig,
     }: DynamicApiForRootOptions = {},
   ): DynamicModule {
     if (!uri) {
@@ -78,7 +96,7 @@ export class DynamicApiModule {
 
     this.state.set([
       'partial',
-      this.buildStateFromOptions(useGlobalCache, cacheOptions, useAuth),
+      this.buildStateFromOptions(useGlobalCache, cacheOptions, useAuth, routesConfig),
     ]);
 
     return {
@@ -111,12 +129,13 @@ export class DynamicApiModule {
     controllerOptions,
     routes = [],
   }: DynamicApiForFeatureOptions<Entity>): Promise<DynamicModule> {
+    const schema = buildSchemaFromEntity(entity);
     const databaseModule = MongooseModule.forFeature(
-      [{ name: entity.name, schema: buildSchemaFromEntity(entity) }],
+      [{ name: entity.name, schema }],
       this.state.get('connectionName'),
     );
 
-    routes = this.setDefaultRoutesIfNotConfigured([...routes]);
+    this.state.get().addEntitySchema(entity.name, schema);
 
     return new Promise((resolve, reject) => {
       const waitInitializedStateInterval = setInterval(async () => {
@@ -133,6 +152,7 @@ export class DynamicApiModule {
         const {
           version: controllerVersion,
           validationPipeOptions: controllerValidationPipeOptions,
+          routesConfig: controllerRoutesConfig,
         } = controllerOptions;
 
         const castType = (t: RouteType) => t;
@@ -151,6 +171,12 @@ export class DynamicApiModule {
           [castType('UpdateMany'), castModule(UpdateManyModule)],
           [castType('UpdateOne'), castModule(UpdateOneModule)],
         ]);
+
+        routes = this.setDefaultRoutes(
+          this.state.get('routesConfig'),
+          controllerRoutesConfig,
+          routes,
+        );
 
         const apiModule = {
           module: DynamicApiModule,
@@ -237,13 +263,17 @@ export class DynamicApiModule {
    * @param {boolean} useGlobalCache - Whether to use global cache.
    * @param {DynamicApiCacheOptions} cacheOptions - The cache options.
    * @param {DynamicApiAuthOptions} useAuth - The auth options.
+   * @param routesConfig - The routes configuration.
    * @returns {{ initialized: boolean; isGlobalCacheEnabled: boolean }} - The built state.
    */
   private static buildStateFromOptions(
     useGlobalCache: boolean,
     cacheOptions: DynamicApiCacheOptions,
-    useAuth: DynamicApiAuthOptions,
+    useAuth?: DynamicApiAuthOptions,
+    routesConfig?: Partial<RoutesConfig>,
   ): Partial<DynamicApiGlobalState> {
+    const routesConfigState = this.state.get<RoutesConfig>('routesConfig');
+
     return {
       initialized: true,
       isGlobalCacheEnabled: useGlobalCache,
@@ -258,6 +288,14 @@ export class DynamicApiModule {
             passwordField: !useAuth.user.passwordField ? 'password' : String(useAuth.user.passwordField),
           },
           jwtSecret: useAuth.jwt?.secret ?? 'dynamic-api-jwt-secret',
+        } : {}
+      ),
+      ...(
+        routesConfig?.excluded?.length || routesConfig?.defaults.length ? {
+          routesConfig: {
+            defaults: routesConfig.defaults?.length ? routesConfig.defaults : routesConfigState.defaults,
+            excluded: routesConfig.excluded ?? [],
+          },
         } : {}
       ),
     };
@@ -293,27 +331,24 @@ export class DynamicApiModule {
   /**
    * Sets default routes if none are configured.
    * @param {DynamicAPIRouteConfig[]} routes - The routes to configure.
+   * @param stateRoutesConfig - The state routes configuration.
+   * @param controllerRoutesConfig - The controller routes configuration.
    * @returns {DynamicAPIRouteConfig[]} - The configured routes.
    */
-  private static setDefaultRoutesIfNotConfigured<Entity extends BaseEntity>(
-    routes: DynamicAPIRouteConfig<Entity>[],
+  private static setDefaultRoutes<Entity extends BaseEntity>(
+    stateRoutesConfig: RoutesConfig,
+    controllerRoutesConfig: Partial<RoutesConfig> = {},
+    routes: DynamicAPIRouteConfig<Entity>[] = [],
   ): DynamicAPIRouteConfig<Entity>[] {
-    if (!routes.length) {
-      return [
-        { type: 'GetMany' },
-        { type: 'GetOne' },
-        { type: 'CreateMany' },
-        { type: 'CreateOne' },
-        { type: 'UpdateMany' },
-        { type: 'UpdateOne' },
-        { type: 'ReplaceOne' },
-        { type: 'DuplicateMany' },
-        { type: 'DuplicateOne' },
-        { type: 'DeleteMany' },
-        { type: 'DeleteOne' },
-      ];
-    }
+    const defaults = controllerRoutesConfig.defaults ?? stateRoutesConfig.defaults;
+    const excluded = controllerRoutesConfig.excluded ?? stateRoutesConfig.excluded;
+    return defaults.filter(
+      (type) => !excluded.includes(type),
+    )
+    .map((type) => {
+      const configuredRoute = routes.find((route) => route.type === type);
 
-    return routes;
+      return configuredRoute ?? { type };
+    }).concat(routes.filter((route) => !defaults.includes(route.type)));
   }
 }
