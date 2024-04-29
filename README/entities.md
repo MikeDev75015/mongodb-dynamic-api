@@ -56,11 +56,13 @@ to support soft deletion.
 
 ```typescript
 export abstract class SoftDeletableEntity extends BaseEntity {
-  @Column({ type: 'boolean', default: false })
+  @Exclude()
+  @Prop({ type: Boolean, default: false })
   isDeleted: boolean;
 
-  @Column({ type: 'timestamp', nullable: true })
-  deletedAt: Date;
+  @ApiProperty({ type: Date, nullable: true })
+  @Prop({ type: Date, nullable: true })
+  deletedAt: Date | null;
 }
 ```
 
