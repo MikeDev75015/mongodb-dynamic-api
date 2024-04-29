@@ -1,4 +1,4 @@
-import { Type } from '@nestjs/common';
+import { Type, ValidationPipeOptions } from '@nestjs/common';
 import { RegisterAbilityPredicate } from '../../../interfaces';
 import { BaseEntity } from '../../../models';
 
@@ -20,6 +20,7 @@ type DynamicApiAuthOptions<Entity extends BaseEntity = any> = {
     secret: string;
     expiresIn?: string | number;
   };
+  validationPipeOptions?: ValidationPipeOptions;
 };
 
 export type { DynamicApiAuthOptions, DynamicApiRegisterOptions };

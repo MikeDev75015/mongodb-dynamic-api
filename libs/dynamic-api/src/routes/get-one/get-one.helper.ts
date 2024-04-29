@@ -2,13 +2,14 @@ import {
   ClassSerializerInterceptor,
   Controller,
   Inject,
-  Type, UseInterceptors,
-  UsePipes,
-  ValidationPipe, ValidationPipeOptions,
+  Type,
+  UseInterceptors,
+  ValidationPipeOptions,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
+import { ValidatorPipe } from '../../decorators';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { getNamePrefix } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
@@ -62,9 +63,7 @@ function createGetOneController<Entity extends BaseEntity>(
 
   @Controller({ path, version })
   @ApiTags(apiTag || entity.name)
-  @UsePipes(
-    new ValidationPipe(validationPipeOptions),
-  )
+  @ValidatorPipe(validationPipeOptions)
   @UseInterceptors(ClassSerializerInterceptor)
   class GetOneController extends GetOneControllerMixin(
     entity,
