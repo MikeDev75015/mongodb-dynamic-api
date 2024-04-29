@@ -47,30 +47,7 @@ export class DynamicApiModule {
    * The global state service for the DynamicApiModule.
    * It is initialized with a default state.
    */
-  static readonly state = new DynamicApiGlobalStateService({
-    connectionName: 'dynamic-api-connection',
-    isGlobalCacheEnabled: true,
-    isAuthEnabled: false,
-    credentials: null,
-    jwtSecret: undefined,
-    cacheExcludedPaths: [],
-    routesConfig: {
-      excluded: [],
-      defaults: [
-        'GetMany',
-        'GetOne',
-        'CreateMany',
-        'CreateOne',
-        'UpdateMany',
-        'UpdateOne',
-        'ReplaceOne',
-        'DuplicateMany',
-        'DuplicateOne',
-        'DeleteMany',
-        'DeleteOne',
-      ],
-    },
-  });
+  static readonly state = new DynamicApiGlobalStateService();
 
   /**
    * Sets up the DynamicApiModule at the root level.
@@ -135,11 +112,11 @@ export class DynamicApiModule {
       this.state.get('connectionName'),
     );
 
-    this.state.get().addEntitySchema(entity.name, schema);
+    DynamicApiGlobalStateService.addEntitySchema(entity.name, schema);
 
     return new Promise((resolve, reject) => {
       const waitInitializedStateInterval = setInterval(async () => {
-        const stateInitialized = await firstValueFrom(this.state.get().onInitialized());
+        const stateInitialized = await firstValueFrom(DynamicApiGlobalStateService.onInitialized());
         if (!stateInitialized) {
           return;
         }

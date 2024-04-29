@@ -1,5 +1,4 @@
 import { Schema } from 'mongoose';
-import { BehaviorSubject } from 'rxjs';
 import { RouteType } from './dynamic-api-route-type.type';
 
 type Credentials = {
@@ -25,10 +24,6 @@ interface DynamicApiGlobalState {
   credentials: Credentials;
   jwtSecret: string | undefined;
   routesConfig: RoutesConfig;
-
-  onInitialized(): BehaviorSubject<boolean>;
-  addEntitySchema<T = any>(name: string, schema: Schema<T>): void;
-  getEntitySchema<T = any>(name: string): Schema<T>;
 }
 
 export { DynamicApiGlobalState, Credentials, EntitySchemas, RoutesConfig };
