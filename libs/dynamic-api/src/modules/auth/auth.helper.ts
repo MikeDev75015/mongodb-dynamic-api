@@ -1,4 +1,13 @@
-import { Controller, Inject, Injectable, Type, UnauthorizedException, UsePipes, ValidationPipe } from '@nestjs/common';
+import {
+  Controller,
+  Inject,
+  Injectable,
+  Type,
+  UnauthorizedException,
+  UsePipes,
+  ValidationPipe,
+  ValidationPipeOptions,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { PassportStrategy } from '@nestjs/passport';
@@ -85,14 +94,14 @@ function createAuthController<Entity extends BaseEntity>(
   passwordField: keyof Entity,
   additionalRequestFields: (keyof Entity)[] | undefined,
   registerOptions: DynamicApiRegisterOptions<Entity> | undefined,
+  validationPipeOptions: ValidationPipeOptions | undefined
 ): AuthControllerConstructor<Entity> {
   @Controller('auth')
   @ApiTags('Auth')
   @UsePipes(
-    new ValidationPipe({
+    new ValidationPipe(validationPipeOptions ?? {
       transform: true,
-      whitelist: true,
-      forbidNonWhitelisted: true,
+      forbidUnknownValues: true,
     }),
   )
   class AuthController extends AuthControllerMixin(

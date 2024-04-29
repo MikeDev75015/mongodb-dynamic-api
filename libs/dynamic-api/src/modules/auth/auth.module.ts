@@ -22,6 +22,7 @@ export class AuthModule {
       },
       jwt: { secret, expiresIn },
       register,
+      validationPipeOptions,
     }: DynamicApiAuthOptions<Entity>,
     extraImports: any[] = [],
   ) {
@@ -31,6 +32,7 @@ export class AuthModule {
       passwordField,
       requestAdditionalFields,
       register,
+      validationPipeOptions,
     );
     const AuthServiceProvider = createAuthServiceProvider(
       userEntity,
