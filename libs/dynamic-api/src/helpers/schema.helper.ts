@@ -20,9 +20,11 @@ function buildSchemaFromEntity<Entity>(
 
   const schema = SchemaFactory.createForClass(entity);
 
-  if (Object.getOwnPropertyNames(schema.paths).includes('createdAt')) {
-    schema.set('timestamps', true);
-  }
+  schema.set(
+    'timestamps',
+    Object.getOwnPropertyNames(schema.paths).includes('createdAt') &&
+    Object.getOwnPropertyNames(schema.paths).includes('updatedAt'),
+  );
 
   if (indexes) {
     indexes.forEach(({ fields, options }) => {
