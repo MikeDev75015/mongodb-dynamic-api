@@ -8,10 +8,10 @@ import { DynamicAPIRouteConfig } from './dynamic-api-route-config.interface';
 
 const DYNAMIC_API_GLOBAL_STATE = Symbol('DYNAMIC_API_GLOBAL_STATE');
 
-interface DynamicApiForRootOptions {
+interface DynamicApiForRootOptions<Entity extends BaseEntity = any> {
   useGlobalCache?: boolean;
   cacheOptions?: DynamicApiCacheOptions;
-  useAuth?: DynamicApiAuthOptions;
+  useAuth?: DynamicApiAuthOptions<Entity>;
   routesConfig?: Partial<RoutesConfig>;
 }
 

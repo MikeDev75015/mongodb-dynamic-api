@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, NotFoundException, Type } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+  Type,
+} from '@nestjs/common';
 import { Builder } from 'builder-pattern';
 import { FilterQuery, Model, Schema } from 'mongoose';
 import { AbilityPredicate } from '../../interfaces';
@@ -12,9 +17,8 @@ export abstract class BaseService<Entity extends BaseEntity> {
   protected constructor(protected readonly model: Model<Entity>) {}
 
   get isSoftDeletable() {
-    return Object.getOwnPropertyNames(this.model.schema.paths).includes(
-      'deletedAt',
-    );
+    const paths = Object.getOwnPropertyNames(this.model.schema.paths);
+    return paths.includes('deletedAt') && paths.includes('isDeleted');
   }
 
   public async findManyDocuments(conditions: FilterQuery<Entity> = {}) {

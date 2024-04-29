@@ -38,7 +38,7 @@ describe('AuthHelper', () => {
   describe('createAuthServiceProvider', () => {
     it('should return a provider', () => {
       expect(
-        createAuthServiceProvider(UserEntity, loginField, passwordField, additionalRequestFields),
+        createAuthServiceProvider(UserEntity, loginField, passwordField, additionalRequestFields, undefined, undefined),
       ).toEqual({
         provide: authServiceProviderName,
         useClass: expect.any(Function),

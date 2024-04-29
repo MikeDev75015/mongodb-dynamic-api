@@ -92,7 +92,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     @HttpCode(HttpStatus.OK)
     @ApiOkResponse({ type: AuthUserPresenter })
     @Get('account')
-    getAccount(@Request() req) {
+    getAccount(@Request() req: { user: Entity }) {
       return this.service.getAccount(req.user);
     }
 
@@ -101,7 +101,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     @HttpCode(HttpStatus.OK)
     @ApiOkResponse({ type: AuthPresenter })
     @Post('login')
-    login(@Request() req, @Body() body: AuthLoginDto) {
+    login(@Request() req: { user: Entity }, @Body() body: AuthLoginDto) {
       return this.service.login(req.user);
     }
 

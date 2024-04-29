@@ -15,10 +15,14 @@ import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { Strategy } from 'passport-local';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { DynamicAPIServiceProvider } from '../../interfaces';
+import { DynamicApiServiceCallback, DynamicAPIServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BcryptService } from '../../services';
-import { AuthControllerConstructor, AuthService, DynamicApiRegisterOptions } from './interfaces';
+import {
+  AuthControllerConstructor,
+  AuthService,
+  DynamicApiRegisterOptions,
+} from './interfaces';
 import { AuthControllerMixin } from './mixins';
 import { BaseAuthService } from './services';
 
@@ -61,13 +65,15 @@ function createAuthServiceProvider<Entity extends BaseEntity>(
   loginField: keyof Entity,
   passwordField: keyof Entity,
   additionalFields: (keyof Entity)[] | undefined,
+  registerCallback: DynamicApiServiceCallback<Entity> | undefined,
+  loginCallback: DynamicApiServiceCallback<Entity> | undefined,
 ): DynamicAPIServiceProvider {
   class AuthService extends BaseAuthService<Entity> {
     protected additionalRequestFields = additionalFields ?? [];
-
     protected loginField = loginField;
-
     protected passwordField = passwordField;
+    protected registerCallback = registerCallback;
+    protected loginCallback = loginCallback;
 
     constructor(
       @InjectModel(
