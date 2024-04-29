@@ -22,6 +22,7 @@ export class AuthModule {
       },
       jwt: { secret, expiresIn },
       register,
+      login,
       validationPipeOptions,
     }: DynamicApiAuthOptions<Entity>,
     extraImports: any[] = [],
@@ -39,6 +40,8 @@ export class AuthModule {
       loginField,
       passwordField,
       requestAdditionalFields,
+      register.callback,
+      login.callback,
     );
     const LocalStrategyProvider = createLocalStrategyProvider(loginField, passwordField);
 

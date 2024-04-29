@@ -56,14 +56,14 @@ export class DynamicApiModule {
    * @param {DynamicApiForRootOptions} options - The root options for configuring the module.
    * @returns {DynamicModule} - The configured DynamicApiModule.
    */
-  static forRoot(
+  static forRoot<Entity extends BaseEntity = any>(
     uri: string,
     {
       useGlobalCache = true,
       cacheOptions = {},
       useAuth,
       routesConfig,
-    }: DynamicApiForRootOptions = {},
+    }: DynamicApiForRootOptions<Entity> = {},
   ): DynamicModule {
     if (!uri) {
       throw new Error(
@@ -87,7 +87,7 @@ export class DynamicApiModule {
         ),
         ...(
           useAuth?.user ? [
-            AuthModule.forRoot(this.initializeAuthOptions(useAuth)),
+            AuthModule.forRoot<Entity>(this.initializeAuthOptions(useAuth)),
           ] : []
         ),
       ],
@@ -302,6 +302,7 @@ export class DynamicApiModule {
         protected: false,
         additionalFields: [],
       },
+      login: useAuth.login ?? {},
     };
   }
 

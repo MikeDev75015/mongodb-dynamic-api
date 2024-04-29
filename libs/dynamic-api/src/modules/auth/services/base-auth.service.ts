@@ -1,17 +1,15 @@
-import { Type } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
+import { DynamicApiServiceCallback } from '../../../interfaces';
 import { BaseEntity } from '../../../models';
 import { BaseService, BcryptService } from '../../../services';
 
 export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseService<Entity> {
   protected loginField = 'email' as keyof Entity;
-
   protected passwordField = 'password' as keyof Entity;
-
   protected additionalRequestFields: (keyof Entity)[] = [];
-
-  protected entity: Type<Entity>;
+  protected registerCallback: DynamicApiServiceCallback<Entity> | undefined;
+  protected loginCallback: DynamicApiServiceCallback<Entity> | undefined;
 
   protected constructor(
     protected readonly model: Model<Entity>,
@@ -41,7 +39,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     return this.buildUserFields(user, fieldsToBuild);
   }
 
-  protected async login(user: Entity) {
+  protected async login(user: Entity, fromMember = false) {
     const fieldsToBuild = [
       '_id' as keyof Entity,
       'id' as keyof Entity,
@@ -51,6 +49,10 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
 
     const payload = this.buildUserFields(user, fieldsToBuild);
 
+    if (!fromMember && this.loginCallback) {
+      await this.loginCallback(payload, this.model);
+    }
+
     return {
       accessToken: this.jwtService.sign(payload),
     };
@@ -59,10 +61,18 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
   protected async register(userToCreate: Partial<Entity>) {
     // @ts-ignore
     const hashedPassword = await this.bcryptService.hashPassword(userToCreate[this.passwordField]);
-    const { _id } = await this.model.create({ ...userToCreate, [this.passwordField]: hashedPassword });
-    const user = await this.findOneDocument(_id);
+    try {
+      const { _id } = await this.model.create({ ...userToCreate, [this.passwordField]: hashedPassword });
+      const user = await this.findOneDocument(_id);
 
-    return this.login(user);
+      if (this.registerCallback) {
+        await this.registerCallback(user, this.model);
+      }
+
+      return this.login(user, true);
+    } catch (error) {
+      this.handleDuplicateKeyError(error);
+    }
   }
 
   protected async getAccount({ id }: Entity): Promise<Entity> {
@@ -90,7 +100,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
 
     const user = await this.findOneDocument(_id);
 
-    return this.login(user);
+    return this.login(user, true);
   }
 
   private buildUserFields(user: Entity, fieldsToBuild: (keyof Entity)[]) {
