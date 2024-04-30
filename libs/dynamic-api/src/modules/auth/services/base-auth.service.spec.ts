@@ -141,6 +141,14 @@ describe('BaseAuthService', () => {
       const result = await service['login'](fakeUser);
       expect(result).toEqual({ accessToken });
     });
+
+    it('should call loginCallback if it is defined', async () => {
+      service['loginCallback'] = jest.fn();
+      jest.spyOn(jwtService, 'sign').mockReturnValue(accessToken);
+
+      await service['login'](fakeUser);
+      expect(service['loginCallback']).toHaveBeenCalledWith({ id: fakeUser._id, login: fakeUser.login }, model);
+    });
   });
 
   describe('register', () => {
@@ -160,6 +168,22 @@ describe('BaseAuthService', () => {
       expect(bcryptService.hashPassword).toHaveBeenCalledWith(userToCreate.pass);
       expect(modelCreateSpy).toHaveBeenCalledWith({ ...userToCreate, pass: fakeHash });
       expect(modelFindOneSpy).toHaveBeenCalledWith({ _id: fakeUser._id });
+    });
+
+    it('should call registerCallback if it is defined', async () => {
+      service['registerCallback'] = jest.fn();
+      const { _id, id, __v, createdAt, updatedAt, ...userToCreate } = fakeUser;
+      jest.spyOn(bcryptService, 'hashPassword').mockResolvedValue(fakeHash);
+      jest.spyOn(jwtService, 'sign').mockReturnValue(accessToken);
+      jest.spyOn(model, 'create').mockResolvedValue(fakeUser as any);
+      jest.spyOn(model, 'findOne').mockReturnValue({
+        lean: jest.fn().mockReturnValue({
+          exec: jest.fn().mockResolvedValue(fakeUser),
+        }),
+      } as unknown as any);
+
+      await service['register'](userToCreate);
+      expect(service['registerCallback']).toHaveBeenCalledWith(fakeUser, model);
     });
   });
 

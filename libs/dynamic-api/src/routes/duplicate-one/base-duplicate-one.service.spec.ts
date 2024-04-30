@@ -65,5 +65,19 @@ describe('BaseDuplicateOneService', () => {
       });
       expect(modelMock.create).toHaveBeenCalledWith({ name: 'test' });
     });
+
+    it('should call callback if it is defined', async () => {
+      modelMock = buildModelMock({
+        findOne: [document, duplicatedDocument],
+        create: [duplicatedDocument],
+      });
+      service = new TestService(modelMock);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const callback = jest.fn(() => Promise.resolve());
+      service.callback = callback;
+      await service.duplicateOne(document._id);
+
+      expect(callback).toHaveBeenCalledWith(duplicatedDocument, modelMock);
+    });
   });
 });

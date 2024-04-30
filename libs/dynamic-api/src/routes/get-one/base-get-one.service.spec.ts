@@ -45,6 +45,14 @@ describe('BaseGetOneService', () => {
       });
     });
 
+    it('should call callback if it is defined', async () => {
+      const callback = jest.fn(() => Promise.resolve());
+      service.callback = callback;
+      await service.getOne('ObjectId');
+
+      expect(callback).toHaveBeenCalledWith(response, modelMock);
+    });
+
     it('should throw error if document not found', async () => {
       modelMock.findOne.mockReturnValueOnce({
         lean: () => ({

@@ -75,5 +75,20 @@ describe('BaseUpdateManyService', () => {
 
       expect(modelMock.find).toHaveBeenNthCalledWith(2, { _id: { $in: ids } });
     });
+
+    it('should call callback if it is defined', async () => {
+      modelMock = buildModelMock({
+        find: [updatedDocuments],
+      });
+      service = new TestService(modelMock);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+
+      const callback = jest.fn(() => Promise.resolve());
+      service.callback = callback;
+      await service.updateMany(ids, { name: 'updated' });
+
+      expect(callback).toHaveBeenNthCalledWith(1, updatedDocuments[0], modelMock);
+      expect(callback).toHaveBeenNthCalledWith(2, updatedDocuments[1], modelMock);
+    });
   });
 });

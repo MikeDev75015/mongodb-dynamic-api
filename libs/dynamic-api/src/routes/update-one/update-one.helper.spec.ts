@@ -15,7 +15,7 @@ describe('UpdateOneHelper', () => {
 
   describe('createUpdateOneServiceProvider', () => {
     it('should return UpdateOne provider', () => {
-      const { provide, useClass } = createUpdateOneServiceProvider(entity, '1');
+      const { provide, useClass } = createUpdateOneServiceProvider(entity, '1', undefined);
       const service = new useClass(model);
 
       expect(provide).toBe(`UpdateOne${entity.name}V1Service`);
@@ -40,7 +40,7 @@ describe('UpdateOneHelper', () => {
     });
 
     it('should instantiate UpdateOne controller with default values', async () => {
-      const { useClass } = createUpdateOneServiceProvider(entity, undefined);
+      const { useClass } = createUpdateOneServiceProvider(entity, undefined, undefined);
       const service = new useClass(model);
       const controllerClass = createUpdateOneController(
         entity,

@@ -1,4 +1,5 @@
 import { Model } from 'mongoose';
+import { DynamicApiServiceCallback } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseService } from '../../services';
 import { UpdateOneService } from './update-one-service.interface';
@@ -7,6 +8,8 @@ export abstract class BaseUpdateOneService<Entity extends BaseEntity>
   extends BaseService<Entity>
   implements UpdateOneService<Entity>
 {
+  protected readonly callback: DynamicApiServiceCallback<Entity> | undefined;
+
   protected constructor(protected readonly model: Model<Entity>) {
     super(model);
   }
@@ -29,10 +32,13 @@ export abstract class BaseUpdateOneService<Entity extends BaseEntity>
         this.handleDocumentNotFound();
       }
 
+      if (this.callback) {
+        await this.callback(document as Entity, this.model);
+      }
+
       return this.buildInstance(document as Entity);
     } catch (error: any) {
       this.handleDuplicateKeyError(error);
-      throw error;
     }
   }
 }

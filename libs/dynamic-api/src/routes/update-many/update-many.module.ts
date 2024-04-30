@@ -1,10 +1,7 @@
 import { DynamicModule, Module, Provider, Type, ValidationPipeOptions } from '@nestjs/common';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import {
-  createUpdateManyController,
-  createUpdateManyServiceProvider,
-} from './update-many.helper';
+import { createUpdateManyController, createUpdateManyServiceProvider } from './update-many.helper';
 
 @Module({})
 export class UpdateManyModule {
@@ -24,7 +21,7 @@ export class UpdateManyModule {
       version,
       validationPipeOptions,
     );
-    const ServiceProvider = createUpdateManyServiceProvider(entity, version);
+    const ServiceProvider = createUpdateManyServiceProvider(entity, version, routeConfig.callback);
 
     return {
       module: UpdateManyModule,

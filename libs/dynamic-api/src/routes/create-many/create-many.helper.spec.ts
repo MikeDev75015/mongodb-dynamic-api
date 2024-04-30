@@ -15,7 +15,7 @@ describe('CreateManyHelper', () => {
 
   describe('createCreateManyServiceProvider', () => {
     it('should return CreateMany provider', () => {
-      const { provide, useClass } = createCreateManyServiceProvider(entity, '1');
+      const { provide, useClass } = createCreateManyServiceProvider(entity, '1', undefined);
       const service = new useClass(model);
 
       expect(provide).toBe(`CreateMany${entity.name}V1Service`);
@@ -40,7 +40,7 @@ describe('CreateManyHelper', () => {
     });
 
     it('should instantiate CreateMany controller with default values', async () => {
-      const { useClass } = createCreateManyServiceProvider(entity, undefined);
+      const { useClass } = createCreateManyServiceProvider(entity, undefined, undefined);
       const service = new useClass(model);
       const controllerClass = createCreateManyController(
         entity,

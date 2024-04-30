@@ -20,7 +20,7 @@ export class CreateManyModule {
       version,
       validationPipeOptions,
     );
-    const ServiceProvider = createCreateManyServiceProvider(entity, version);
+    const ServiceProvider = createCreateManyServiceProvider(entity, version, routeConfig.callback);
 
     return {
       module: CreateManyModule,

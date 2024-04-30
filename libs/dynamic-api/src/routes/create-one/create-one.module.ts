@@ -24,7 +24,7 @@ export class CreateOneModule {
       version,
       validationPipeOptions,
     );
-    const ServiceProvider = createCreateOneServiceProvider(entity, version);
+    const ServiceProvider = createCreateOneServiceProvider(entity, version, routeConfig.callback);
 
     return {
       module: CreateOneModule,

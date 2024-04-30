@@ -1,10 +1,7 @@
 import { DynamicModule, Module, Provider, Type, ValidationPipeOptions } from '@nestjs/common';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import {
-  createUpdateOneController,
-  createUpdateOneServiceProvider,
-} from './update-one.helper';
+import { createUpdateOneController, createUpdateOneServiceProvider } from './update-one.helper';
 
 @Module({})
 export class UpdateOneModule {
@@ -24,7 +21,7 @@ export class UpdateOneModule {
       version,
       validationPipeOptions,
     );
-    const ServiceProvider = createUpdateOneServiceProvider(entity, version);
+    const ServiceProvider = createUpdateOneServiceProvider(entity, version, routeConfig.callback);
 
     return {
       module: UpdateOneModule,

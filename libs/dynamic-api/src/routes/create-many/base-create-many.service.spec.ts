@@ -33,6 +33,14 @@ describe('BaseCreateManyService', () => {
       }]);
     });
 
+    it('should call callback if it is defined', async () => {
+      const callback = jest.fn(() => Promise.resolve());
+      service.callback = callback;
+      await service.createMany([toCreate]);
+
+      expect(callback).toHaveBeenCalledWith(created, modelMock);
+    });
+
     it('should throw an error if the document already exists', async () => {
       modelMock.create.mockRejectedValue({
         code: 11000,

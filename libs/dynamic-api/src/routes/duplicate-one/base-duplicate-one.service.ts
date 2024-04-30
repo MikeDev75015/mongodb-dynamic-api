@@ -1,4 +1,5 @@
 import { Model } from 'mongoose';
+import { DynamicApiServiceCallback } from '../../interfaces';
 import { baseEntityKeysToExclude } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { BaseService } from '../../services';
@@ -8,6 +9,8 @@ export abstract class BaseDuplicateOneService<Entity extends BaseEntity>
   extends BaseService<Entity>
   implements DuplicateOneService<Entity>
 {
+  protected readonly callback: DynamicApiServiceCallback<Entity> | undefined;
+
   protected constructor(protected readonly model: Model<Entity>) {
     super(model);
   }
@@ -38,10 +41,13 @@ export abstract class BaseDuplicateOneService<Entity extends BaseEntity>
       });
       const document = await this.model.findOne({ _id }).lean().exec();
 
+      if (this.callback) {
+        await this.callback(document as Entity, this.model);
+      }
+
       return this.buildInstance(document as Entity);
     } catch (error: any) {
       this.handleDuplicateKeyError(error);
-      throw error;
     }
   }
 }

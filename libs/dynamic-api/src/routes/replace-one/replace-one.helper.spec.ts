@@ -15,7 +15,7 @@ describe('ReplaceOneHelper', () => {
 
   describe('createReplaceOneServiceProvider', () => {
     it('should return ReplaceOne provider', () => {
-      const { provide, useClass } = createReplaceOneServiceProvider(entity, '1');
+      const { provide, useClass } = createReplaceOneServiceProvider(entity, '1', undefined);
       const service = new useClass(model);
 
       expect(provide).toBe(`ReplaceOne${entity.name}V1Service`);
@@ -40,7 +40,7 @@ describe('ReplaceOneHelper', () => {
     });
 
     it('should instantiate ReplaceOne controller with default values', async () => {
-      const { useClass } = createReplaceOneServiceProvider(entity, undefined);
+      const { useClass } = createReplaceOneServiceProvider(entity, undefined, undefined);
       const service = new useClass(model);
       const controllerClass = createReplaceOneController(
         entity,
