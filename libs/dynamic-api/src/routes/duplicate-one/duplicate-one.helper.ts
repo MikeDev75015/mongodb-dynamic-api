@@ -11,7 +11,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { ValidatorPipe } from '../../decorators';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { getNamePrefix } from '../../helpers';
+import { provideName } from '../../helpers';
 import {
   DynamicApiControllerOptions,
   DynamicAPIRouteConfig,
@@ -23,10 +23,6 @@ import { BaseDuplicateOneService } from './base-duplicate-one.service';
 import { DuplicateOneControllerConstructor } from './duplicate-one-controller.interface';
 import { DuplicateOneControllerMixin } from './duplicate-one-controller.mixin';
 import { DuplicateOneService } from './duplicate-one-service.interface';
-
-function provideServiceName(entityName, version: string | undefined) {
-  return `${getNamePrefix('DuplicateOne', entityName, version)}Service`;
-}
 
 function createDuplicateOneServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
@@ -49,12 +45,12 @@ function createDuplicateOneServiceProvider<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(DuplicateOneService, 'name', {
-    value: provideServiceName(entity.name, version),
+    value: provideName('DuplicateOne', entity.name, version, 'Service'),
     writable: false,
   });
 
   return {
-    provide: provideServiceName(entity.name, version),
+    provide: provideName('DuplicateOne', entity.name, version, 'Service'),
     useClass: DuplicateOneService,
   };
 }
@@ -79,7 +75,7 @@ function createDuplicateOneController<Entity extends BaseEntity>(
     version,
   ) {
     constructor(
-      @Inject(provideServiceName(entity.name, version))
+      @Inject(provideName('DuplicateOne', entity.name, version, 'Service'))
       protected readonly service: DuplicateOneService<Entity>,
     ) {
       super(service);
@@ -87,7 +83,7 @@ function createDuplicateOneController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(DuplicateOneController, 'name', {
-    value: `${getNamePrefix('DuplicateOne', entity.name, version)}Controller`,
+    value: `${provideName('DuplicateOne', entity.name, version, 'Controller')}`,
     writable: false,
   });
 

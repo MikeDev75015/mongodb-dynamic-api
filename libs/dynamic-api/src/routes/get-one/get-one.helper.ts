@@ -11,7 +11,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { ValidatorPipe } from '../../decorators';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { getNamePrefix } from '../../helpers';
+import { provideName } from '../../helpers';
 import {
   DynamicApiControllerOptions,
   DynamicAPIRouteConfig,
@@ -23,10 +23,6 @@ import { BaseGetOneService } from './base-get-one.service';
 import { GetOneControllerConstructor } from './get-one-controller.interface';
 import { GetOneControllerMixin } from './get-one-controller.mixin';
 import { GetOneService } from './get-one-service.interface';
-
-function provideServiceName(entityName, version: string | undefined) {
-  return `${getNamePrefix('GetOne', entityName, version)}Service`;
-}
 
 function createGetOneServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
@@ -49,12 +45,12 @@ function createGetOneServiceProvider<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(GetOneService, 'name', {
-    value: provideServiceName(entity.name, version),
+    value: provideName('GetOne', entity.name, version, 'Service'),
     writable: false,
   });
 
   return {
-    provide: provideServiceName(entity.name, version),
+    provide: provideName('GetOne', entity.name, version, 'Service'),
     useClass: GetOneService,
   };
 }
@@ -79,7 +75,7 @@ function createGetOneController<Entity extends BaseEntity>(
     version,
   ) {
     constructor(
-      @Inject(provideServiceName(entity.name, version))
+      @Inject(provideName('GetOne', entity.name, version, 'Service'))
       protected readonly service: GetOneService<Entity>,
     ) {
       super(service);
@@ -87,7 +83,7 @@ function createGetOneController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(GetOneController, 'name', {
-    value: `${getNamePrefix('GetOne', entity.name, version)}Controller`,
+    value: `${provideName('GetOne', entity.name, version, 'Controller')}`,
     writable: false,
   });
 

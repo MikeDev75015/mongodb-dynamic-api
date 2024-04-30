@@ -11,17 +11,13 @@ import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { ValidatorPipe } from '../../decorators';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { getNamePrefix } from '../../helpers';
+import { provideName } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseDeleteManyService } from './base-delete-many.service';
 import { DeleteManyControllerConstructor } from './delete-many-controller.interface';
 import { DeleteManyControllerMixin } from './delete-many-controller.mixin';
 import { DeleteManyService } from './delete-many-service.interface';
-
-function provideServiceName(entityName, version: string | undefined) {
-  return `${getNamePrefix('DeleteMany', entityName, version)}Service`;
-}
 
 function createDeleteManyServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
@@ -42,12 +38,12 @@ function createDeleteManyServiceProvider<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(DeleteManyService, 'name', {
-    value: provideServiceName(entity.name, version),
+    value: provideName('DeleteMany', entity.name, version, 'Service'),
     writable: false,
   });
 
   return {
-    provide: provideServiceName(entity.name, version),
+    provide: provideName('DeleteMany', entity.name, version, 'Service'),
     useClass: DeleteManyService,
   };
 }
@@ -72,7 +68,7 @@ function createDeleteManyController<Entity extends BaseEntity>(
     version,
   ) {
     constructor(
-      @Inject(provideServiceName(entity.name, version))
+      @Inject(provideName('DeleteMany', entity.name, version, 'Service'))
       protected readonly service: DeleteManyService<Entity>,
     ) {
       super(service);
@@ -80,7 +76,7 @@ function createDeleteManyController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(DeleteManyController, 'name', {
-    value: `${getNamePrefix('DeleteMany', entity.name, version)}Controller`,
+    value: `${provideName('DeleteMany', entity.name, version, 'Controller')}`,
     writable: false,
   });
 
