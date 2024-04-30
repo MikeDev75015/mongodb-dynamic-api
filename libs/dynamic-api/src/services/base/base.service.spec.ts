@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { BaseEntity } from '../../models';
 import { BaseService } from './base.service';
 
@@ -13,11 +18,12 @@ describe('BaseService', () => {
   }
 
   describe('isSoftDeletable', () => {
-    it('should return true if the model has a deletedAt property', () => {
+    it('should return true if the model has deletedAt and isDeleted properties', () => {
       const model = {
         schema: {
           paths: {
             deletedAt: {},
+            isDeleted: {},
           },
         },
       } as any;
@@ -26,12 +32,16 @@ describe('BaseService', () => {
       expect(service.isSoftDeletable).toBe(true);
     });
 
-    it('should return false if the model does not have a deletedAt property', () => {
+    test.each([
+      ['deletedAt and isDeleted properties', {}],
+      ['deletedAt property', { isDeleted: {} }],
+      ['isDeleted property', { deletedAt: {} }],
+    ])('should return false if the model does not have %s', (_, paths) => {
       const model = {
         schema: {
-          paths: {},
+          paths,
         },
-      };
+      } as any;
       const service = new TestService(model);
 
       expect(service.isSoftDeletable).toBe(false);
@@ -85,6 +95,18 @@ describe('BaseService', () => {
         new BadRequestException(
           `The combination of name 'toto', test 'unit' already exists`,
         ),
+      );
+    });
+
+    it('should not throw a ServiceUnavailableException if the error code is not mongo duplicated error code', () => {
+      const service = new TestService({} as any);
+      const error = {
+        code: 1,
+        message: 'error',
+      };
+
+      expect(() => service['handleDuplicateKeyError'](error)).toThrow(
+        new ServiceUnavailableException('error'),
       );
     });
   });

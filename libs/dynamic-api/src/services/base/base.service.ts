@@ -1,7 +1,7 @@
 import {
   BadRequestException,
   ForbiddenException,
-  NotFoundException,
+  NotFoundException, ServiceUnavailableException,
   Type,
 } from '@nestjs/common';
 import { Builder } from 'builder-pattern';
@@ -82,6 +82,8 @@ export abstract class BaseService<Entity extends BaseEntity> {
           : `The combination of ${properties.join(', ')} already exists`,
       );
     }
+
+    throw new ServiceUnavailableException(error.message);
   }
 
   protected handleDocumentNotFound() {
