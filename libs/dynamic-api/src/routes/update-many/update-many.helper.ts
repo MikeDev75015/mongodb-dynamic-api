@@ -12,7 +12,12 @@ import { Model } from 'mongoose';
 import { ValidatorPipe } from '../../decorators';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { getNamePrefix } from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
+import {
+  DynamicApiControllerOptions,
+  DynamicAPIRouteConfig,
+  DynamicApiServiceCallback,
+  DynamicAPIServiceProvider,
+} from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseUpdateManyService } from './base-update-many.service';
 import { UpdateManyControllerConstructor } from './update-many-controller.interface';
@@ -26,9 +31,11 @@ function provideServiceName(entityName, version: string | undefined) {
 function createUpdateManyServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
   version: string | undefined,
+  callback: DynamicApiServiceCallback<Entity> | undefined,
 ): DynamicAPIServiceProvider {
   class UpdateManyService extends BaseUpdateManyService<Entity> {
     protected readonly entity = entity;
+    protected readonly callback = callback;
 
     constructor(
       @InjectModel(

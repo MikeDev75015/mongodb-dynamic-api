@@ -1,4 +1,5 @@
 import { Model } from 'mongoose';
+import { DynamicApiServiceCallback } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseService } from '../../services';
 import { GetOneService } from './get-one-service.interface';
@@ -7,6 +8,8 @@ export abstract class BaseGetOneService<Entity extends BaseEntity>
   extends BaseService<Entity>
   implements GetOneService<Entity>
 {
+  protected readonly callback: DynamicApiServiceCallback<Entity> | undefined;
+
   protected constructor(protected readonly model: Model<Entity>) {
     super(model);
   }
@@ -23,6 +26,10 @@ export abstract class BaseGetOneService<Entity extends BaseEntity>
     if (!document) {
       this.handleDocumentNotFound();
     }
+
+      if (this.callback) {
+        await this.callback(document as Entity, this.model);
+      }
 
     return this.buildInstance(document as Entity);
   }

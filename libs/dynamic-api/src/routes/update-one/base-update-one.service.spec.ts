@@ -66,5 +66,18 @@ describe('BaseUpdateOneService', () => {
         { new: true },
       );
     });
+
+    it('should call callback if it is defined', async () => {
+      modelMock = buildModelMock({
+        findOneAndUpdate: [updatedDocument],
+      });
+      service = new TestService(modelMock);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const callback = jest.fn(() => Promise.resolve());
+      service.callback = callback;
+      await service.updateOne(document._id, { name: updatedDocument.name });
+
+      expect(callback).toHaveBeenCalledWith(updatedDocument, modelMock);
+    });
   });
 });

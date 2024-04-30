@@ -21,7 +21,7 @@ export class DuplicateOneModule {
       version,
       validationPipeOptions,
     );
-    const ServiceProvider = createDuplicateOneServiceProvider(entity, version);
+    const ServiceProvider = createDuplicateOneServiceProvider(entity, version, routeConfig.callback);
 
     return {
       module: DuplicateOneModule,

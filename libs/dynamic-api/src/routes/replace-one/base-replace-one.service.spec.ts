@@ -66,5 +66,18 @@ describe('BaseReplaceOneService', () => {
         { new: true, setDefaultsOnInsert: true },
       );
     });
+
+    it('should call callback if it is defined', async () => {
+      modelMock = buildModelMock({
+        findOneAndReplace: [replacedDocument],
+      });
+      service = new TestService(modelMock);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const callback = jest.fn(() => Promise.resolve());
+      service.callback = callback;
+      await service.replaceOne(document._id, { name: replacedDocument.name });
+
+      expect(callback).toHaveBeenCalledWith(replacedDocument, modelMock);
+    });
   });
 });

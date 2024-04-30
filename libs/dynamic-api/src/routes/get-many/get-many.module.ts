@@ -21,7 +21,7 @@ export class GetManyModule {
       version,
       validationPipeOptions,
     );
-    const ServiceProvider = createGetManyServiceProvider(entity, version);
+    const ServiceProvider = createGetManyServiceProvider(entity, version, routeConfig.callback);
 
     return {
       module: GetManyModule,

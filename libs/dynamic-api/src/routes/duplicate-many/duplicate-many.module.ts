@@ -21,7 +21,7 @@ export class DuplicateManyModule {
       version,
       validationPipeOptions,
     );
-    const ServiceProvider = createDuplicateManyServiceProvider(entity, version);
+    const ServiceProvider = createDuplicateManyServiceProvider(entity, version, routeConfig.callback);
 
     return {
       module: DuplicateManyModule,

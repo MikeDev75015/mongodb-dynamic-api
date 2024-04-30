@@ -41,5 +41,13 @@ describe('BaseGetManyService', () => {
       await service.getMany();
       expect(modelMock.find).toHaveBeenCalledWith({ isDeleted: false });
     });
+
+    it('should call callback if it is defined', async () => {
+      const callback = jest.fn(() => Promise.resolve());
+      service.callback = callback;
+      await service.getMany();
+
+      expect(callback).toHaveBeenCalledWith(response[0], modelMock);
+    });
   });
 });
