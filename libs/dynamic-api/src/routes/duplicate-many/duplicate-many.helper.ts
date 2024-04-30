@@ -11,7 +11,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { ValidatorPipe } from '../../decorators';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { getNamePrefix } from '../../helpers';
+import { provideName } from '../../helpers';
 import {
   DynamicApiControllerOptions,
   DynamicAPIRouteConfig,
@@ -23,10 +23,6 @@ import { BaseDuplicateManyService } from './base-duplicate-many.service';
 import { DuplicateManyControllerConstructor } from './duplicate-many-controller.interface';
 import { DuplicateManyControllerMixin } from './duplicate-many-controller.mixin';
 import { DuplicateManyService } from './duplicate-many-service.interface';
-
-function provideServiceName(entityName, version: string | undefined) {
-  return `${getNamePrefix('DuplicateMany', entityName, version)}Service`;
-}
 
 function createDuplicateManyServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
@@ -49,12 +45,12 @@ function createDuplicateManyServiceProvider<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(DuplicateManyService, 'name', {
-    value: provideServiceName(entity.name, version),
+    value: provideName('DuplicateMany', entity.name, version, 'Service'),
     writable: false,
   });
 
   return {
-    provide: provideServiceName(entity.name, version),
+    provide: provideName('DuplicateMany', entity.name, version, 'Service'),
     useClass: DuplicateManyService,
   };
 }
@@ -79,7 +75,7 @@ function createDuplicateManyController<Entity extends BaseEntity>(
     version,
   ) {
     constructor(
-      @Inject(provideServiceName(entity.name, version))
+      @Inject(provideName('DuplicateMany', entity.name, version, 'Service'))
       protected readonly service: DuplicateManyService<Entity>,
     ) {
       super(service);
@@ -87,7 +83,7 @@ function createDuplicateManyController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(DuplicateManyController, 'name', {
-    value: `${getNamePrefix('DuplicateMany', entity.name, version)}Controller`,
+    value: `${provideName('DuplicateMany', entity.name, version, 'Controller')}`,
     writable: false,
   });
 

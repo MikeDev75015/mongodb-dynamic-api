@@ -11,17 +11,13 @@ import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { ValidatorPipe } from '../../decorators';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { getNamePrefix } from '../../helpers';
+import { provideName } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseDeleteOneService } from './base-delete-one.service';
 import { DeleteOneControllerConstructor } from './delete-one-controller.interface';
 import { DeleteOneControllerMixin } from './delete-one-controller.mixin';
 import { DeleteOneService } from './delete-one-service.interface';
-
-function provideServiceName(entityName, version: string | undefined) {
-  return `${getNamePrefix('DeleteOne', entityName, version)}Service`;
-}
 
 function createDeleteOneServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
@@ -42,12 +38,12 @@ function createDeleteOneServiceProvider<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(DeleteOneService, 'name', {
-    value: provideServiceName(entity.name, version),
+    value: provideName('DeleteOne', entity.name, version, 'Service'),
     writable: false,
   });
 
   return {
-    provide: provideServiceName(entity.name, version),
+    provide: provideName('DeleteOne', entity.name, version, 'Service'),
     useClass: DeleteOneService,
   };
 }
@@ -72,7 +68,7 @@ function createDeleteOneController<Entity extends BaseEntity>(
     version,
   ) {
     constructor(
-      @Inject(provideServiceName(entity.name, version))
+      @Inject(provideName('DeleteOne', entity.name, version, 'Service'))
       protected readonly service: DeleteOneService<Entity>,
     ) {
       super(service);
@@ -80,7 +76,7 @@ function createDeleteOneController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(DeleteOneController, 'name', {
-    value: `${getNamePrefix('DeleteOne', entity.name, version)}Controller`,
+    value: `${provideName('DeleteOne', entity.name, version, 'Controller')}`,
     writable: false,
   });
 

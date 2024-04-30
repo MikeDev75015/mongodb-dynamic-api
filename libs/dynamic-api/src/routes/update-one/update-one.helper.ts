@@ -11,7 +11,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { ValidatorPipe } from '../../decorators';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { getNamePrefix } from '../../helpers';
+import { provideName } from '../../helpers';
 import {
   DynamicApiControllerOptions,
   DynamicAPIRouteConfig,
@@ -23,10 +23,6 @@ import { BaseUpdateOneService } from './base-update-one.service';
 import { UpdateOneControllerConstructor } from './update-one-controller.interface';
 import { UpdateOneControllerMixin } from './update-one-controller.mixin';
 import { UpdateOneService } from './update-one-service.interface';
-
-function provideServiceName(entityName, version: string | undefined) {
-  return `${getNamePrefix('UpdateOne', entityName, version)}Service`;
-}
 
 function createUpdateOneServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
@@ -49,12 +45,12 @@ function createUpdateOneServiceProvider<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(UpdateOneService, 'name', {
-    value: provideServiceName(entity.name, version),
+    value: provideName('UpdateOne', entity.name, version, 'Service'),
     writable: false,
   });
 
   return {
-    provide: provideServiceName(entity.name, version),
+    provide: provideName('UpdateOne', entity.name, version, 'Service'),
     useClass: UpdateOneService,
   };
 }
@@ -79,7 +75,7 @@ function createUpdateOneController<Entity extends BaseEntity>(
     version,
   ) {
     constructor(
-      @Inject(provideServiceName(entity.name, version))
+      @Inject(provideName('UpdateOne', entity.name, version, 'Service'))
       protected readonly service: UpdateOneService<Entity>,
     ) {
       super(service);
@@ -87,7 +83,7 @@ function createUpdateOneController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(UpdateOneController, 'name', {
-    value: `${getNamePrefix('UpdateOne', entity.name, version)}Controller`,
+    value: `${provideName('UpdateOne', entity.name, version, 'Controller')}`,
     writable: false,
   });
 

@@ -11,7 +11,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { ValidatorPipe } from '../../decorators';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { getNamePrefix } from '../../helpers';
+import { provideName } from '../../helpers';
 import {
   DynamicApiControllerOptions,
   DynamicAPIRouteConfig,
@@ -23,10 +23,6 @@ import { BaseUpdateManyService } from './base-update-many.service';
 import { UpdateManyControllerConstructor } from './update-many-controller.interface';
 import { UpdateManyControllerMixin } from './update-many-controller.mixin';
 import { UpdateManyService } from './update-many-service.interface';
-
-function provideServiceName(entityName, version: string | undefined) {
-  return `${getNamePrefix('UpdateMany', entityName, version)}Service`;
-}
 
 function createUpdateManyServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
@@ -49,12 +45,12 @@ function createUpdateManyServiceProvider<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(UpdateManyService, 'name', {
-    value: provideServiceName(entity.name, version),
+    value: provideName('UpdateMany', entity.name, version, 'Service'),
     writable: false,
   });
 
   return {
-    provide: provideServiceName(entity.name, version),
+    provide: provideName('UpdateMany', entity.name, version, 'Service'),
     useClass: UpdateManyService,
   };
 }
@@ -79,7 +75,7 @@ function createUpdateManyController<Entity extends BaseEntity>(
     version,
   ) {
     constructor(
-      @Inject(provideServiceName(entity.name, version))
+      @Inject(provideName('UpdateMany', entity.name, version, 'Service'))
       protected readonly service: UpdateManyService<Entity>,
     ) {
       super(service);
@@ -87,7 +83,7 @@ function createUpdateManyController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(UpdateManyController, 'name', {
-    value: `${getNamePrefix('UpdateMany', entity.name, version)}Controller`,
+    value: `${provideName('UpdateMany', entity.name, version, 'Controller')}`,
     writable: false,
   });
 

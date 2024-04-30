@@ -11,7 +11,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { ValidatorPipe } from '../../decorators';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { getNamePrefix } from '../../helpers';
+import { provideName } from '../../helpers';
 import {
   DynamicApiControllerOptions,
   DynamicAPIRouteConfig,
@@ -23,10 +23,6 @@ import { BaseGetManyService } from './base-get-many.service';
 import { GetManyControllerConstructor } from './get-many-controller.interface';
 import { GetManyControllerMixin } from './get-many-controller.mixin';
 import { GetManyService } from './get-many-service.interface';
-
-function provideServiceName(entityName, version: string | undefined) {
-  return `${getNamePrefix('GetMany', entityName, version)}Service`;
-}
 
 function createGetManyServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
@@ -49,12 +45,12 @@ function createGetManyServiceProvider<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(GetManyService, 'name', {
-    value: provideServiceName(entity.name, version),
+    value: provideName('GetMany', entity.name, version, 'Service'),
     writable: false,
   });
 
   return {
-    provide: provideServiceName(entity.name, version),
+    provide: provideName('GetMany', entity.name, version, 'Service'),
     useClass: GetManyService,
   };
 }
@@ -79,7 +75,7 @@ function createGetManyController<Entity extends BaseEntity>(
     version,
   ) {
     constructor(
-      @Inject(provideServiceName(entity.name, version))
+      @Inject(provideName('GetMany', entity.name, version, 'Service'))
       protected readonly service: GetManyService<Entity>,
     ) {
       super(service);
@@ -87,7 +83,7 @@ function createGetManyController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(GetManyController, 'name', {
-    value: `${getNamePrefix('GetMany', entity.name, version)}Controller`,
+    value: `${provideName('GetMany', entity.name, version, 'Controller')}`,
     writable: false,
   });
 

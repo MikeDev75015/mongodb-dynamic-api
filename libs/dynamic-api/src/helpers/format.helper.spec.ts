@@ -1,4 +1,4 @@
-import { getFormattedApiTag, isValidVersion, pascalCase } from './format.helper';
+import { getFormattedApiTag, isValidVersion, pascalCase, provideName } from './format.helper';
 
 describe('FormatHelper', () => {
   describe('pascalCase', () => {
@@ -33,6 +33,23 @@ describe('FormatHelper', () => {
 
     it('should return entity name when no api tag is provided', () => {
       expect(getFormattedApiTag(undefined, 'entityName')).toBe('entityName');
+    });
+  });
+
+  describe('provideName', () => {
+    it('should return the service name', () => {
+      expect(provideName('CreateOne', 'EntityName', undefined, 'Service')).toBe('CreateOneEntityNameService');
+      expect(provideName('CreateOne', 'EntityName', '1', 'Service')).toBe('CreateOneEntityNameV1Service');
+    });
+
+    it('should return the controller name', () => {
+      expect(provideName('CreateOne', 'EntityName', undefined, 'Controller')).toBe('CreateOneEntityNameController');
+      expect(provideName('CreateOne', 'EntityName', '1', 'Controller')).toBe('CreateOneEntityNameV1Controller');
+    });
+
+    it('should return the policies guard name', () => {
+      expect(provideName('CreateOne', 'EntityName', undefined, 'PoliciesGuard')).toBe('CreateOneEntityNamePoliciesGuard');
+      expect(provideName('CreateOne', 'EntityName', '1', 'PoliciesGuard')).toBe('CreateOneEntityNameV1PoliciesGuard');
     });
   });
 });

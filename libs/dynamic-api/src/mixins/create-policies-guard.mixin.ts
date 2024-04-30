@@ -1,6 +1,6 @@
 import { Inject, Injectable, Type } from '@nestjs/common';
 import { BasePoliciesGuard } from '../guards';
-import { getNamePrefix } from '../helpers';
+import { provideName } from '../helpers';
 import {
   AbilityPredicate,
   PoliciesGuard,
@@ -23,7 +23,7 @@ function CreatePoliciesGuardMixin<Entity extends BaseEntity, Service extends Bas
     protected abilityPredicate: AbilityPredicate<Entity> | undefined = abilityPredicate;
 
     constructor(
-      @Inject(`${getNamePrefix(routeType, entity.name, version)}Service`)
+      @Inject(`${provideName(routeType, entity.name, version, 'Service')}`)
       protected readonly service: Service,
     ) {
       super(service);
@@ -31,7 +31,7 @@ function CreatePoliciesGuardMixin<Entity extends BaseEntity, Service extends Bas
   }
 
   Object.defineProperty(RoutePoliciesGuard, 'name', {
-    value: `${getNamePrefix(routeType, entity.name, version)}PoliciesGuard`,
+    value: `${provideName(routeType, entity.name, version, 'PoliciesGuard')}`,
     writable: false,
   });
 

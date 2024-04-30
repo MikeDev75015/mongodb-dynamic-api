@@ -11,7 +11,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { ValidatorPipe } from '../../decorators';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { getNamePrefix } from '../../helpers';
+import { provideName } from '../../helpers';
 import {
   DynamicApiControllerOptions,
   DynamicAPIRouteConfig,
@@ -23,10 +23,6 @@ import { BaseReplaceOneService } from './base-replace-one.service';
 import { ReplaceOneControllerConstructor } from './replace-one-controller.interface';
 import { ReplaceOneControllerMixin } from './replace-one-controller.mixin';
 import { ReplaceOneService } from './replace-one-service.interface';
-
-function provideServiceName(entityName, version: string | undefined) {
-  return `${getNamePrefix('ReplaceOne', entityName, version)}Service`;
-}
 
 function createReplaceOneServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
@@ -49,12 +45,12 @@ function createReplaceOneServiceProvider<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(ReplaceOneService, 'name', {
-    value: provideServiceName(entity.name, version),
+    value: provideName('ReplaceOne', entity.name, version, 'Service'),
     writable: false,
   });
 
   return {
-    provide: provideServiceName(entity.name, version),
+    provide: provideName('ReplaceOne', entity.name, version, 'Service'),
     useClass: ReplaceOneService,
   };
 }
@@ -79,7 +75,7 @@ function createReplaceOneController<Entity extends BaseEntity>(
     version,
   ) {
     constructor(
-      @Inject(provideServiceName(entity.name, version))
+      @Inject(provideName('ReplaceOne', entity.name, version, 'Service'))
       protected readonly service: ReplaceOneService<Entity>,
     ) {
       super(service);
@@ -87,7 +83,7 @@ function createReplaceOneController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(ReplaceOneController, 'name', {
-    value: `${getNamePrefix('ReplaceOne', entity.name, version)}Controller`,
+    value: `${provideName('ReplaceOne', entity.name, version, 'Controller')}`,
     writable: false,
   });
 
