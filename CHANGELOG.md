@@ -1,5 +1,23 @@
 Changelog
 
+## [2.2.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.1.10...v2.2.0) (2024-04-30)
+
+
+### api
+
+* **api:** add routes service callback ([bb233fe](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/bb233fe79565863fe2191b224176accaf1725907))
+* **api:** add the possibility to configure default or excluded routes ([ef501df](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/ef501df7c453352b16056fc2766f3bf2cbefb532))
+
+
+### auth
+
+* **auth:** add service callbacks ([d93ad01](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/d93ad01589099c92757922dc3e9320332c563e82))
+
+
+### validation
+
+* **validation:** add custom pipe and update default auth to avoid request errors if not configured ([f75fca7](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/f75fca7cdb1bfc5d0fcd72ea1acf75179b22d69c))
+
 ## [2.1.10](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.1.9...v2.1.10) (2024-04-29)
 
 ## [2.1.9](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.1.8...v2.1.9) (2024-04-01)
