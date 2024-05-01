@@ -1,8 +1,10 @@
+import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
 import { buildModelMock } from '../../../../__mocks__/model.mock';
 import { BaseEntity } from '../../../models';
 import { BcryptService } from '../../../services';
+import { DynamicApiResetPasswordOptions } from '../interfaces';
 import { BaseAuthService } from './base-auth.service';
 
 describe('BaseAuthService', () => {
@@ -48,12 +50,22 @@ describe('BaseAuthService', () => {
     createdAt: fakeDate,
     updatedAt: fakeDate,
   } as User;
+  const fakeUserBuilt = {
+    id: 'fake-id',
+    login: 'test',
+    pass: fakeHash,
+    nickname: 'test',
+    createdAt: fakeDate,
+    updatedAt: fakeDate,
+  } as User;
   const accessToken = 'fake-token';
 
   beforeEach(async () => {
     model = buildModelMock();
     jwtService = {
+      decode: jest.fn(),
       sign: jest.fn(),
+      verify: jest.fn(),
     } as unknown as JwtService;
     bcryptService = {
       comparePassword: jest.fn(),
@@ -81,6 +93,10 @@ describe('BaseAuthService', () => {
 
     it('should have changePassword method', () => {
       expect(service).toHaveProperty('changePassword');
+    });
+
+    it('should have resetPassword method', () => {
+      expect(service).toHaveProperty('resetPassword');
     });
   });
 
@@ -207,6 +223,103 @@ describe('BaseAuthService', () => {
       const result = await service['getAccount']({ id: fakeUser.id } as User);
 
       expect(result).toEqual({ id: fakeUser._id, login: fakeUser.login, nickname: fakeUser.nickname });
+    });
+  });
+
+  describe('resetPassword', () => {
+    const fakeEmail = 'fake-email';
+
+    it('should not generate token if resetPasswordOptions is not defined', async () => {
+      await service['resetPassword'](fakeEmail);
+
+      expect(jwtService.sign).not.toHaveBeenCalled();
+    });
+
+    it('should generate token if resetPasswordOptions is defined', async () => {
+      const resetPasswordCallback = jest.fn();
+      const changePasswordCallback = jest.fn();
+      const options = {
+        resetPasswordCallback,
+        changePasswordCallback,
+        emailField: 'email',
+        expiresInMinutes: 5,
+      } as DynamicApiResetPasswordOptions<User>;
+      service['resetPasswordOptions'] = options;
+      (
+        jwtService.sign as jest.Mock
+      ).mockReturnValue('fake-token');
+      await service['resetPassword'](fakeEmail);
+
+      expect(jwtService.sign).toHaveBeenCalledTimes(1);
+      expect(jwtService.sign)
+      .toHaveBeenCalledWith({ email: fakeEmail }, { expiresIn: options.expiresInMinutes * 60 });
+      expect(resetPasswordCallback).toHaveBeenCalledTimes(1);
+      expect(resetPasswordCallback)
+      .toHaveBeenCalledWith(
+        { resetPasswordToken: expect.any(String), email: fakeEmail },
+        service['resetPasswordCallbackMethods'],
+      );
+      expect(changePasswordCallback).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('changePassword', () => {
+    const resetPasswordCallback = jest.fn();
+    const changePasswordCallback = jest.fn();
+    const resetPasswordToken = 'reset-pass-token';
+    const newPassword = 'new-pass';
+    const hashedPassword = 'hashed-pass';
+
+    beforeEach(() => {
+      service['resetPasswordOptions'] = {
+        resetPasswordCallback,
+        changePasswordCallback,
+        emailField: 'email',
+        expiresInMinutes: 5,
+      } as DynamicApiResetPasswordOptions<User>;
+    });
+
+    it('should throw bad request if token is invalid', async () => {
+      await expect(service['changePassword'](resetPasswordToken, newPassword)).rejects.toThrow(
+        new BadRequestException('Invalid reset password token. Please redo the reset password process.'),
+      );
+    });
+
+    it('should throw unauthorized if token is expired', async () => {
+      jwtService.decode = jest.fn().mockReturnValue({ email: fakeUser.login, exp: 1000 });
+      jest.spyOn(Math, 'round').mockReturnValue(2000);
+
+      await expect(service['changePassword'](resetPasswordToken, newPassword)).rejects.toThrow(
+        new UnauthorizedException('Time to reset password has expired. Please redo the reset password process.'),
+      );
+    });
+
+    it('should not change password if user is not found', async () => {
+      jwtService.decode = jest.fn().mockReturnValue({ email: fakeUser.login, exp: 1000 });
+      jest.spyOn(Math, 'round').mockReturnValue(500);
+      jest.spyOn(service, 'findOneDocument').mockResolvedValue(undefined);
+
+      await service['changePassword'](resetPasswordToken, newPassword);
+
+      expect(bcryptService.hashPassword).not.toHaveBeenCalled();
+      expect(model.updateOne).not.toHaveBeenCalled();
+      expect(changePasswordCallback).not.toHaveBeenCalled();
+      expect(resetPasswordCallback).not.toHaveBeenCalled();
+    });
+
+    it('should change password', async () => {
+      jest.spyOn(bcryptService, 'hashPassword').mockResolvedValue(hashedPassword);
+      const modelUpdateSpy = jest.spyOn(model, 'updateOne').mockResolvedValue({} as any);
+      jwtService.decode = jest.fn().mockReturnValue({ email: fakeUser.login, exp: 1000 });
+      jest.spyOn(Math, 'round').mockReturnValue(500);
+      jest.spyOn(service, 'findOneDocument').mockResolvedValue(fakeUser);
+
+      await service['changePassword'](resetPasswordToken, newPassword);
+      expect(bcryptService.hashPassword).toHaveBeenCalledWith(newPassword);
+      expect(modelUpdateSpy).toHaveBeenCalledWith({ _id: fakeUser._id }, { pass: hashedPassword });
+      expect(changePasswordCallback).toHaveBeenCalledTimes(1);
+      expect(changePasswordCallback).toHaveBeenCalledWith(fakeUserBuilt, service['callbackMethods']);
+      expect(resetPasswordCallback).not.toHaveBeenCalled();
     });
   });
 });

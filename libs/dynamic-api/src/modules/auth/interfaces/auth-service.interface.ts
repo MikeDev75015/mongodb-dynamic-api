@@ -11,7 +11,9 @@ interface AuthService<Entity extends BaseEntity> {
 
   getAccount(user: Entity): Promise<Entity>;
 
-  changePassword(userId: string, newPassword: string): Promise<LoginResponse>;
+  resetPassword(email: string): Promise<void>;
+
+  changePassword(resetPasswordToken: string, newPassword: string): Promise<void>;
 }
 
 export type { AuthService, LoginResponse };
