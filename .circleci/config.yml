@@ -242,25 +242,6 @@ jobs:
       - *notify-fail
       - *notify-success
 
-  create-release-pr-job:
-    docker:
-      - image: cimg/node:20.5.0
-    resource_class: medium
-    parameters:
-      branch:
-        type: string
-    steps:
-      - checkout
-      - *restore-cache
-      - git-config-local-user-command
-      - install-github-cli-command
-      - create-release-pr-command:
-          branch: << parameters.branch >>
-      - delete-tag-command:
-          tag: << parameters.branch >>
-      - *notify-fail
-      - *notify-success
-
   merge-release-pr-job:
     docker:
       - image: cimg/node:20.5.0
@@ -320,19 +301,6 @@ jobs:
           branch: << parameters.branch >>
       - *notify-fail
       - *notify-success
-
-  try-job:
-    docker:
-      - image: cimg/node:20.5.0
-    resource_class: medium
-    steps:
-      - checkout
-      - *restore-cache
-      - delete-tag-command:
-          tag: try
-      - git-config-local-user-command
-      - install-github-cli-command
-      - create-version-tags-command
 
 workflows:
   ci-default-workflow:
@@ -432,86 +400,6 @@ workflows:
             branches:
               only: main
 
-  ci-release-tags-workflow:
-    when:
-      or:
-        - equal: [ << pipeline.git.tag >>, release ]
-        - equal: [ << pipeline.git.tag >>, prerelease ]
-    jobs:
-      - dependencies-job:
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only:
-                - release
-                - prerelease
-      - build-job:
-          name: build-pr-job
-          requires:
-            - dependencies-job
-          context: SLACK
-          persist: true
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only:
-                - release
-                - prerelease
-      - test-job:
-          name: test-pr-job
-          requires:
-            - dependencies-job
-          context: SLACK
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only:
-                - release
-                - prerelease
-      - create-release-pr-job:
-          requires:
-            - build-pr-job
-            - test-pr-job
-          branch: << pipeline.git.tag >>
-          context:
-            - GIT
-            - SLACK
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only:
-                - release
-                - prerelease
-
-  ci-release-branches-workflow:
-    when:
-      or:
-        - equal: [ << pipeline.git.branch >>, auto-release ]
-        - equal: [ << pipeline.git.branch >>, auto-prerelease ]
-    jobs:
-      - dependencies-job:
-          filters:
-            branches:
-              only:
-                  - auto-release
-                  - auto-prerelease
-      - merge-release-pr-job:
-          requires:
-            - dependencies-job
-          branch: << pipeline.git.branch >>
-          context:
-            - GIT
-            - SLACK
-          filters:
-            branches:
-              only:
-                - auto-release
-                - auto-prerelease
-
   cd-prerelease-version-workflow:
     when:
       matches:
@@ -568,22 +456,3 @@ workflows:
             tags:
               only:
                 - /^v\d+\.\d+\.\d+$/
-
-  ci-try-workflow:
-    when:
-      equal: [ << pipeline.git.tag >>, try ]
-    jobs:
-      - dependencies-job:
-          filters:
-            tags:
-              only:
-                  - try
-      - try-job:
-          requires:
-            - dependencies-job
-          context:
-            - GIT
-          filters:
-            tags:
-              only:
-                - try
