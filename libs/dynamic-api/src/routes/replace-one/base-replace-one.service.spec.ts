@@ -1,6 +1,4 @@
-import { DeepMocked } from '@golevelup/ts-jest';
 import { Model } from 'mongoose';
-import { buildModelMock } from '../../../__mocks__/model.mock';
 import { BaseReplaceOneService } from './base-replace-one.service';
 
 class TestService extends BaseReplaceOneService<any> {
@@ -11,7 +9,7 @@ class TestService extends BaseReplaceOneService<any> {
 
 describe('BaseReplaceOneService', () => {
   let service: any;
-  let modelMock: DeepMocked<Model<any>>;
+  let modelMock: Model<any>;
 
   const document = { _id: 'ObjectId', __v: 1, name: 'test' };
   const replacedDocument = {
@@ -21,19 +19,23 @@ describe('BaseReplaceOneService', () => {
     name: 'replaced',
   };
 
-  it('should have replaceOne method', () => {
-    modelMock = buildModelMock();
-    service = new TestService(modelMock);
+  const initService = (exec = jest.fn()) => {
+    modelMock = {
+      findOneAndReplace: jest.fn(() => ({ lean: jest.fn(() => ({ exec })) })),
+    } as any;
 
+    return new TestService(modelMock);
+  }
+
+  it('should have replaceOne method', () => {
+    service = initService();
     expect(service).toHaveProperty('replaceOne');
   });
 
   describe('replaceOne', () => {
     it('should throw an error if the document to replace does not exist', async () => {
-      modelMock = buildModelMock({
-        findOneAndReplace: [undefined],
-      });
-      service = new TestService(modelMock);
+      const exec = jest.fn().mockResolvedValueOnce(undefined);
+      service = initService(exec);
       jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
 
       await expect(
@@ -42,10 +44,7 @@ describe('BaseReplaceOneService', () => {
     });
 
     it('should call model.findOneAndReplace and return the new document', async () => {
-      modelMock = buildModelMock({
-        findOneAndReplace: [replacedDocument],
-      });
-      service = new TestService(modelMock);
+      service = initService(jest.fn().mockResolvedValueOnce(replacedDocument));
       jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -68,16 +67,13 @@ describe('BaseReplaceOneService', () => {
     });
 
     it('should call callback if it is defined', async () => {
-      modelMock = buildModelMock({
-        findOneAndReplace: [replacedDocument],
-      });
-      service = new TestService(modelMock);
+      service = initService(jest.fn().mockResolvedValueOnce(replacedDocument));
       jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       const callback = jest.fn(() => Promise.resolve());
       service.callback = callback;
       await service.replaceOne(document._id, { name: replacedDocument.name });
 
-      expect(callback).toHaveBeenCalledWith(replacedDocument, modelMock);
+      expect(callback).toHaveBeenCalledWith(replacedDocument, service.callbackMethods);
     });
   });
 });

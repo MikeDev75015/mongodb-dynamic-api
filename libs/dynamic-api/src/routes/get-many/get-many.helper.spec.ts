@@ -37,12 +37,12 @@ describe('GetManyHelper', () => {
     });
 
     it('should instantiate GetMany controller with default values', async () => {
-      const { useClass } = createGetManyServiceProvider(entity, undefined, undefined);
-      const service = new useClass(model);
+      const service = {
+        getMany: jest.fn(),
+      };
       const controllerClass = createGetManyController(entity, { path: 'path' }, { type: 'GetMany' });
       const controller = new controllerClass(service);
       const spyServiceGetMany = jest.spyOn(service, 'getMany');
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
 
       expect(controller).toBeDefined();
       expect(controller['service']).toBe(service);

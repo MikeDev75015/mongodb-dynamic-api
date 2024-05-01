@@ -1,7 +1,6 @@
 import { Param, Type, UseGuards } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
-import { addVersionSuffix, RouteDecoratorsHelper } from '../../helpers';
-import { getControllerMixinData } from '../../helpers/controller-mixin.helper';
+import { addVersionSuffix, getControllerMixinData, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { CreatePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';

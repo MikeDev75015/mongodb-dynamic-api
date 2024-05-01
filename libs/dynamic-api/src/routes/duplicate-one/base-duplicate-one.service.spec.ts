@@ -1,6 +1,4 @@
-import { DeepMocked } from '@golevelup/ts-jest';
 import { Model } from 'mongoose';
-import { buildModelMock } from '../../../__mocks__/model.mock';
 import { BaseDuplicateOneService } from './base-duplicate-one.service';
 
 class TestService extends BaseDuplicateOneService<any> {
@@ -11,7 +9,7 @@ class TestService extends BaseDuplicateOneService<any> {
 
 describe('BaseDuplicateOneService', () => {
   let service: any;
-  let modelMock: DeepMocked<Model<any>>;
+  let modelMock: Model<any>;
 
   const document = { _id: 'ObjectId', __v: 1, name: 'test' };
   const duplicatedDocument = {
@@ -21,19 +19,23 @@ describe('BaseDuplicateOneService', () => {
     name: 'test',
   };
 
-  it('should have duplicateOne method', () => {
-    modelMock = buildModelMock();
-    service = new TestService(modelMock);
+  const initService = (exec = jest.fn(), document: any = undefined) => {
+    modelMock = {
+      findOne: jest.fn(() => ({ lean: jest.fn(() => ({ exec })) })),
+      create: jest.fn(() => Promise.resolve(document)),
+    } as any;
 
+    return new TestService(modelMock);
+  }
+
+  it('should have duplicateOne method', () => {
+    service = initService();
     expect(service).toHaveProperty('duplicateOne');
   });
 
   describe('duplicateOne', () => {
     it('should throw an error if the document to duplicate does not exist', async () => {
-      modelMock = buildModelMock({
-        findOne: [undefined],
-      });
-      service = new TestService(modelMock);
+      service = initService();
       jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
 
       await expect(service.duplicateOne(document._id)).rejects.toThrow(
@@ -42,11 +44,8 @@ describe('BaseDuplicateOneService', () => {
     });
 
     it('should call model.findOne, model.create and return the duplicated document', async () => {
-      modelMock = buildModelMock({
-        findOne: [document, duplicatedDocument],
-        create: [duplicatedDocument],
-      });
-      service = new TestService(modelMock);
+      const exec = jest.fn().mockResolvedValueOnce(document).mockResolvedValueOnce(duplicatedDocument);
+      service = initService(exec, duplicatedDocument);
       jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -67,17 +66,14 @@ describe('BaseDuplicateOneService', () => {
     });
 
     it('should call callback if it is defined', async () => {
-      modelMock = buildModelMock({
-        findOne: [document, duplicatedDocument],
-        create: [duplicatedDocument],
-      });
-      service = new TestService(modelMock);
+      const exec = jest.fn().mockResolvedValueOnce(document).mockResolvedValueOnce(duplicatedDocument);
+      service = initService(exec, duplicatedDocument);
       jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       const callback = jest.fn(() => Promise.resolve());
       service.callback = callback;
       await service.duplicateOne(document._id);
 
-      expect(callback).toHaveBeenCalledWith(duplicatedDocument, modelMock);
+      expect(callback).toHaveBeenCalledWith(duplicatedDocument, service.callbackMethods);
     });
   });
 });

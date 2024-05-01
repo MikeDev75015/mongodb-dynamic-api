@@ -40,8 +40,9 @@ describe('CreateManyHelper', () => {
     });
 
     it('should instantiate CreateMany controller with default values', async () => {
-      const { useClass } = createCreateManyServiceProvider(entity, undefined, undefined);
-      const service = new useClass(model);
+      const service = {
+        createMany: jest.fn(),
+      };
       const controllerClass = createCreateManyController(
         entity,
         { path: 'path' },

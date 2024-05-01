@@ -31,6 +31,7 @@ function createCreateManyServiceProvider<Entity extends BaseEntity>(
 ): DynamicAPIServiceProvider {
   class CreateManyService extends BaseCreateManyService<Entity> {
     protected readonly entity = entity;
+    protected readonly callback = callback;
 
     constructor(
       @InjectModel(

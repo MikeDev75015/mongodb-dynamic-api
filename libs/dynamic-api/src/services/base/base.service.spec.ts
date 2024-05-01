@@ -10,12 +10,104 @@ import { BaseService } from './base.service';
 describe('BaseService', () => {
   class TestEntity extends BaseEntity {
     name: string;
+    password: string;
   }
   class TestService extends BaseService<TestEntity> {
     constructor(protected readonly model: any) {
       super(model);
     }
   }
+  class TestWithPasswordFieldService extends BaseService<TestEntity> {
+    passwordField = 'password' as keyof TestEntity;
+    constructor(protected readonly model: any) {
+      super(model);
+    }
+  }
+
+  describe('callbackMethods', () => {
+    const fakeId = 'fake-id';
+    const fakeEntity = { name: 'toto' };
+
+    it('should have findById and findAndUpdateById methods', () => {
+      const model = {} as any;
+      const service = new TestService(model);
+
+      expect(service['callbackMethods']).toEqual({
+        findById: expect.any(Function),
+        findAndUpdateById: expect.any(Function),
+      });
+    });
+
+    describe('findById', () => {
+      it('should return the entity if it is found', async () => {
+        const model = {
+          findOne: jest.fn().mockReturnThis(),
+          lean: jest.fn().mockReturnThis(),
+          exec: jest.fn().mockResolvedValue(fakeEntity),
+        };
+        const service = new TestService(model);
+        const result = await service['callbackMethods'].findById(fakeId);
+
+        expect(model.findOne).toHaveBeenCalledWith({ _id: fakeId });
+        expect(result).toEqual(fakeEntity);
+      });
+
+      it('should return undefined if the entity is not found', async () => {
+        const model = {
+          findOne: jest.fn().mockReturnThis(),
+          lean: jest.fn().mockReturnThis(),
+          exec: jest.fn().mockResolvedValue(undefined),
+        };
+        const service = new TestService(model);
+        const result = await service['callbackMethods'].findById(fakeId);
+
+        expect(result).toBeUndefined();
+      });
+    });
+
+    describe('findAndUpdateById', () => {
+      it('should throw a BadRequestException if the password field is updated', async () => {
+        const model = {
+          findOneAndUpdate: jest.fn().mockReturnThis(),
+          lean: jest.fn().mockReturnThis(),
+          exec: jest.fn().mockResolvedValue(fakeEntity),
+        };
+        const service = new TestWithPasswordFieldService(model);
+        service['passwordField'] = 'password';
+
+        await expect(service['callbackMethods'].findAndUpdateById('id', { password: 'hashed' })).rejects.toThrow(
+          new BadRequestException('password cannot be updated using this method because it is hashed. Use reset password process instead.'),
+        );
+        expect(model.findOneAndUpdate).not.toHaveBeenCalled();
+      });
+
+      it('should return the updated entity if it is found', async () => {
+        const model = {
+          findOneAndUpdate: jest.fn().mockReturnThis(),
+          lean: jest.fn().mockReturnThis(),
+          exec: jest.fn().mockResolvedValue(fakeEntity),
+        };
+        const service = new TestService(model);
+        const result = await service['callbackMethods'].findAndUpdateById(fakeId, { name: 'unit' });
+
+        expect(result).toEqual(fakeEntity);
+        expect(model.findOneAndUpdate).toHaveBeenCalledWith({ _id: fakeId }, { name: 'unit' }, { new: true });
+      });
+
+      it('should throw a NotFoundException if the entity is not found', async () => {
+        const model = {
+          findOneAndUpdate: jest.fn().mockReturnThis(),
+          lean: jest.fn().mockReturnThis(),
+          exec: jest.fn().mockResolvedValue(undefined),
+        };
+        const service = new TestService(model);
+
+        await expect(service['callbackMethods'].findAndUpdateById(fakeId, { name: 'unit' })).rejects.toThrow(
+          new NotFoundException('Document not found'),
+        );
+      });
+    });
+  });
 
   describe('isSoftDeletable', () => {
     it('should return true if the model has deletedAt and isDeleted properties', () => {

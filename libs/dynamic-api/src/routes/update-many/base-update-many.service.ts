@@ -37,7 +37,7 @@ export abstract class BaseUpdateManyService<Entity extends BaseEntity>
       if (this.callback && documents.length) {
         await Promise.all(
           documents.map(
-            (document) => this.callback(document as Entity, this.model),
+            (document) => this.callback(document as Entity, this.callbackMethods),
           ),
         );
       }

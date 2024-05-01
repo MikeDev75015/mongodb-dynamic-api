@@ -36,7 +36,7 @@ export abstract class BaseReplaceOneService<Entity extends BaseEntity>
       }
 
       if (this.callback) {
-        await this.callback(document as Entity, this.model);
+        await this.callback(document as Entity, this.callbackMethods);
       }
 
       return this.buildInstance(document as Entity);

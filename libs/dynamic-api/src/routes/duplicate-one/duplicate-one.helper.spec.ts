@@ -40,8 +40,9 @@ describe('DuplicateOneHelper', () => {
     });
 
     it('should instantiate DuplicateOne controller with default values', async () => {
-      const { useClass } = createDuplicateOneServiceProvider(entity, undefined, undefined);
-      const service = new useClass(model);
+      const service = {
+        duplicateOne: jest.fn(),
+      };
       const controllerClass = createDuplicateOneController(
         entity,
         { path: 'path' },
@@ -49,7 +50,6 @@ describe('DuplicateOneHelper', () => {
       );
       const controller = new controllerClass(service);
       const spyServiceDuplicateOne = jest.spyOn(service, 'duplicateOne');
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
 
       expect(controller).toBeDefined();
       expect(controller['service']).toBe(service);

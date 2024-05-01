@@ -168,11 +168,6 @@ export class DynamicApiModule {
 
               const module = moduleByRouteType.get(type);
 
-              if (!module) {
-                reject(new Error(`Route module for ${type} not found`));
-                return;
-              }
-
               const description = routeDescription ?? getDefaultRouteDescription(type, entity.name);
 
               const version = routeVersion ?? controllerVersion;
@@ -303,6 +298,7 @@ export class DynamicApiModule {
         additionalFields: [],
       },
       login: useAuth.login ?? {},
+      resetPassword: useAuth.resetPassword ?? {},
     };
   }
 

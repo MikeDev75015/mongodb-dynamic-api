@@ -1,30 +1,37 @@
 import { BadRequestException } from '@nestjs/common';
 import { Model } from 'mongoose';
-import { buildModelMock } from '../../../__mocks__/model.mock';
 import { BaseGetOneService } from './base-get-one.service';
+
+class TestService extends BaseGetOneService<any> {
+  constructor(protected readonly _: Model<any>) {
+    super(_);
+  }
+}
 
 describe('BaseGetOneService', () => {
   let service: any;
+  let modelMock: Model<any>;
+
   const response = { _id: 'ObjectId', __v: 1, name: 'test' };
-  const modelMock = buildModelMock({ findOne: [response] });
 
-  beforeEach(() => {
-    class TestService extends BaseGetOneService<any> {
-      constructor(protected readonly _: Model<any>) {
-        super(_);
-      }
-    }
+  const initService = (exec = jest.fn()) => {
+    modelMock = {
+      findOne: jest.fn(() => ({ lean: jest.fn(() => ({ exec })) })),
+    } as any;
 
-    service = new TestService(modelMock);
-    jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
-  });
+    return new TestService(modelMock);
+  };
 
   it('should have getOne method', () => {
+    service = initService();
     expect(service).toHaveProperty('getOne');
   });
 
   describe('getOne', () => {
     it('should call model.findOne and return the response', async () => {
+      const exec = jest.fn().mockResolvedValueOnce(response);
+      service = initService(exec);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { _id, __v, ...documentWithoutIdAndVersion } = response;
 
@@ -36,6 +43,8 @@ describe('BaseGetOneService', () => {
     });
 
     it('should call model.findOne with soft deletable query', async () => {
+      const exec = jest.fn().mockResolvedValueOnce(response);
+      service = initService(exec);
       jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
       await service.getOne('ObjectId');
 
@@ -46,19 +55,20 @@ describe('BaseGetOneService', () => {
     });
 
     it('should call callback if it is defined', async () => {
+      const exec = jest.fn().mockResolvedValueOnce(response);
+      service = initService(exec);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       const callback = jest.fn(() => Promise.resolve());
       service.callback = callback;
       await service.getOne('ObjectId');
 
-      expect(callback).toHaveBeenCalledWith(response, modelMock);
+      expect(callback).toHaveBeenCalledWith(response, service.callbackMethods);
     });
 
     it('should throw error if document not found', async () => {
-      modelMock.findOne.mockReturnValueOnce({
-        lean: () => ({
-          exec: jest.fn(() => Promise.resolve(undefined)),
-        }),
-      } as any);
+      const exec = jest.fn().mockResolvedValueOnce(undefined);
+      service = initService(exec);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
 
       await expect(service.getOne('ObjectId')).rejects.toThrow(
         new BadRequestException('Document not found'),

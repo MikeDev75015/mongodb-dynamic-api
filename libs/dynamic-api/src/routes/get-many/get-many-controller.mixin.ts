@@ -1,8 +1,7 @@
 import { Query, Type, UseGuards } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityQuery } from '../../dtos';
-import { addVersionSuffix, getFormattedApiTag, RouteDecoratorsHelper } from '../../helpers';
-import { getControllerMixinData } from '../../helpers/controller-mixin.helper';
+import { addVersionSuffix, getControllerMixinData, getFormattedApiTag, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { CreatePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
