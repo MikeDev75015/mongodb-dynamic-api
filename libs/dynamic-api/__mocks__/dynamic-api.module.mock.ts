@@ -1,5 +1,4 @@
 import { Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Schema as MongooseSchema } from 'mongoose';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsInt, IsNotEmpty, IsOptional, IsPositive, IsString } from 'class-validator';
 import {
@@ -10,7 +9,7 @@ import {
   SoftDeletableEntity,
 } from '../src';
 
-type DynamicApiForFeatureOptionsMock = DynamicApiForFeatureOptions<any> & { fakeSchema: MongooseSchema<any> };
+type DynamicApiForFeatureOptionsMock = DynamicApiForFeatureOptions<any>;
 
 function buildDynamicApiModuleOptionsMock(
   { entity, controllerOptions, routes }: Partial<DynamicApiForFeatureOptions<any>> = {},
@@ -45,15 +44,7 @@ function buildDynamicApiModuleOptionsMock(
     age?: number;
   }
 
-  const fakeSchema = SchemaFactory.createForClass(entity ?? PersonEntity);
-  fakeSchema.set = jest.fn();
-  fakeSchema.index = jest.fn();
-  fakeSchema.path = jest.fn();
-  fakeSchema.post = jest.fn();
-  fakeSchema.pre = jest.fn();
-
   return {
-    fakeSchema,
     entity: entity ?? PersonEntity,
     controllerOptions: {
       path: 'persons',
