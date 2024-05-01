@@ -1,5 +1,9 @@
 import { Type, ValidationPipeOptions } from '@nestjs/common';
-import { DynamicApiServiceCallback, RegisterAbilityPredicate } from '../../../interfaces';
+import {
+  DynamicApiResetPasswordCallback,
+  DynamicApiServiceCallback,
+  RegisterAbilityPredicate,
+} from '../../../interfaces';
 import { BaseEntity } from '../../../models';
 
 type DynamicApiJWTOptions = {
@@ -25,11 +29,19 @@ type DynamicApiUserOptions<Entity extends BaseEntity = any> = {
   requestAdditionalFields?: (keyof Entity)[];
 };
 
+type DynamicApiResetPasswordOptions<Entity extends BaseEntity = any> = {
+  resetPasswordCallback: DynamicApiResetPasswordCallback<Entity>;
+  changePasswordCallback: DynamicApiServiceCallback<Entity>;
+  emailField: keyof Entity | string;
+  expiresInMinutes: number;
+};
+
 type DynamicApiAuthOptions<Entity extends BaseEntity = any> = {
   user: DynamicApiUserOptions<Entity>;
   login?: DynamicApiLoginOptions<Entity>;
   register?: DynamicApiRegisterOptions<Entity>;
   jwt?: DynamicApiJWTOptions;
+  resetPassword?: Partial<DynamicApiResetPasswordOptions<Entity>>;
   validationPipeOptions?: ValidationPipeOptions;
 };
 
@@ -39,4 +51,5 @@ export type {
   DynamicApiUserOptions,
   DynamicApiJWTOptions,
   DynamicApiLoginOptions,
+  DynamicApiResetPasswordOptions,
 };

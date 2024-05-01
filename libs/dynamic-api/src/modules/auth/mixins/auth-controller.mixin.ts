@@ -1,12 +1,20 @@
-import { Body, Get, HttpCode, HttpStatus, Post, Request, Type, UseGuards } from '@nestjs/common';
+import { Body, Get, HttpCode, HttpStatus, Patch, Post, Request, Type, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiProperty, IntersectionType, PartialType, PickType } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
 import { AuthDecoratorsBuilder } from '../../../builders';
-import { Public } from '../../../decorators';
+import { ApiEndpointVisibility, Public } from '../../../decorators';
 import { RouteDecoratorsHelper } from '../../../helpers';
 import { BaseEntity } from '../../../models';
+import { ChangePasswordDto } from '../dtos/change-password.dto';
+import { ResetPasswordDto } from '../dtos/reset-password.dto';
 import { JwtAuthGuard, LocalAuthGuard } from '../guards';
-import { AuthController, AuthControllerConstructor, AuthService, DynamicApiRegisterOptions } from '../interfaces';
+import {
+  AuthController,
+  AuthControllerConstructor,
+  AuthService,
+  DynamicApiRegisterOptions,
+  DynamicApiResetPasswordOptions,
+} from '../interfaces';
 import { AuthRegisterPoliciesGuardMixin } from './auth-register-policies-guard.mixin';
 
 function AuthControllerMixin<Entity extends BaseEntity>(
@@ -19,6 +27,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     protected: registerProtected,
     abilityPredicate: registerAbilityPredicate,
   }: DynamicApiRegisterOptions<Entity> = {},
+  resetPasswordOptions?: DynamicApiResetPasswordOptions<Entity>,
 ): AuthControllerConstructor<Entity> {
   if (!loginField || !passwordField) {
     throw new Error('Login and password fields are required');
@@ -101,7 +110,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     @HttpCode(HttpStatus.OK)
     @ApiOkResponse({ type: AuthPresenter })
     @Post('login')
-    login(@Request() req: { user: Entity }, @Body() body: AuthLoginDto) {
+    login(@Request() req: { user: Entity }, @Body() _: AuthLoginDto) {
       return this.service.login(req.user);
     }
 
@@ -112,6 +121,20 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     @UseGuards(AuthRegisterPoliciesGuard)
     register(@Body() body: AuthRegisterDto) {
       return this.service.register(body);
+    }
+
+    @ApiEndpointVisibility(!!resetPasswordOptions, Public())
+    @HttpCode(HttpStatus.NO_CONTENT)
+    @Post('reset-password')
+    resetPassword(@Body() { email }: ResetPasswordDto) {
+      return this.service.resetPassword(email);
+    }
+
+    @ApiEndpointVisibility(!!resetPasswordOptions, Public())
+    @HttpCode(HttpStatus.NO_CONTENT)
+    @Patch('change-password')
+    changePassword(@Body() { resetPasswordToken, newPassword }: ChangePasswordDto) {
+      return this.service.changePassword(resetPasswordToken, newPassword);
     }
   }
 

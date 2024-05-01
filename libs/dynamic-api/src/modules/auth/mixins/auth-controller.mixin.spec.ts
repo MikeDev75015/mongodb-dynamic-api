@@ -26,15 +26,37 @@ describe('AuthControllerMixin', () => {
   });
 
   it('should throw error when invalid entity is provided', () => {
-    expect(() => AuthControllerMixin<TestEntity>(null, 'loginField', 'passwordField')).toThrow();
+    expect(() => AuthControllerMixin<TestEntity>(
+      null,
+      'loginField',
+      'passwordField',
+      undefined,
+      undefined,
+      undefined,
+    ))
+    .toThrow();
   });
 
   it('should throw error when invalid loginField is provided', () => {
-    expect(() => AuthControllerMixin(TestEntity, null, 'passwordField')).toThrow();
+    expect(() => AuthControllerMixin(
+      TestEntity,
+      null,
+      'passwordField',
+    undefined,
+      undefined,
+      undefined,
+    )).toThrow();
   });
 
   it('should throw error when invalid passwordField is provided', () => {
-    expect(() => AuthControllerMixin(TestEntity, 'loginField', null)).toThrow();
+    expect(() => AuthControllerMixin(
+      TestEntity,
+      'loginField',
+      null,
+      undefined,
+      undefined,
+      undefined,
+    )).toThrow();
   });
 
   it('should create AuthController with login, register and getAccount endpoints', () => {
@@ -42,6 +64,9 @@ describe('AuthControllerMixin', () => {
       TestEntity,
       'loginField',
       'passwordField',
+      undefined,
+      undefined,
+      undefined,
     );
     const controller = new AuthController(service);
 
@@ -60,7 +85,8 @@ describe('AuthControllerMixin', () => {
         additionalFields: ['field1', { name: 'field2', required: true }, { name: 'field3', required: false }],
         abilityPredicate: (user: any) => user.isAdmin,
         protected: true,
-      }
+      },
+      undefined
     );
     const controller = new AuthController(service);
 

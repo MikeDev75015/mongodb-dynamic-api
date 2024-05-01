@@ -7,7 +7,7 @@ import { buildSchemaFromEntity } from '../../helpers';
 import { BaseEntity } from '../../models';
 import { BcryptService } from '../../services';
 import { createAuthController, createAuthServiceProvider, createLocalStrategyProvider } from './auth.helper';
-import { DynamicApiAuthOptions } from './interfaces';
+import { DynamicApiAuthOptions, DynamicApiResetPasswordOptions } from './interfaces';
 import { JwtStrategy } from './strategies';
 
 @Module({})
@@ -23,10 +23,16 @@ export class AuthModule {
       jwt: { secret, expiresIn },
       register,
       login,
+      resetPassword,
       validationPipeOptions,
     }: DynamicApiAuthOptions<Entity>,
     extraImports: any[] = [],
   ) {
+    const { resetPasswordCallback, changePasswordCallback, emailField = 'email', expiresInMinutes = 10 } = resetPassword;
+    const resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined = resetPasswordCallback
+      ? { resetPasswordCallback, changePasswordCallback, emailField, expiresInMinutes }
+      : undefined;
+
     const AuthController = createAuthController(
       userEntity,
       loginField,
@@ -34,6 +40,7 @@ export class AuthModule {
       requestAdditionalFields,
       register,
       validationPipeOptions,
+      resetPasswordOptions,
     );
     const AuthServiceProvider = createAuthServiceProvider(
       userEntity,
@@ -42,6 +49,7 @@ export class AuthModule {
       requestAdditionalFields,
       register.callback,
       login.callback,
+      resetPasswordOptions,
     );
     const LocalStrategyProvider = createLocalStrategyProvider(loginField, passwordField);
 
