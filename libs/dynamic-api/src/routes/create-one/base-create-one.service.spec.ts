@@ -1,29 +1,38 @@
 import { Model } from 'mongoose';
-import { buildModelMock } from '../../../__mocks__/model.mock';
 import { BaseCreateOneService } from './base-create-one.service';
 
 describe('BaseCreateOneService', () => {
   let service: any;
+  let modelMock: Model<any>;
+
   const toCreate = { name: 'test' };
   const created = { _id: 'ObjectId', __v: 1, name: 'test' };
-  const modelMock = buildModelMock({ create: [created], findOne: [created] });
 
-  beforeEach(() => {
+  const initService = (document?: any) => {
+    modelMock = {
+      create: jest.fn().mockResolvedValue(created),
+      findOne: jest.fn().mockReturnThis(),
+      lean: jest.fn().mockReturnThis(),
+      exec: jest.fn().mockResolvedValue(document),
+    } as unknown as Model<any>;
+
     class TestService extends BaseCreateOneService<any> {
       constructor(protected readonly _: Model<any>) {
         super(_);
       }
     }
 
-    service = new TestService(modelMock);
-  });
+    return new TestService(modelMock);
+  }
 
   it('should have createOne method', () => {
+    const service = initService();
     expect(service).toHaveProperty('createOne');
   });
 
   describe('createOne', () => {
     it('should return an instance of the entity with id defined', async () => {
+      service = initService(created);
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { _id, __v, ...documentWithoutIdAndVersion } = created;
 
@@ -34,15 +43,17 @@ describe('BaseCreateOneService', () => {
     });
 
     it('should call callback if it is defined', async () => {
+      service = initService(created);
       const callback = jest.fn(() => Promise.resolve());
       service.callback = callback;
       await service.createOne(toCreate);
 
-      expect(callback).toHaveBeenCalledWith(created, modelMock);
+      expect(callback).toHaveBeenCalledWith(created, service.callbackMethods);
     });
 
     it('should throw an error if the document already exists', async () => {
-      modelMock.create.mockRejectedValue({
+      service = initService();
+      (modelMock.create as jest.Mock).mockRejectedValue({
         code: 11000,
         keyValue: { name: 'test' },
       });
@@ -53,7 +64,8 @@ describe('BaseCreateOneService', () => {
     });
 
     it('should throw an error if the create query fails', async () => {
-      modelMock.create.mockRejectedValue(new Error('create error'));
+      service = initService();
+      (modelMock.create as jest.Mock).mockRejectedValue(new Error('create error'));
 
       await expect(service.createOne(toCreate)).rejects.toThrow('create error');
     });

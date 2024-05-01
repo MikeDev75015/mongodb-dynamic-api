@@ -1,6 +1,4 @@
-import { DeepMocked } from '@golevelup/ts-jest';
 import { Model } from 'mongoose';
-import { buildModelMock } from '../../../__mocks__/model.mock';
 import { BaseUpdateOneService } from './base-update-one.service';
 
 class TestService extends BaseUpdateOneService<any> {
@@ -11,7 +9,7 @@ class TestService extends BaseUpdateOneService<any> {
 
 describe('BaseUpdateOneService', () => {
   let service: any;
-  let modelMock: DeepMocked<Model<any>>;
+  let modelMock: Model<any>;
 
   const document = { _id: 'ObjectId', __v: 1, name: 'test' };
   const updatedDocument = {
@@ -21,19 +19,22 @@ describe('BaseUpdateOneService', () => {
     name: 'updated',
   };
 
-  it('should have updateOne method', () => {
-    modelMock = buildModelMock();
-    service = new TestService(modelMock);
+  const initService = (exec = jest.fn()) => {
+    modelMock = {
+      findOneAndUpdate: jest.fn(() => ({ lean: jest.fn(() => ({ exec })) })),
+    } as any;
 
+    return new TestService(modelMock);
+  };
+
+  it('should have updateOne method', () => {
+    service = initService();
     expect(service).toHaveProperty('updateOne');
   });
 
   describe('updateOne', () => {
     it('should throw an error if the document to update does not exist', async () => {
-      modelMock = buildModelMock({
-        findOneAndUpdate: [undefined],
-      });
-      service = new TestService(modelMock);
+      service = initService(jest.fn().mockResolvedValueOnce(undefined));
       jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
 
       await expect(
@@ -42,10 +43,7 @@ describe('BaseUpdateOneService', () => {
     });
 
     it('should call model.findOneAndUpdate and return the new document', async () => {
-      modelMock = buildModelMock({
-        findOneAndUpdate: [updatedDocument],
-      });
-      service = new TestService(modelMock);
+      service = initService(jest.fn().mockResolvedValueOnce(updatedDocument));
       jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -68,16 +66,13 @@ describe('BaseUpdateOneService', () => {
     });
 
     it('should call callback if it is defined', async () => {
-      modelMock = buildModelMock({
-        findOneAndUpdate: [updatedDocument],
-      });
-      service = new TestService(modelMock);
+      service = initService(jest.fn().mockResolvedValueOnce(updatedDocument));
       jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       const callback = jest.fn(() => Promise.resolve());
       service.callback = callback;
       await service.updateOne(document._id, { name: updatedDocument.name });
 
-      expect(callback).toHaveBeenCalledWith(updatedDocument, modelMock);
+      expect(callback).toHaveBeenCalledWith(updatedDocument, service.callbackMethods);
     });
   });
 });

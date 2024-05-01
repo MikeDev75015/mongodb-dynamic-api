@@ -40,8 +40,9 @@ describe('ReplaceOneHelper', () => {
     });
 
     it('should instantiate ReplaceOne controller with default values', async () => {
-      const { useClass } = createReplaceOneServiceProvider(entity, undefined, undefined);
-      const service = new useClass(model);
+      const service = {
+        replaceOne: jest.fn(),
+      };
       const controllerClass = createReplaceOneController(
         entity,
         { path: 'path' },
@@ -49,7 +50,6 @@ describe('ReplaceOneHelper', () => {
       );
       const controller = new controllerClass(service);
       const spyServiceReplaceOne = jest.spyOn(service, 'replaceOne');
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
 
       expect(controller).toBeDefined();
       expect(controller['service']).toBe(service);

@@ -40,8 +40,9 @@ describe('DuplicateManyHelper', () => {
     });
 
     it('should instantiate DuplicateMany controller with default values', async () => {
-      const { useClass } = createDuplicateManyServiceProvider(entity, undefined, undefined);
-      const service = new useClass(model);
+      const service = {
+        duplicateMany: jest.fn(),
+      };
       const controllerClass = createDuplicateManyController(
         entity,
         { path: 'path' },
@@ -49,7 +50,6 @@ describe('DuplicateManyHelper', () => {
       );
       const controller = new controllerClass(service);
       const spyServiceDuplicateMany = jest.spyOn(service, 'duplicateMany');
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
 
       expect(controller).toBeDefined();
       expect(controller['service']).toBe(service);

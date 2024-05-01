@@ -40,8 +40,9 @@ describe('GetOneHelper', () => {
     });
 
     it('should instantiate GetOne controller with default values', async () => {
-      const { useClass } = createGetOneServiceProvider(entity, undefined, undefined);
-      const service = new useClass(model);
+      const service = {
+        getOne: jest.fn(),
+      };
       const controllerClass = createGetOneController(
         entity,
         { path: 'path' },
@@ -49,7 +50,6 @@ describe('GetOneHelper', () => {
       );
       const controller = new controllerClass(service);
       const spyServiceGetOne = jest.spyOn(service, 'getOne');
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
 
       expect(controller).toBeDefined();
       expect(controller['service']).toBe(service);

@@ -1,20 +1,53 @@
 import {
   BadRequestException,
   ForbiddenException,
-  NotFoundException, ServiceUnavailableException,
+  NotFoundException,
+  ServiceUnavailableException,
   Type,
 } from '@nestjs/common';
 import { Builder } from 'builder-pattern';
 import { FilterQuery, Model, Schema } from 'mongoose';
-import { AbilityPredicate } from '../../interfaces';
+import { AbilityPredicate, DynamicApiCallbackMethods } from '../../interfaces';
 import { BaseEntity } from '../../models';
+import { DynamicApiResetPasswordOptions } from '../../modules';
 
 export abstract class BaseService<Entity extends BaseEntity> {
   public abilityPredicate: AbilityPredicate<Entity> | undefined;
   public user: unknown;
   protected readonly entity: Type<Entity>;
 
-  protected constructor(protected readonly model: Model<Entity>) {}
+  protected readonly passwordField: keyof Entity | undefined;
+
+  protected readonly resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined;
+
+  protected readonly callbackMethods: DynamicApiCallbackMethods<Entity>;
+
+  protected constructor(protected readonly model: Model<Entity>) {
+    this.callbackMethods = {
+      findById: async (id: string) => {
+        const entity = await this.model.findOne({ _id: id }).lean().exec();
+        if (!entity) {
+          return;
+        }
+
+        return this.buildInstance(entity as Entity);
+      },
+      findAndUpdateById: async (id: string, update: Partial<Entity>) => {
+        if (this.passwordField && typeof update[this.passwordField] !== 'undefined') {
+          throw new BadRequestException(
+            `${this.passwordField as string} cannot be updated using this method because it is hashed. Use reset password process instead.`,
+          );
+        }
+
+        const updated = await this.model.findOneAndUpdate({ _id: id }, update, { new: true }).lean().exec();
+        if (!updated) {
+          this.handleDocumentNotFound();
+        }
+
+        return this.buildInstance(updated as Entity);
+      },
+    };
+  }
 
   get isSoftDeletable() {
     const paths = Object.getOwnPropertyNames(this.model.schema.paths);
@@ -34,10 +67,12 @@ export abstract class BaseService<Entity extends BaseEntity> {
     return documents as Entity[];
   }
 
-  public async findOneDocument(_id: string | Schema.Types.ObjectId, conditions: FilterQuery<Entity> = {}) {
+  public async findOneDocument(_id: string | Schema.Types.ObjectId | undefined, conditions: FilterQuery<Entity> = {}) {
     const document = await this.model
     .findOne({
-      _id,
+      ...(
+        _id ? { _id } : {}
+      ),
       ...conditions,
     })
     .lean()

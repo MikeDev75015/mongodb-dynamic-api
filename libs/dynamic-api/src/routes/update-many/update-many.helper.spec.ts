@@ -42,8 +42,9 @@ describe('UpdateManyHelper', () => {
     });
 
     it('should instantiate UpdateMany controller with default values', async () => {
-      const { useClass } = createUpdateManyServiceProvider(entity, undefined, undefined);
-      const service = new useClass(model);
+      const service = {
+        updateMany: jest.fn(),
+      };
       const controllerClass = createUpdateManyController(
         entity,
         { path: 'path' },
@@ -51,7 +52,6 @@ describe('UpdateManyHelper', () => {
       );
       const controller = new controllerClass(service);
       const spyServiceUpdateMany = jest.spyOn(service, 'updateMany');
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
 
       expect(controller).toBeDefined();
       expect(controller['service']).toBe(service);

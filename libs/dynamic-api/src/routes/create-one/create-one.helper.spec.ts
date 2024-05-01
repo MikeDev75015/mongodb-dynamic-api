@@ -40,8 +40,9 @@ describe('CreateOneHelper', () => {
     });
 
     it('should instantiate CreateOne controller with default values', async () => {
-      const { useClass } = createCreateOneServiceProvider(entity, undefined, undefined);
-      const service = new useClass(model);
+      const service = {
+        createOne: jest.fn(),
+      };
       const controllerClass = createCreateOneController(
         entity,
         { path: 'path' },

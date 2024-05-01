@@ -1,33 +1,46 @@
 import { Builder } from 'builder-pattern';
 import { Model } from 'mongoose';
-import { buildModelMock } from '../../../__mocks__/model.mock';
 import { DeletePresenter } from '../../dtos';
 import { BaseDeleteOneService } from './base-delete-one.service';
 
 describe('BaseDeleteOneService', () => {
   let service: any;
+  let modelMock: Model<any>;
   const id = 'ObjectId';
   const deleted = { deletedCount: 1 };
   let presenter: DeletePresenter;
-  const modelMock = buildModelMock({ deleteOne: [deleted] });
 
-  beforeEach(() => {
+  const initService = () => {
+    modelMock = {
+      deleteOne: jest.fn(() => ({
+        exec: jest.fn(() => Promise.resolve({ deletedCount: 1 })),
+      })),
+      updateOne: jest.fn(() => ({
+        exec: jest.fn(() => Promise.resolve({ modifiedCount: 1 })),
+      })),
+    } as any;
+
     class TestService extends BaseDeleteOneService<any> {
       constructor(protected readonly _: Model<any>) {
         super(_);
       }
     }
 
-    service = new TestService(modelMock);
+    return new TestService(modelMock);
+  }
+
+  beforeEach(() => {
     presenter = Builder(DeletePresenter, deleted).build();
   });
 
   it('should have deleteOne method', () => {
+    service = initService();
     expect(service).toHaveProperty('deleteOne');
   });
 
   describe('deleteOne without softDeletable', () => {
     it('should call model.deleteOne and return the number of deleted documents', async () => {
+      service = initService();
       jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
 
       await expect(service.deleteOne(id)).resolves.toStrictEqual(presenter);
@@ -37,8 +50,9 @@ describe('BaseDeleteOneService', () => {
 
   describe('deleteOne with softDeletable', () => {
     it('should call model.updateOne and return the number of deleted documents', async () => {
+      service = initService();
       jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
-      modelMock.updateOne.mockReturnValueOnce({
+      (modelMock.updateOne as jest.Mock).mockReturnValueOnce({
         exec: () => Promise.resolve({ modifiedCount: 1 }),
       } as any);
 
@@ -50,8 +64,9 @@ describe('BaseDeleteOneService', () => {
     });
 
     it('should call model.updateOne and return 0 as number of deleted documents', async () => {
+      service = initService();
       jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
-      modelMock.updateOne.mockReturnValueOnce({
+      (modelMock.updateOne as jest.Mock).mockReturnValueOnce({
         exec: () => Promise.resolve({ modifiedCount: 0 }),
       } as any);
       presenter.deletedCount = 0;
