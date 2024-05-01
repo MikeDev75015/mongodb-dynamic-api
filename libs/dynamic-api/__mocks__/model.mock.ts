@@ -20,7 +20,19 @@ const buildModelMock = <T = any>({
   deleteOne?: any[];
   updateOne?: any[];
 } = {}) => {
-  const modelMock = createMock<Model<T>>();
+  const exec = jest.fn();
+  const lean = jest.fn(() => ({ exec }));
+  const modelMock = createMock<Model<T>>({
+    create: jest.fn(),
+    find: jest.fn(() => ({ lean })),
+    findOne: jest.fn(() => ({ lean })),
+    findOneAndReplace: jest.fn(() => ({ lean })),
+    findOneAndUpdate: jest.fn(() => ({ lean })),
+    updateMany: jest.fn(() => ({ lean })),
+    updateOne: jest.fn(() => ({ lean })),
+    deleteOne: jest.fn(),
+    deleteMany: jest.fn(),
+  });
 
   if (create?.length) {
     create.forEach((c, i) =>

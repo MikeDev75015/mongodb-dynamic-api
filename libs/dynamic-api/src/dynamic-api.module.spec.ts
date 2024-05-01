@@ -1,8 +1,10 @@
 import { CacheModule } from '@nestjs/cache-manager';
-import { MongooseModule, SchemaFactory } from '@nestjs/mongoose';
+import { MongooseModule } from '@nestjs/mongoose';
+import { Schema } from 'mongoose';
 import { buildDynamicApiModuleOptionsMock } from '../__mocks__/dynamic-api.module.mock';
 import { DynamicApiModule } from './dynamic-api.module';
-import { DynamicAPIRouteConfig, DynamicAPISchemaOptionsInterface, RouteType } from './interfaces';
+import * as helpers from './helpers';
+import { DynamicAPIRouteConfig, RouteType } from './interfaces';
 import {
   CreateManyModule,
   CreateOneModule,
@@ -16,6 +18,9 @@ import {
   UpdateManyModule,
   UpdateOneModule,
 } from './routes';
+import { DynamicApiGlobalStateService } from './services';
+
+jest.mock('./helpers');
 
 describe('DynamicApiModule', () => {
   beforeEach(() => {
@@ -78,99 +83,73 @@ describe('DynamicApiModule', () => {
 
   describe('forFeature', () => {
     let defaultOptions: ReturnType<typeof buildDynamicApiModuleOptionsMock>;
+    let mongooseModuleSpy: jest.SpyInstance;
+    const fakeSchema = { set: jest.fn(), index: jest.fn(), pre: jest.fn() } as unknown as Schema;
     const fakeDatabaseModule = { module: 'fake-database-module' };
-    let fakeSchema;
 
     beforeEach(() => {
       defaultOptions = buildDynamicApiModuleOptionsMock();
-      fakeSchema = defaultOptions.fakeSchema;
-      jest
-      .spyOn(SchemaFactory, 'createForClass')
-      .mockReturnValue(defaultOptions.fakeSchema);
-      jest
+      jest.spyOn(helpers, 'buildSchemaFromEntity').mockReturnValue(fakeSchema as any);
+      jest.spyOn(helpers, 'getDefaultRouteDescription').mockReturnValue('fake-description');
+      jest.spyOn(helpers, 'isValidVersion').mockReturnValue(true);
+      jest.spyOn(helpers, 'addVersionSuffix').mockReturnValue('fake-version');
+      jest.spyOn(helpers, 'getFormattedApiTag').mockReturnValue('fake-formatted-api-tag');
+      jest.spyOn(helpers, 'RouteDecoratorsHelper').mockReturnValue((_: any) => undefined);
+      jest.spyOn(helpers, 'provideName').mockReturnValue('fake-provided-name');
+      jest.spyOn(helpers, 'getControllerMixinData').mockReturnValue({
+        routeType: 'fake-route-type' as RouteType,
+        description: 'fake-description',
+        isPublic: false,
+        RoutePresenter: undefined,
+        abilityPredicate: undefined,
+        displayedName: 'fake-displayed-name',
+        RouteBody: undefined,
+        EntityParam: undefined,
+      });
+      mongooseModuleSpy = jest
       .spyOn(MongooseModule, 'forFeature')
       .mockReturnValue(fakeDatabaseModule as any);
     });
 
-    it('should call MongooseModule.forFeature with DynamicApiModule.connectionName', async () => {
+    it('should call buildSchemaFromEntity with entity', () => {
       const { entity, controllerOptions, routes } = defaultOptions;
 
-      const module = await DynamicApiModule.forFeature({
+      DynamicApiModule.forFeature({
         entity,
         controllerOptions,
         routes,
       });
 
-      expect(MongooseModule.forFeature).toHaveBeenCalledWith(
-        [{ name: entity.name, schema: expect.any(Object) }],
+      expect(helpers.buildSchemaFromEntity).toHaveBeenCalledWith(entity);
+    });
+
+    it('should call MongooseModule.forFeature with DynamicApiModule.connectionName', () => {
+      const { entity, controllerOptions, routes } = defaultOptions;
+
+      DynamicApiModule.forFeature({
+        entity,
+        controllerOptions,
+        routes,
+      });
+
+      expect(mongooseModuleSpy).toHaveBeenCalledWith(
+        [{ name: entity.name, schema: fakeSchema }],
         DynamicApiModule.state.get('connectionName'),
       );
-      expect(module.imports.length).toStrictEqual(11);
     });
 
-    it('should set timestamps to true', () => {
-      DynamicApiModule.forFeature(defaultOptions);
+    it('should call DynamicApiGlobalStateService.addEntitySchema with entity name and schema', () => {
+      const { entity, controllerOptions, routes } = defaultOptions;
+      const addEntitySchemaSpy = jest
+      .spyOn(DynamicApiGlobalStateService, 'addEntitySchema');
 
-      expect(fakeSchema.set).toHaveBeenCalledWith('timestamps', true);
-    });
-
-    it('should add schema indexes', () => {
-      const indexes = [
-        { fields: { name: 1 }, options: { unique: true } },
-        { fields: { age: -1 } },
-      ];
-      const options = buildDynamicApiModuleOptionsMock({}, {
-        indexes,
-      } as DynamicAPISchemaOptionsInterface);
-
-      DynamicApiModule.forFeature(options);
-
-      expect(options.fakeSchema.index).toHaveBeenNthCalledWith(
-        1,
-        { name: 1 },
-        { unique: true },
-      );
-      expect(options.fakeSchema.index).toHaveBeenNthCalledWith(
-        2,
-        { age: -1 },
-        undefined,
-      );
-    });
-
-    it('should add schema hooks', () => {
-      const hooks = [{ type: 'CreateOne', method: 'pre', callback: jest.fn() }];
-      const options = buildDynamicApiModuleOptionsMock({}, {
-        hooks,
-      } as DynamicAPISchemaOptionsInterface);
-
-      DynamicApiModule.forFeature(options);
-
-      expect(options.fakeSchema.pre).toHaveBeenNthCalledWith(
-        1,
-        'save',
-        { document: true, query: true },
-        expect.any(Function),
-      );
-    });
-
-    it('should reject if DynamicApiModule state could not be initialized ', async () => {
-      jest.spyOn(global, 'setInterval').mockReturnValueOnce({ hasRef: () => false } as NodeJS.Timeout);
-      jest.spyOn(global, 'setTimeout').mockImplementationOnce((callback) => {
-        if (typeof callback === 'function') {
-          callback();
-        }
-        return { hasRef: () => false } as NodeJS.Timeout;
+      DynamicApiModule.forFeature({
+        entity,
+        controllerOptions,
+        routes,
       });
 
-      const options = buildDynamicApiModuleOptionsMock({
-        controllerOptions: { path: 'fake-path', version: '1' },
-        routes: [{ type: 'GetMany' }],
-      });
-
-      await expect(DynamicApiModule.forFeature(options)).rejects.toStrictEqual(
-        new Error('Dynamic API state could not be initialized. Please check your configuration.'),
-      );
-      expect(setInterval).toHaveBeenCalledTimes(1);
+      expect(addEntitySchemaSpy).toHaveBeenCalledWith(entity.name, fakeSchema);
     });
 
     describe('with routes', () => {
@@ -187,13 +166,9 @@ describe('DynamicApiModule', () => {
       let spyUpdateOneModule: jest.SpyInstance;
 
       class fakeQuery {}
-
       class fakeParam {}
-
       class fakeBody {}
-
       class fakeManyBody {list: any[];}
-
       class fakePresenter {}
 
       beforeEach(() => {
@@ -209,23 +184,15 @@ describe('DynamicApiModule', () => {
         spyUpdateManyModule = jest.spyOn(UpdateManyModule, 'forFeature');
         spyUpdateOneModule = jest.spyOn(UpdateOneModule, 'forFeature');
 
-        DynamicApiModule.state.set(['initialized', true]);
-      });
-
-      it('should throw an error if route type is not implemented', async () => {
-        const options = buildDynamicApiModuleOptionsMock({
-          routes: [{ type: 'FakeType' as RouteType }],
-        });
-
-        await expect(DynamicApiModule.forFeature(options)).rejects.toStrictEqual(
-          new Error('Route module for FakeType not found'),
-        );
+        DynamicApiModule.state['_'].initialized = true;
+        DynamicApiModule.state['updateState']();
       });
 
       it('should throw an error if version not match a numeric string', async () => {
         const options = buildDynamicApiModuleOptionsMock({
           controllerOptions: { path: '/version', version: 'v1' },
         });
+        jest.spyOn(helpers, 'isValidVersion').mockReturnValueOnce(false);
 
         await expect(DynamicApiModule.forFeature(options)).rejects.toStrictEqual(
           new Error(
@@ -271,7 +238,7 @@ describe('DynamicApiModule', () => {
           fakeDatabaseModule,
           options.entity,
           options.controllerOptions,
-          { description: 'Create many person entity', ...createManyRoute },
+          { description: 'fake-description', ...createManyRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
         );
@@ -279,7 +246,7 @@ describe('DynamicApiModule', () => {
           fakeDatabaseModule,
           options.entity,
           options.controllerOptions,
-          { description: 'Create one person entity', ...createOneRoute },
+          { description: 'fake-description', ...createOneRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
         );
@@ -287,7 +254,7 @@ describe('DynamicApiModule', () => {
           fakeDatabaseModule,
           options.entity,
           options.controllerOptions,
-          { description: 'Delete many person entity', ...deleteManyRoute },
+          { description: 'fake-description', ...deleteManyRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
         );
@@ -295,7 +262,7 @@ describe('DynamicApiModule', () => {
           fakeDatabaseModule,
           options.entity,
           options.controllerOptions,
-          { description: 'Delete one person entity', ...deleteOneRoute },
+          { description: 'fake-description', ...deleteOneRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
         );
@@ -303,7 +270,7 @@ describe('DynamicApiModule', () => {
           fakeDatabaseModule,
           options.entity,
           options.controllerOptions,
-          { description: 'Duplicate many person entity', ...duplicateManyRoute },
+          { description: 'fake-description', ...duplicateManyRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
         );
@@ -311,7 +278,7 @@ describe('DynamicApiModule', () => {
           fakeDatabaseModule,
           options.entity,
           options.controllerOptions,
-          { description: 'Duplicate one person entity', ...duplicateOneRoute },
+          { description: 'fake-description', ...duplicateOneRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
         );
@@ -319,7 +286,7 @@ describe('DynamicApiModule', () => {
           fakeDatabaseModule,
           options.entity,
           options.controllerOptions,
-          { description: 'Get many person entity', ...getManyRoute },
+          { description: 'fake-description', ...getManyRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
         );
@@ -327,7 +294,7 @@ describe('DynamicApiModule', () => {
           fakeDatabaseModule,
           options.entity,
           options.controllerOptions,
-          { description: 'Get one person entity by id', ...getOneRoute },
+          { description: 'fake-description', ...getOneRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
         );
@@ -335,7 +302,7 @@ describe('DynamicApiModule', () => {
           fakeDatabaseModule,
           options.entity,
           options.controllerOptions,
-          { description: 'Replace one person entity', ...replaceOneRoute },
+          { description: 'fake-description', ...replaceOneRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
         );
@@ -343,7 +310,7 @@ describe('DynamicApiModule', () => {
           fakeDatabaseModule,
           options.entity,
           options.controllerOptions,
-          { description: 'Update many person entity', ...updateManyRoute },
+          { description: 'fake-description', ...updateManyRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
         );
@@ -351,7 +318,7 @@ describe('DynamicApiModule', () => {
           fakeDatabaseModule,
           options.entity,
           options.controllerOptions,
-          { description: 'Update one person entity', ...updateOneRoute },
+          { description: 'fake-description', ...updateOneRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
         );
@@ -568,6 +535,26 @@ describe('DynamicApiModule', () => {
         // @ts-ignore
         expect(module.providers[1].useFactory).toBeInstanceOf(Function);
       });
+    });
+
+    it('should reject if DynamicApiModule state could not be initialized ', async () => {
+      jest.spyOn(global, 'setInterval').mockReturnValueOnce({ hasRef: () => false } as NodeJS.Timeout);
+      jest.spyOn(global, 'setTimeout').mockImplementationOnce((callback) => {
+        if (typeof callback === 'function') {
+          callback();
+        }
+        return { hasRef: () => false } as NodeJS.Timeout;
+      });
+
+      const options = buildDynamicApiModuleOptionsMock({
+        controllerOptions: { path: 'fake-path', version: '1' },
+        routes: [{ type: 'GetMany' }],
+      });
+
+      await expect(DynamicApiModule.forFeature(options)).rejects.toStrictEqual(
+        new Error('Dynamic API state could not be initialized. Please check your configuration.'),
+      );
+      expect(setInterval).toHaveBeenCalledTimes(1);
     });
   });
 });
