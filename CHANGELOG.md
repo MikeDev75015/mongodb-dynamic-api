@@ -1,5 +1,12 @@
 Changelog
 
+## [2.3.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.2.1...v2.3.0) (2024-05-02)
+
+
+### api
+
+* **api:** add reset password process with callbacks ([9e8bf56](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/9e8bf562ee9717ea1c0fe387bb621e9f724955ac))
+
 ## [2.2.1](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.2.0...v2.2.1) (2024-04-30)
 
 ## [2.2.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.1.10...v2.2.0) (2024-04-30)
