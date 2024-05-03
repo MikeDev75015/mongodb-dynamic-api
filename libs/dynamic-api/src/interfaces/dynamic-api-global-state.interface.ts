@@ -17,6 +17,7 @@ type RoutesConfig = {
 
 interface DynamicApiGlobalState {
   initialized: boolean;
+  uri: string;
   connectionName: string;
   isGlobalCacheEnabled: boolean;
   cacheExcludedPaths: string[];

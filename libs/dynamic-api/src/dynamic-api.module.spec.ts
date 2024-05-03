@@ -138,7 +138,7 @@ describe('DynamicApiModule', () => {
       );
     });
 
-    it('should call DynamicApiGlobalStateService.addEntitySchema with entity name and schema', () => {
+    it('should call DynamicApiGlobalStateService.addEntitySchema with entity and schema', () => {
       const { entity, controllerOptions, routes } = defaultOptions;
       const addEntitySchemaSpy = jest
       .spyOn(DynamicApiGlobalStateService, 'addEntitySchema');
@@ -149,7 +149,7 @@ describe('DynamicApiModule', () => {
         routes,
       });
 
-      expect(addEntitySchemaSpy).toHaveBeenCalledWith(entity.name, fakeSchema);
+      expect(addEntitySchemaSpy).toHaveBeenCalledWith(entity, fakeSchema);
     });
 
     describe('with routes', () => {
@@ -184,8 +184,7 @@ describe('DynamicApiModule', () => {
         spyUpdateManyModule = jest.spyOn(UpdateManyModule, 'forFeature');
         spyUpdateOneModule = jest.spyOn(UpdateOneModule, 'forFeature');
 
-        DynamicApiModule.state['_'].initialized = true;
-        DynamicApiModule.state['updateState']();
+        DynamicApiModule.state.set(['initialized', true]);
       });
 
       it('should throw an error if version not match a numeric string', async () => {

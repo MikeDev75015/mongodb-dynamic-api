@@ -7,45 +7,34 @@ import {
 } from '@nestjs/common';
 import { Builder } from 'builder-pattern';
 import { FilterQuery, Model, Schema } from 'mongoose';
-import { AbilityPredicate, DynamicApiCallbackMethods } from '../../interfaces';
+import { AbilityPredicate, DeleteResult, DynamicApiCallbackMethods, UpdateResult } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { DynamicApiResetPasswordOptions } from '../../modules';
+import { DynamicApiGlobalStateService } from '../dynamic-api-global-state/dynamic-api-global-state.service';
 
 export abstract class BaseService<Entity extends BaseEntity> {
-  public abilityPredicate: AbilityPredicate<Entity> | undefined;
-  public user: unknown;
+  protected user: unknown;
+
   protected readonly entity: Type<Entity>;
+
+  protected readonly abilityPredicate: AbilityPredicate<Entity> | undefined;
 
   protected readonly passwordField: keyof Entity | undefined;
 
   protected readonly resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined;
 
-  protected readonly callbackMethods: DynamicApiCallbackMethods<Entity>;
+  protected readonly callbackMethods: DynamicApiCallbackMethods;
 
   protected constructor(protected readonly model: Model<Entity>) {
     this.callbackMethods = {
-      findById: async (id: string) => {
-        const entity = await this.model.findOne({ _id: id }).lean().exec();
-        if (!entity) {
-          return;
-        }
-
-        return this.buildInstance(entity as Entity);
-      },
-      findAndUpdateById: async (id: string, update: Partial<Entity>) => {
-        if (this.passwordField && typeof update[this.passwordField] !== 'undefined') {
-          throw new BadRequestException(
-            `${this.passwordField as string} cannot be updated using this method because it is hashed. Use reset password process instead.`,
-          );
-        }
-
-        const updated = await this.model.findOneAndUpdate({ _id: id }, update, { new: true }).lean().exec();
-        if (!updated) {
-          this.handleDocumentNotFound();
-        }
-
-        return this.buildInstance(updated as Entity);
-      },
+      findManyDocuments: this.findManyDocuments.bind(this),
+      findOneDocument: this.findOneDocument.bind(this),
+      createManyDocuments: this.createManyDocuments.bind(this),
+      createOneDocument: this.createOneDocument.bind(this),
+      updateManyDocuments: this.updateManyDocuments.bind(this),
+      updateOneDocument: this.updateOneDocument.bind(this),
+      deleteManyDocuments: this.deleteManyDocuments.bind(this),
+      deleteOneDocument: this.deleteOneDocument.bind(this),
     };
   }
 
@@ -54,39 +43,106 @@ export abstract class BaseService<Entity extends BaseEntity> {
     return paths.includes('deletedAt') && paths.includes('isDeleted');
   }
 
-  public async findManyDocuments(conditions: FilterQuery<Entity> = {}) {
-    const documents = await this.model
-    .find(conditions)
-    .lean()
-    .exec();
+  protected async findManyDocumentsWithAbilityPredicate(conditions: FilterQuery<Entity> = {}) {
+    const documents = await this.findManyDocuments(this.entity, conditions);
 
     if (this.abilityPredicate) {
-      documents.forEach((d) => this.handleAbilityPredicate(d as Entity));
+      documents.forEach((d) => this.handleAbilityPredicate(d));
     }
 
-    return documents as Entity[];
+    return documents;
   }
 
-  public async findOneDocument(_id: string | Schema.Types.ObjectId | undefined, conditions: FilterQuery<Entity> = {}) {
-    const document = await this.model
-    .findOne({
+  protected async findOneDocumentWithAbilityPredicate(
+    _id: string | Schema.Types.ObjectId | undefined,
+    conditions: FilterQuery<Entity> = {},
+  ) {
+    const document = await this.findOneDocument(this.entity, {
       ...(
         _id ? { _id } : {}
       ),
       ...conditions,
-    })
-    .lean()
-    .exec();
+    });
 
     if (!document) {
       throw new BadRequestException('Document not found');
     }
 
     if (this.abilityPredicate) {
-      this.handleAbilityPredicate(document as Entity);
+      this.handleAbilityPredicate(document);
     }
 
-    return document as Entity;
+    return document;
+  }
+
+  protected async findManyDocuments<T>(entity: Type<T>, query: FilterQuery<T>): Promise<T[]> {
+    const model = await DynamicApiGlobalStateService.getEntityModel(entity);
+    // noinspection ES6MissingAwait
+    return model.find(query).lean().exec() as Promise<T[]>;
+  }
+
+  protected async findOneDocument<T>(entity: Type<T>, query: FilterQuery<T>): Promise<T | undefined> {
+    const model = await DynamicApiGlobalStateService.getEntityModel(entity);
+    // noinspection ES6MissingAwait
+    return model.findOne(query).lean().exec() as Promise<T | undefined>;
+  }
+
+  protected async createManyDocuments<T>(entity: Type<T>, data: Partial<T>[]): Promise<T[]> {
+    const model = await DynamicApiGlobalStateService.getEntityModel(entity);
+    return model.create(data) as Promise<T[]>;
+  }
+
+  protected async createOneDocument<T>(entity: Type<T>, data: Partial<T>): Promise<T> {
+    const model = await DynamicApiGlobalStateService.getEntityModel(entity);
+    return model.create(data) as Promise<T>;
+  }
+
+  protected async updateManyDocuments<T>(
+    entity: Type<T>,
+    query: FilterQuery<T>,
+    data: Partial<T>,
+  ): Promise<UpdateResult> {
+    const model = await DynamicApiGlobalStateService.getEntityModel(entity);
+    return model.updateMany(query, data).exec();
+  }
+
+  protected async updateOneDocument<T>(entity: Type<T>, query: FilterQuery<T>, data: Partial<T>): Promise<UpdateResult> {
+    const model = await DynamicApiGlobalStateService.getEntityModel(entity);
+    return model.updateOne(query, data).exec();
+  }
+
+  protected async deleteManyDocuments<T>(entity: Type<T>, ids: string[]): Promise<DeleteResult> {
+    const model = await DynamicApiGlobalStateService.getEntityModel(entity);
+
+    const paths = Object.getOwnPropertyNames(model.schema.paths);
+    const isSoftDeletable = paths.includes('deletedAt') && paths.includes('isDeleted');
+
+    if (isSoftDeletable) {
+      const result = await model.updateMany(
+        { _id: { $in: ids } },
+        { isDeleted: true, deletedAt: new Date() },
+      ).exec();
+      return { deletedCount: result.modifiedCount };
+    }
+
+    return model.deleteMany({ _id: { $in: ids } }).exec();
+  }
+
+  protected async deleteOneDocument<T>(entity: Type<T>, id: string): Promise<DeleteResult> {
+    const model = await DynamicApiGlobalStateService.getEntityModel(entity);
+
+    const paths = Object.getOwnPropertyNames(model.schema.paths);
+    const isSoftDeletable = paths.includes('deletedAt') && paths.includes('isDeleted');
+
+    if (isSoftDeletable) {
+      const result = await model.updateOne(
+        { _id: id },
+        { isDeleted: true, deletedAt: new Date() },
+      ).exec();
+      return { deletedCount: result.modifiedCount };
+    }
+
+    return model.deleteOne({ _id: id }).exec();
   }
 
   protected buildInstance(document: Entity) {

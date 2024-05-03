@@ -14,41 +14,35 @@ import { JwtStrategy } from './strategies';
 export class AuthModule {
   static forRoot<Entity extends BaseEntity>(
     {
-      user: {
-        entity: userEntity,
+      userEntity,
+      login: {
         loginField,
         passwordField,
-        requestAdditionalFields,
+        ...login
       },
-      jwt: { secret, expiresIn },
       register,
-      login,
       resetPassword,
+      jwt: { secret, expiresIn },
       validationPipeOptions,
     }: DynamicApiAuthOptions<Entity>,
     extraImports: any[] = [],
   ) {
-    const { resetPasswordCallback, changePasswordCallback, emailField = 'email', expiresInMinutes = 10 } = resetPassword;
+    const { resetPasswordCallback, changePasswordCallback, emailField, expirationInMinutes } = resetPassword;
     const resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined = resetPasswordCallback
-      ? { resetPasswordCallback, changePasswordCallback, emailField, expiresInMinutes }
+      ? { resetPasswordCallback, changePasswordCallback, emailField, expirationInMinutes }
       : undefined;
 
     const AuthController = createAuthController(
       userEntity,
-      loginField,
-      passwordField,
-      requestAdditionalFields,
+      { loginField, passwordField, ...login },
       register,
       validationPipeOptions,
       resetPasswordOptions,
     );
     const AuthServiceProvider = createAuthServiceProvider(
       userEntity,
-      loginField,
-      passwordField,
-      requestAdditionalFields,
+      { loginField, passwordField, ...login },
       register.callback,
-      login.callback,
       resetPasswordOptions,
     );
     const LocalStrategyProvider = createLocalStrategyProvider(loginField, passwordField);

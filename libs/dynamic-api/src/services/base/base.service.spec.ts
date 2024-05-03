@@ -4,107 +4,72 @@ import {
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import { Model, Schema } from 'mongoose';
+import { AbilityPredicate, DeleteResult, UpdateResult } from '../../interfaces';
 import { BaseEntity } from '../../models';
+import { DynamicApiGlobalStateService } from '../dynamic-api-global-state/dynamic-api-global-state.service';
 import { BaseService } from './base.service';
 
+class TestEntity extends BaseEntity {
+  name: string;
+  password?: string;
+}
+
+class TestService extends BaseService<TestEntity> {
+  protected abilityPredicate: AbilityPredicate<TestEntity> | undefined;
+  constructor(protected readonly model: any) {
+    super(model);
+  }
+}
+
+class TestWithPasswordFieldService extends BaseService<TestEntity> {
+  passwordField = 'password' as keyof TestEntity;
+  constructor(protected readonly model: any) {
+    super(model);
+  }
+}
+
 describe('BaseService', () => {
-  class TestEntity extends BaseEntity {
-    name: string;
-    password: string;
-  }
-  class TestService extends BaseService<TestEntity> {
-    constructor(protected readonly model: any) {
-      super(model);
-    }
-  }
-  class TestWithPasswordFieldService extends BaseService<TestEntity> {
-    passwordField = 'password' as keyof TestEntity;
-    constructor(protected readonly model: any) {
-      super(model);
-    }
-  }
+  let service: TestService;
+  let fakeModel: any;
+
+  const fakeId = 'fake-id';
+  const fakeEntity = { id: fakeId, name: 'toto' } as TestEntity;
+  const fakeQuery = { _id: 'fake-id' };
+  const fakeUpdateResult = { modifiedCount: 1 } as UpdateResult;
+  const fakeDeleteResult = { deletedCount: 1 } as DeleteResult;
+  const exec = jest.fn();
+
+  beforeEach(() => {
+    const lean = jest.fn(() => ({ exec }));
+    fakeModel = {
+      find: jest.fn(() => ({ lean })),
+      findOne: jest.fn(() => ({ lean })),
+      create: jest.fn(),
+      updateOne: jest.fn(() => ({ exec })),
+      updateMany: jest.fn(() => ({ exec })),
+      deleteOne: jest.fn(() => ({ exec })),
+      deleteMany: jest.fn(() => ({ exec })),
+      schema: {
+        paths: {},
+      } as Schema<any>
+    };
+
+    service = new TestService(fakeModel);
+  });
 
   describe('callbackMethods', () => {
-    const fakeId = 'fake-id';
-    const fakeEntity = { name: 'toto' };
-
-    it('should have findById and findAndUpdateById methods', () => {
-      const model = {} as any;
-      const service = new TestService(model);
+    it('should have methods', () => {
 
       expect(service['callbackMethods']).toEqual({
-        findById: expect.any(Function),
-        findAndUpdateById: expect.any(Function),
-      });
-    });
-
-    describe('findById', () => {
-      it('should return the entity if it is found', async () => {
-        const model = {
-          findOne: jest.fn().mockReturnThis(),
-          lean: jest.fn().mockReturnThis(),
-          exec: jest.fn().mockResolvedValue(fakeEntity),
-        };
-        const service = new TestService(model);
-        const result = await service['callbackMethods'].findById(fakeId);
-
-        expect(model.findOne).toHaveBeenCalledWith({ _id: fakeId });
-        expect(result).toEqual(fakeEntity);
-      });
-
-      it('should return undefined if the entity is not found', async () => {
-        const model = {
-          findOne: jest.fn().mockReturnThis(),
-          lean: jest.fn().mockReturnThis(),
-          exec: jest.fn().mockResolvedValue(undefined),
-        };
-        const service = new TestService(model);
-        const result = await service['callbackMethods'].findById(fakeId);
-
-        expect(result).toBeUndefined();
-      });
-    });
-
-    describe('findAndUpdateById', () => {
-      it('should throw a BadRequestException if the password field is updated', async () => {
-        const model = {
-          findOneAndUpdate: jest.fn().mockReturnThis(),
-          lean: jest.fn().mockReturnThis(),
-          exec: jest.fn().mockResolvedValue(fakeEntity),
-        };
-        const service = new TestWithPasswordFieldService(model);
-        service['passwordField'] = 'password';
-
-        await expect(service['callbackMethods'].findAndUpdateById('id', { password: 'hashed' })).rejects.toThrow(
-          new BadRequestException('password cannot be updated using this method because it is hashed. Use reset password process instead.'),
-        );
-        expect(model.findOneAndUpdate).not.toHaveBeenCalled();
-      });
-
-      it('should return the updated entity if it is found', async () => {
-        const model = {
-          findOneAndUpdate: jest.fn().mockReturnThis(),
-          lean: jest.fn().mockReturnThis(),
-          exec: jest.fn().mockResolvedValue(fakeEntity),
-        };
-        const service = new TestService(model);
-        const result = await service['callbackMethods'].findAndUpdateById(fakeId, { name: 'unit' });
-
-        expect(result).toEqual(fakeEntity);
-        expect(model.findOneAndUpdate).toHaveBeenCalledWith({ _id: fakeId }, { name: 'unit' }, { new: true });
-      });
-
-      it('should throw a NotFoundException if the entity is not found', async () => {
-        const model = {
-          findOneAndUpdate: jest.fn().mockReturnThis(),
-          lean: jest.fn().mockReturnThis(),
-          exec: jest.fn().mockResolvedValue(undefined),
-        };
-        const service = new TestService(model);
-
-        await expect(service['callbackMethods'].findAndUpdateById(fakeId, { name: 'unit' })).rejects.toThrow(
-          new NotFoundException('Document not found'),
-        );
+        findManyDocuments: expect.any(Function),
+        findOneDocument: expect.any(Function),
+        createManyDocuments: expect.any(Function),
+        createOneDocument: expect.any(Function),
+        updateManyDocuments: expect.any(Function),
+        updateOneDocument: expect.any(Function),
+        deleteManyDocuments: expect.any(Function),
+        deleteOneDocument: expect.any(Function),
       });
     });
   });
@@ -137,6 +102,229 @@ describe('BaseService', () => {
       const service = new TestService(model);
 
       expect(service.isSoftDeletable).toBe(false);
+    });
+  });
+
+  describe('findManyDocumentsWithAbilityPredicate', () => {
+    it('should not call handleAbilityPredicate return an array of documents', async () => {
+      const documents = [{ name: 'toto' }, { name: 'unit' }];
+      const model = {
+        find: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(documents),
+      } as unknown as Model<any>;
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
+      const service = new TestService(model);
+
+      const result = await service['findManyDocumentsWithAbilityPredicate']();
+
+      expect(result).toEqual(documents);
+    });
+
+    it('should call handleAbilityPredicate for each document and return an array of documents', async () => {
+      const documents = [{ name: 'toto' }, { name: 'unit' }];
+      const model = {
+        find: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(documents),
+      } as unknown as Model<any>;
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
+
+      const service = new TestService(model);
+      service['abilityPredicate'] = jest.fn().mockReturnValue(true);
+
+      const result = await service['findManyDocumentsWithAbilityPredicate']();
+
+      expect(result).toEqual(documents);
+      expect(service['abilityPredicate']).toHaveBeenCalledTimes(documents.length);
+    });
+
+    it('should throw a ForbiddenException if the abilityPredicate returns false', async () => {
+      const documents = [{ name: 'toto' }, { name: 'unit' }];
+      const model = {
+        find: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(documents),
+      } as unknown as Model<any>;
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
+      const service = new TestService(model);
+      service['abilityPredicate'] = jest.fn().mockReturnValue(false);
+
+      await expect(service['findManyDocumentsWithAbilityPredicate']()).rejects.toThrow(
+        new ForbiddenException('Forbidden resource'),
+      );
+    });
+  });
+
+  describe('findOneDocumentWithAbilityPredicate', () => {
+    it('should not call handleAbilityPredicate return the document', async () => {
+      const document = { name: 'toto' };
+      const model = {
+        findOne: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(document),
+      } as unknown as Model<any>;
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
+      const service = new TestService(model);
+
+      const result = await service['findOneDocumentWithAbilityPredicate']('id', { test: 'unit' });
+
+      expect(result).toEqual(document);
+    });
+
+    it('should call handleAbilityPredicate for the document and return the document', async () => {
+      const document = { name: 'toto' };
+      const model = {
+        findOne: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(document),
+      } as unknown as Model<any>;
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
+      const service = new TestService(model);
+      service['abilityPredicate'] = jest.fn().mockReturnValue(true);
+
+      const result = await service['findOneDocumentWithAbilityPredicate']('id');
+
+      expect(result).toEqual(document);
+      expect(service['abilityPredicate']).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw a ForbiddenException if the abilityPredicate returns false', async () => {
+      const document = { name: 'toto' };
+      const model = {
+        findOne: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(document),
+      } as unknown as Model<any>;
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
+      const service = new TestService(model);
+      service['abilityPredicate'] = jest.fn().mockReturnValue(false);
+
+      await expect(service['findOneDocumentWithAbilityPredicate']('id')).rejects.toThrow(
+        new ForbiddenException('Forbidden resource'),
+      );
+    });
+
+    it('should throw a NotFoundException if the document is not found', async () => {
+      const model = {
+        findOne: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(null),
+      } as unknown as Model<any>;
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
+      const service = new TestService(model);
+
+      await expect(service['findOneDocumentWithAbilityPredicate']('id')).rejects.toThrow(
+        new NotFoundException('Document not found'),
+      );
+    });
+  });
+
+  describe('findManyDocuments', () => {
+    it('should call the model find method with the query and return the documents', async () => {
+      const documents = [{ name: 'toto' }, { name: 'unit' }];
+      exec.mockResolvedValue(documents);
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel);
+      const service = new TestService(fakeModel);
+
+      const result = await service['callbackMethods'].findManyDocuments(TestEntity, fakeQuery);
+
+      expect(result).toEqual(documents);
+      expect(fakeModel.find).toHaveBeenCalledWith(fakeQuery);
+    });
+  });
+
+  describe('findOneDocument', () => {
+    it('should call the model findOne method with the query and return the document', async () => {
+      exec.mockResolvedValue(fakeEntity);
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel);
+      const service = new TestService(fakeModel);
+
+      const result = await service['callbackMethods'].findOneDocument(TestEntity, fakeQuery);
+
+      expect(result).toEqual(fakeEntity);
+      expect(fakeModel.findOne).toHaveBeenCalledWith(fakeQuery);
+    });
+  });
+
+  describe('createManyDocuments', () => {
+    it('should call the model create method with the data and return the documents', async () => {
+      const data = [{ name: 'toto' }, { name: 'unit' }];
+      fakeModel.create.mockResolvedValue(data);
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel);
+      const service = new TestService(fakeModel);
+
+      const result = await service['callbackMethods'].createManyDocuments(TestEntity, data);
+
+      expect(result).toEqual(data);
+      expect(fakeModel.create).toHaveBeenCalledWith(data);
+    });
+  });
+
+  describe('createOneDocument', () => {
+    it('should call the model create method with the data and return the document', async () => {
+      fakeModel.create.mockResolvedValue(fakeEntity);
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel);
+      const service = new TestService(fakeModel);
+
+      const result = await service['callbackMethods'].createOneDocument(TestEntity, fakeEntity);
+
+      expect(result).toEqual(fakeEntity);
+      expect(fakeModel.create).toHaveBeenCalledWith(fakeEntity);
+    });
+  });
+
+  describe('updateManyDocuments', () => {
+    it('should call the model updateMany method with the query and data and return the documents', async () => {
+      const data = { name: 'unit' };
+      exec.mockResolvedValue(fakeUpdateResult);
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel);
+      const service = new TestService(fakeModel);
+
+      const result = await service['callbackMethods'].updateManyDocuments(TestEntity, fakeQuery, data);
+
+      expect(result).toEqual(fakeUpdateResult);
+      expect(fakeModel.updateMany).toHaveBeenCalledWith(fakeQuery, data);
+    });
+  });
+
+  describe('updateOneDocument', () => {
+    it('should call the model updateOne method with the query and data and return the document', async () => {
+      const data = { name: 'unit' };
+      exec.mockResolvedValue(fakeUpdateResult);
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel);
+      const service = new TestService(fakeModel);
+
+      const result = await service['callbackMethods'].updateOneDocument(TestEntity, fakeQuery, data);
+
+      expect(result).toEqual(fakeUpdateResult);
+      expect(fakeModel.updateOne).toHaveBeenCalledWith(fakeQuery, data);
+    });
+  });
+
+  describe('deleteManyDocuments', () => {
+    it('should call the model deleteMany method with the query and return the documents', async () => {
+      exec.mockResolvedValue(fakeDeleteResult);
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel);
+      const service = new TestService(fakeModel);
+
+      const result = await service['callbackMethods'].deleteManyDocuments(TestEntity, [fakeId]);
+
+      expect(result).toEqual(fakeDeleteResult);
+      expect(fakeModel.deleteMany).toHaveBeenCalledWith({ _id: { $in: [fakeId] } });
+    });
+  });
+
+  describe('deleteOneDocument', () => {
+    it('should call the model deleteOne method with the query and return the document', async () => {
+      exec.mockResolvedValue(fakeDeleteResult);
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel);
+      const service = new TestService(fakeModel);
+
+      const result = await service['callbackMethods'].deleteOneDocument(TestEntity, fakeId);
+
+      expect(result).toEqual(fakeDeleteResult);
+      expect(fakeModel.deleteOne).toHaveBeenCalledWith(fakeQuery);
     });
   });
 
@@ -209,113 +397,6 @@ describe('BaseService', () => {
 
       expect(() => service['handleDocumentNotFound']()).toThrow(
         new BadRequestException('Document not found'),
-      );
-    });
-  });
-
-  describe('findManyDocuments', () => {
-    it('should not call handleAbilityPredicate return an array of documents', async () => {
-      const documents = [{ name: 'toto' }, { name: 'unit' }];
-      const model = {
-        find: jest.fn().mockReturnThis(),
-        lean: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue(documents),
-      };
-      const service = new TestService(model);
-
-      const result = await service.findManyDocuments();
-
-      expect(result).toEqual(documents);
-    });
-
-    it('should call handleAbilityPredicate for each document and return an array of documents', async () => {
-      const documents = [{ name: 'toto' }, { name: 'unit' }];
-      const model = {
-        find: jest.fn().mockReturnThis(),
-        lean: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue(documents),
-      };
-      const service = new TestService(model);
-      service.abilityPredicate = jest.fn().mockReturnValue(true);
-
-      const result = await service.findManyDocuments();
-
-      expect(result).toEqual(documents);
-      expect(service.abilityPredicate).toHaveBeenCalledTimes(documents.length);
-    });
-
-    it('should throw a ForbiddenException if the abilityPredicate returns false', async () => {
-      const documents = [{ name: 'toto' }, { name: 'unit' }];
-      const model = {
-        find: jest.fn().mockReturnThis(),
-        lean: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue(documents),
-      };
-      const service = new TestService(model);
-      service.abilityPredicate = jest.fn().mockReturnValue(false);
-
-      await expect(service.findManyDocuments()).rejects.toThrowError(
-        new ForbiddenException('Forbidden resource'),
-      );
-    });
-  });
-
-  describe('findOneDocument', () => {
-    it('should not call handleAbilityPredicate return the document', async () => {
-      const document = { name: 'toto' };
-      const model = {
-        findOne: jest.fn().mockReturnThis(),
-        lean: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue(document),
-      };
-      const service = new TestService(model);
-
-      const result = await service.findOneDocument('id', { test: 'unit' });
-
-      expect(result).toEqual(document);
-    });
-
-    it('should call handleAbilityPredicate for the document and return the document', async () => {
-      const document = { name: 'toto' };
-      const model = {
-        findOne: jest.fn().mockReturnThis(),
-        lean: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue(document),
-      };
-      const service = new TestService(model);
-      service.abilityPredicate = jest.fn().mockReturnValue(true);
-
-      const result = await service.findOneDocument('id');
-
-      expect(result).toEqual(document);
-      expect(service.abilityPredicate).toHaveBeenCalledTimes(1);
-    });
-
-    it('should throw a ForbiddenException if the abilityPredicate returns false', async () => {
-      const document = { name: 'toto' };
-      const model = {
-        findOne: jest.fn().mockReturnThis(),
-        lean: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue(document),
-      };
-      const service = new TestService(model);
-      service.abilityPredicate = jest.fn().mockReturnValue(false);
-
-      await expect(service.findOneDocument('id')).rejects.toThrow(
-        new ForbiddenException('Forbidden resource'),
-      );
-    });
-
-    it('should throw a NotFoundException if the document is not found', async () => {
-      const model = {
-        findOne: jest.fn().mockReturnThis(),
-        lean: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue(null),
-      };
-      const service = new TestService(model);
-
-      await expect(service.findOneDocument('id')).rejects.toThrow(
-        new NotFoundException('Document not found'),
       );
     });
   });

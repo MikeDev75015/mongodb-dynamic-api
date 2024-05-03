@@ -1,13 +1,11 @@
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { BaseEntity } from '../models';
-import { BaseService } from '../services';
 import { BasePoliciesGuard } from './base-policies.guard';
 
 describe('BasePoliciesGuard', () => {
   class PoliciesGuard<
     Entity extends BaseEntity = any,
-    Service extends BaseService<Entity> = any
-  > extends BasePoliciesGuard<Entity, Service> {}
+  > extends BasePoliciesGuard<Entity> {}
 
   let guard: PoliciesGuard;
   let context: ExecutionContext;
@@ -35,20 +33,20 @@ describe('BasePoliciesGuard', () => {
   });
 
   it('should call findOneDocument if params.id is defined', async () => {
-    service.findOneDocument = jest.fn();
-    context.switchToHttp().getRequest().params = { id: '1' };
+    const spy = jest.spyOn<any, any>(guard, 'findOneDocumentWithAbilityPredicate').mockImplementationOnce(jest.fn());
     guard['abilityPredicate'] = jest.fn();
+    context.switchToHttp().getRequest().params = { id: '1' };
     context.switchToHttp().getRequest().user = {};
     await guard.canActivate(context);
-    expect(service.findOneDocument).toHaveBeenCalled();
+    expect(spy).toHaveBeenCalled();
   });
 
   it('should call findManyDocuments if params.id is not defined', async () => {
-    service.findManyDocuments = jest.fn();
+    const spy = jest.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockImplementationOnce(jest.fn());
     guard['abilityPredicate'] = jest.fn();
     context.switchToHttp().getRequest().user = {};
     await guard.canActivate(context);
-    expect(service.findManyDocuments).toHaveBeenCalled();
+    expect(spy).toHaveBeenCalled();
   });
 
   it('should return true if abilityPredicate is not defined', async () => {
@@ -57,7 +55,7 @@ describe('BasePoliciesGuard', () => {
   });
 
   it('should return true if abilityPredicate is defined', async () => {
-    service.findManyDocuments = jest.fn();
+    const spy = jest.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockImplementationOnce(jest.fn());
     guard['abilityPredicate'] = jest.fn();
     context.switchToHttp().getRequest().user = {};
     await expect(guard.canActivate(context)).resolves.toBe(true);

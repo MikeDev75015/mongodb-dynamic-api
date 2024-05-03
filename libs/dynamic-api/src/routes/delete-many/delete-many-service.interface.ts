@@ -1,8 +1,8 @@
+import { DeleteResult } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import { DeletedCount } from '../delete-one';
 
 interface DeleteManyService<Entity extends BaseEntity> {
-  deleteMany(ids: string[]): Promise<DeletedCount>;
+  deleteMany(ids: string[]): Promise<DeleteResult>;
 }
 
 export type { DeleteManyService };

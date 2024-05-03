@@ -1,16 +1,18 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Type } from '@nestjs/common';
+import { Model } from 'mongoose';
 import { AbilityPredicate, RouteType } from '../interfaces';
 import { BaseEntity } from '../models';
 import { BaseService } from '../services';
 
-export abstract class BasePoliciesGuard<Entity extends BaseEntity, Service extends BaseService<Entity>> implements CanActivate {
+export abstract class BasePoliciesGuard<Entity extends BaseEntity> extends BaseService<Entity> implements CanActivate {
   protected routeType: RouteType;
 
   protected entity: Type<Entity>;
 
   protected abilityPredicate: AbilityPredicate<Entity> | undefined;
 
-  protected constructor(protected readonly service: Service) {
+  protected constructor(protected readonly model: Model<Entity>) {
+    super(model);
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -21,13 +23,12 @@ export abstract class BasePoliciesGuard<Entity extends BaseEntity, Service exten
         throw new ForbiddenException('Access Denied');
       }
 
-      this.service.abilityPredicate = this.abilityPredicate;
-      this.service.user = user;
+      this.user = user;
 
       if (params?.id) {
-        await this.service.findOneDocument(params.id, query);
+        await this.findOneDocumentWithAbilityPredicate(params.id, query);
       } else {
-        await this.service.findManyDocuments(query);
+        await this.findManyDocumentsWithAbilityPredicate(query);
       }
     }
 

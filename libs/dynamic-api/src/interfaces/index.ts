@@ -9,6 +9,7 @@ export * from './dynamic-api-policy-handler.interface';
 export * from './dynamic-api-route-config.interface';
 export * from './dynamic-api-route-dtos-bundle.type';
 export * from './dynamic-api-route-module.type';
+export * from './dynamic-api-route-response.type';
 export * from './dynamic-api-route-type.type';
 export * from './dynamic-api-schema-options.interface';
 export * from './dynamic-api-service-callback.interface';

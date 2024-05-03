@@ -1,9 +1,10 @@
 import { Builder } from 'builder-pattern';
 import { Model } from 'mongoose';
 import { DeletePresenter } from '../../dtos';
+import { DeleteResult } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseService } from '../../services';
-import { DeletedCount, DeleteOneService } from './delete-one-service.interface';
+import { DeleteOneService } from './delete-one-service.interface';
 
 export abstract class BaseDeleteOneService<Entity extends BaseEntity>
   extends BaseService<Entity>
@@ -14,7 +15,7 @@ export abstract class BaseDeleteOneService<Entity extends BaseEntity>
   }
 
   async deleteOne(id: string): Promise<DeletePresenter> {
-    let op: DeletedCount;
+    let op: DeleteResult;
 
     if (this.isSoftDeletable) {
       const deleted = await this.model

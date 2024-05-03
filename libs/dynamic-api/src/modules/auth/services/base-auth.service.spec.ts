@@ -1,27 +1,80 @@
-import { BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { Model } from 'mongoose';
-import { buildModelMock } from '../../../../__mocks__/model.mock';
+import { plainToInstance } from 'class-transformer';
+import { Model, Schema } from 'mongoose';
 import { BaseEntity } from '../../../models';
-import { BcryptService } from '../../../services';
-import { DynamicApiResetPasswordOptions } from '../interfaces';
+import { BcryptService, DynamicApiGlobalStateService } from '../../../services';
 import { BaseAuthService } from './base-auth.service';
 
+class User extends BaseEntity {
+  login: string;
+
+  pass: string;
+
+  nickname: string;
+}
+
 describe('BaseAuthService', () => {
-  class User extends BaseEntity {
-    login: string;
+  let service: AuthService;
+  let model: any;
+  let jwtService: JwtService;
+  let bcryptService: BcryptService;
+  let spyBcriptHashPassword: jest.SpyInstance;
+  let spyJwtSign: jest.SpyInstance;
+  let spyBuildUserFields: jest.SpyInstance;
+  let spyFindOneDocumentWithAbilityPredicate: jest.SpyInstance;
 
-    pass: string;
-
-    nickname: string;
-  }
+  const fakeDate = new Date();
+  const fakeHash = 'fake-hash';
+  const fakeEmail = 'fake-email';
+  const fakeUserId = 'fake-id';
+  const fakeLogin = 'fake-login';
+  const fakePass = 'fake-pass';
+  const fakeUser = {
+    _id: fakeUserId as any,
+    __v: 0,
+    id: undefined,
+    login: fakeEmail,
+    pass: fakeHash,
+    nickname: 'test',
+    createdAt: fakeDate,
+    updatedAt: fakeDate,
+  };
+  const fakeUserInstance = plainToInstance(User, {
+    id: 'fake-id',
+    ...fakeUser,
+  });
+  const fakeLoginBuilt = { id: fakeUser._id, login: fakeUser.login, nickname: fakeUser.nickname };
+  const accessToken = 'fake-token';
+  const resetPasswordToken = 'reset-pass-token';
+  const newPassword = 'new-pass';
+  const hashedPassword = 'hashed-pass';
+  const fakeLoginField = 'login' as keyof User;
+  const fakePasswordField = 'pass' as keyof User;
+  const fakeEmailField = 'login' as keyof User;
+  const fakeExpirationInMinutes = 1;
+  const fakeRegisterCallback = jest.fn();
+  const fakeLoginCallback = jest.fn();
+  const resetPasswordCallback = jest.fn();
+  const changePasswordCallback = jest.fn();
 
   class AuthService extends BaseAuthService<User> {
-    entity = User;
+    protected additionalRequestFields: (keyof User)[] = ['nickname'];
 
-    loginField = 'login' as keyof User;
+    protected loginCallback = fakeLoginCallback;
 
-    passwordField = 'pass' as keyof User;
+    protected loginField = fakeLoginField;
+
+    protected passwordField = fakePasswordField;
+
+    protected registerCallback = fakeRegisterCallback;
+
+    protected resetPasswordOptions = {
+      resetPasswordCallback: resetPasswordCallback,
+      changePasswordCallback: changePasswordCallback,
+      emailField: fakeEmailField,
+      expirationInMinutes: fakeExpirationInMinutes,
+    };
 
     constructor(
       protected readonly _: Model<any>,
@@ -32,36 +85,23 @@ describe('BaseAuthService', () => {
     }
   }
 
-  let service: AuthService;
-  let model: Model<User>;
-  let jwtService: JwtService;
-  let bcryptService: BcryptService;
-
-  const fakeDate = new Date();
-
-  const fakeHash = 'fake-hash';
-  const fakeUser = {
-    _id: 'fake-id' as any,
-    id: 'undefined',
-    login: 'test',
-    pass: fakeHash,
-    nickname: 'test',
-    __v: 0,
-    createdAt: fakeDate,
-    updatedAt: fakeDate,
-  } as User;
-  const fakeUserBuilt = {
-    id: 'fake-id',
-    login: 'test',
-    pass: fakeHash,
-    nickname: 'test',
-    createdAt: fakeDate,
-    updatedAt: fakeDate,
-  } as User;
-  const accessToken = 'fake-token';
+  const exec = jest.fn();
 
   beforeEach(async () => {
-    model = buildModelMock();
+    const lean = jest.fn(() => ({ exec }));
+    model = {
+      find: jest.fn(() => ({ lean })),
+      findOne: jest.fn(() => ({ lean })),
+      create: jest.fn(),
+      updateOne: jest.fn(() => ({ exec })),
+      updateMany: jest.fn(() => ({ exec })),
+      deleteOne: jest.fn(() => ({ exec })),
+      deleteMany: jest.fn(() => ({ exec })),
+      schema: {
+        paths: {},
+      } as Schema<any>
+    };
+
     jwtService = {
       decode: jest.fn(),
       sign: jest.fn(),
@@ -72,9 +112,16 @@ describe('BaseAuthService', () => {
       hashPassword: jest.fn(),
     } as unknown as BcryptService;
     service = new AuthService(model, jwtService, bcryptService);
+
+    spyBcriptHashPassword = jest.spyOn(bcryptService, 'hashPassword').mockResolvedValue(fakeHash);
+    spyJwtSign = jest.spyOn(jwtService, 'sign');
+    spyBuildUserFields = jest.spyOn<any, any>(service, 'buildUserFields');
+    spyFindOneDocumentWithAbilityPredicate =
+      jest.spyOn<any, any>(service, 'findOneDocumentWithAbilityPredicate');
+    jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
   });
 
-  describe('methods', () => {
+  describe('service methods', () => {
     it('should have validateUser method', () => {
       expect(service).toHaveProperty('validateUser');
     });
@@ -101,225 +148,269 @@ describe('BaseAuthService', () => {
   });
 
   describe('validateUser', () => {
-    it('should return null if user is not found', async () => {
-      jest.spyOn(model, 'findOne').mockReturnValue({
-        lean: jest.fn().mockReturnValue({
-          exec: jest.fn().mockResolvedValue(null),
-        }),
-      } as unknown as any);
+    let spyBcriptCompare: jest.SpyInstance;
 
-      const result = await service['validateUser']('login', 'pass');
+    beforeEach(() => {
+      spyBcriptCompare = jest.spyOn(bcryptService, 'comparePassword');
+    });
+
+    it('should return null if user is not found', async () => {
+      exec.mockResolvedValueOnce(null);
+      const result = await service['validateUser'](fakeLogin, fakePass);
+
+      expect(model.findOne).toHaveBeenCalledWith({ [fakeLoginField]: fakeLogin });
+      expect(spyBcriptCompare).not.toHaveBeenCalled();
       expect(result).toBeNull();
     });
 
     it('should return null if password is not valid', async () => {
-      jest.spyOn(model, 'findOne').mockReturnValue({
-        lean: jest.fn().mockReturnValue({
-          exec: jest.fn().mockResolvedValue({ pass: '****' }),
-        }),
-      } as unknown as any);
-      jest.spyOn(bcryptService, 'comparePassword').mockResolvedValue(false);
+      exec.mockResolvedValueOnce(fakeUser);
+      spyBcriptCompare.mockResolvedValueOnce(false);
+      const result = await service['validateUser'](fakeLogin, fakePass);
 
-      const result = await service['validateUser']('login', 'pass');
+      expect(spyBcriptCompare).toHaveBeenCalledWith(fakePass, fakeUser.pass);
       expect(result).toBeNull();
     });
 
     it('should return user if password is valid', async () => {
-      jest.spyOn(model, 'findOne').mockReturnValue({
-        lean: jest.fn().mockReturnValue({
-          exec: jest.fn().mockResolvedValue(fakeUser),
-        }),
-      } as unknown as any);
-      jest.spyOn(bcryptService, 'comparePassword').mockResolvedValue(true);
+      exec.mockResolvedValueOnce(fakeUser);
+      spyBcriptCompare.mockResolvedValueOnce(true);
+      spyBuildUserFields.mockReturnValueOnce(fakeLoginBuilt);
+      const result = await service['validateUser'](fakeLogin, fakePass);
 
-      const result = await service['validateUser']('login', 'pass');
-      expect(result).toEqual({ id: fakeUser._id, login: fakeUser.login });
-    });
-
-    it('should return user with additional fields if password is valid', async () => {
-      service['additionalRequestFields'] = ['nickname' as keyof User];
-      jest.spyOn(model, 'findOne').mockReturnValue({
-        lean: jest.fn().mockReturnValue({
-          exec: jest.fn().mockResolvedValue(fakeUser),
-        }),
-      } as unknown as any);
-      jest.spyOn(bcryptService, 'comparePassword').mockResolvedValue(true);
-
-      const result = await service['validateUser']('login', 'pass');
-      expect(result).toEqual({ id: fakeUser._id, login: fakeUser.login, nickname: fakeUser.nickname });
+      expect(spyBuildUserFields)
+      .toHaveBeenCalledWith(fakeUser, ['_id', fakeLoginField, ...service['additionalRequestFields']]);
+      expect(result).toEqual(fakeLoginBuilt);
     });
   });
 
   describe('login', () => {
-    it('should return token', async () => {
-      jest.spyOn(jwtService, 'sign').mockReturnValue(accessToken);
+    beforeEach(() => {
+      spyJwtSign.mockReturnValueOnce(accessToken);
+      spyBuildUserFields.mockReturnValueOnce(fakeLoginBuilt);
+    });
 
+    it('should return token and call loginCallback if defined and login is not call from member', async () => {
       const result = await service['login'](fakeUser);
+
+      expect(spyBuildUserFields)
+      .toHaveBeenCalledWith(fakeUser, ['_id', 'id', fakeLoginField, ...service['additionalRequestFields']]);
+      expect(fakeLoginCallback).toHaveBeenCalledTimes(1);
+      expect(fakeLoginCallback).toHaveBeenCalledWith(
+        { id: fakeUser._id, login: fakeUser.login, nickname: fakeUser.nickname },
+        service['callbackMethods'],
+      );
+      expect(spyJwtSign).toHaveBeenCalledWith(fakeLoginBuilt);
       expect(result).toEqual({ accessToken });
     });
 
-    it('should call loginCallback if it is defined', async () => {
-      service['loginCallback'] = jest.fn();
-      jest.spyOn(jwtService, 'sign').mockReturnValue(accessToken);
+    it('should return token and not call loginCallback if defined but login is call from member', async () => {
+      await service['login'](fakeUser, true);
 
+      expect(service['loginCallback']).not.toHaveBeenCalled();
+    });
+
+    it('should return token and not call loginCallback if not defined', async () => {
+      service['loginCallback'] = undefined;
       await service['login'](fakeUser);
-      expect(service['loginCallback']).toHaveBeenCalledWith({ id: fakeUser._id, login: fakeUser.login }, model);
+
+      expect(fakeLoginCallback).not.toHaveBeenCalled();
     });
   });
 
   describe('register', () => {
-    it('should return token', async () => {
-      const { _id, id, __v, createdAt, updatedAt, ...userToCreate } = fakeUser;
-      jest.spyOn(bcryptService, 'hashPassword').mockResolvedValue(fakeHash);
-      jest.spyOn(jwtService, 'sign').mockReturnValue(accessToken);
-      const modelCreateSpy = jest.spyOn(model, 'create').mockResolvedValue(fakeUser as any);
-      const modelFindOneSpy = jest.spyOn(model, 'findOne').mockReturnValue({
-        lean: jest.fn().mockReturnValue({
-          exec: jest.fn().mockResolvedValue(fakeUser),
-        }),
-      } as unknown as any);
-      const result = await service['register'](userToCreate);
+    let spyLogin: jest.SpyInstance;
+    let spyHandleDuplicateKeyError: jest.SpyInstance;
 
-      expect(result).toEqual({ accessToken });
-      expect(bcryptService.hashPassword).toHaveBeenCalledWith(userToCreate.pass);
-      expect(modelCreateSpy).toHaveBeenCalledWith({ ...userToCreate, pass: fakeHash });
-      expect(modelFindOneSpy).toHaveBeenCalledWith({ _id: fakeUser._id });
+    const userToCreate = {
+      login: fakeLogin,
+      pass: fakePass,
+    };
+
+    beforeEach(() => {
+      spyLogin = jest.spyOn<any, any>(service, 'login').mockReturnValueOnce({ accessToken });
+      spyFindOneDocumentWithAbilityPredicate.mockResolvedValueOnce(fakeUser);
+      spyHandleDuplicateKeyError = jest.spyOn<any, any>(service, 'handleDuplicateKeyError');
     });
 
-    it('should call registerCallback if it is defined', async () => {
-      service['registerCallback'] = jest.fn();
-      const { _id, id, __v, createdAt, updatedAt, ...userToCreate } = fakeUser;
-      jest.spyOn(bcryptService, 'hashPassword').mockResolvedValue(fakeHash);
-      jest.spyOn(jwtService, 'sign').mockReturnValue(accessToken);
-      jest.spyOn(model, 'create').mockResolvedValue(fakeUser as any);
-      jest.spyOn(model, 'findOne').mockReturnValue({
-        lean: jest.fn().mockReturnValue({
-          exec: jest.fn().mockResolvedValue(fakeUser),
-        }),
-      } as unknown as any);
+    it('should return token and call registerCallback if it is defined', async () => {
+      model.create.mockResolvedValueOnce(fakeUser);
+      const result = await service['register'](userToCreate);
 
+      expect(spyBcriptHashPassword).toHaveBeenCalledWith(userToCreate.pass);
+      expect(model.create).toHaveBeenCalledWith({ ...userToCreate, pass: fakeHash });
+      expect(spyFindOneDocumentWithAbilityPredicate).toHaveBeenCalledWith(fakeUser._id);
+      expect(fakeRegisterCallback).toHaveBeenCalledTimes(1);
+      expect(fakeRegisterCallback).toHaveBeenCalledWith(fakeUser, service['callbackMethods']);
+      expect(spyLogin).toHaveBeenCalledWith(fakeUser, true);
+      expect(result).toEqual({ accessToken });
+    });
+
+    it('should return token and not call registerCallback if it is not defined', async () => {
+      service['registerCallback'] = undefined;
+      model.create.mockResolvedValueOnce(fakeUser);
       await service['register'](userToCreate);
-      expect(service['registerCallback']).toHaveBeenCalledWith(fakeUser, model);
+
+      expect(fakeRegisterCallback).not.toHaveBeenCalled();
+    });
+
+    it('should throw a service unavailable exception if create fails', async () => {
+      const fakeError = new Error('fake-error');
+      model.create.mockRejectedValueOnce(fakeError);
+
+      await expect(() => service['register'](userToCreate))
+      .rejects
+      .toThrow(new ServiceUnavailableException(fakeError.message));
+      expect(spyHandleDuplicateKeyError).toHaveBeenCalledTimes(1);
+      expect(spyHandleDuplicateKeyError).toHaveBeenCalledWith(fakeError);
+      expect(spyFindOneDocumentWithAbilityPredicate).not.toHaveBeenCalled();
+      expect(fakeRegisterCallback).not.toHaveBeenCalled();
+      expect(spyLogin).not.toHaveBeenCalled();
+    });
+
+    it('should throw a bad request exception if user already exists', async () => {
+      const fakeDuplicateKeyError = { code: 11000, keyValue: { login: 'test' } };
+      model.create.mockRejectedValueOnce(fakeDuplicateKeyError);
+
+      await expect(() => service['register'](userToCreate))
+      .rejects
+      .toThrow(new BadRequestException('login \'test\' is already used'));
+      expect(spyHandleDuplicateKeyError).toHaveBeenCalledTimes(1);
+      expect(spyHandleDuplicateKeyError).toHaveBeenCalledWith(fakeDuplicateKeyError);
     });
   });
 
   describe('getAccount', () => {
     beforeEach(() => {
-      jest.spyOn(model, 'findOne').mockReturnValue({
-        lean: jest.fn().mockReturnValue({
-          exec: jest.fn().mockResolvedValue(fakeUser),
-        }),
-      } as unknown as any);
+      spyFindOneDocumentWithAbilityPredicate.mockResolvedValueOnce(fakeUser);
+      spyBuildUserFields.mockReturnValueOnce(fakeLoginBuilt);
     });
 
     it('should return user with only login and additional fields', async () => {
       const result = await service['getAccount']({ id: fakeUser.id } as User);
 
-      expect(result).toEqual({ id: fakeUser._id, login: fakeUser.login });
-    });
-
-    it('should return user with only login and additional fields', async () => {
-      service['additionalRequestFields'] = ['nickname' as keyof User];
-      const result = await service['getAccount']({ id: fakeUser.id } as User);
-
-      expect(result).toEqual({ id: fakeUser._id, login: fakeUser.login, nickname: fakeUser.nickname });
+      expect(spyFindOneDocumentWithAbilityPredicate).toHaveBeenCalledWith(fakeUser.id);
+      expect(spyBuildUserFields).toHaveBeenCalledWith(fakeUser, ['_id', fakeLoginField, ...service['additionalRequestFields']]);
+      expect(result).toEqual(fakeLoginBuilt);
     });
   });
 
   describe('resetPassword', () => {
-    const fakeEmail = 'fake-email';
-
     it('should not generate token if resetPasswordOptions is not defined', async () => {
+      service['resetPasswordOptions'] = undefined;
       await service['resetPassword'](fakeEmail);
 
-      expect(jwtService.sign).not.toHaveBeenCalled();
+      expect(service['resetPasswordCallbackMethods']).toBeUndefined();
+      expect(spyJwtSign).not.toHaveBeenCalled();
+      expect(resetPasswordCallback).not.toHaveBeenCalled();
     });
 
-    it('should generate token if resetPasswordOptions is defined', async () => {
-      const resetPasswordCallback = jest.fn();
-      const changePasswordCallback = jest.fn();
-      const options = {
-        resetPasswordCallback,
-        changePasswordCallback,
-        emailField: 'email',
-        expiresInMinutes: 5,
-      } as DynamicApiResetPasswordOptions<User>;
-      service['resetPasswordOptions'] = options;
-      (
-        jwtService.sign as jest.Mock
-      ).mockReturnValue('fake-token');
+    it('should generate token if resetPasswordOptions is defined and call resetPasswordCallback', async () => {
+      spyJwtSign.mockReturnValueOnce(resetPasswordToken);
       await service['resetPassword'](fakeEmail);
 
-      expect(jwtService.sign).toHaveBeenCalledTimes(1);
-      expect(jwtService.sign)
-      .toHaveBeenCalledWith({ email: fakeEmail }, { expiresIn: options.expiresInMinutes * 60 });
+      expect(service['resetPasswordCallbackMethods']).toStrictEqual({
+        findUserByEmail: expect.any(Function),
+        updateUserByEmail: expect.any(Function),
+      });
+      expect(spyJwtSign).toHaveBeenCalledTimes(1);
+      expect(spyJwtSign)
+      .toHaveBeenCalledWith({ email: fakeEmail }, { expiresIn: fakeExpirationInMinutes * 60 });
       expect(resetPasswordCallback).toHaveBeenCalledTimes(1);
       expect(resetPasswordCallback)
       .toHaveBeenCalledWith(
-        { resetPasswordToken: expect.any(String), email: fakeEmail },
+        { resetPasswordToken, email: fakeEmail },
         service['resetPasswordCallbackMethods'],
       );
-      expect(changePasswordCallback).not.toHaveBeenCalled();
     });
   });
 
   describe('changePassword', () => {
-    const resetPasswordCallback = jest.fn();
-    const changePasswordCallback = jest.fn();
-    const resetPasswordToken = 'reset-pass-token';
-    const newPassword = 'new-pass';
-    const hashedPassword = 'hashed-pass';
+    let spyJwtDecode: jest.SpyInstance;
+    let spyDateNow: jest.SpyInstance;
+    let spyMathRound: jest.SpyInstance;
+    let spyLoggerWarn: jest.SpyInstance;
+
+    const fakeDecodedToken = { email: fakeUser.login, exp: 1000 };
 
     beforeEach(() => {
-      service['resetPasswordOptions'] = {
-        resetPasswordCallback,
-        changePasswordCallback,
-        emailField: 'email',
-        expiresInMinutes: 5,
-      } as DynamicApiResetPasswordOptions<User>;
+      spyJwtDecode = jest.spyOn(jwtService, 'decode');
+      spyDateNow = jest.spyOn(Date, 'now');
+      spyMathRound = jest.spyOn(Math, 'round');
+      spyLoggerWarn = jest.spyOn<any, any>(service['logger'], 'warn').mockImplementation(jest.fn());
     });
 
     it('should throw bad request if token is invalid', async () => {
       await expect(service['changePassword'](resetPasswordToken, newPassword)).rejects.toThrow(
         new BadRequestException('Invalid reset password token. Please redo the reset password process.'),
       );
+      expect(spyJwtDecode).toHaveBeenCalledTimes(1);
+      expect(spyJwtDecode).toHaveBeenCalledWith(resetPasswordToken);
+      expect(spyLoggerWarn).toHaveBeenCalledTimes(1);
+      expect(spyLoggerWarn).toHaveBeenCalledWith('Invalid reset password token');
+      expect(spyMathRound).not.toHaveBeenCalled();
     });
 
     it('should throw unauthorized if token is expired', async () => {
-      jwtService.decode = jest.fn().mockReturnValue({ email: fakeUser.login, exp: 1000 });
-      jest.spyOn(Math, 'round').mockReturnValue(2000);
+      spyJwtDecode.mockReturnValueOnce(fakeDecodedToken);
+      const fakeTimestamp = 2000000;
+      spyDateNow.mockReturnValueOnce(fakeTimestamp);
+      spyMathRound.mockReturnValueOnce(fakeTimestamp / 1000);
 
-      await expect(service['changePassword'](resetPasswordToken, newPassword)).rejects.toThrow(
+      await expect(() => service['changePassword'](resetPasswordToken, newPassword)).rejects.toThrow(
         new UnauthorizedException('Time to reset password has expired. Please redo the reset password process.'),
       );
+      expect(spyDateNow).toHaveBeenCalledTimes(1);
+      expect(spyMathRound).toHaveBeenCalledTimes(1);
+      expect(spyMathRound).toHaveBeenCalledWith(fakeTimestamp / 1000);
+      expect(spyFindOneDocumentWithAbilityPredicate).not.toHaveBeenCalled();
+      expect(spyLoggerWarn).not.toHaveBeenCalled();
     });
 
     it('should not change password if user is not found', async () => {
-      jwtService.decode = jest.fn().mockReturnValue({ email: fakeUser.login, exp: 1000 });
-      jest.spyOn(Math, 'round').mockReturnValue(500);
-      jest.spyOn(service, 'findOneDocument').mockResolvedValue(undefined);
+      spyJwtDecode.mockReturnValueOnce(fakeDecodedToken);
+      const fakeTimestamp = 500000;
+      spyDateNow.mockReturnValueOnce(fakeTimestamp);
+      spyFindOneDocumentWithAbilityPredicate.mockResolvedValueOnce(undefined);
 
       await service['changePassword'](resetPasswordToken, newPassword);
 
-      expect(bcryptService.hashPassword).not.toHaveBeenCalled();
-      expect(model.updateOne).not.toHaveBeenCalled();
-      expect(changePasswordCallback).not.toHaveBeenCalled();
-      expect(resetPasswordCallback).not.toHaveBeenCalled();
+      expect(spyFindOneDocumentWithAbilityPredicate).toHaveBeenCalledWith(undefined, { [fakeEmailField]: fakeUser.login });
+      expect(spyLoggerWarn).toHaveBeenCalledTimes(1);
+      expect(spyLoggerWarn).toHaveBeenCalledWith('Invalid email, user not found');
+      expect(spyBcriptHashPassword).not.toHaveBeenCalled();
     });
 
-    it('should change password', async () => {
-      jest.spyOn(bcryptService, 'hashPassword').mockResolvedValue(hashedPassword);
-      const modelUpdateSpy = jest.spyOn(model, 'updateOne').mockResolvedValue({} as any);
-      jwtService.decode = jest.fn().mockReturnValue({ email: fakeUser.login, exp: 1000 });
-      jest.spyOn(Math, 'round').mockReturnValue(500);
-      jest.spyOn(service, 'findOneDocument').mockResolvedValue(fakeUser);
+    it('should change password and call changePasswordCallback if defined', async () => {
+      spyJwtDecode.mockReturnValueOnce(fakeDecodedToken);
+      const fakeTimestamp = 500000;
+      spyDateNow.mockReturnValueOnce(fakeTimestamp);
+      spyFindOneDocumentWithAbilityPredicate.mockResolvedValueOnce(fakeUser).mockResolvedValueOnce(fakeUser);
+      spyBcriptHashPassword.mockResolvedValueOnce(hashedPassword);
+      const spyBuildInstance = jest.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
+      jest.spyOn(bcryptService, 'hashPassword').mockResolvedValueOnce(hashedPassword);
 
       await service['changePassword'](resetPasswordToken, newPassword);
-      expect(bcryptService.hashPassword).toHaveBeenCalledWith(newPassword);
-      expect(modelUpdateSpy).toHaveBeenCalledWith({ _id: fakeUser._id }, { pass: hashedPassword });
+      expect(spyFindOneDocumentWithAbilityPredicate).toHaveBeenCalledTimes(2);
+      expect(spyFindOneDocumentWithAbilityPredicate).toHaveBeenNthCalledWith(1,undefined, { [fakeEmailField]: fakeUser.login });
+      expect(spyFindOneDocumentWithAbilityPredicate).toHaveBeenNthCalledWith(2, fakeUser._id);
+      expect(spyBcriptHashPassword).toHaveBeenCalledWith(newPassword);
+      expect(model.updateOne).toHaveBeenCalledWith({ _id: fakeUser._id }, { [fakePasswordField]: hashedPassword });
+      expect(spyBuildInstance).toHaveBeenCalledWith(fakeUser);
       expect(changePasswordCallback).toHaveBeenCalledTimes(1);
-      expect(changePasswordCallback).toHaveBeenCalledWith(fakeUserBuilt, service['callbackMethods']);
-      expect(resetPasswordCallback).not.toHaveBeenCalled();
+      expect(changePasswordCallback).toHaveBeenCalledWith(fakeUserInstance, service['callbackMethods']);
+    });
+
+    it('should change password and not call changePasswordCallback if not defined', async () => {
+      service['resetPasswordOptions'].changePasswordCallback = undefined;
+      spyJwtDecode.mockReturnValueOnce(fakeDecodedToken);
+      const fakeTimestamp = 500000;
+      spyDateNow.mockReturnValueOnce(fakeTimestamp);
+      spyFindOneDocumentWithAbilityPredicate.mockResolvedValueOnce(fakeUser);
+      spyBcriptHashPassword.mockResolvedValueOnce(hashedPassword);
+
+      await service['changePassword'](resetPasswordToken, newPassword);
+      expect(changePasswordCallback).not.toHaveBeenCalled();
     });
   });
 });

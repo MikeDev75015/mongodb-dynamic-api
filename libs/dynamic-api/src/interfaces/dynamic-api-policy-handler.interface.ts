@@ -1,11 +1,11 @@
 import { ExecutionContext } from '@nestjs/common';
+import { Model } from 'mongoose';
 import { BaseEntity } from '../models';
-import { BaseService } from '../services';
 
-interface PoliciesGuard<Entity extends BaseEntity> {
+interface PoliciesGuard {
   canActivate(context: ExecutionContext): boolean | Promise<boolean>;
 }
 
-type PoliciesGuardConstructor<Entity extends BaseEntity> = new (service: BaseService<Entity>) => PoliciesGuard<Entity>;
+type PoliciesGuardConstructor<Entity extends BaseEntity> = new (model: Model<Entity>) => PoliciesGuard;
 
 export { PoliciesGuardConstructor, PoliciesGuard };
