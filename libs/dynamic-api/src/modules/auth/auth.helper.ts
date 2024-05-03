@@ -20,7 +20,7 @@ import { BaseEntity } from '../../models';
 import { BcryptService } from '../../services';
 import {
   AuthControllerConstructor,
-  AuthService,
+  AuthService, DynamicApiLoginOptions,
   DynamicApiRegisterOptions, DynamicApiResetPasswordOptions,
 } from './interfaces';
 import { AuthControllerMixin } from './mixins';
@@ -62,11 +62,8 @@ function createLocalStrategyProvider<Entity extends BaseEntity>(
 
 function createAuthServiceProvider<Entity extends BaseEntity>(
   userEntity: Type<Entity>,
-  loginField: keyof Entity,
-  passwordField: keyof Entity,
-  additionalFields: (keyof Entity)[] | undefined,
+  { loginField, passwordField, additionalFields, callback: loginCallback }: DynamicApiLoginOptions<Entity>,
   registerCallback: DynamicApiServiceCallback<Entity> | undefined,
-  loginCallback: DynamicApiServiceCallback<Entity> | undefined,
   resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined,
 ): DynamicAPIServiceProvider {
   class AuthService extends BaseAuthService<Entity> {
@@ -98,9 +95,7 @@ function createAuthServiceProvider<Entity extends BaseEntity>(
 
 function createAuthController<Entity extends BaseEntity>(
   userEntity: Type<Entity>,
-  loginField: keyof Entity,
-  passwordField: keyof Entity,
-  additionalRequestFields: (keyof Entity)[] | undefined,
+  { loginField, passwordField, additionalFields }: DynamicApiLoginOptions<Entity>,
   registerOptions: DynamicApiRegisterOptions<Entity> | undefined,
   validationPipeOptions: ValidationPipeOptions | undefined,
   resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined,
@@ -117,7 +112,7 @@ function createAuthController<Entity extends BaseEntity>(
     userEntity,
     loginField,
     passwordField,
-    additionalRequestFields,
+    additionalFields,
   registerOptions ?? {},
   resetPasswordOptions,
   ) {

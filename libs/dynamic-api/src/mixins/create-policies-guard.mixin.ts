@@ -1,4 +1,7 @@
-import { Inject, Injectable, Type } from '@nestjs/common';
+import { Injectable, Type } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { DynamicApiModule } from '../dynamic-api.module';
 import { BasePoliciesGuard } from '../guards';
 import { provideName } from '../helpers';
 import {
@@ -8,25 +11,27 @@ import {
   RouteType,
 } from '../interfaces';
 import { BaseEntity } from '../models';
-import { BaseService } from '../services';
 
-function CreatePoliciesGuardMixin<Entity extends BaseEntity, Service extends BaseService<Entity>>(
+function CreatePoliciesGuardMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   routeType: RouteType,
   version: string | undefined,
   abilityPredicate: AbilityPredicate<Entity> | undefined,
 ): PoliciesGuardConstructor<Entity> {
   @Injectable()
-  class RoutePoliciesGuard extends BasePoliciesGuard<Entity, Service> implements PoliciesGuard<Entity> {
+  class RoutePoliciesGuard extends BasePoliciesGuard<Entity> implements PoliciesGuard {
     protected routeType = routeType;
     protected entity = entity;
     protected abilityPredicate: AbilityPredicate<Entity> | undefined = abilityPredicate;
 
     constructor(
-      @Inject(`${provideName(routeType, entity.name, version, 'Service')}`)
-      protected readonly service: Service,
+      @InjectModel(
+        entity.name,
+        DynamicApiModule.state.get('connectionName'),
+      )
+      protected readonly model: Model<Entity>,
     ) {
-      super(service);
+      super(model);
     }
   }
 

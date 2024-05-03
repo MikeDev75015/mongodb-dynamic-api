@@ -73,7 +73,7 @@ export class DynamicApiModule {
 
     this.state.set([
       'partial',
-      this.buildStateFromOptions(useGlobalCache, cacheOptions, useAuth, routesConfig),
+      this.buildStateFromOptions(uri, useGlobalCache, cacheOptions, useAuth, routesConfig),
     ]);
 
     return {
@@ -86,7 +86,7 @@ export class DynamicApiModule {
           { connectionName: this.state.get('connectionName') },
         ),
         ...(
-          useAuth?.user ? [
+          useAuth?.userEntity ? [
             AuthModule.forRoot<Entity>(this.initializeAuthOptions(useAuth)),
           ] : []
         ),
@@ -112,7 +112,7 @@ export class DynamicApiModule {
       this.state.get('connectionName'),
     );
 
-    DynamicApiGlobalStateService.addEntitySchema(entity.name, schema);
+    DynamicApiGlobalStateService.addEntitySchema(entity, schema);
 
     return new Promise((resolve, reject) => {
       const waitInitializedStateInterval = setInterval(async () => {
@@ -232,6 +232,7 @@ export class DynamicApiModule {
 
   /**
    * Builds the global state from the provided options.
+   * @param uri
    * @param {boolean} useGlobalCache - Whether to use global cache.
    * @param {DynamicApiCacheOptions} cacheOptions - The cache options.
    * @param {DynamicApiAuthOptions} useAuth - The auth options.
@@ -239,6 +240,7 @@ export class DynamicApiModule {
    * @returns {{ initialized: boolean; isGlobalCacheEnabled: boolean }} - The built state.
    */
   private static buildStateFromOptions(
+    uri: string,
     useGlobalCache: boolean,
     cacheOptions: DynamicApiCacheOptions,
     useAuth?: DynamicApiAuthOptions,
@@ -247,17 +249,18 @@ export class DynamicApiModule {
     const routesConfigState = this.state.get<RoutesConfig>('routesConfig');
 
     return {
+      uri,
       initialized: true,
       isGlobalCacheEnabled: useGlobalCache,
       ...(
         cacheOptions?.excludePaths ? { cacheExcludedPaths: cacheOptions?.excludePaths } : {}
       ),
       ...(
-        useAuth?.user ? {
+        useAuth?.userEntity ? {
           isAuthEnabled: true,
           credentials: {
-            loginField: !useAuth.user.loginField ? 'email' : String(useAuth.user.loginField),
-            passwordField: !useAuth.user.passwordField ? 'password' : String(useAuth.user.passwordField),
+            loginField: !useAuth.login?.loginField ? 'email' : String(useAuth.login.loginField),
+            passwordField: !useAuth.login?.passwordField ? 'password' : String(useAuth.login.passwordField),
           },
           jwtSecret: useAuth.jwt?.secret ?? 'dynamic-api-jwt-secret',
         } : {}
@@ -280,25 +283,28 @@ export class DynamicApiModule {
    */
   private static initializeAuthOptions(useAuth: DynamicApiAuthOptions): DynamicApiAuthOptions {
     return {
-      user: {
-        entity: useAuth.user.entity,
-        loginField: useAuth.user.loginField ?? 'email',
-        passwordField: useAuth.user.passwordField ?? 'password',
-        requestAdditionalFields: useAuth.user.requestAdditionalFields ?? [],
+      userEntity: useAuth.userEntity,
+      login: {
+        ...useAuth.login,
+        loginField: useAuth.login?.loginField ?? 'email',
+        passwordField: useAuth.login?.passwordField ?? 'password',
+        additionalFields: useAuth.login?.additionalFields ?? [],
+      },
+      register: {
+        ...useAuth.register,
+        additionalFields: useAuth.register?.additionalFields ?? [],
+        protected: useAuth.register?.protected ?? !!useAuth.register.abilityPredicate,
+      },
+      resetPassword: {
+        ...useAuth.resetPassword,
+        emailField: !useAuth.resetPassword?.emailField ? 'email' : String(useAuth.resetPassword.emailField),
+        expirationInMinutes: useAuth.resetPassword?.expirationInMinutes ?? 10,
       },
       jwt: {
         secret: useAuth.jwt?.secret ?? 'dynamic-api-jwt-secret',
         expiresIn: useAuth.jwt?.expiresIn ?? '1d',
       },
-      register: useAuth.register ? {
-        ...useAuth.register,
-        protected: useAuth.register.protected ?? !!useAuth.register.abilityPredicate,
-      } : {
-        protected: false,
-        additionalFields: [],
-      },
-      login: useAuth.login ?? {},
-      resetPassword: useAuth.resetPassword ?? {},
+      validationPipeOptions: useAuth.validationPipeOptions,
     };
   }
 

@@ -1,18 +1,27 @@
+import { Type } from '@nestjs/common';
+import { FilterQuery } from 'mongoose';
 import { BaseEntity } from '../models';
+import { DeleteResult, UpdateResult } from './dynamic-api-route-response.type';
 
-type DynamicApiCallbackMethods<Entity extends BaseEntity> = {
-  findById: (id: string) => Promise<Entity | undefined>;
-  findAndUpdateById: (id: string, update: Partial<Entity>) => Promise<Entity>;
+type DynamicApiCallbackMethods = {
+  findManyDocuments<T>(entity: Type<T>, query: FilterQuery<T>): Promise<T[]>;
+  findOneDocument<T>(entity: Type<T>, query: FilterQuery<T>): Promise<T | undefined>;
+  createManyDocuments<T>(entity: Type<T>, data: Partial<T>[]): Promise<T[]>;
+  createOneDocument<T>(entity: Type<T>, data: Partial<T>): Promise<T>;
+  updateManyDocuments<T>(entity: Type<T>, query: FilterQuery<T>, data: Partial<T>): Promise<UpdateResult>;
+  updateOneDocument<T>(entity: Type<T>, query: FilterQuery<T>, data: Partial<T>): Promise<UpdateResult>;
+  deleteManyDocuments<T>(entity: Type<T>, ids: string[]): Promise<DeleteResult>;
+  deleteOneDocument<T>(entity: Type<T>, id: string): Promise<DeleteResult>;
 };
 
 type DynamicApiServiceCallback<Entity extends BaseEntity> = (
   entity: Entity,
-  methods: DynamicApiCallbackMethods<Entity>,
+  methods: DynamicApiCallbackMethods,
 ) => Promise<void>;
 
 type DynamicApiResetPasswordCallbackMethods<Entity extends BaseEntity, UpdateBy = 'userId'> = {
   findUserByEmail: (email: string) => Promise<Entity | undefined>;
-  updateUserByEmail: (email: string, update: Partial<Entity>) => Promise<Entity>;
+  updateUserByEmail: (email: string, update: Partial<Entity>) => Promise<Entity | undefined>;
 };
 
 type DynamicApiResetPasswordCallback<Entity extends BaseEntity> = (

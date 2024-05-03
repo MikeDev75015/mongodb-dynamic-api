@@ -1,10 +1,10 @@
 import { ExecutionContext, ForbiddenException, Injectable, Type } from '@nestjs/common';
-import { PoliciesGuardConstructor, RegisterAbilityPredicate } from '../../../interfaces';
+import { PoliciesGuardConstructor, AuthAbilityPredicate } from '../../../interfaces';
 import { BaseEntity } from '../../../models';
 
 function AuthRegisterPoliciesGuardMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
-  abilityPredicate: RegisterAbilityPredicate | undefined,
+  abilityPredicate: AuthAbilityPredicate | undefined,
 ): PoliciesGuardConstructor<Entity> {
   @Injectable()
   class BaseAuthRegisterPoliciesGuard {

@@ -67,11 +67,11 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
   }
 
   protected async register(userToCreate: Partial<Entity>) {
-    // @ts-ignore
-    const hashedPassword = await this.bcryptService.hashPassword(userToCreate[this.passwordField]);
     try {
+      // @ts-ignore
+      const hashedPassword = await this.bcryptService.hashPassword(userToCreate[this.passwordField]);
       const { _id } = await this.model.create({ ...userToCreate, [this.passwordField]: hashedPassword });
-      const user = await this.findOneDocument(_id);
+      const user = await this.findOneDocumentWithAbilityPredicate(_id);
 
       if (this.registerCallback) {
         await this.registerCallback(user, this.callbackMethods);
@@ -84,7 +84,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
   }
 
   protected async getAccount({ id }: Entity): Promise<Entity> {
-    const user = await this.findOneDocument(id);
+    const user = await this.findOneDocumentWithAbilityPredicate(id);
 
     const fieldsToBuild = [
       '_id' as keyof Entity,
@@ -122,18 +122,18 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
         ).lean().exec();
 
         if (!user) {
-          this.handleDocumentNotFound();
+          return;
         }
 
         return this.buildInstance(user as Entity);
       },
     };
 
-    const { resetPasswordCallback, expiresInMinutes } = this.resetPasswordOptions;
+    const { resetPasswordCallback, expirationInMinutes } = this.resetPasswordOptions;
 
     const resetPasswordToken = this.jwtService.sign(
       { email },
-      { expiresIn: expiresInMinutes * 60 },
+      { expiresIn: expirationInMinutes * 60 },
     );
 
     await resetPasswordCallback({ resetPasswordToken, email }, this.resetPasswordCallbackMethods);
@@ -162,7 +162,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
 
     let userId: string;
     try {
-      const { _id } = await this.findOneDocument(
+      const { _id } = await this.findOneDocumentWithAbilityPredicate(
         undefined,
         // @ts-ignore
         { [this.resetPasswordOptions.emailField]: email },
@@ -185,7 +185,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     );
 
     if (this.resetPasswordOptions?.changePasswordCallback) {
-      const user = await this.findOneDocument(userId);
+      const user = await this.findOneDocumentWithAbilityPredicate(userId);
       await this.resetPasswordOptions.changePasswordCallback(this.buildInstance(user), this.callbackMethods);
     }
   }

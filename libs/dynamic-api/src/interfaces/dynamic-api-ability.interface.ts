@@ -3,7 +3,7 @@ import { RouteType } from './dynamic-api-route-type.type';
 
 type AbilityPredicate<Entity extends BaseEntity, User = any> = (entity: Entity, user: User) => boolean;
 
-type RegisterAbilityPredicate<User = any> = (user: User) => boolean;
+type AuthAbilityPredicate<User = any> = (user: User) => boolean;
 
 type ControllerAbilityPredicate<Entity extends BaseEntity> = {
   targets: RouteType[];
@@ -12,6 +12,6 @@ type ControllerAbilityPredicate<Entity extends BaseEntity> = {
 
 export {
   ControllerAbilityPredicate,
-  RegisterAbilityPredicate,
+  AuthAbilityPredicate,
   AbilityPredicate,
 };
