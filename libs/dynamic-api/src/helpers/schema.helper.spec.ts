@@ -18,7 +18,7 @@ describe('buildSchemaFromEntity', () => {
       },
     };
 
-    jest.spyOn(SchemaFactory, 'createForClass').mockReturnValueOnce(fakeSchema);
+    jest.spyOn(SchemaFactory, 'createForClass').mockReturnValue(fakeSchema);
   });
 
   it('should not build schema with timestamps if entity does not have createdAt and updatedAt fields', () => {
