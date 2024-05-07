@@ -1,5 +1,7 @@
 import { Query, Type, UseGuards } from '@nestjs/common';
+import { Builder } from 'builder-pattern';
 import { RouteDecoratorsBuilder } from '../../builders';
+import { DeleteManyEntityQuery, DeletePresenter } from '../../dtos';
 import { addVersionSuffix, getControllerMixinData, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { CreatePoliciesGuardMixin } from '../../mixins';
@@ -52,8 +54,9 @@ function DeleteManyControllerMixin<Entity extends BaseEntity>(
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(DeleteManyPoliciesGuard)
-    async deleteMany(@Query('ids') ids: string[]) {
-      return this.service.deleteMany(ids);
+    async deleteMany(@Query() { ids }: DeleteManyEntityQuery) {
+      const result = await this.service.deleteMany(ids);
+      return Builder(DeletePresenter, result).build();
     }
   }
 
