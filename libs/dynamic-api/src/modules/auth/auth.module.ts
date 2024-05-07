@@ -13,7 +13,10 @@ import { JwtStrategy } from './strategies';
 @Module({})
 export class AuthModule {
   static forRoot<Entity extends BaseEntity>(
-    {
+    options: DynamicApiAuthOptions<Entity>,
+    extraImports: any[] = [],
+  ) {
+    const {
       userEntity,
       login: {
         loginField,
@@ -24,12 +27,17 @@ export class AuthModule {
       resetPassword,
       jwt: { secret, expiresIn },
       validationPipeOptions,
-    }: DynamicApiAuthOptions<Entity>,
-    extraImports: any[] = [],
-  ) {
-    const { resetPasswordCallback, changePasswordCallback, emailField, expirationInMinutes } = resetPassword;
+    } = this.initializeAuthOptions<Entity>(options);
+
+    const {
+      resetPasswordCallback,
+      changePasswordCallback,
+      emailField,
+      expirationInMinutes,
+      abilityPredicate,
+    } = resetPassword;
     const resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined = resetPasswordCallback
-      ? { resetPasswordCallback, changePasswordCallback, emailField, expirationInMinutes }
+      ? { resetPasswordCallback, changePasswordCallback, emailField, expirationInMinutes, abilityPredicate }
       : undefined;
 
     const AuthController = createAuthController(
@@ -74,6 +82,45 @@ export class AuthModule {
         BcryptService,
       ],
       controllers: [AuthController],
+    };
+  }
+
+  /**
+   * Initializes the auth options with default values.
+   * @param {DynamicApiAuthOptions} useAuth - The auth options.
+   * @returns {DynamicApiAuthOptions} - The initialized auth options.
+   */
+  private static initializeAuthOptions<Entity extends BaseEntity>({
+    userEntity,
+    login,
+    register,
+    resetPassword,
+    jwt,
+    validationPipeOptions,
+  }: DynamicApiAuthOptions<Entity>): DynamicApiAuthOptions<Entity> {
+    return {
+      userEntity: userEntity,
+      login: {
+        ...login,
+        loginField: (login?.loginField ?? 'email') as keyof Entity,
+        passwordField: (login?.passwordField ?? 'password') as keyof Entity,
+        additionalFields: login?.additionalFields ?? [],
+      },
+      register: {
+        ...register,
+        additionalFields: register?.additionalFields ?? [],
+        protected: register?.protected ?? !!register?.abilityPredicate,
+      },
+      resetPassword: {
+        ...resetPassword,
+        emailField: (!resetPassword?.emailField ? 'email' as keyof Entity : String(resetPassword.emailField)),
+        expirationInMinutes: resetPassword?.expirationInMinutes ?? 10,
+      },
+      jwt: {
+        secret: jwt?.secret ?? 'dynamic-api-jwt-secret',
+        expiresIn: jwt?.expiresIn ?? '1d',
+      },
+      validationPipeOptions: validationPipeOptions,
     };
   }
 }
