@@ -97,7 +97,6 @@
   },
   "jest": {
     "clearMocks": true,
-    "resetMocks": true,
     "moduleFileExtensions": [
       "js",
       "json",
