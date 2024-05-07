@@ -54,7 +54,7 @@ describe('DeleteManyHelper', () => {
       expect(controller).toBeDefined();
       expect(controller['service']).toBe(service);
 
-      await controller.deleteMany(['test', 'test2']);
+      await controller.deleteMany({ ids: ['test', 'test2'] });
 
       expect(spyServiceDeleteMany).toHaveBeenCalledWith(['test', 'test2']);
     });

@@ -14,10 +14,6 @@ describe('AuthDecoratorsBuilder', () => {
     apiBearerAuthDecoratorSpy = jest.spyOn(SwaggerAPIDecorators, 'ApiBearerAuth');
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
   describe('build', () => {
     it('should return Public route decorator if route is public', () => {
       const authDecoratorsBuilder = new AuthDecoratorsBuilder(undefined);
