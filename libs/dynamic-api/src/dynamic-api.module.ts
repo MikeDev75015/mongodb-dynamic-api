@@ -87,7 +87,7 @@ export class DynamicApiModule {
         ),
         ...(
           useAuth?.userEntity ? [
-            AuthModule.forRoot<Entity>(this.initializeAuthOptions(useAuth)),
+            AuthModule.forRoot<Entity>(useAuth),
           ] : []
         ),
       ],
@@ -273,38 +273,6 @@ export class DynamicApiModule {
           },
         } : {}
       ),
-    };
-  }
-
-  /**
-   * Initializes the auth options with default values.
-   * @param {DynamicApiAuthOptions} useAuth - The auth options.
-   * @returns {DynamicApiAuthOptions} - The initialized auth options.
-   */
-  private static initializeAuthOptions(useAuth: DynamicApiAuthOptions): DynamicApiAuthOptions {
-    return {
-      userEntity: useAuth.userEntity,
-      login: {
-        ...useAuth.login,
-        loginField: useAuth.login?.loginField ?? 'email',
-        passwordField: useAuth.login?.passwordField ?? 'password',
-        additionalFields: useAuth.login?.additionalFields ?? [],
-      },
-      register: {
-        ...useAuth.register,
-        additionalFields: useAuth.register?.additionalFields ?? [],
-        protected: useAuth.register?.protected ?? !!useAuth.register.abilityPredicate,
-      },
-      resetPassword: {
-        ...useAuth.resetPassword,
-        emailField: !useAuth.resetPassword?.emailField ? 'email' : String(useAuth.resetPassword.emailField),
-        expirationInMinutes: useAuth.resetPassword?.expirationInMinutes ?? 10,
-      },
-      jwt: {
-        secret: useAuth.jwt?.secret ?? 'dynamic-api-jwt-secret',
-        expiresIn: useAuth.jwt?.expiresIn ?? '1d',
-      },
-      validationPipeOptions: useAuth.validationPipeOptions,
     };
   }
 
