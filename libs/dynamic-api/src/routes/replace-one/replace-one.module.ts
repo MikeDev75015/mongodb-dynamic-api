@@ -1,4 +1,4 @@
-import { DynamicModule, Module, Provider, Type, ValidationPipeOptions } from '@nestjs/common';
+import { DynamicModule, Module, Type, ValidationPipeOptions } from '@nestjs/common';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { createReplaceOneController, createReplaceOneServiceProvider } from './replace-one.helper';
@@ -12,7 +12,6 @@ export class ReplaceOneModule {
     routeConfig: DynamicAPIRouteConfig<Entity>,
     version?: string,
     validationPipeOptions?: ValidationPipeOptions,
-    extraProviders?: Provider[],
   ): DynamicModule {
     const controller = createReplaceOneController(
       entity,
@@ -27,7 +26,7 @@ export class ReplaceOneModule {
       module: ReplaceOneModule,
       imports: [databaseModule],
       controllers: [controller],
-      providers: [...(extraProviders ?? []), ServiceProvider],
+      providers: [ServiceProvider],
     };
   }
 }

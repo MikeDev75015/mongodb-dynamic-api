@@ -1,4 +1,4 @@
-import { DynamicModule, Module, Provider, Type, ValidationPipeOptions } from '@nestjs/common';
+import { DynamicModule, Module, Type, ValidationPipeOptions } from '@nestjs/common';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import {
@@ -15,7 +15,6 @@ export class GetOneModule {
     routeConfig: DynamicAPIRouteConfig<Entity>,
     version?: string,
     validationPipeOptions?: ValidationPipeOptions,
-    extraProviders?: Provider[],
   ): DynamicModule {
     const controller = createGetOneController(
       entity,
@@ -30,7 +29,7 @@ export class GetOneModule {
       module: GetOneModule,
       imports: [databaseModule],
       controllers: [controller],
-      providers: [...(extraProviders ?? []), ServiceProvider],
+      providers: [ServiceProvider],
     };
   }
 }
