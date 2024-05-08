@@ -1,24 +1,20 @@
-import { Test } from '@nestjs/testing';
-import { JwtAuthGuard } from './jwt-auth.guard';
-import { ExecutionContext } from '@nestjs/common';
+import { createMock } from '@golevelup/ts-jest';
 import { Reflector } from '@nestjs/core';
+import { JwtAuthGuard } from './jwt-auth.guard';
 
 describe('JwtAuthGuard', () => {
   let guard: JwtAuthGuard;
-  let context: ExecutionContext;
+  const reflector = createMock<Reflector>();
 
   beforeEach(async () => {
-    const moduleRef = await Test.createTestingModule({
-      providers: [JwtAuthGuard, Reflector],
-    }).compile();
-
-    guard = moduleRef.get<JwtAuthGuard>(JwtAuthGuard);
-    context = { switchToHttp: () => ({
-        getRequest: jest.fn().mockReturnValue({}),
-    }) } as any;
+    guard = new JwtAuthGuard(reflector);
   });
 
-  it('should be defined', () => {
+  it('should have AuthGuard methods', () => {
     expect(guard).toBeDefined();
+    expect(guard.logIn).toStrictEqual(expect.any(Function));
+    expect(guard.handleRequest).toStrictEqual(expect.any(Function));
+    expect(guard.getAuthenticateOptions).toStrictEqual(expect.any(Function));
+    expect(guard.getRequest).toStrictEqual(expect.any(Function));
   });
 });
