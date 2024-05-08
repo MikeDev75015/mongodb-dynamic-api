@@ -81,6 +81,22 @@ describe('BaseUpdateManyService', () => {
       expect(modelMock.find).toHaveBeenNthCalledWith(2, { _id: { $in: ids } });
     });
 
+    it('should call with isDeleted: false if isSoftDeletable is true', async () => {
+      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedDocuments);
+      service = initService(exec);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
+
+      await service.updateMany(ids, { name: 'updated' });
+
+      expect(modelMock.updateMany).toHaveBeenCalledWith(
+        {
+          _id: { $in: ids },
+          isDeleted: false,
+        },
+        { name: 'updated' },
+      );
+    });
+
     it('should call callback if it is defined', async () => {
       const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedDocuments);
       service = initService(exec);

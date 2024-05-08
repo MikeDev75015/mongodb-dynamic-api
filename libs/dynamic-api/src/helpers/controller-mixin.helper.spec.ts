@@ -1,3 +1,5 @@
+import { Builder } from 'builder-pattern';
+import { plainToInstance } from 'class-transformer';
 import { RouteType } from '../interfaces';
 import { BaseEntity } from '../models';
 import { getControllerMixinData } from './controller-mixin.helper';
@@ -19,17 +21,41 @@ describe('getControllerMixinData', () => {
       'v1',
     );
 
+    const body = { list: [{ unit: 'test' }] };
+    const dto = plainToInstance(result.RouteBody, body);
+
     expect(result).toBeDefined();
     expect(result.routeType).toEqual('CreateMany');
+    expect(dto).toHaveProperty('list');
+    expect(dto.list).toHaveLength(1);
+  });
+
+  it('should return valid controller mixin data for CreateMany route type with custom body', () => {
+    class CreateManyDTO {
+      list: CustomDTO[];
+    }
+    const result = getControllerMixinData(
+      TestEntity,
+      controllerOptions,
+      {
+        type: 'CreateMany',
+        ...routeConfig,
+        dTOs: { body: CreateManyDTO },
+      },
+      'v1',
+    );
+
+    expect(result).toBeDefined();
   });
 
   it('should return valid controller mixin data for CreateOne route type', () => {
+    const { abilityPredicate, isPublic, ...createOneRouteConfig } = routeConfig;
     const result = getControllerMixinData(
       TestEntity,
       controllerOptions,
       {
         type: 'CreateOne',
-        ...routeConfig,
+        ...createOneRouteConfig,
         dTOs: { body: CustomDTO },
       },
       'v1',
@@ -42,10 +68,11 @@ describe('getControllerMixinData', () => {
   it('should return valid controller mixin data for DuplicateMany route type', () => {
     const result = getControllerMixinData(
       TestEntity,
-      controllerOptions,
+      { ...controllerOptions, isPublic: undefined },
       {
         type: 'DuplicateMany',
         ...routeConfig,
+        isPublic: undefined,
       },
       'v1',
     );
@@ -107,6 +134,7 @@ describe('getControllerMixinData', () => {
       {
         type: 'GetMany',
         ...routeConfig,
+        dTOs: undefined,
       },
       'v1',
     );
