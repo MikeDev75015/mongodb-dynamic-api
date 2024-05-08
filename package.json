@@ -114,7 +114,6 @@
       "<rootDir>/"
     ],
     "coveragePathIgnorePatterns": [
-      "index.ts",
       ".*\\.mock\\.ts"
     ],
     "reporters": [

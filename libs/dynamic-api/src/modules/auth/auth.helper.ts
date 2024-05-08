@@ -62,12 +62,12 @@ function createLocalStrategyProvider<Entity extends BaseEntity>(
 
 function createAuthServiceProvider<Entity extends BaseEntity>(
   userEntity: Type<Entity>,
-  { loginField, passwordField, additionalFields, callback: loginCallback }: DynamicApiLoginOptions<Entity>,
+  { loginField, passwordField, additionalFields = [], callback: loginCallback }: DynamicApiLoginOptions<Entity>,
   registerCallback: DynamicApiServiceCallback<Entity> | undefined,
   resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined,
 ): DynamicAPIServiceProvider {
   class AuthService extends BaseAuthService<Entity> {
-    protected additionalRequestFields = additionalFields ?? [];
+    protected additionalRequestFields = additionalFields;
     protected loginField = loginField;
     protected passwordField = passwordField;
     protected registerCallback = registerCallback;
