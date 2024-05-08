@@ -1,7 +1,13 @@
 import { Query, Type, UseGuards } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityQuery } from '../../dtos';
-import { addVersionSuffix, getControllerMixinData, getFormattedApiTag, RouteDecoratorsHelper } from '../../helpers';
+import {
+  addVersionSuffix,
+  getControllerMixinData,
+  getFormattedApiTag,
+  provideName,
+  RouteDecoratorsHelper,
+} from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { CreatePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
@@ -68,7 +74,7 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(BaseGetManyController, 'name', {
-    value: `Base${routeType}${entity.name}${addVersionSuffix(version)}Controller`,
+    value: `Base${provideName('GetMany', entity.name, version, 'Controller')}`,
     writable: false,
   });
 

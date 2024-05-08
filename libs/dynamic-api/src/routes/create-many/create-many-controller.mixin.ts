@@ -1,6 +1,6 @@
 import { Body, Type, UseGuards } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
-import { addVersionSuffix, getControllerMixinData, RouteDecoratorsHelper } from '../../helpers';
+import { getControllerMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { CreatePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
@@ -63,7 +63,7 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(BaseCreateManyController, 'name', {
-    value: `BaseCreateMany${entity.name}${addVersionSuffix(version)}Controller`,
+    value: `Base${provideName('CreateMany', entity.name, version, 'Controller')}`,
     writable: false,
   });
 

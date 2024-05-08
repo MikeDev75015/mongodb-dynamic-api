@@ -1,6 +1,6 @@
 import { Body, Query, Type, UseGuards } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
-import { addVersionSuffix, getControllerMixinData, RouteDecoratorsHelper } from '../../helpers';
+import { getControllerMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { CreatePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
@@ -61,7 +61,7 @@ function DuplicateManyControllerMixin<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(BaseDuplicateManyController, 'name', {
-    value: `BaseDuplicateMany${entity.name}${addVersionSuffix(version)}Controller`,
+    value: `Base${provideName('DuplicateMany', entity.name, version, 'Controller')}`,
     writable: false,
   });
 
