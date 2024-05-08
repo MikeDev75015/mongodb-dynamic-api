@@ -1,6 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
 import { closeApp, initApp } from '../../__mocks__/app.mock';
+import { DynamicAPISwaggerExtraConfig } from '../interfaces';
 import { enableDynamicAPISwagger } from './swagger-config.helper';
 
 describe('SwaggerConfigHelper', () => {
@@ -63,6 +64,25 @@ describe('SwaggerConfigHelper', () => {
 
       expect(createDocumentSpy).toHaveBeenCalledWith(app, expect.any(Object), { deepScanRoutes: true });
       expect(setupSpy).toHaveBeenCalledWith('/custom-path', app, document);
+    });
+
+    it('should call createDocument with another config', () => {
+      createDocumentSpy.mockReturnValue(document);
+
+      enableDynamicAPISwagger(app, {
+        swaggerExtraConfig: {
+          apiKey: true,
+          bearerAuth: { name: 'bearer' },
+          basicAuth: true,
+          cookieAuth: true,
+          oAuth2: { options: { type: 'apiKey', name: 'api', in: 'header' } },
+          fakeKey: 'fakeValue',
+        } as DynamicAPISwaggerExtraConfig,
+        swaggerDocumentOptions: { deepScanRoutes: true },
+      });
+
+      expect(createDocumentSpy).toHaveBeenCalledWith(app, expect.any(Object), { deepScanRoutes: true });
+      expect(setupSpy).toHaveBeenCalledWith('/dynamic-api', app, document);
     });
   });
 
