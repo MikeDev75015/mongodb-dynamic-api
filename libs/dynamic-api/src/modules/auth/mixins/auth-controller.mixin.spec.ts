@@ -22,6 +22,8 @@ describe('AuthControllerMixin', () => {
       login: jest.fn(),
       register: jest.fn(),
       getAccount: jest.fn(),
+      resetPassword: jest.fn(),
+      changePassword: jest.fn(),
     } as unknown as AuthService<TestEntity>;
   });
 
@@ -59,7 +61,7 @@ describe('AuthControllerMixin', () => {
     )).toThrow();
   });
 
-  it('should create AuthController with login, register and getAccount endpoints', () => {
+  it('should create AuthController', () => {
     const AuthController = AuthControllerMixin(
       TestEntity,
       'loginField',
@@ -70,9 +72,12 @@ describe('AuthControllerMixin', () => {
     );
     const controller = new AuthController(service);
 
-    expect(controller.login).toBeDefined();
-    expect(controller.register).toBeDefined();
-    expect(controller.getAccount).toBeDefined();
+    expect(controller).toBeDefined();
+    expect(controller).toHaveProperty('login', expect.any(Function));
+    expect(controller).toHaveProperty('register', expect.any(Function));
+    expect(controller).toHaveProperty('getAccount', expect.any(Function));
+    expect(controller).toHaveProperty('resetPassword', expect.any(Function));
+    expect(controller).toHaveProperty('changePassword', expect.any(Function));
   });
 
   it('should create AuthController with additional fields', () => {
@@ -90,8 +95,104 @@ describe('AuthControllerMixin', () => {
     );
     const controller = new AuthController(service);
 
-    expect(controller.login).toBeDefined();
-    expect(controller.register).toBeDefined();
-    expect(controller.getAccount).toBeDefined();
+    expect(controller).toBeDefined();
+    expect(controller).toHaveProperty('login', expect.any(Function));
+    expect(controller).toHaveProperty('register', expect.any(Function));
+    expect(controller).toHaveProperty('getAccount', expect.any(Function));
+    expect(controller).toHaveProperty('resetPassword', expect.any(Function));
+    expect(controller).toHaveProperty('changePassword', expect.any(Function));
+  });
+
+  describe('getAccount', () => {
+    it('should call service getAccount', async () => {
+      const AuthController = AuthControllerMixin(
+        TestEntity,
+        'loginField',
+        'passwordField',
+        undefined,
+        undefined,
+        undefined,
+      );
+      const controller = new AuthController(service);
+      const user = new TestEntity();
+
+      await controller.getAccount({ user });
+
+      expect(service.getAccount).toHaveBeenCalledWith(user);
+    });
+  });
+
+  describe('login', () => {
+    it('should call service login', async () => {
+      const AuthController = AuthControllerMixin(
+        TestEntity,
+        'loginField',
+        'passwordField',
+        undefined,
+        undefined,
+        undefined,
+      );
+      const controller = new AuthController(service);
+      const user = new TestEntity();
+
+      await controller.login({ user }, {});
+
+      expect(service.login).toHaveBeenCalledWith(user);
+    });
+  });
+
+  describe('register', () => {
+    it('should call service register', async () => {
+      const AuthController = AuthControllerMixin(
+        TestEntity,
+        'loginField',
+        'passwordField',
+        undefined,
+        undefined,
+        undefined,
+      );
+      const controller = new AuthController(service);
+      const user = new TestEntity();
+
+      await controller.register({ user });
+
+      expect(service.register).toHaveBeenCalledWith({ user });
+    });
+  });
+
+  describe('resetPassword', () => {
+    it('should call service resetPassword', async () => {
+      const AuthController = AuthControllerMixin(
+        TestEntity,
+        'loginField',
+        'passwordField',
+        undefined,
+        undefined,
+        undefined,
+      );
+      const controller = new AuthController(service);
+
+      await controller.resetPassword({ email: 'fake-email' });
+
+      expect(service.resetPassword).toHaveBeenCalledWith('fake-email');
+    });
+  });
+
+  describe('changePassword', () => {
+    it('should call service changePassword', async () => {
+      const AuthController = AuthControllerMixin(
+        TestEntity,
+        'loginField',
+        'passwordField',
+        undefined,
+        undefined,
+        undefined,
+      );
+      const controller = new AuthController(service);
+
+      await controller.changePassword({ resetPasswordToken: 'fake-token', newPassword: 'fake-password' });
+
+      expect(service.changePassword).toHaveBeenCalledWith('fake-token', 'fake-password');
+    });
   });
 });

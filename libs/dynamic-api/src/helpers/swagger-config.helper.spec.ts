@@ -24,7 +24,7 @@ describe('SwaggerConfigHelper', () => {
     it('should call createDocument with default config', () => {
       createDocumentSpy.mockReturnValue(document);
 
-      enableDynamicAPISwagger(app);
+      enableDynamicAPISwagger(app,null);
 
       expect(createDocumentSpy).toHaveBeenCalledWith(app, expect.any(Object), undefined);
       expect(setupSpy).toHaveBeenCalledWith(expect.any(String), app, document);

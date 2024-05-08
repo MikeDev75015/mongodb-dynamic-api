@@ -1,5 +1,6 @@
 import { Type } from '@nestjs/common';
 import { buildDynamicApiModuleOptionsMock } from '../../../__mocks__/dynamic-api.module.mock';
+import { DynamicApiModule } from '../../dynamic-api.module';
 import { RouteType } from '../../interfaces';
 import { RouteDecoratorsBuilder } from './route-decorators.builder';
 
@@ -38,8 +39,8 @@ describe('RouteDecoratorsBuilder', () => {
     });
 
     test.each([
-      ['GetMany', undefined, undefined, undefined, undefined, undefined, 3],
-      ['GetOne', undefined, undefined, fakeParam, undefined, undefined, 4],
+      ['GetMany', undefined, undefined, undefined, undefined, undefined, 4],
+      ['GetOne', undefined, undefined, fakeParam, undefined, undefined, 5],
       ['CreateMany', undefined, undefined, undefined, fakeManyBody, undefined, 4],
       ['CreateOne', undefined, undefined, undefined, fakeBody, undefined, 4],
       ['UpdateMany', '2', undefined, undefined, undefined, undefined, 3],
@@ -60,12 +61,18 @@ describe('RouteDecoratorsBuilder', () => {
         presenter: Type,
         expectedLength: number,
       ) => {
+        if (routeType === 'GetOne') {
+          DynamicApiModule.state.set(['isAuthEnabled', true]);
+        } else {
+          DynamicApiModule.state.set(['isAuthEnabled', false]);
+        }
+
         routeDecoratorsBuilder = new RouteDecoratorsBuilder(
           routeType as RouteType,
           entity,
           version,
           description,
-          false,
+          routeType === 'GetMany',
           {
             param,
             body,

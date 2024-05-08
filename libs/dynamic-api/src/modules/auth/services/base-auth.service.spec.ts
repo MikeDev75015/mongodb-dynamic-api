@@ -469,5 +469,14 @@ describe('BaseAuthService', () => {
 
       expect(result).toEqual({ login: fakeUser.login, nickname: fakeUser.nickname });
     });
+
+    it('should build user fields without undefined fields', () => {
+      const result = service['buildUserFields'](
+        { ...fakeUser, nickname: undefined },
+        ['login', 'nickname'],
+      );
+
+      expect(result).toEqual({ login: fakeUser.login });
+    });
   });
 });
