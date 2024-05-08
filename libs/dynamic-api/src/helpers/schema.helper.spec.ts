@@ -110,6 +110,52 @@ describe('buildSchemaFromEntity', () => {
     );
   });
 
+  it('should build schema with soft deletable hooks if entity extends SoftDeletableEntity', () => {
+    jest.spyOn(SchemaFactory, 'createForClass').mockReturnValue({
+      ...fakeSchema,
+      paths: { ...fakeSchema.paths, deletedAt: {} }
+    });
+    const hooks: SchemaHook[] = [
+      {
+        type: 'GetMany',
+        method: 'pre',
+        callback: jest.fn(),
+        options: { query: false },
+      },
+      {
+        type: 'DeleteMany',
+        method: 'post',
+        callback: jest.fn(),
+        options: { document: false },
+      },
+      {
+        type: 'DeleteOne',
+        method: 'pre',
+        callback: jest.fn(),
+      },
+    ];
+    const { entity } = buildDynamicApiModuleOptionsMock({}, {
+      // @ts-ignore
+      hooks,
+    }, true);
+    buildSchemaFromEntity(entity);
+
+    expect(fakeSchema.pre).toHaveBeenCalledTimes(2);
+    expect(fakeSchema.pre).toHaveBeenNthCalledWith(
+      1, 'find', { document: true, query: false }, hooks[0].callback,
+    );
+    expect(fakeSchema.pre)
+    .toHaveBeenNthCalledWith(
+      2, 'updateOne', { document: true, query: true }, hooks[2].callback,
+    );
+
+    expect(fakeSchema.post).toHaveBeenCalledTimes(1);
+    expect(fakeSchema.post)
+    .toHaveBeenNthCalledWith(
+      1, 'updateMany', { document: false, query: true }, hooks[1].callback,
+    );
+  });
+
   it('should call customInit if provided', () => {
     const customInit = jest.fn();
     const { entity } = buildDynamicApiModuleOptionsMock({}, {

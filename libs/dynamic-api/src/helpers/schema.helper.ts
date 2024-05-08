@@ -13,10 +13,10 @@ import { DynamicAPISchemaOptionsInterface, queryByRouteTypeMap } from '../interf
 function buildSchemaFromEntity<Entity>(
   entity: Type<Entity>,
 ): Schema<Entity> {
-  const { indexes, hooks, customInit } = Reflect.getOwnMetadata(
+  const schemaOptions = Reflect.getOwnMetadata(
     DYNAMIC_API_SCHEMA_OPTIONS_METADATA,
     entity,
-  ) as DynamicAPISchemaOptionsInterface ?? {};
+  ) as DynamicAPISchemaOptionsInterface;
 
   const schema = SchemaFactory.createForClass(entity);
 
@@ -26,16 +26,16 @@ function buildSchemaFromEntity<Entity>(
     Object.getOwnPropertyNames(schema.paths).includes('updatedAt'),
   );
 
-  if (indexes) {
-    indexes.forEach(({ fields, options }) => {
+  if (schemaOptions?.indexes) {
+    schemaOptions.indexes.forEach(({ fields, options }) => {
       schema.index(fields, options);
     });
   }
 
-  if (hooks?.length) {
+  if (schemaOptions?.hooks?.length) {
     const isSoftDeletable = Object.getOwnPropertyNames(schema.paths).includes('deletedAt');
 
-    hooks.forEach(({ type, method, callback, options }) => {
+    schemaOptions.hooks.forEach(({ type, method, callback, options }) => {
       const { query, softDeletableQuery } = queryByRouteTypeMap.get(type);
 
       // @ts-ignore
@@ -47,8 +47,8 @@ function buildSchemaFromEntity<Entity>(
     });
   }
 
-  if (customInit) {
-    customInit(schema);
+  if (schemaOptions?.customInit) {
+    schemaOptions.customInit(schema);
   }
 
   return schema;

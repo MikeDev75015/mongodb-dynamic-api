@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Model, Schema } from 'mongoose';
 import { AbilityPredicate, DeleteResult, UpdateResult } from '../../interfaces';
-import { BaseEntity } from '../../models';
+import { BaseEntity, SoftDeletableEntity } from '../../models';
 import { DynamicApiGlobalStateService } from '../dynamic-api-global-state/dynamic-api-global-state.service';
 import { BaseService } from './base.service';
 
@@ -15,15 +15,12 @@ class TestEntity extends BaseEntity {
   password?: string;
 }
 
-class TestService extends BaseService<TestEntity> {
-  protected abilityPredicate: AbilityPredicate<TestEntity> | undefined;
-  constructor(protected readonly model: any) {
-    super(model);
-  }
+class TestSoftEntity extends SoftDeletableEntity {
+  name: string;
 }
 
-class TestWithPasswordFieldService extends BaseService<TestEntity> {
-  passwordField = 'password' as keyof TestEntity;
+class TestService extends BaseService<TestEntity> {
+  protected abilityPredicate: AbilityPredicate<TestEntity> | undefined;
   constructor(protected readonly model: any) {
     super(model);
   }
@@ -200,7 +197,7 @@ describe('BaseService', () => {
       const service = new TestService(model);
       service['abilityPredicate'] = jest.fn().mockReturnValue(false);
 
-      await expect(service['findOneDocumentWithAbilityPredicate']('id')).rejects.toThrow(
+      await expect(service['findOneDocumentWithAbilityPredicate'](undefined)).rejects.toThrow(
         new ForbiddenException('Forbidden resource'),
       );
     });
@@ -303,7 +300,7 @@ describe('BaseService', () => {
   });
 
   describe('deleteManyDocuments', () => {
-    it('should call the model deleteMany method with the query and return the documents', async () => {
+    it('should call the model deleteMany method with the query and return the delete result', async () => {
       exec.mockResolvedValue(fakeDeleteResult);
       jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel);
       const service = new TestService(fakeModel);
@@ -312,6 +309,24 @@ describe('BaseService', () => {
 
       expect(result).toEqual(fakeDeleteResult);
       expect(fakeModel.deleteMany).toHaveBeenCalledWith({ _id: { $in: [fakeId] } });
+    });
+
+    it('should call the model updateMany method with the query and data and return the delete result', async () => {
+      exec.mockResolvedValue(fakeUpdateResult);
+      fakeModel.schema.paths = {
+        deletedAt: {},
+        isDeleted: {},
+      };
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel);
+      const service = new TestService(fakeModel);
+
+      const result = await service['callbackMethods'].deleteManyDocuments(TestSoftEntity, [fakeId]);
+
+      expect(result).toEqual({ deletedCount: fakeUpdateResult.modifiedCount });
+      expect(fakeModel.updateMany).toHaveBeenCalledWith(
+        { _id: { $in: [fakeId] } },
+        { isDeleted: true, deletedAt: expect.any(Date) },
+      );
     });
   });
 
@@ -326,11 +341,34 @@ describe('BaseService', () => {
       expect(result).toEqual(fakeDeleteResult);
       expect(fakeModel.deleteOne).toHaveBeenCalledWith(fakeQuery);
     });
+
+    it('should call the model updateOne method with the query and data and return the document', async () => {
+      exec.mockResolvedValue(fakeUpdateResult);
+      fakeModel.schema.paths = {
+        deletedAt: {},
+        isDeleted: {},
+      };
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel);
+      const service = new TestService(fakeModel);
+
+      const result = await service['callbackMethods'].deleteOneDocument(TestSoftEntity, fakeId);
+
+      expect(result).toEqual({ deletedCount: fakeUpdateResult.modifiedCount });
+      expect(fakeModel.updateOne).toHaveBeenCalledWith(
+        { _id: fakeId },
+        { isDeleted: true, deletedAt: expect.any(Date) },
+      );
+    });
   });
 
   describe('buildInstance', () => {
+    let service: TestService;
+
+    beforeEach(() => {
+      service = new TestService({} as any);
+    });
+
     it('should build an instance of the entity with id defined and remove _id and __v properties', () => {
-      const service = new TestService({} as any);
       const document = {
         _id: 'id',
         __v: 1,
@@ -341,6 +379,22 @@ describe('BaseService', () => {
 
       expect(instance).toEqual({
         id: 'id',
+        name: 'toto',
+      });
+    });
+
+    it('should build an instance of the entity with id if _id is not defined', () => {
+      const document = {
+        _id: undefined,
+        id: 'fake-id',
+        __v: 1,
+        name: 'toto',
+      } as any;
+
+      const instance = service['buildInstance'](document);
+
+      expect(instance).toEqual({
+        id: 'fake-id',
         name: 'toto',
       });
     });

@@ -90,9 +90,10 @@ describe('BaseAuthService', () => {
   beforeEach(async () => {
     const lean = jest.fn(() => ({ exec }));
     model = {
+      create: jest.fn(),
       find: jest.fn(() => ({ lean })),
       findOne: jest.fn(() => ({ lean })),
-      create: jest.fn(),
+      findOneAndUpdate: jest.fn(() => ({ lean })),
       updateOne: jest.fn(() => ({ exec })),
       updateMany: jest.fn(() => ({ exec })),
       deleteOne: jest.fn(() => ({ exec })),
@@ -148,10 +149,10 @@ describe('BaseAuthService', () => {
   });
 
   describe('validateUser', () => {
-    let spyBcriptCompare: jest.SpyInstance;
+    let spyBcryptCompare: jest.SpyInstance;
 
     beforeEach(() => {
-      spyBcriptCompare = jest.spyOn(bcryptService, 'comparePassword');
+      spyBcryptCompare = jest.spyOn(bcryptService, 'comparePassword');
     });
 
     it('should return null if user is not found', async () => {
@@ -159,22 +160,22 @@ describe('BaseAuthService', () => {
       const result = await service['validateUser'](fakeLogin, fakePass);
 
       expect(model.findOne).toHaveBeenCalledWith({ [fakeLoginField]: fakeLogin });
-      expect(spyBcriptCompare).not.toHaveBeenCalled();
+      expect(spyBcryptCompare).not.toHaveBeenCalled();
       expect(result).toBeNull();
     });
 
     it('should return null if password is not valid', async () => {
       exec.mockResolvedValueOnce(fakeUser);
-      spyBcriptCompare.mockResolvedValueOnce(false);
+      spyBcryptCompare.mockResolvedValueOnce(false);
       const result = await service['validateUser'](fakeLogin, fakePass);
 
-      expect(spyBcriptCompare).toHaveBeenCalledWith(fakePass, fakeUser.pass);
+      expect(spyBcryptCompare).toHaveBeenCalledWith(fakePass, fakeUser.pass);
       expect(result).toBeNull();
     });
 
     it('should return user if password is valid', async () => {
       exec.mockResolvedValueOnce(fakeUser);
-      spyBcriptCompare.mockResolvedValueOnce(true);
+      spyBcryptCompare.mockResolvedValueOnce(true);
       spyBuildUserFields.mockReturnValueOnce(fakeLoginBuilt);
       const result = await service['validateUser'](fakeLogin, fakePass);
 
@@ -323,6 +324,54 @@ describe('BaseAuthService', () => {
         service['resetPasswordCallbackMethods'],
       );
     });
+
+    describe('resetPasswordCallbackMethods', () => {
+      beforeEach(async () => {
+        spyJwtSign.mockReturnValueOnce(resetPasswordToken);
+        await service['resetPassword'](fakeEmail);
+        jest.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
+      });
+
+      it('should find user by email', async () => {
+        exec.mockResolvedValueOnce(fakeUser);
+        const result = await service['resetPasswordCallbackMethods'].findUserByEmail(fakeEmail);
+
+        expect(model.findOne).toHaveBeenCalledWith({ [fakeEmailField]: fakeEmail });
+        expect(result).toEqual(fakeUserInstance);
+      });
+
+      it('should be undefined if user is not found', async () => {
+        exec.mockResolvedValueOnce(null);
+        const result = await service['resetPasswordCallbackMethods'].findUserByEmail(fakeEmail);
+
+        expect(model.findOne).toHaveBeenCalledWith({ [fakeEmailField]: fakeEmail });
+        expect(result).toBeUndefined();
+      });
+
+      it('should update user by email', async () => {
+        exec.mockResolvedValueOnce(fakeUser);
+        const result = await service['resetPasswordCallbackMethods'].updateUserByEmail(fakeEmail, { pass: fakeHash });
+
+        expect(model.findOneAndUpdate).toHaveBeenCalledWith(
+          { [fakeEmailField]: fakeEmail },
+          { pass: fakeHash },
+          { new: true },
+        );
+        expect(result).toEqual(fakeUserInstance);
+      });
+
+      it('should not update user if user is not found', async () => {
+        exec.mockResolvedValueOnce(null);
+        const result = await service['resetPasswordCallbackMethods'].updateUserByEmail(fakeEmail, { pass: fakeHash });
+
+        expect(model.findOneAndUpdate).toHaveBeenCalledWith(
+          { [fakeEmailField]: fakeEmail },
+          { pass: fakeHash },
+          { new: true },
+        );
+        expect(result).toBeUndefined();
+      });
+    });
   });
 
   describe('changePassword', () => {
@@ -411,6 +460,14 @@ describe('BaseAuthService', () => {
 
       await service['changePassword'](resetPasswordToken, newPassword);
       expect(changePasswordCallback).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('buildUserFields', () => {
+    it('should build user fields', () => {
+      const result = service['buildUserFields'](fakeUser, ['login', 'nickname']);
+
+      expect(result).toEqual({ login: fakeUser.login, nickname: fakeUser.nickname });
     });
   });
 });
