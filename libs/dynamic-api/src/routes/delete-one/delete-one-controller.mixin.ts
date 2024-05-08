@@ -2,7 +2,7 @@ import { Param, Type, UseGuards } from '@nestjs/common';
 import { Builder } from 'builder-pattern';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { DeletePresenter } from '../../dtos';
-import { addVersionSuffix, getControllerMixinData, RouteDecoratorsHelper } from '../../helpers';
+import { getControllerMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { CreatePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
@@ -63,7 +63,7 @@ function DeleteOneControllerMixin<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(BaseDeleteOneController, 'name', {
-    value: `BaseDeleteOne${entity.name}${addVersionSuffix(version)}Controller`,
+    value: `Base${provideName('DeleteOne', entity.name, version, 'Controller')}`,
     writable: false,
   });
 

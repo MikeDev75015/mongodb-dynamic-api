@@ -1,7 +1,7 @@
 import { Param, Type, UseGuards } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityParam } from '../../dtos';
-import { addVersionSuffix, getControllerMixinData, RouteDecoratorsHelper } from '../../helpers';
+import { getControllerMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { CreatePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
@@ -60,7 +60,7 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(BaseGetOneController, 'name', {
-    value: `BaseGetOne${entity.name}${addVersionSuffix(version)}Controller`,
+    value: `Base${provideName('GetOne', entity.name, version, 'Controller')}`,
     writable: false,
   });
 

@@ -2,7 +2,7 @@ import { Query, Type, UseGuards } from '@nestjs/common';
 import { Builder } from 'builder-pattern';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { DeleteManyEntityQuery, DeletePresenter } from '../../dtos';
-import { addVersionSuffix, getControllerMixinData, RouteDecoratorsHelper } from '../../helpers';
+import { getControllerMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { CreatePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
@@ -61,7 +61,7 @@ function DeleteManyControllerMixin<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(BaseDeleteManyController, 'name', {
-    value: `BaseDeleteMany${entity.name}${addVersionSuffix(version)}Controller`,
+    value: `Base${provideName('DeleteMany', entity.name, version, 'Controller')}`,
     writable: false,
   });
 
