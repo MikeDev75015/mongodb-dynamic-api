@@ -3,6 +3,7 @@ orbs:
   sonarcloud: sonarsource/sonarcloud@2.0.0
   slack: circleci/slack@4.12.6
   jq: circleci/jq@2.2.0
+  docker: circleci/docker@2.6.0
 
 aliases:
   - &install-deps
@@ -194,7 +195,7 @@ jobs:
   dependencies-job:
     description: "Install dependencies, update cache"
     docker:
-      - image: cimg/node:20.5.0
+      - image: cimg/node:20.10.0
     resource_class: medium
     steps:
       - checkout
@@ -205,7 +206,7 @@ jobs:
 
   build-job:
     docker:
-      - image: cimg/node:20.5.0
+      - image: cimg/node:20.10.0
     resource_class: medium
     parameters:
       persist:
@@ -220,7 +221,7 @@ jobs:
 
   test-job:
     docker:
-      - image: cimg/node:20.5.0
+      - image: cimg/node:20.10.0
     resource_class: medium
     parallelism: 8
     steps:
@@ -232,7 +233,7 @@ jobs:
 
   test-with-sonarcloud-job:
     docker:
-      - image: cimg/node:20.5.0
+      - image: cimg/node:20.10.0
     resource_class: medium
     steps:
       - checkout
@@ -242,9 +243,30 @@ jobs:
       - *notify-fail
       - *notify-success
 
+  e2e-tests-mongodb-job:
+    docker:
+      - image: cimg/node:20.10.0
+      - image: mongo:latest
+        environment:
+          MONGO_INITDB_ROOT_USERNAME: dam-user
+          MONGO_INITDB_ROOT_PASSWORD: dam-pass
+    resource_class: medium
+    steps:
+      - checkout
+      - *restore-cache
+      - setup_remote_docker
+      - run:
+          name: Wait for MongoDB to start
+          command: dockerize -wait tcp://localhost:27017 -timeout 1m
+      - run:
+          name: Run E2E tests
+          command: npm run test-e2e:ci
+      - *notify-fail
+      - *notify-success
+
   merge-release-pr-job:
     docker:
-      - image: cimg/node:20.5.0
+      - image: cimg/node:20.10.0
     resource_class: medium
     parameters:
       branch:
@@ -261,7 +283,7 @@ jobs:
 
   create-develop-pr-job:
     docker:
-      - image: cimg/node:20.5.0
+      - image: cimg/node:20.10.0
     resource_class: medium
     steps:
       - checkout
@@ -274,7 +296,7 @@ jobs:
 
   create-version-tags-job:
     docker:
-      - image: cimg/node:20.5.0
+      - image: cimg/node:20.10.0
     resource_class: medium
     steps:
       - checkout
@@ -287,7 +309,7 @@ jobs:
 
   publish-release-job:
     docker:
-      - image: cimg/node:20.5.0
+      - image: cimg/node:20.10.0
     resource_class: medium
     parameters:
       branch:
@@ -355,10 +377,19 @@ workflows:
           filters:
             branches:
               only: develop
+      - e2e-tests-mongodb-job:
+          requires:
+            - dependencies-job
+          context:
+            - SLACK
+          filters:
+            branches:
+              only: develop
       - confirm-develop-pr-job:
           type: approval
           requires:
             - test-with-sonarcloud-job
+            - e2e-tests-mongodb-job
           filters:
             branches:
               only: develop

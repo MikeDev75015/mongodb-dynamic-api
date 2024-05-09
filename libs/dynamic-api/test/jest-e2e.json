@@ -1,0 +1,17 @@
+{
+  "clearMocks": true,
+  "resetMocks": true,
+  "moduleFileExtensions": [
+    "js",
+    "json",
+    "ts"
+  ],
+  "rootDir": "..",
+  "testMatch": ["**/(*.)+(e2e-spec).ts"],
+  "transform": {
+    "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "collectCoverage": false,
+  "testEnvironment": "node",
+  "testPathIgnorePatterns": ["<rootDir>/src/"]
+}
