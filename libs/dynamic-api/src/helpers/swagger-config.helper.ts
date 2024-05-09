@@ -24,7 +24,7 @@ function buildExtraConfig(
         break;
 
       case 'servers':
-        value.forEach((server) => {
+        value.forEach((server: any) => {
           config.addServer(server.url, server.description, server.variables);
         });
         break;
@@ -38,7 +38,7 @@ function buildExtraConfig(
         break;
 
       case 'tags':
-        value.forEach((tag) => {
+        value.forEach((tag: any) => {
           config.addTag(tag.name, tag.description, tag.externalDocs);
         });
         break;
@@ -113,7 +113,7 @@ function buildExtraConfig(
 
 function enableDynamicAPISwagger(
   app: INestApplication,
-  options: DynamicAPISwaggerOptions = {},
+  options?: DynamicAPISwaggerOptions,
 ) {
   const versionFile = require('../version.json');
   const {
