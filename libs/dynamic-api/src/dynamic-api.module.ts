@@ -4,7 +4,6 @@ import { APP_GUARD, APP_INTERCEPTOR, Reflector } from '@nestjs/core';
 import { HttpAdapterHost } from '@nestjs/core/helpers/http-adapter-host';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Cache } from 'cache-manager';
-import { firstValueFrom } from 'rxjs';
 import { DynamicApiJwtAuthGuard } from './guards';
 import { buildSchemaFromEntity, getDefaultRouteDescription, isValidVersion } from './helpers';
 import { DynamicApiCacheInterceptor } from './interceptors';
@@ -104,7 +103,7 @@ export class DynamicApiModule {
   static forFeature<Entity extends BaseEntity>({
     entity,
     controllerOptions,
-    routes = [],
+    routes,
   }: DynamicApiForFeatureOptions<Entity>): Promise<DynamicModule> {
     const schema = buildSchemaFromEntity(entity);
     const databaseModule = MongooseModule.forFeature(
@@ -115,8 +114,11 @@ export class DynamicApiModule {
     DynamicApiGlobalStateService.addEntitySchema(entity, schema);
 
     return new Promise((resolve, reject) => {
-      const waitInitializedStateInterval = setInterval(async () => {
-        const stateInitialized = await firstValueFrom(DynamicApiGlobalStateService.onInitialized());
+      const waitForState = setTimeout(() => {
+        reject(new Error('Dynamic API state could not be initialized. Please check your configuration.'));
+      }, 5000);
+
+      DynamicApiGlobalStateService.onInitialized().subscribe((stateInitialized) => {
         if (!stateInitialized) {
           return;
         }
@@ -124,7 +126,6 @@ export class DynamicApiModule {
         if (waitForState) {
           clearTimeout(waitForState);
         }
-        clearInterval(waitInitializedStateInterval);
 
         const {
           version: controllerVersion,
@@ -221,12 +222,7 @@ export class DynamicApiModule {
         };
 
         resolve(apiModule);
-      }, 500);
-
-      const waitForState = setTimeout(() => {
-        clearInterval(waitInitializedStateInterval);
-        reject(new Error('Dynamic API state could not be initialized. Please check your configuration.'));
-      }, 5000);
+      });
     });
   }
 
@@ -236,7 +232,7 @@ export class DynamicApiModule {
    * @param {boolean} useGlobalCache - Whether to use global cache.
    * @param {DynamicApiCacheOptions} cacheOptions - The cache options.
    * @param {DynamicApiAuthOptions} useAuth - The auth options.
-   * @param routesConfig - The routes configuration.
+   * @param routesConfig - The route's configurations.
    * @returns {{ initialized: boolean; isGlobalCacheEnabled: boolean }} - The built state.
    */
   private static buildStateFromOptions(
@@ -279,7 +275,7 @@ export class DynamicApiModule {
   /**
    * Sets default routes if none are configured.
    * @param {DynamicAPIRouteConfig[]} routes - The routes to configure.
-   * @param stateRoutesConfig - The state routes configuration.
+   * @param stateRoutesConfig - The state route's state configurations.
    * @param controllerRoutesConfig - The controller routes configuration.
    * @returns {DynamicAPIRouteConfig[]} - The configured routes.
    */
