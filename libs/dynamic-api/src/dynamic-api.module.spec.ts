@@ -1,10 +1,14 @@
 import { CacheModule } from '@nestjs/cache-manager';
+import { Reflector } from '@nestjs/core';
+import { HttpAdapterHost } from '@nestjs/core/helpers/http-adapter-host';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Schema } from 'mongoose';
 import { buildDynamicApiModuleOptionsMock } from '../__mocks__/dynamic-api.module.mock';
 import { DynamicApiModule } from './dynamic-api.module';
 import * as helpers from './helpers';
-import { DynamicAPIRouteConfig, RouteType } from './interfaces';
+import { DynamicApiGlobalState, DynamicAPIRouteConfig, RoutesConfig, RouteType } from './interfaces';
+import { BaseEntity } from './models';
+import { AuthModule, DynamicApiAuthOptions } from './modules';
 import {
   CreateManyModule,
   CreateOneModule,
@@ -19,6 +23,8 @@ import {
   UpdateOneModule,
 } from './routes';
 import { DynamicApiGlobalStateService } from './services';
+import { DynamicApiCacheInterceptor } from './interceptors';
+import { DynamicApiJwtAuthGuard } from './guards';
 
 jest.mock('./helpers');
 
@@ -26,17 +32,29 @@ describe('DynamicApiModule', () => {
   beforeEach(() => {
     jest.spyOn(MongooseModule, 'forRoot').mockReturnValue(null);
     jest.spyOn(MongooseModule, 'forFeature').mockReturnValue(null);
+    DynamicApiModule.state['_'] = (new DynamicApiGlobalStateService())['defaultGlobalState'];
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
     jest.useRealTimers();
   });
 
   describe('forRoot', () => {
+    const uri = 'fake-uri';
+
+    class UserEntity extends BaseEntity {
+      name: string;
+
+      login: string;
+
+      pass: string;
+    }
+
     it('should throw an error if no uri or invalid is provided', () => {
-      expect(() => DynamicApiModule.forRoot('')).toThrowError(
-        'You must provide a valid mongodb uri in the forRoot method to use MongoDB Dynamic API',
+      expect(() => DynamicApiModule.forRoot('')).toThrow(
+        new Error(
+          'You must provide a valid mongodb uri in the forRoot method to use MongoDB Dynamic API',
+        ),
       );
     });
 
@@ -45,12 +63,37 @@ describe('DynamicApiModule', () => {
     });
 
     it('should call MongooseModule.forRoot with uri and DynamicApiModule.connectionName', () => {
-      const uri = 'fake-uri';
       DynamicApiModule.forRoot(uri);
 
       expect(MongooseModule.forRoot).toHaveBeenCalledWith(uri, {
         connectionName: DynamicApiModule.state.get('connectionName'),
       });
+    });
+
+    it('should add auth module with basic options if userEntity is provided', () => {
+      const spyAuthModule = jest.spyOn(AuthModule, 'forRoot').mockImplementationOnce(() => null);
+
+      DynamicApiModule.forRoot(uri, {
+        useAuth: { userEntity: UserEntity },
+        cacheOptions: { excludePaths: ['/fake-path'] },
+      });
+
+      expect(spyAuthModule).toHaveBeenCalledWith({ userEntity: UserEntity });
+    });
+
+    it('should add auth module with custom options if options are provided', () => {
+      const options: DynamicApiAuthOptions<UserEntity> = {
+        userEntity: UserEntity,
+        login: {
+          loginField: 'login',
+          passwordField: 'pass',
+        },
+      };
+      const spyAuthModule = jest.spyOn(AuthModule, 'forRoot').mockImplementationOnce(() => null);
+
+      DynamicApiModule.forRoot(uri, { useAuth: options });
+
+      expect(spyAuthModule).toHaveBeenCalledWith(options);
     });
 
     describe('with cache', () => {
@@ -77,6 +120,45 @@ describe('DynamicApiModule', () => {
         DynamicApiModule.forRoot(uri, { cacheOptions });
 
         expect(spyCacheModuleRegister).toHaveBeenCalledWith({ isGlobal: true, ...cacheOptions });
+      });
+    });
+
+    describe('with routes config', () => {
+      const defaults = [
+        'GetMany',
+        'GetOne',
+        'CreateMany',
+        'CreateOne',
+        'UpdateMany',
+        'UpdateOne',
+        'ReplaceOne',
+        'DuplicateMany',
+        'DuplicateOne',
+        'DeleteMany',
+        'DeleteOne',
+      ];
+
+      it('should set default route config if not provided', () => {
+        const uri = 'fake-uri';
+        DynamicApiModule.forRoot(uri);
+
+        expect(DynamicApiModule.state.get('routesConfig')).toStrictEqual({ defaults, excluded: [] });
+      });
+
+      it('should set defaults for route config if provided', () => {
+        const uri = 'fake-uri';
+        const routesConfig = { defaults: ['GetMany'] } as Partial<RoutesConfig>;
+        DynamicApiModule.forRoot(uri, { routesConfig });
+
+        expect(DynamicApiModule.state.get('routesConfig')).toStrictEqual({ ...routesConfig, excluded: [] });
+      });
+
+      it('should set excluded for route config if provided', () => {
+        const uri = 'fake-uri';
+        const routesConfig = { excluded: ['GetOne'] } as Partial<RoutesConfig>;
+        DynamicApiModule.forRoot(uri, { routesConfig });
+
+        expect(DynamicApiModule.state.get('routesConfig')).toStrictEqual({ ...routesConfig, defaults });
       });
     });
   });
@@ -152,6 +234,25 @@ describe('DynamicApiModule', () => {
       expect(addEntitySchemaSpy).toHaveBeenCalledWith(entity, fakeSchema);
     });
 
+    it('should reject if DynamicApiModule state could not be initialized ', async () => {
+      jest.spyOn(global, 'setTimeout').mockImplementationOnce((callback) => {
+        if (typeof callback === 'function') {
+          DynamicApiModule.state.set(['initialized', false]);
+          callback();
+        }
+        return { hasRef: () => false } as NodeJS.Timeout;
+      });
+
+      const options = buildDynamicApiModuleOptionsMock({
+        controllerOptions: { path: 'fake-path', version: '1' },
+        routes: [{ type: 'GetMany' }],
+      });
+
+      await expect(DynamicApiModule.forFeature(options)).rejects.toThrow(
+        new Error('Dynamic API state could not be initialized. Please check your configuration.'),
+      );
+    });
+
     describe('with routes', () => {
       let spyCreateManyModule: jest.SpyInstance;
       let spyCreateOneModule: jest.SpyInstance;
@@ -171,6 +272,11 @@ describe('DynamicApiModule', () => {
       class fakeManyBody {list: any[];}
       class fakePresenter {}
 
+      const cacheManager = {} as Cache;
+      const reflector = {} as Reflector;
+      const httpAdapterHost = {} as HttpAdapterHost;
+      const state = { cacheExcludedPaths: [] } as DynamicApiGlobalState;
+
       beforeEach(() => {
         spyCreateManyModule = jest.spyOn(CreateManyModule, 'forFeature');
         spyCreateOneModule = jest.spyOn(CreateOneModule, 'forFeature');
@@ -183,15 +289,20 @@ describe('DynamicApiModule', () => {
         spyReplaceOneModule = jest.spyOn(ReplaceOneModule, 'forFeature');
         spyUpdateManyModule = jest.spyOn(UpdateManyModule, 'forFeature');
         spyUpdateOneModule = jest.spyOn(UpdateOneModule, 'forFeature');
-
         DynamicApiModule.state.set(['initialized', true]);
       });
 
       it('should throw an error if version not match a numeric string', async () => {
+        DynamicApiModule.state.set(['initialized', false]);
+        DynamicApiGlobalStateService['initialized$'].next(false);
         const options = buildDynamicApiModuleOptionsMock({
           controllerOptions: { path: '/version', version: 'v1' },
         });
-        jest.spyOn(helpers, 'isValidVersion').mockReturnValueOnce(false);
+        jest.spyOn(helpers, 'isValidVersion').mockReturnValue(false);
+
+        setTimeout(() => {
+          DynamicApiModule.state.set(['initialized', true]);
+        }, 1000);
 
         await expect(DynamicApiModule.forFeature(options)).rejects.toStrictEqual(
           new Error(
@@ -523,6 +634,13 @@ describe('DynamicApiModule', () => {
         expect(module.providers[0].provide).toStrictEqual('APP_INTERCEPTOR');
         // @ts-ignore
         expect(module.providers[0].useFactory).toBeInstanceOf(Function);
+        // @ts-ignore
+        expect(module.providers[0].useFactory(
+          cacheManager,
+          reflector,
+          httpAdapterHost,
+          state,
+        )).toBeInstanceOf(DynamicApiCacheInterceptor);
       });
 
       it('should provide APP_GUARD with factory', async () => {
@@ -533,27 +651,12 @@ describe('DynamicApiModule', () => {
         expect(module.providers[1].provide).toStrictEqual('APP_GUARD');
         // @ts-ignore
         expect(module.providers[1].useFactory).toBeInstanceOf(Function);
+        // @ts-ignore
+        expect(module.providers[1].useFactory(
+          reflector,
+          state,
+        )).toBeInstanceOf(DynamicApiJwtAuthGuard);
       });
-    });
-
-    it('should reject if DynamicApiModule state could not be initialized ', async () => {
-      jest.spyOn(global, 'setInterval').mockReturnValueOnce({ hasRef: () => false } as NodeJS.Timeout);
-      jest.spyOn(global, 'setTimeout').mockImplementationOnce((callback) => {
-        if (typeof callback === 'function') {
-          callback();
-        }
-        return { hasRef: () => false } as NodeJS.Timeout;
-      });
-
-      const options = buildDynamicApiModuleOptionsMock({
-        controllerOptions: { path: 'fake-path', version: '1' },
-        routes: [{ type: 'GetMany' }],
-      });
-
-      await expect(DynamicApiModule.forFeature(options)).rejects.toStrictEqual(
-        new Error('Dynamic API state could not be initialized. Please check your configuration.'),
-      );
-      expect(setInterval).toHaveBeenCalledTimes(1);
     });
   });
 });
