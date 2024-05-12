@@ -1,5 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import mongoose from 'mongoose';
 import { BaseEntity, DynamicApiForRootOptions, DynamicApiModule } from '../src';
 import { closeTestingApp, createTestingApp } from './e2e.setup';
 import 'dotenv/config';
@@ -14,7 +15,7 @@ describe('DynamicApiModule forRoot (e2e)', () => {
   }
 
   afterEach(async () => {
-    await closeTestingApp();
+    await closeTestingApp(mongoose.connections);
   });
 
   it('should initialize dynamic api module state with default options', async () => {
