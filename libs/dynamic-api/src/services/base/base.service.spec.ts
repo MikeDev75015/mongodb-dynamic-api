@@ -1,5 +1,5 @@
 import {
-  BadRequestException,
+  BadRequestException, ConflictException,
   ForbiddenException,
   NotFoundException,
   ServiceUnavailableException,
@@ -401,7 +401,7 @@ describe('BaseService', () => {
   });
 
   describe('handleDuplicateKeyError', () => {
-    it('should throw a BadRequestException with the property that caused the error if error code is mongo duplicated error code', () => {
+    it('should throw a ConflictException with the property that caused the error if error code is mongo duplicated error code', () => {
       const service = new TestService({} as any);
       const error = {
         code: 11000,
@@ -411,11 +411,11 @@ describe('BaseService', () => {
       };
 
       expect(() => service['handleDuplicateKeyError'](error)).toThrow(
-        new BadRequestException(`name 'toto' is already used`),
+        new ConflictException(`name 'toto' is already used`),
       );
     });
 
-    it('should throw a BadRequestException with the combination that caused the error if error code is mongo duplicated error code', () => {
+    it('should throw a ConflictException with the combination that caused the error if error code is mongo duplicated error code', () => {
       const service = new TestService({} as any);
       const error = {
         code: 11000,
@@ -426,13 +426,13 @@ describe('BaseService', () => {
       };
 
       expect(() => service['handleDuplicateKeyError'](error)).toThrow(
-        new BadRequestException(
+        new ConflictException(
           `The combination of name 'toto', test 'unit' already exists`,
         ),
       );
     });
 
-    it('should not throw a ServiceUnavailableException if the error code is not mongo duplicated error code', () => {
+    it('should throw a ServiceUnavailableException if the error code is not mongo duplicated error code', () => {
       const service = new TestService({} as any);
       const error = {
         code: 1,
@@ -442,6 +442,51 @@ describe('BaseService', () => {
       expect(() => service['handleDuplicateKeyError'](error)).toThrow(
         new ServiceUnavailableException('error'),
       );
+    });
+
+    it('should not throw an error if reThrow is false', () => {
+      const service = new TestService({} as any);
+      const error = {
+        code: 1,
+        message: 'error',
+      };
+
+      expect(() => service['handleDuplicateKeyError'](error, false)).not.toThrow();
+    });
+  });
+
+  describe('handleCastError', () => {
+    it('should throw a NotFoundException with the message "Document not found" if the error name is "CastError"', () => {
+      const service = new TestService({} as any);
+      const error = {
+        name: 'CastError',
+      };
+
+      expect(() => service['handleCastError'](error)).toThrow(
+        new NotFoundException('Document not found'),
+      );
+    });
+
+    it('should throw a ServiceUnavailableException if the error name is not "CastError"', () => {
+      const service = new TestService({} as any);
+      const error = {
+        name: 'Error',
+        message: 'error',
+      };
+
+      expect(() => service['handleCastError'](error)).toThrow(
+        new ServiceUnavailableException('error'),
+      );
+    });
+
+    it('should not throw an error if reThrow is false', () => {
+      const service = new TestService({} as any);
+      const error = {
+        name: 'Error',
+        message: 'error',
+      };
+
+      expect(() => service['handleCastError'](error, false)).not.toThrow();
     });
   });
 
