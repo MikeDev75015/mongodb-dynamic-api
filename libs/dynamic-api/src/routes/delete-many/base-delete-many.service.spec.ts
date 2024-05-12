@@ -43,6 +43,19 @@ describe('BaseDeleteManyService', () => {
     expect(service).toHaveProperty('deleteMany');
   });
 
+  it('should set deletedCount to 0 on error', async () => {
+    service = initService();
+    jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
+    (
+      modelMock.updateMany as jest.Mock
+    ).mockReturnValueOnce({
+      exec: () => Promise.reject(new Error('Test error')),
+    } as any);
+    presenter.deletedCount = 0;
+
+    await expect(service.deleteMany(ids)).resolves.toStrictEqual(presenter);
+  });
+
   describe('deleteMany without softDeletable', () => {
     it('should call model.deleteMany and return the number of deleted documents', async () => {
       service = initService();
