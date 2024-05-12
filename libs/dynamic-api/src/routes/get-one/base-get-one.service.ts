@@ -15,7 +15,8 @@ export abstract class BaseGetOneService<Entity extends BaseEntity>
   }
 
   async getOne(id: string): Promise<Entity> {
-    const document = await this.model
+    try {
+      const document = await this.model
       .findOne({
         _id: id,
         ...(this.isSoftDeletable ? { isDeleted: false } : undefined),
@@ -23,14 +24,17 @@ export abstract class BaseGetOneService<Entity extends BaseEntity>
       .lean()
       .exec();
 
-    if (!document) {
-      this.handleDocumentNotFound();
-    }
+      if (!document) {
+        this.handleDocumentNotFound();
+      }
 
       if (this.callback) {
         await this.callback(document as Entity, this.callbackMethods);
       }
 
-    return this.buildInstance(document as Entity);
+      return this.buildInstance(document as Entity);
+    } catch (error) {
+      this.handleCastError(error);
+    }
   }
 }

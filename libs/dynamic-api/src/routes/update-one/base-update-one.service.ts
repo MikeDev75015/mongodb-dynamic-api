@@ -38,6 +38,7 @@ export abstract class BaseUpdateOneService<Entity extends BaseEntity>
 
       return this.buildInstance(document as Entity);
     } catch (error: any) {
+      this.handleCastError(error, false);
       this.handleDuplicateKeyError(error);
     }
   }

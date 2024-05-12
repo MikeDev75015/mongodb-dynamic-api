@@ -1,5 +1,5 @@
 import {
-  BadRequestException,
+  BadRequestException, ConflictException,
   ForbiddenException,
   NotFoundException,
   ServiceUnavailableException,
@@ -161,17 +161,33 @@ export abstract class BaseService<Entity extends BaseEntity> {
     }
   }
 
-  protected handleDuplicateKeyError(error: any) {
+  protected handleDuplicateKeyError(error: any, reThrow = true) {
     if (error.code === 11000) {
       const properties = Object.entries(error.keyValue)
         .filter(([key]) => key !== 'deletedAt')
         .map(([key, value]) => `${key} '${value}'`);
 
-      throw new BadRequestException(
+      throw new ConflictException(
         properties.length === 1
           ? `${properties[0]} is already used`
           : `The combination of ${properties.join(', ')} already exists`,
       );
+    }
+
+    if (!reThrow) {
+      return;
+    }
+
+    throw new ServiceUnavailableException(error.message);
+  }
+
+  protected handleCastError(error: any, reThrow = true) {
+    if (error.name === 'CastError') {
+      throw new NotFoundException(`${this.entity?.name ?? 'Document'} not found`);
+    }
+
+    if (!reThrow) {
+      return;
     }
 
     throw new ServiceUnavailableException(error.message);
