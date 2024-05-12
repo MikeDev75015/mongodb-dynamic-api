@@ -47,6 +47,7 @@ export abstract class BaseDuplicateOneService<Entity extends BaseEntity>
 
       return this.buildInstance(document as Entity);
     } catch (error: any) {
+      this.handleCastError(error, false);
       this.handleDuplicateKeyError(error);
     }
   }

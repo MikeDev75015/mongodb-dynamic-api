@@ -58,6 +58,7 @@ export abstract class BaseDuplicateManyService<Entity extends BaseEntity>
 
       return documents.map((d) => this.buildInstance(d as Entity));
     } catch (error: any) {
+      this.handleCastError(error, false);
       this.handleDuplicateKeyError(error);
     }
   }

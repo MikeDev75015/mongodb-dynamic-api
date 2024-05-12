@@ -15,10 +15,11 @@ export abstract class BaseDeleteOneService<Entity extends BaseEntity>
   }
 
   async deleteOne(id: string): Promise<DeletePresenter> {
-    let op: DeleteResult;
+    try {
+      let op: DeleteResult;
 
-    if (this.isSoftDeletable) {
-      const deleted = await this.model
+      if (this.isSoftDeletable) {
+        const deleted = await this.model
         .updateOne(
           {
             _id: id,
@@ -28,11 +29,14 @@ export abstract class BaseDeleteOneService<Entity extends BaseEntity>
         )
         .exec();
 
-      op = { deletedCount: deleted.modifiedCount };
-    } else {
-      op = await this.model.deleteOne({ _id: id }).exec();
-    }
+        op = { deletedCount: deleted.modifiedCount };
+      } else {
+        op = await this.model.deleteOne({ _id: id }).exec();
+      }
 
-    return Builder(DeletePresenter).deletedCount(op.deletedCount).build();
+      return Builder(DeletePresenter).deletedCount(op.deletedCount).build();
+    } catch (error: any) {
+      return Builder(DeletePresenter).deletedCount(0).build();
+    }
   }
 }
