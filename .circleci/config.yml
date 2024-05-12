@@ -247,6 +247,7 @@ jobs:
     docker:
       - image: cimg/node:20.10.0
       - image: mongo:latest
+        command: --auth
         environment:
           MONGO_INITDB_ROOT_USERNAME: dam-user
           MONGO_INITDB_ROOT_PASSWORD: dam-pass
@@ -258,6 +259,15 @@ jobs:
       - run:
           name: Wait for MongoDB to start
           command: dockerize -wait tcp://localhost:27017 -timeout 1m
+      - run:
+          name: Install mongosh
+          command: |
+            npm install -g mongosh
+            mongosh --version
+      - run:
+          name: Create dam-db database with dam-user as dbOwner
+          command: |
+            mongosh --host localhost:27017 -u dam-user -p dam-pass --authenticationDatabase admin --eval "db.getSiblingDB('dam-db').createUser({user: 'dam-user', pwd: 'dam-pass', roles: [{role: 'dbOwner', db: 'dam-db'}]})"
       - run:
           name: Run E2E tests
           command: npm run test-e2e:ci
