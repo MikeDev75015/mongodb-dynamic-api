@@ -3,13 +3,16 @@ services:
     container_name: mongodb-test
     image: mongo:latest
     restart: always
+    command: --auth
     environment:
       - MONGO_INITDB_ROOT_USERNAME=dam-user
       - MONGO_INITDB_ROOT_PASSWORD=dam-pass
+      - MONGO_INITDB_DATABASE=dam-db
     ports:
       - '27018:27017'
     volumes:
       - mongodb_data_container:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js
 
 volumes:
   mongodb_data_container:
