@@ -47,6 +47,13 @@ describe('DynamicApiGlobalStateService', () => {
     expect(service.get('connectionName')).toBe('new-connection-name');
   });
 
+  it('should reset state', () => {
+    service = new DynamicApiGlobalStateService({ jwtSecret: 'secret' });
+    service['resetState']();
+
+    expect(service.get('jwtSecret')).toStrictEqual(undefined);
+  });
+
   describe('onInitialized', () => {
     it('should return false by default', async () => {
       expect(await firstValueFrom(DynamicApiGlobalStateService.onInitialized())).toBe(false);
