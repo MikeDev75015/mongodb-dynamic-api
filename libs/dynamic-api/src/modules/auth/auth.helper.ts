@@ -67,6 +67,7 @@ function createAuthServiceProvider<Entity extends BaseEntity>(
   resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined,
 ): DynamicAPIServiceProvider {
   class AuthService extends BaseAuthService<Entity> {
+    protected entity = userEntity;
     protected additionalRequestFields = additionalFields;
     protected loginField = loginField;
     protected passwordField = passwordField;

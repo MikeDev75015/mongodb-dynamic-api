@@ -455,26 +455,56 @@ describe('BaseService', () => {
     });
   });
 
-  describe('handleCastError', () => {
+  describe('handleMongoErrors', () => {
     it('should throw a NotFoundException with the message "Document not found" if the error name is "CastError"', () => {
       const service = new TestService({} as any);
       const error = {
         name: 'CastError',
       };
 
-      expect(() => service['handleCastError'](error)).toThrow(
+      expect(() => service['handleMongoErrors'](error)).toThrow(
         new NotFoundException('Document not found'),
       );
     });
 
-    it('should throw a ServiceUnavailableException if the error name is not "CastError"', () => {
+    it('should throw a BadRequestException with the error message if the error name is "ValidationError"', () => {
+      const service = new TestService({} as any);
+      const error = {
+        name: 'ValidationError',
+        errors: {
+          test: {
+            properties: {
+              message: 'validation error',
+            },
+          },
+        },
+      };
+
+      expect(() => service['handleMongoErrors'](error)).toThrow(
+        new BadRequestException(['validation error']),
+      );
+    });
+
+    it('should throw a BadRequestException with the message "Invalid payload" if the error name is "ValidationError" and there is no error message', () => {
+      const service = new TestService({} as any);
+      const error = {
+        name: 'ValidationError',
+        errors: {},
+      };
+
+      expect(() => service['handleMongoErrors'](error)).toThrow(
+        new BadRequestException(['Invalid payload']),
+      );
+    });
+
+    it('should throw a ServiceUnavailableException if the error name is not "CastError" or "ValidationError"', () => {
       const service = new TestService({} as any);
       const error = {
         name: 'Error',
         message: 'error',
       };
 
-      expect(() => service['handleCastError'](error)).toThrow(
+      expect(() => service['handleMongoErrors'](error)).toThrow(
         new ServiceUnavailableException('error'),
       );
     });
@@ -486,7 +516,7 @@ describe('BaseService', () => {
         message: 'error',
       };
 
-      expect(() => service['handleCastError'](error, false)).not.toThrow();
+      expect(() => service['handleMongoErrors'](error, false)).not.toThrow();
     });
   });
 

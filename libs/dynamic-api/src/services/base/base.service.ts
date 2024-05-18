@@ -181,9 +181,14 @@ export abstract class BaseService<Entity extends BaseEntity> {
     throw new ServiceUnavailableException(error.message);
   }
 
-  protected handleCastError(error: any, reThrow = true) {
+  protected handleMongoErrors(error: any, reThrow = true) {
     if (error.name === 'CastError') {
       throw new NotFoundException(`${this.entity?.name ?? 'Document'} not found`);
+    }
+
+    if (error.name === 'ValidationError') {
+      const errorDetails = Object.values(error.errors)?.map(({ properties }) => properties.message as string);
+      throw new BadRequestException(errorDetails?.length ? errorDetails : ['Invalid payload']);
     }
 
     if (!reThrow) {

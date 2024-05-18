@@ -41,7 +41,7 @@ export abstract class BaseReplaceOneService<Entity extends BaseEntity>
 
       return this.buildInstance(document as Entity);
     } catch (error: any) {
-      this.handleCastError(error, false);
+      this.handleMongoErrors(error, false);
       this.handleDuplicateKeyError(error);
     }
   }
