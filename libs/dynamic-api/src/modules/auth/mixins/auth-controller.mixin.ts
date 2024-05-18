@@ -35,8 +35,8 @@ function AuthControllerMixin<Entity extends BaseEntity>(
 
   class AuthBodyPasswordFieldDto {
     @ApiProperty()
-    @IsString()
     @IsNotEmpty()
+    @IsString()
       // @ts-ignore
     [passwordField]: string;
   }
@@ -93,8 +93,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
   class AuthRegisterPoliciesGuard extends AuthRegisterPoliciesGuardMixin(userEntity, registerAbilityPredicate) {}
 
   class BaseAuthController implements AuthController<Entity> {
-    constructor(protected readonly service: AuthService<Entity>) {
-    }
+    constructor(protected readonly service: AuthService<Entity>) {}
 
     @ApiBearerAuth()
     @UseGuards(JwtAuthGuard)

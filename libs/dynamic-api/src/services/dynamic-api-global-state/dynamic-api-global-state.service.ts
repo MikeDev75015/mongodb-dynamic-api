@@ -47,6 +47,10 @@ export class DynamicApiGlobalStateService {
 
   static addEntitySchema<T = any>(entity: Type<T>, schema: Schema<T>) {
     const entitySchemas = this.entitySchemas$.value;
+    if (entitySchemas[entity.name]) {
+      return;
+    }
+
     entitySchemas[entity.name] = schema;
     this.entitySchemas$.next(entitySchemas);
   }

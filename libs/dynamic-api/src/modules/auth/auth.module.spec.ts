@@ -6,7 +6,7 @@ import { Schema } from 'mongoose';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import * as Helpers from '../../helpers';
 import { BaseEntity } from '../../models';
-import { BcryptService } from '../../services';
+import { BcryptService, DynamicApiGlobalStateService } from '../../services';
 import * as AuthHelpers from './auth.helper';
 import { AuthModule } from './auth.module';
 import { DynamicApiAuthOptions } from './interfaces';
@@ -42,7 +42,7 @@ jest.mock(
 jest.mock(
   '../../services',
   () => (
-    { BcryptService: jest.fn() }
+    { BcryptService: jest.fn(), DynamicApiGlobalStateService: { addEntitySchema: jest.fn() } }
   ),
 );
 jest.mock(
@@ -103,6 +103,7 @@ describe('AuthModule', () => {
   let spyCreateAuthController: jest.SpyInstance;
   let spyCreateAuthServiceProvider: jest.SpyInstance;
   let spyCreateLocalStrategyProvider: jest.SpyInstance;
+  let addEntitySchemaSpy: jest.SpyInstance;
 
   const AuthController = jest.fn();
   const AuthServiceProvider = { provide: 'authServiceProviderName', useClass: jest.fn() };
@@ -133,6 +134,8 @@ describe('AuthModule', () => {
     spyCreateLocalStrategyProvider =
       jest.spyOn(AuthHelpers, 'createLocalStrategyProvider')
       .mockImplementationOnce(jest.fn(() => LocalStrategyProvider));
+    addEntitySchemaSpy = jest
+    .spyOn(DynamicApiGlobalStateService, 'addEntitySchema');
   });
 
   describe('forRoot', () => {
@@ -148,6 +151,10 @@ describe('AuthModule', () => {
 
       it('should have initialized options', () => {
         expect(spyInitializeAuthOptions).toHaveBeenCalledWith(basicOptions);
+      });
+
+      it('should add entity schema', () => {
+        expect(addEntitySchemaSpy).toHaveBeenCalledWith(UserEntity, fakeSchema);
       });
 
       it('should create auth controller, auth service provider and local strategy provider', () => {

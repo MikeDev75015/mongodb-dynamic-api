@@ -34,7 +34,7 @@ export abstract class BaseGetOneService<Entity extends BaseEntity>
 
       return this.buildInstance(document as Entity);
     } catch (error) {
-      this.handleCastError(error);
+      this.handleMongoErrors(error);
     }
   }
 }

@@ -5,7 +5,7 @@ import { PassportModule } from '@nestjs/passport';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { buildSchemaFromEntity } from '../../helpers';
 import { BaseEntity } from '../../models';
-import { BcryptService } from '../../services';
+import { BcryptService, DynamicApiGlobalStateService } from '../../services';
 import { createAuthController, createAuthServiceProvider, createLocalStrategyProvider } from './auth.helper';
 import { DynamicApiAuthOptions, DynamicApiResetPasswordOptions } from './interfaces';
 import { JwtStrategy } from './strategies';
@@ -55,6 +55,9 @@ export class AuthModule {
     );
     const LocalStrategyProvider = createLocalStrategyProvider(loginField, passwordField);
 
+    const schema = buildSchemaFromEntity(userEntity);
+    DynamicApiGlobalStateService.addEntitySchema(userEntity, schema);
+
     return {
       module: AuthModule,
       imports: [
@@ -63,7 +66,7 @@ export class AuthModule {
           [
             {
               name: userEntity.name,
-              schema: buildSchemaFromEntity(userEntity),
+              schema,
             },
           ],
           DynamicApiModule.state.get('connectionName'),

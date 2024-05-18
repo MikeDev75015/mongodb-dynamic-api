@@ -23,6 +23,7 @@ describe('BaseAuthService', () => {
   let spyJwtSign: jest.SpyInstance;
   let spyBuildUserFields: jest.SpyInstance;
   let spyFindOneDocumentWithAbilityPredicate: jest.SpyInstance;
+  let exec: jest.Mock;
 
   const fakeDate = new Date();
   const fakeHash = 'fake-hash';
@@ -85,9 +86,9 @@ describe('BaseAuthService', () => {
     }
   }
 
-  const exec = jest.fn();
 
   beforeEach(async () => {
+    exec = jest.fn();
     const lean = jest.fn(() => ({ exec }));
     model = {
       create: jest.fn(),
@@ -230,7 +231,7 @@ describe('BaseAuthService', () => {
 
     beforeEach(() => {
       spyLogin = jest.spyOn<any, any>(service, 'login').mockReturnValueOnce({ accessToken });
-      spyFindOneDocumentWithAbilityPredicate.mockResolvedValueOnce(fakeUser);
+      exec.mockResolvedValueOnce(fakeUser);
       spyHandleDuplicateKeyError = jest.spyOn<any, any>(service, 'handleDuplicateKeyError');
     });
 
@@ -240,7 +241,7 @@ describe('BaseAuthService', () => {
 
       expect(spyBcriptHashPassword).toHaveBeenCalledWith(userToCreate.pass);
       expect(model.create).toHaveBeenCalledWith({ ...userToCreate, pass: fakeHash });
-      expect(spyFindOneDocumentWithAbilityPredicate).toHaveBeenCalledWith(fakeUser._id);
+      expect(model.findOne).toHaveBeenCalledWith({ _id: fakeUser._id });
       expect(fakeRegisterCallback).toHaveBeenCalledTimes(1);
       expect(fakeRegisterCallback).toHaveBeenCalledWith(fakeUser, service['callbackMethods']);
       expect(spyLogin).toHaveBeenCalledWith(fakeUser, true);
@@ -263,7 +264,7 @@ describe('BaseAuthService', () => {
       .rejects
       .toThrow(new ServiceUnavailableException(fakeError.message));
       expect(spyHandleDuplicateKeyError).toHaveBeenCalledTimes(1);
-      expect(spyHandleDuplicateKeyError).toHaveBeenCalledWith(fakeError);
+      expect(spyHandleDuplicateKeyError).toHaveBeenCalledWith(fakeError, false);
       expect(spyFindOneDocumentWithAbilityPredicate).not.toHaveBeenCalled();
       expect(fakeRegisterCallback).not.toHaveBeenCalled();
       expect(spyLogin).not.toHaveBeenCalled();
@@ -277,20 +278,20 @@ describe('BaseAuthService', () => {
       .rejects
       .toThrow(new BadRequestException('login \'test\' is already used'));
       expect(spyHandleDuplicateKeyError).toHaveBeenCalledTimes(1);
-      expect(spyHandleDuplicateKeyError).toHaveBeenCalledWith(fakeDuplicateKeyError);
+      expect(spyHandleDuplicateKeyError).toHaveBeenCalledWith(fakeDuplicateKeyError, false);
     });
   });
 
   describe('getAccount', () => {
     beforeEach(() => {
-      spyFindOneDocumentWithAbilityPredicate.mockResolvedValueOnce(fakeUser);
+      exec.mockResolvedValueOnce(fakeUser);
       spyBuildUserFields.mockReturnValueOnce(fakeLoginBuilt);
     });
 
     it('should return user with only login and additional fields', async () => {
       const result = await service['getAccount']({ id: fakeUser.id } as User);
 
-      expect(spyFindOneDocumentWithAbilityPredicate).toHaveBeenCalledWith(fakeUser.id);
+      expect(model.findOne).toHaveBeenCalledWith({ _id: fakeUser.id });
       expect(spyBuildUserFields).toHaveBeenCalledWith(fakeUser, ['_id', fakeLoginField, ...service['additionalRequestFields']]);
       expect(result).toEqual(fakeLoginBuilt);
     });
@@ -344,6 +345,7 @@ describe('BaseAuthService', () => {
         exec.mockResolvedValueOnce(null);
         const result = await service['resetPasswordCallbackMethods'].findUserByEmail(fakeEmail);
 
+        expect(model.findOne).toHaveBeenCalledTimes(1);
         expect(model.findOne).toHaveBeenCalledWith({ [fakeEmailField]: fakeEmail });
         expect(result).toBeUndefined();
       });

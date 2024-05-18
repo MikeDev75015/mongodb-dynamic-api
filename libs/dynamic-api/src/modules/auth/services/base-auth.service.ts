@@ -1,4 +1,4 @@
-import { BadRequestException, Logger, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Logger, Type, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
 import { DynamicApiResetPasswordCallbackMethods, DynamicApiServiceCallback } from '../../../interfaces';
@@ -7,6 +7,7 @@ import { BaseService, BcryptService } from '../../../services';
 import { DynamicApiResetPasswordOptions } from '../interfaces';
 
 export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseService<Entity> {
+  protected entity: Type<Entity>;
   protected loginField = 'email' as keyof Entity;
   protected passwordField = 'password' as keyof Entity;
   protected additionalRequestFields: (keyof Entity)[] = [];
@@ -55,10 +56,12 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
       ...this.additionalRequestFields,
     ];
 
-    const payload = this.buildUserFields(user, fieldsToBuild);
+    const payload: object = {
+      ...this.buildUserFields(user, fieldsToBuild),
+    };
 
     if (!fromMember && this.loginCallback) {
-      await this.loginCallback(payload, this.callbackMethods);
+      await this.loginCallback(payload as Entity, this.callbackMethods);
     }
 
     return {
@@ -71,7 +74,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
       // @ts-ignore
       const hashedPassword = await this.bcryptService.hashPassword(userToCreate[this.passwordField]);
       const { _id } = await this.model.create({ ...userToCreate, [this.passwordField]: hashedPassword });
-      const user = await this.findOneDocumentWithAbilityPredicate(_id);
+      const user = (await this.model.findOne({ _id }).lean().exec()) as Entity;
 
       if (this.registerCallback) {
         await this.registerCallback(user, this.callbackMethods);
@@ -79,12 +82,13 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
 
       return this.login(user, true);
     } catch (error) {
-      this.handleDuplicateKeyError(error);
+      this.handleDuplicateKeyError(error, false);
+      this.handleMongoErrors(error);
     }
   }
 
   protected async getAccount({ id }: Entity): Promise<Entity> {
-    const user = await this.findOneDocumentWithAbilityPredicate(id);
+    const user = (await this.model.findOne({ _id: id }).lean().exec()) as Entity;
 
     const fieldsToBuild = [
       '_id' as keyof Entity,
