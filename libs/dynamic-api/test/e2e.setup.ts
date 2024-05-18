@@ -2,8 +2,8 @@ import { TestingModule } from '@nestjs/testing';
 import mongoose from 'mongoose';
 import * as supertest from 'supertest';
 
-type RequestOptions = {
-  query?: Record<string, unknown>;
+type RequestOptions<Query extends object = any> = {
+  query?: Query;
   authToken?: string;
   headers?: Record<string, unknown>;
 };
@@ -64,62 +64,62 @@ const verifyApp = () => {
 };
 
 export const server = {
-  get: async (path: string, { authToken, query = {}, headers = {} }: RequestOptions = {}): Promise<any> => {
+  get: async <Query extends object = any, Response = any>(path: string, { authToken, query, headers = {} }: RequestOptions<Query> = {}): Promise<Response> => {
     return verifyApp()
     .get(path)
-    .query(query)
+    .query(query ?? {})
     .set({
       ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
       'Content-Type': 'application/json',
       'User-Agent': 'Chrome/51.0.2704.103 Safari/537.36',
       ...headers,
-    });
+    }) as unknown as Promise<Response>;
   },
-  post: async (path: string, body: any, { authToken, query = {}, headers = {} }: RequestOptions = {}): Promise<any> => {
+  post: async <Body extends object, Response = any, Query extends object = any>(path: string, body: Body, { authToken, query, headers = {} }: RequestOptions<Query> = {}): Promise<Response> => {
     return verifyApp()
     .post(path)
-    .query(query)
+    .query(query ?? {})
     .send(body)
     .set({
       ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
       'Content-Type': 'application/json',
       'User-Agent': 'Chrome/51.0.2704.103 Safari/537.36',
       ...headers,
-    });
+    }) as unknown as Promise<Response>;
   },
-  patch: async (path: string, body: any, { authToken, query = {}, headers = {} }: RequestOptions = {}): Promise<any> => {
+  patch: async <Body extends object, Response = any, Query extends object = any>(path: string, body: Body, { authToken, query, headers = {} }: RequestOptions<Query> = {}): Promise<Response> => {
     return verifyApp()
     .patch(path)
-    .query(query)
+    .query(query ?? {})
     .send(body)
     .set({
       ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
       'Content-Type': 'application/json',
       'User-Agent': 'Chrome/51.0.2704.103 Safari/537.36',
       ...headers,
-    });
+    }) as unknown as Promise<Response>;
   },
-  put: async (path: string, body: any, { authToken, query = {}, headers = {} }: RequestOptions = {}): Promise<any> => {
+  put: async <Body extends object, Response = any, Query extends object = any>(path: string, body: Body, { authToken, query, headers = {} }: RequestOptions<Query> = {}): Promise<Response> => {
     return verifyApp()
     .put(path)
-    .query(query)
+    .query(query ?? {})
     .send(body)
     .set({
       ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
       'Content-Type': 'application/json',
       'User-Agent': 'Chrome/51.0.2704.103 Safari/537.36',
       ...headers,
-    });
+    }) as unknown as Promise<Response>;
   },
-  delete: async (path: string, { authToken, query = {}, headers = {} }: RequestOptions = {}): Promise<any> => {
+  delete: async <Query extends object = any, Response = any>(path: string, { authToken, query, headers = {} }: RequestOptions<Query> = {}): Promise<Response> => {
     return verifyApp()
     .delete(path)
-    .query(query)
+    .query(query ?? {})
     .set({
       ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
       'Content-Type': 'application/json',
       'User-Agent': 'Chrome/51.0.2704.103 Safari/537.36',
       ...headers,
-    });
+    }) as unknown as Promise<Response>;
   },
 };
