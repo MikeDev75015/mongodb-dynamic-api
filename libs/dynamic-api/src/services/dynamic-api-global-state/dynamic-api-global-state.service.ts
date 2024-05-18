@@ -37,8 +37,8 @@ export class DynamicApiGlobalStateService {
     },
   }
 
-  constructor(initialGlobalState?: Partial<DynamicApiGlobalState>) {
-    Object.assign(DynamicApiGlobalStateService._, this.defaultGlobalState, initialGlobalState);
+  constructor(initialGlobalState: Partial<DynamicApiGlobalState> = {}) {
+    this.resetState(initialGlobalState);
   }
 
   static onInitialized() {
@@ -79,6 +79,10 @@ export class DynamicApiGlobalStateService {
     return (
       key ? DynamicApiGlobalStateService._[key] : DynamicApiGlobalStateService._
     ) as T;
+  }
+
+  private resetState(initialGlobalState: Partial<DynamicApiGlobalState> = {}) {
+    Object.assign(DynamicApiGlobalStateService._, { ...this.defaultGlobalState }, initialGlobalState);
   }
 
   private updateState() {
