@@ -32,6 +32,10 @@ describe('DynamicApiModule forFeature (e2e)', () => {
     await createTestingApp(moduleRef, initFixtures, initMainCb);
   };
 
+  beforeEach(() => {
+    DynamicApiModule.state['resetState']();
+  });
+
   afterEach(async () => {
     await closeTestingApp(mongoose.connections);
   });
