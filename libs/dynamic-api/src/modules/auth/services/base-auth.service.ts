@@ -70,6 +70,8 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
   }
 
   protected async register(userToCreate: Partial<Entity>) {
+    this.checkFieldsValidity(userToCreate);
+
     try {
       // @ts-ignore
       const hashedPassword = await this.bcryptService.hashPassword(userToCreate[this.passwordField]);
@@ -201,5 +203,23 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
       ),
       {} as Entity,
     ));
+  }
+
+  private checkFieldsValidity(userToCreate: Partial<Entity>): void {
+    const errors: string[] = [];
+
+    if (!userToCreate[this.loginField]) {
+      errors.push(`${String(this.loginField)} property is required`);
+    }
+
+    if (!userToCreate[this.passwordField]) {
+      errors.push(`${String(this.passwordField)} property is required`);
+    }
+
+    if (!errors.length) {
+      return;
+    }
+
+    throw new BadRequestException(errors);
   }
 }

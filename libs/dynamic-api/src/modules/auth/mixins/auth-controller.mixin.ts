@@ -1,6 +1,5 @@
 import { Body, Get, HttpCode, HttpStatus, Patch, Post, Request, Type, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiProperty, IntersectionType, PartialType, PickType } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
 import { AuthDecoratorsBuilder } from '../../../builders';
 import { ApiEndpointVisibility, Public } from '../../../decorators';
 import { RouteDecoratorsHelper } from '../../../helpers';
@@ -33,10 +32,9 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     throw new Error('Login and password fields are required');
   }
 
-  class AuthBodyPasswordFieldDto {
+  // @ts-ignore
+  class AuthBodyPasswordFieldDto extends PickType(userEntity, [passwordField]){
     @ApiProperty()
-    @IsNotEmpty()
-    @IsString()
       // @ts-ignore
     [passwordField]: string;
   }
