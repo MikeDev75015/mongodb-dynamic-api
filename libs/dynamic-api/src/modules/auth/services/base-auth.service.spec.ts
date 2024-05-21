@@ -223,6 +223,7 @@ describe('BaseAuthService', () => {
   describe('register', () => {
     let spyLogin: jest.SpyInstance;
     let spyHandleDuplicateKeyError: jest.SpyInstance;
+    let spyCheckFieldsValidity: jest.SpyInstance;
 
     const userToCreate = {
       login: fakeLogin,
@@ -230,6 +231,7 @@ describe('BaseAuthService', () => {
     };
 
     beforeEach(() => {
+      spyCheckFieldsValidity = jest.spyOn<any, any>(service, 'checkFieldsValidity');
       spyLogin = jest.spyOn<any, any>(service, 'login').mockReturnValueOnce({ accessToken });
       exec.mockResolvedValueOnce(fakeUser);
       spyHandleDuplicateKeyError = jest.spyOn<any, any>(service, 'handleDuplicateKeyError');
@@ -239,6 +241,7 @@ describe('BaseAuthService', () => {
       model.create.mockResolvedValueOnce(fakeUser);
       const result = await service['register'](userToCreate);
 
+      expect(spyCheckFieldsValidity).toHaveBeenCalledWith(userToCreate);
       expect(spyBcriptHashPassword).toHaveBeenCalledWith(userToCreate.pass);
       expect(model.create).toHaveBeenCalledWith({ ...userToCreate, pass: fakeHash });
       expect(model.findOne).toHaveBeenCalledWith({ _id: fakeUser._id });
@@ -479,6 +482,34 @@ describe('BaseAuthService', () => {
       );
 
       expect(result).toEqual({ login: fakeUser.login });
+    });
+  });
+
+  describe('checkFieldsValidity', () => {
+    it('should not throw if user to create has login and password fields', () => {
+      const userToCreate = { login: fakeLogin, pass: fakePass };
+
+      expect(() => service['checkFieldsValidity'](userToCreate)).not.toThrow();
+    });
+
+    it('should throw bad request if user to create does not have login field', () => {
+      const userToCreate = { pass: fakePass };
+
+      expect(() => service['checkFieldsValidity'](userToCreate))
+      .toThrow(new BadRequestException([`${fakeLoginField} is required`]));
+    });
+
+    it('should throw bad request if user to create does not have password field', () => {
+      const userToCreate = { login: fakeLogin };
+
+      expect(() => service['checkFieldsValidity'](userToCreate))
+      .toThrow(new BadRequestException([`${fakePasswordField} is required`]));
+    });
+
+    it('should throw bad request if user to create has no fields', () => {
+      expect(() => service['checkFieldsValidity']({})).toThrow(
+        new BadRequestException([`${fakeLoginField} is required`, `${fakePasswordField} is required`]),
+      );
     });
   });
 });

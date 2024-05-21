@@ -104,10 +104,7 @@ function createAuthController<Entity extends BaseEntity>(
   @Controller('auth')
   @ApiTags('Auth')
   @UsePipes(
-    new ValidationPipe(validationPipeOptions ?? {
-      transform: true,
-      forbidUnknownValues: true,
-    }),
+    new ValidationPipe(validationPipeOptions ?? { transform: true }),
   )
   class AuthController extends AuthControllerMixin(
     userEntity,
