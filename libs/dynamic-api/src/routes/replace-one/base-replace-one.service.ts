@@ -1,3 +1,5 @@
+import { Type } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
 import { Model } from 'mongoose';
 import { DynamicApiServiceCallback } from '../../interfaces';
 import { BaseEntity } from '../../models';
@@ -8,6 +10,7 @@ export abstract class BaseReplaceOneService<Entity extends BaseEntity>
   extends BaseService<Entity>
   implements ReplaceOneService<Entity>
 {
+  protected readonly entity: Type<Entity>;
   protected readonly callback: DynamicApiServiceCallback<Entity> | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
@@ -22,7 +25,7 @@ export abstract class BaseReplaceOneService<Entity extends BaseEntity>
             _id: id,
             ...(this.isSoftDeletable ? { isDeleted: false } : undefined),
           },
-          partial,
+          plainToInstance(this.entity, partial),
           {
             new: true,
             setDefaultsOnInsert: true,

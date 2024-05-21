@@ -1,3 +1,5 @@
+import { Type } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
 import { Model } from 'mongoose';
 import { DynamicApiServiceCallback } from '../../interfaces';
 import { baseEntityKeysToExclude } from '../../mixins';
@@ -8,6 +10,7 @@ import { DuplicateManyService } from './duplicate-many-service.interface';
 export abstract class BaseDuplicateManyService<Entity extends BaseEntity>
   extends BaseService<Entity>
   implements DuplicateManyService<Entity> {
+  protected readonly entity: Type<Entity>;
   protected readonly callback: DynamicApiServiceCallback<Entity> | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
@@ -30,7 +33,8 @@ export abstract class BaseDuplicateManyService<Entity extends BaseEntity>
         this.handleDocumentNotFound();
       }
 
-      const duplicatedList = await this.model.create(toDuplicateList.map((d) => (
+      const duplicatedList = await this.model.create(toDuplicateList.map((d) => plainToInstance(
+        this.entity,
         {
           ...Object.entries(d).reduce((acc, [key, value]) => {
             if ((

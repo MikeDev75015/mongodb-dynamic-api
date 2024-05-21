@@ -1,3 +1,5 @@
+import { Type } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
 import { Model } from 'mongoose';
 import { DynamicApiServiceCallback } from '../../interfaces';
 import { BaseEntity } from '../../models';
@@ -8,6 +10,7 @@ export abstract class BaseCreateOneService<Entity extends BaseEntity>
   extends BaseService<Entity>
   implements CreateOneService<Entity>
 {
+  protected readonly entity: Type<Entity>;
   protected readonly callback: DynamicApiServiceCallback<Entity> | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
@@ -16,7 +19,7 @@ export abstract class BaseCreateOneService<Entity extends BaseEntity>
 
   async createOne(partial: Partial<Entity>): Promise<Entity> {
     try {
-      const { _id } = await this.model.create(partial);
+      const { _id } = await this.model.create(plainToInstance(this.entity, partial));
       const document = await this.model.findOne({ _id }).lean().exec();
 
       if (this.callback) {
