@@ -86,9 +86,9 @@ function AuthControllerMixin<Entity extends BaseEntity>(
   // @ts-ignore
   class AuthUserPresenter extends PickType(userEntity, ['id', loginField, ...additionalRequestFields]) {}
 
-  const authDecorators = new AuthDecoratorsBuilder(registerProtected);
-
   class AuthRegisterPoliciesGuard extends AuthRegisterPoliciesGuardMixin(userEntity, registerAbilityPredicate) {}
+
+  const authDecorators = new AuthDecoratorsBuilder(registerProtected, AuthRegisterPoliciesGuard);
 
   class BaseAuthController implements AuthController<Entity> {
     constructor(protected readonly service: AuthService<Entity>) {}
@@ -115,7 +115,6 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     @HttpCode(HttpStatus.CREATED)
     @ApiOkResponse({ type: AuthPresenter })
     @Post('register')
-    @UseGuards(AuthRegisterPoliciesGuard)
     register(@Body() body: AuthRegisterDto) {
       return this.service.register(body);
     }

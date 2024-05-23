@@ -6,7 +6,7 @@ import {
   Type,
 } from '@nestjs/common';
 import { Builder } from 'builder-pattern';
-import { FilterQuery, Model, Schema } from 'mongoose';
+import { FilterQuery, Model, Schema, UpdateQuery, UpdateWithAggregationPipeline } from 'mongoose';
 import { AbilityPredicate, DeleteResult, DynamicApiCallbackMethods, UpdateResult } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { DynamicApiResetPasswordOptions } from '../../modules';
@@ -100,15 +100,18 @@ export abstract class BaseService<Entity extends BaseEntity> {
   protected async updateManyDocuments<T>(
     entity: Type<T>,
     query: FilterQuery<T>,
-    data: Partial<T>,
+    update: UpdateQuery<T> | UpdateWithAggregationPipeline,
   ): Promise<UpdateResult> {
     const model = await DynamicApiGlobalStateService.getEntityModel(entity);
-    return model.updateMany(query, data).exec();
+    return model.updateMany(query, update).exec();
   }
 
-  protected async updateOneDocument<T>(entity: Type<T>, query: FilterQuery<T>, data: Partial<T>): Promise<UpdateResult> {
+  protected async updateOneDocument<T>(
+    entity: Type<T>, query: FilterQuery<T>,
+    update: UpdateQuery<T> | UpdateWithAggregationPipeline,
+  ): Promise<UpdateResult> {
     const model = await DynamicApiGlobalStateService.getEntityModel(entity);
-    return model.updateOne(query, data).exec();
+    return model.updateOne(query, update).exec();
   }
 
   protected async deleteManyDocuments<T>(entity: Type<T>, ids: string[]): Promise<DeleteResult> {
