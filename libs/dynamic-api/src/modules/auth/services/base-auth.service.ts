@@ -75,12 +75,15 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     try {
       // @ts-ignore
       const hashedPassword = await this.bcryptService.hashPassword(userToCreate[this.passwordField]);
-      const { _id } = await this.model.create({ ...userToCreate, [this.passwordField]: hashedPassword });
-      const user = (await this.model.findOne({ _id }).lean().exec()) as Entity;
+      const created = await this.model.create({ ...userToCreate, [this.passwordField]: hashedPassword });
 
       if (this.registerCallback) {
-        await this.registerCallback(user, this.callbackMethods);
+        const user = (await this.model.findOne({ _id: created._id }).lean().exec()) as Entity;
+        const instance = this.buildInstance(user);
+        await this.registerCallback(instance, this.callbackMethods);
       }
+
+      const user = (await this.model.findOne({ _id: created._id }).lean().exec()) as Entity;
 
       return this.login(user, true);
     } catch (error) {

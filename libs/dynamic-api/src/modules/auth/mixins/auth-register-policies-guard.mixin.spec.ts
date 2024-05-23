@@ -3,9 +3,9 @@ import { BaseEntity } from '../../../models';
 import { AuthRegisterPoliciesGuardMixin } from './auth-register-policies-guard.mixin';
 
 describe('AuthRegisterPoliciesGuardMixin', () => {
-  let guard;
+  let user: any;
+  let guard: any;
   let context: ExecutionContext;
-  let user;
 
   class User extends BaseEntity {
     isAdmin: boolean;
@@ -17,10 +17,11 @@ describe('AuthRegisterPoliciesGuardMixin', () => {
     }
   }
 
+
   beforeEach(async () => {
     class AuthRegisterPoliciesGuard extends AuthRegisterPoliciesGuardMixin(User, undefined) {}
 
-    guard = new AuthRegisterPoliciesGuard({} as any);
+    guard = new AuthRegisterPoliciesGuard();
     context = { switchToHttp: () => ({ getRequest: () => ({ user }) } as any) } as ExecutionContext;
   });
 
@@ -39,7 +40,7 @@ describe('AuthRegisterPoliciesGuardMixin', () => {
 
     describe('with abilityPredicate', () => {
       beforeEach(() => {
-        guard.abilityPredicate = (user) => user.isAdmin;
+        guard.abilityPredicate = (user: User) => user.isAdmin;
       });
 
       it('should deny access if user does not exist', () => {

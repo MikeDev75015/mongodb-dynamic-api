@@ -239,6 +239,8 @@ describe('BaseAuthService', () => {
 
     it('should return token and call registerCallback if it is defined', async () => {
       model.create.mockResolvedValueOnce(fakeUser);
+      exec.mockResolvedValueOnce(fakeUser);
+      jest.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
       const result = await service['register'](userToCreate);
 
       expect(spyCheckFieldsValidity).toHaveBeenCalledWith(userToCreate);
@@ -246,7 +248,7 @@ describe('BaseAuthService', () => {
       expect(model.create).toHaveBeenCalledWith({ ...userToCreate, pass: fakeHash });
       expect(model.findOne).toHaveBeenCalledWith({ _id: fakeUser._id });
       expect(fakeRegisterCallback).toHaveBeenCalledTimes(1);
-      expect(fakeRegisterCallback).toHaveBeenCalledWith(fakeUser, service['callbackMethods']);
+      expect(fakeRegisterCallback).toHaveBeenCalledWith(fakeUserInstance, service['callbackMethods']);
       expect(spyLogin).toHaveBeenCalledWith(fakeUser, true);
       expect(result).toEqual({ accessToken });
     });
