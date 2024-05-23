@@ -54,7 +54,7 @@ describe('DynamicApiModule forFeature (e2e)', () => {
     }
 
     beforeEach(async () => {
-      const fixtures = async (connection: Connection) => {
+      const fixtures = async (_: Connection) => {
         const model = await getModelFromEntity(TestEntity);
         await model.insertMany([
           { name: 'test1' },
@@ -429,7 +429,7 @@ describe('DynamicApiModule forFeature (e2e)', () => {
     }
 
     beforeEach(async () => {
-      const fixtures = async (connection: Connection) => {
+      const fixtures = async (_: Connection) => {
         const model = await getModelFromEntity(TestDeletableEntity);
         await model.insertMany([
           { name: 'test1' },
