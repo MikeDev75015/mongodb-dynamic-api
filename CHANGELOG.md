@@ -1,5 +1,12 @@
 Changelog
 
+## [2.3.15](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.3.14...v2.3.15) (2024-05-23)
+
+
+### authentication
+
+* **authentication:** rework register behaviors when options are provided ([52dc16b](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/52dc16b45075517e7dea4629d00f4b5e386f7a60))
+
 ## [2.3.14](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.3.12...v2.3.14) (2024-05-21)
 
 ## [2.3.13](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.3.12...v2.3.13) (2024-05-21)
