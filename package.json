@@ -1,6 +1,6 @@
 {
   "name": "mongodb-dynamic-api",
-  "version": "2.3.15",
+  "version": "2.3.16",
   "description": "Auto generated CRUD API for MongoDB using NestJS",
   "readmeFilename": "README.md",
   "main": "index.js",
