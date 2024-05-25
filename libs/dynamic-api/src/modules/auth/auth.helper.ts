@@ -1,5 +1,5 @@
 import {
-  Controller,
+  Controller, ForbiddenException,
   Inject,
   Injectable,
   Type,
@@ -15,7 +15,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { Model } from 'mongoose';
 import { Strategy } from 'passport-local';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { DynamicApiServiceCallback, DynamicAPIServiceProvider } from '../../interfaces';
+import { AuthAbilityPredicate, DynamicApiServiceCallback, DynamicAPIServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BcryptService } from '../../services';
 import {
@@ -32,9 +32,12 @@ const localStrategyProviderName = 'DynamicApiLocalStrategy';
 function createLocalStrategyProvider<Entity extends BaseEntity>(
   loginField: keyof Entity,
   passwordField: keyof Entity,
+  abilityPredicate: AuthAbilityPredicate | undefined,
 ): DynamicAPIServiceProvider {
   @Injectable()
   class LocalStrategy<Entity extends BaseEntity> extends PassportStrategy(Strategy) {
+    protected abilityPredicate = abilityPredicate;
+
     constructor(
       @Inject(authServiceProviderName)
       protected readonly authService: AuthService<Entity>,
@@ -50,6 +53,11 @@ function createLocalStrategyProvider<Entity extends BaseEntity>(
       if (!user) {
         throw new UnauthorizedException('Invalid credentials');
       }
+
+      if (this.abilityPredicate && !this.abilityPredicate(user)) {
+        throw new ForbiddenException('Access denied');
+      }
+
       return user;
     }
   }

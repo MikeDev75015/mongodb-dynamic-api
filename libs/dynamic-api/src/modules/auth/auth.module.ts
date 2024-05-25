@@ -53,7 +53,9 @@ export class AuthModule {
       register.callback,
       resetPasswordOptions,
     );
-    const LocalStrategyProvider = createLocalStrategyProvider(loginField, passwordField);
+    const LocalStrategyProvider = createLocalStrategyProvider(
+      loginField, passwordField, login.abilityPredicate,
+    );
 
     const schema = buildSchemaFromEntity(userEntity);
     DynamicApiGlobalStateService.addEntitySchema(userEntity, schema);

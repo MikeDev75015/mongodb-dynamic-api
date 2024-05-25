@@ -193,13 +193,14 @@ describe('BaseAuthService', () => {
     });
 
     it('should return token and call loginCallback if defined and login is not call from member', async () => {
+      jest.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
       const result = await service['login'](fakeUser);
 
       expect(spyBuildUserFields)
       .toHaveBeenCalledWith(fakeUser, ['_id', 'id', fakeLoginField, ...service['additionalRequestFields']]);
       expect(fakeLoginCallback).toHaveBeenCalledTimes(1);
       expect(fakeLoginCallback).toHaveBeenCalledWith(
-        { id: fakeUser._id, login: fakeUser.login, nickname: fakeUser.nickname },
+        fakeUserInstance,
         service['callbackMethods'],
       );
       expect(spyJwtSign).toHaveBeenCalledWith(fakeLoginBuilt);
