@@ -1,4 +1,4 @@
-import { Type, UnauthorizedException, ValidationPipeOptions } from '@nestjs/common';
+import { ForbiddenException, Type, UnauthorizedException, ValidationPipeOptions } from '@nestjs/common';
 import { describe } from 'node:test';
 import { BaseEntity } from '../../models';
 import {
@@ -49,9 +49,10 @@ describe('AuthHelper', () => {
     let LocalStrategy: Type;
     const loginField = 'login';
     const passwordField = 'pass';
+    const abilityPredicate = jest.fn();
 
     beforeEach(() => {
-      provider = createLocalStrategyProvider<UserEntity>(loginField, passwordField);
+      provider = createLocalStrategyProvider<UserEntity>(loginField, passwordField, undefined);
       LocalStrategy = provider.useClass;
     });
 
@@ -79,16 +80,38 @@ describe('AuthHelper', () => {
         expect(strategy).toHaveProperty('validate');
       });
 
-      it('should call authService.validateUser and return user if authService.validateUser succeeded', async () => {
+      it('should call authService.validateUser and return user if ability predicate is undefined', async () => {
         const fakeUser = { id: 1 };
         authService.validateUser.mockResolvedValueOnce(fakeUser);
         const result = await strategy.validate(fakeLogin, fakePass);
+
         expect(authService.validateUser).toHaveBeenCalledWith(fakeLogin, fakePass);
         expect(result).toStrictEqual(fakeUser);
       });
 
+      it('should call authService.validateUser and return user if ability predicate return true', async () => {
+        strategy.abilityPredicate = abilityPredicate.mockReturnValueOnce(true);
+        const fakeUser = { id: 1 };
+        authService.validateUser.mockResolvedValueOnce(fakeUser);
+        const result = await strategy.validate(fakeLogin, fakePass);
+
+        expect(authService.validateUser).toHaveBeenCalledWith(fakeLogin, fakePass);
+        expect(result).toStrictEqual(fakeUser);
+      });
+
+      it('should throw a forbidden exception if ability predicate return false', async () => {
+        strategy.abilityPredicate = abilityPredicate.mockReturnValueOnce(false);
+        const fakeUser = { id: 1 };
+        authService.validateUser.mockResolvedValueOnce(fakeUser);
+
+        await expect(strategy.validate(fakeLogin, fakePass))
+        .rejects
+        .toThrow(new ForbiddenException('Access denied'));
+      });
+
       it('should throw an error if authService.validateUser failed', async () => {
         authService.validateUser.mockResolvedValueOnce(null);
+
         await expect(strategy.validate(fakeLogin, fakePass))
         .rejects
         .toThrow(new UnauthorizedException('Invalid credentials'));

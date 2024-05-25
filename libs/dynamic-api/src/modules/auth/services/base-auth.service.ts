@@ -35,7 +35,9 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     ) as Entity;
 
     // @ts-ignore
-    if (!user || !(await this.bcryptService.comparePassword(pass, user[this.passwordField]))) {
+    const isPasswordValid = user ? await this.bcryptService.comparePassword(pass, user[this.passwordField]) : false;
+
+    if (!user || !isPasswordValid) {
       return null;
     }
 
@@ -49,6 +51,12 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
   }
 
   protected async login(user: Entity, fromMember = false) {
+    if (!fromMember && !!this.loginCallback) {
+      const fullUser = (await this.model.findOne({ _id: user.id }).lean().exec()) as Entity;
+      const instance = this.buildInstance(fullUser);
+      await this.loginCallback(instance, this.callbackMethods);
+    }
+
     const fieldsToBuild = [
       '_id' as keyof Entity,
       'id' as keyof Entity,
@@ -56,13 +64,10 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
       ...this.additionalRequestFields,
     ];
 
+
     const payload: object = {
       ...this.buildUserFields(user, fieldsToBuild),
     };
-
-    if (!fromMember && this.loginCallback) {
-      await this.loginCallback(payload as Entity, this.callbackMethods);
-    }
 
     return {
       accessToken: this.jwtService.sign(payload),
