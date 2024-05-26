@@ -1,5 +1,12 @@
 Changelog
 
+## [2.3.17](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.3.16...v2.3.17) (2024-05-26)
+
+
+### authentication
+
+* **authentication:** rework reset and change password behaviors when options are provided ([3a0f09d](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/3a0f09dd23f0083c79632bed9a83e93eb90c62d2))
+
 ## [2.3.16](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.3.15...v2.3.16) (2024-05-25)
 
 
