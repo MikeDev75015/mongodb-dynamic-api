@@ -90,7 +90,7 @@ describe('AuthModule', () => {
       changePasswordCallback: jest.fn(),
       emailField: 'email',
       expirationInMinutes: 30,
-      abilityPredicate: jest.fn(),
+      changePasswordAbilityPredicate: jest.fn(),
     },
     jwt: { secret: 'secret', expiresIn: '1h' },
     validationPipeOptions: { whitelist: true },

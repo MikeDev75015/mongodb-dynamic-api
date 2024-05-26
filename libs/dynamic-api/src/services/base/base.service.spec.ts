@@ -186,6 +186,24 @@ describe('BaseService', () => {
       expect(service['abilityPredicate']).toHaveBeenCalledTimes(1);
     });
 
+    it('should call handleAbilityPredicate with auth ability predicate', async () => {
+      const document = { name: 'toto' };
+      const model = {
+        findOne: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(document),
+      } as unknown as Model<any>;
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
+      const service = new TestService(model);
+      service['abilityPredicate'] = jest.fn().mockReturnValue(true);
+      const authAbilityPredicate = jest.fn().mockReturnValue(true);
+
+      const result = await service['findOneDocumentWithAbilityPredicate']('id', undefined, authAbilityPredicate);
+
+      expect(result).toEqual(document);
+      expect(authAbilityPredicate).toHaveBeenCalledTimes(1);
+    });
+
     it('should throw a ForbiddenException if the abilityPredicate returns false', async () => {
       const document = { name: 'toto' };
       const model = {

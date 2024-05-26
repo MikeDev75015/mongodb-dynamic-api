@@ -1,4 +1,9 @@
-import { BadRequestException, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { plainToInstance } from 'class-transformer';
 import { Model, Schema } from 'mongoose';
@@ -341,7 +346,7 @@ describe('BaseAuthService', () => {
 
       it('should find user by email', async () => {
         exec.mockResolvedValueOnce(fakeUser);
-        const result = await service['resetPasswordCallbackMethods'].findUserByEmail(fakeEmail);
+        const result = await service['resetPasswordCallbackMethods'].findUserByEmail();
 
         expect(model.findOne).toHaveBeenCalledWith({ [fakeEmailField]: fakeEmail });
         expect(result).toEqual(fakeUserInstance);
@@ -349,7 +354,7 @@ describe('BaseAuthService', () => {
 
       it('should be undefined if user is not found', async () => {
         exec.mockResolvedValueOnce(null);
-        const result = await service['resetPasswordCallbackMethods'].findUserByEmail(fakeEmail);
+        const result = await service['resetPasswordCallbackMethods'].findUserByEmail();
 
         expect(model.findOne).toHaveBeenCalledTimes(1);
         expect(model.findOne).toHaveBeenCalledWith({ [fakeEmailField]: fakeEmail });
@@ -358,7 +363,7 @@ describe('BaseAuthService', () => {
 
       it('should update user by email', async () => {
         exec.mockResolvedValueOnce(fakeUser);
-        const result = await service['resetPasswordCallbackMethods'].updateUserByEmail(fakeEmail, { pass: fakeHash });
+        const result = await service['resetPasswordCallbackMethods'].updateUserByEmail({ pass: fakeHash });
 
         expect(model.findOneAndUpdate).toHaveBeenCalledWith(
           { [fakeEmailField]: fakeEmail },
@@ -370,7 +375,7 @@ describe('BaseAuthService', () => {
 
       it('should not update user if user is not found', async () => {
         exec.mockResolvedValueOnce(null);
-        const result = await service['resetPasswordCallbackMethods'].updateUserByEmail(fakeEmail, { pass: fakeHash });
+        const result = await service['resetPasswordCallbackMethods'].updateUserByEmail({ pass: fakeHash });
 
         expect(model.findOneAndUpdate).toHaveBeenCalledWith(
           { [fakeEmailField]: fakeEmail },
@@ -424,6 +429,26 @@ describe('BaseAuthService', () => {
       expect(spyLoggerWarn).not.toHaveBeenCalled();
     });
 
+    it('should throw forbidden if ability predicate is false', async () => {
+      spyJwtDecode.mockReturnValueOnce(fakeDecodedToken);
+      const fakeTimestamp = 500000;
+      spyDateNow.mockReturnValueOnce(fakeTimestamp);
+      spyFindOneDocumentWithAbilityPredicate.mockImplementationOnce(() => {
+        throw new ForbiddenException('Access denied');
+      });
+
+      await expect(() => service['changePassword'](resetPasswordToken, newPassword)).rejects.toThrow(
+        new ForbiddenException('You are not allowed to change your password.'),
+      );
+      expect(spyFindOneDocumentWithAbilityPredicate).toHaveBeenCalledTimes(1);
+      expect(spyFindOneDocumentWithAbilityPredicate).toHaveBeenCalledWith(
+        undefined,
+        { [fakeEmailField]: fakeUser.login },
+        undefined,
+      );
+      expect(spyLoggerWarn).not.toHaveBeenCalled();
+    });
+
     it('should not change password if user is not found', async () => {
       spyJwtDecode.mockReturnValueOnce(fakeDecodedToken);
       const fakeTimestamp = 500000;
@@ -432,7 +457,11 @@ describe('BaseAuthService', () => {
 
       await service['changePassword'](resetPasswordToken, newPassword);
 
-      expect(spyFindOneDocumentWithAbilityPredicate).toHaveBeenCalledWith(undefined, { [fakeEmailField]: fakeUser.login });
+      expect(spyFindOneDocumentWithAbilityPredicate).toHaveBeenCalledWith(
+        undefined,
+        { [fakeEmailField]: fakeUser.login },
+        undefined,
+      );
       expect(spyLoggerWarn).toHaveBeenCalledTimes(1);
       expect(spyLoggerWarn).toHaveBeenCalledWith('Invalid email, user not found');
       expect(spyBcriptHashPassword).not.toHaveBeenCalled();
@@ -442,15 +471,20 @@ describe('BaseAuthService', () => {
       spyJwtDecode.mockReturnValueOnce(fakeDecodedToken);
       const fakeTimestamp = 500000;
       spyDateNow.mockReturnValueOnce(fakeTimestamp);
-      spyFindOneDocumentWithAbilityPredicate.mockResolvedValueOnce(fakeUser).mockResolvedValueOnce(fakeUser);
+      spyFindOneDocumentWithAbilityPredicate.mockResolvedValueOnce(fakeUser);
+      exec.mockResolvedValueOnce(fakeUser);
       spyBcriptHashPassword.mockResolvedValueOnce(hashedPassword);
       const spyBuildInstance = jest.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
       jest.spyOn(bcryptService, 'hashPassword').mockResolvedValueOnce(hashedPassword);
 
       await service['changePassword'](resetPasswordToken, newPassword);
-      expect(spyFindOneDocumentWithAbilityPredicate).toHaveBeenCalledTimes(2);
-      expect(spyFindOneDocumentWithAbilityPredicate).toHaveBeenNthCalledWith(1,undefined, { [fakeEmailField]: fakeUser.login });
-      expect(spyFindOneDocumentWithAbilityPredicate).toHaveBeenNthCalledWith(2, fakeUser._id);
+      expect(spyFindOneDocumentWithAbilityPredicate).toHaveBeenCalledTimes(1);
+      expect(spyFindOneDocumentWithAbilityPredicate).toHaveBeenNthCalledWith(
+        1,
+        undefined,
+        { [fakeEmailField]: fakeUser.login },
+        undefined,
+      );
       expect(spyBcriptHashPassword).toHaveBeenCalledWith(newPassword);
       expect(model.updateOne).toHaveBeenCalledWith({ _id: fakeUser._id }, { [fakePasswordField]: hashedPassword });
       expect(spyBuildInstance).toHaveBeenCalledWith(fakeUser);
