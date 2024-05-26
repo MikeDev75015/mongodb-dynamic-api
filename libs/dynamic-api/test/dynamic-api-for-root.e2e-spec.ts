@@ -10,7 +10,6 @@ import 'dotenv/config';
 import { getModelFromEntity, wait } from './utils';
 
 describe('DynamicApiModule forRoot (e2e)', () => {
-  let app: INestApplication;
   const uri = process.env.MONGO_DB_URL;
 
   const initModule = async (
@@ -33,7 +32,7 @@ describe('DynamicApiModule forRoot (e2e)', () => {
   });
 
   it('should initialize dynamic api module state with default options', async () => {
-    app = await initModule({});
+    const app = await initModule({});
 
     expect(app).toBeDefined();
     expect(DynamicApiModule.state.get()).toStrictEqual({
@@ -65,7 +64,7 @@ describe('DynamicApiModule forRoot (e2e)', () => {
   });
 
   it('should initialize dynamic api module state with custom options', async () => {
-    app = await initModule({
+    const app = await initModule({
       useGlobalCache: false,
       cacheOptions: {
         excludePaths: ['/fake-path'],
@@ -102,6 +101,8 @@ describe('DynamicApiModule forRoot (e2e)', () => {
       @Prop({ type: String, required: true })
       password: string;
     }
+
+    let app: INestApplication;
 
     beforeEach(async () => {
       app = await initModule({ useAuth: { userEntity: UserEntity } });
@@ -140,7 +141,7 @@ describe('DynamicApiModule forRoot (e2e)', () => {
       });
     });
 
-    describe('POST /register', () => {
+    describe('POST /auth/register', () => {
       it('should throw a bad request exception if email is missing', async () => {
         const { body, status } = await server.post('/auth/register', { username: 'unit-test', password: 'test-2' });
 
@@ -171,7 +172,7 @@ describe('DynamicApiModule forRoot (e2e)', () => {
       });
     });
 
-    describe('POST /login', () => {
+    describe('POST /auth/login', () => {
       it('should throw an unauthorized exception if email is missing', async () => {
         const { body, status } = await server.post('/auth/login', { pass: 'test-2' });
 
@@ -202,7 +203,7 @@ describe('DynamicApiModule forRoot (e2e)', () => {
       });
     });
 
-    describe('GET /account', () => {
+    describe('GET /auth/account', () => {
       it('should throw an unauthorized exception if access token is missing', async () => {
         const { body, status } = await server.get('/auth/account');
 
@@ -226,9 +227,10 @@ describe('DynamicApiModule forRoot (e2e)', () => {
     });
   });
 
-  describe('useAuth with userEntity and jwt options', () => {
+  describe('useAuth with jwt options', () => {
     let jwtService: JwtService;
     let token: string;
+    let app: INestApplication;
 
     @Schema({ collection: 'users' })
     class UserEntity extends BaseEntity {
@@ -317,7 +319,9 @@ describe('DynamicApiModule forRoot (e2e)', () => {
     });
   });
 
-  describe('useAuth with userEntity and validation options', () => {
+  describe('useAuth with validation options', () => {
+    let app: INestApplication;
+
     @Schema({ collection: 'users' })
     class UserEntity extends BaseEntity {
       @Prop({ type: String, required: true })
@@ -348,7 +352,7 @@ describe('DynamicApiModule forRoot (e2e)', () => {
       });
     });
 
-    describe('POST /register', () => {
+    describe('POST /auth/register', () => {
       it('should throw a bad request exception if payload contains non whitelisted property', async () => {
         const { body, status } = await server.post(
           '/auth/register',
@@ -385,7 +389,7 @@ describe('DynamicApiModule forRoot (e2e)', () => {
       });
     });
 
-    describe('POST /login', () => {
+    describe('POST /auth/login', () => {
       beforeEach(async () => {
         await server.post('/auth/register', { email: 'unit@test.co', password: 'Test-2' });
       });
@@ -435,7 +439,7 @@ describe('DynamicApiModule forRoot (e2e)', () => {
     });
   });
 
-  describe('POST /register with register options', () => {
+  describe('POST /auth/register with register options', () => {
     @Schema({ collection: 'users' })
     class User extends BaseEntity {
       @Prop({ type: String, required: true })
@@ -592,7 +596,7 @@ describe('DynamicApiModule forRoot (e2e)', () => {
     });
   });
 
-  describe('POST /login with login options', () => {
+  describe('POST /auth/login with login options', () => {
     @Schema({ collection: 'users' })
     class User extends BaseEntity {
       @Prop({ type: String, required: true })
@@ -705,6 +709,256 @@ describe('DynamicApiModule forRoot (e2e)', () => {
 
         expect(status).toBe(200);
         expect(body).toEqual({ id: expect.any(String), username: 'admin', role: 'admin', isVerified: true });
+      });
+    });
+  });
+
+  describe('useAuth with resetPassword options', () => {
+    @Schema({ collection: 'users' })
+    class User extends BaseEntity {
+      @Prop({ type: String, required: true })
+      email: string;
+
+      @Prop({ type: String, required: true })
+      password: string;
+
+      @Prop({ type: Boolean, default: false })
+      isVerified: boolean;
+
+      @Prop({ type: String })
+      resetPasswordToken: string;
+    }
+
+    let model: mongoose.Model<User>;
+    let user: User;
+    let client: User;
+    let app: INestApplication;
+
+    beforeEach(async () => {
+      user = { email: 'user@test.co', password: 'user', isVerified: true } as User;
+      client = { email: 'client@test.co', password: 'client' } as User;
+
+      const bcryptService = new BcryptService();
+
+      const fixtures = async (_: Connection) => {
+        model = await getModelFromEntity(User);
+        await model.insertMany([
+          { ...user, password: await bcryptService.hashPassword(user.password) },
+          { ...client, password: await bcryptService.hashPassword(client.password) },
+        ]);
+      };
+
+      app = await initModule({
+        useAuth: {
+          userEntity: User,
+          resetPassword: {
+            emailField: 'email',
+            expirationInMinutes: 1,
+            resetPasswordCallback: async (
+              { resetPasswordToken }: { resetPasswordToken: string; email: string },
+              { updateUserByEmail },
+            ) => {
+              await updateUserByEmail({ $set: { resetPasswordToken } });
+            },
+            changePasswordAbilityPredicate: (user: User) => user.isVerified && !!user.resetPasswordToken,
+            changePasswordCallback: async (user: User, { updateOneDocument }) => {
+              await updateOneDocument(User, { _id: user.id }, { $unset: { resetPasswordToken: 1 } });
+            },
+          },
+        },
+      }, fixtures);
+    });
+
+    describe('POST /auth/reset-password', () => {
+      it('should throw a bad request exception if email is missing', async () => {
+        const { body, status } = await server.post('/auth/reset-password', {});
+
+        expect(status).toBe(400);
+        expect(body).toEqual({
+          error: 'Bad Request',
+          message: [
+            'email must be an email',
+            'email should not be empty',
+            'email must be a string',
+          ],
+          statusCode: 400,
+        });
+      });
+
+      it('should throw a bad request exception if email is invalid', async () => {
+        const { body, status } = await server.post('/auth/reset-password', { email: 'unit.test.co' });
+
+        expect(status).toBe(400);
+        expect(body).toEqual({
+          error: 'Bad Request',
+          message: ['email must be an email'],
+          statusCode: 400,
+        });
+      });
+
+      it('should not throw an exception if email is not found', async () => {
+        const { body, status } = await server.post('/auth/reset-password', { email: 'invalid@test.co' });
+
+        expect(status).toBe(204);
+        expect(body).toEqual({});
+      });
+
+      describe('resetPasswordCallback', () => {
+        it('should set resetPasswordToken if email is valid', async () => {
+          const { email } = user;
+          const { resetPasswordToken: resetPasswordTokenBeforeUpdate } = (
+            await model.findOne({ email }).lean().exec()
+          ) as User;
+
+          const { status } = await server.post('/auth/reset-password', { email });
+          const { resetPasswordToken: resetPasswordTokenAfterUpdate } = (
+            await model.findOne({ email }).lean().exec()
+          ) as User;
+
+          expect(status).toBe(204);
+          expect(resetPasswordTokenBeforeUpdate).toStrictEqual(undefined);
+          expect(resetPasswordTokenAfterUpdate).toStrictEqual(expect.any(String));
+        });
+      });
+    });
+
+    describe('PATCH /auth/change-password', () => {
+      it('should throw a bad request exception if resetPasswordToken is missing', async () => {
+        const { body, status } = await server.patch('/auth/change-password', { newPassword: 'test' });
+
+        expect(status).toBe(400);
+        expect(body).toEqual({
+          error: 'Bad Request',
+          message: [
+            'resetPasswordToken should not be empty',
+            'resetPasswordToken must be a string',
+          ],
+          statusCode: 400,
+        });
+      });
+
+      it('should throw a bad request exception if newPassword is missing', async () => {
+        const { email } = user;
+        await server.post('/auth/reset-password', { email });
+        const { resetPasswordToken: resetPasswordTokenAfterUpdate } = (
+          await model.findOne({ email }).lean().exec()
+        ) as User;
+
+        const resetPasswordToken = resetPasswordTokenAfterUpdate;
+        const { body, status } = await server.patch('/auth/change-password', { resetPasswordToken });
+
+        expect(status).toBe(400);
+        expect(body).toEqual({
+          error: 'Bad Request',
+          message: [
+            'newPassword should not be empty',
+            'newPassword must be a string',
+          ],
+          statusCode: 400,
+        });
+      });
+
+      it('should throw an unauthorized exception if resetPasswordToken is invalid', async () => {
+        const { body, status } = await server.patch(
+          '/auth/change-password',
+          { resetPasswordToken: 'test', newPassword: 'newPassword' },
+        );
+
+        expect(status).toBe(400);
+        expect(body).toEqual({
+          error: 'Bad Request',
+          message: 'Invalid reset password token. Please redo the reset password process.',
+          statusCode: 400,
+        });
+      });
+
+      it('should throw an unauthorized exception if resetPasswordToken is expired', async () => {
+        const jwtService = app.get<JwtService>(JwtService);
+        const expiredResetPasswordToken = jwtService.sign({ email: user.email }, { expiresIn: 1 });
+        await wait(500);
+        const { body, status } = await server.patch(
+          '/auth/change-password',
+          { resetPasswordToken: expiredResetPasswordToken, newPassword: 'newPassword' },
+        );
+
+        expect(status).toBe(401);
+        expect(body).toEqual({
+          error: 'Unauthorized',
+          message: 'Time to reset password has expired. Please redo the reset password process.',
+          statusCode: 401,
+        });
+      });
+
+      describe('changePasswordAbilityPredicate', () => {
+        let resetPasswordToken: string;
+
+        beforeEach(async () => {
+          await server.post('/auth/reset-password', { email: client.email });
+
+          const { resetPasswordToken: token } = (
+            await model.findOne({ email: client.email }).lean().exec()
+          ) as User;
+
+          resetPasswordToken = token;
+        });
+
+        it('should throw a forbidden exception if user is not allowed to change password', async () => {
+          expect(resetPasswordToken).toStrictEqual(expect.any(String));
+
+          const { body, status } = await server.patch(
+            '/auth/change-password',
+            { resetPasswordToken, newPassword: 'newPassword' },
+          );
+
+          expect(status).toBe(403);
+          expect(body).toEqual({
+            error: 'Forbidden',
+            message: 'You are not allowed to change your password.',
+            statusCode: 403,
+          });
+        });
+      });
+
+      describe('changePasswordCallback', () => {
+        let resetPasswordToken: string;
+
+        beforeEach(async () => {
+          await server.post('/auth/reset-password', { email: user.email });
+
+          const { resetPasswordToken: token } = (
+            await model.findOne({ email: user.email }).lean().exec()
+          ) as User;
+
+          resetPasswordToken = token;
+        });
+
+        it('should change password and unset resetPasswordToken if resetPasswordToken is valid', async () => {
+          expect(resetPasswordToken).toStrictEqual(expect.any(String));
+
+          const newPassword = 'newPassword';
+          const bcryptService = app.get<BcryptService>(BcryptService);
+          const { password: passwordBeforeUpdate } = (
+            await model.findOne({ email: user.email }).lean().exec()
+          ) as User;
+
+          const { status } = await server.patch(
+            '/auth/change-password',
+            { resetPasswordToken, newPassword },
+          );
+
+          const { password: passwordAfterUpdate, resetPasswordToken: tokenAfterUpdate } = (
+            await model.findOne({ email: user.email }).lean().exec()
+          ) as User;
+
+          const isPreviousPassword = await bcryptService.comparePassword(user.password, passwordBeforeUpdate);
+          expect(isPreviousPassword).toBe(true);
+
+          const isNewPassword = await bcryptService.comparePassword(newPassword, passwordAfterUpdate);
+          expect(isNewPassword).toBe(true);
+
+          expect(status).toBe(204);
+          expect(tokenAfterUpdate).toStrictEqual(undefined);
+        });
       });
     });
   });
