@@ -32,7 +32,7 @@ describe('AuthHelper', () => {
     resetPasswordCallback: jest.fn(),
     changePasswordCallback: jest.fn(),
     emailField: 'email',
-    abilityPredicate: jest.fn(),
+    changePasswordAbilityPredicate: jest.fn(),
     expirationInMinutes: 60,
   };
   const validationPipeOptions: ValidationPipeOptions = {

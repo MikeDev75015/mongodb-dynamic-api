@@ -7,7 +7,7 @@ export class DynamicApiGlobalStateService {
   private static readonly initialized$ = new BehaviorSubject<boolean>(false);
   private static readonly entitySchemas$  = new BehaviorSubject<EntitySchemas>({});
 
-  private static connection: Connection;
+  private static connection: Connection | null = null;
 
   private static _: DynamicApiGlobalState = {} as DynamicApiGlobalState;
 
@@ -86,6 +86,8 @@ export class DynamicApiGlobalStateService {
   }
 
   private resetState(initialGlobalState: Partial<DynamicApiGlobalState> = {}) {
+    DynamicApiGlobalStateService.entitySchemas$.next({});
+    DynamicApiGlobalStateService.connection = null;
     Object.assign(DynamicApiGlobalStateService._, { ...this.defaultGlobalState }, initialGlobalState);
   }
 

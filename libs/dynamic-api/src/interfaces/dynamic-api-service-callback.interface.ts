@@ -26,8 +26,10 @@ type DynamicApiServiceCallback<Entity extends BaseEntity> = (
 ) => Promise<void>;
 
 type DynamicApiResetPasswordCallbackMethods<Entity extends BaseEntity, UpdateBy = 'userId'> = {
-  findUserByEmail: (email: string) => Promise<Entity | undefined>;
-  updateUserByEmail: (email: string, update: Partial<Entity>) => Promise<Entity | undefined>;
+  findUserByEmail: () => Promise<Entity>;
+  updateUserByEmail: (
+    update: UpdateQuery<Entity> | UpdateWithAggregationPipeline,
+  ) => Promise<Entity>;
 };
 
 type DynamicApiResetPasswordCallback<Entity extends BaseEntity> = (

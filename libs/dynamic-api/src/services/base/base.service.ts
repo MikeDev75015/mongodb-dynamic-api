@@ -1,5 +1,6 @@
 import {
-  BadRequestException, ConflictException,
+  BadRequestException,
+  ConflictException,
   ForbiddenException,
   NotFoundException,
   ServiceUnavailableException,
@@ -7,7 +8,13 @@ import {
 } from '@nestjs/common';
 import { Builder } from 'builder-pattern';
 import { FilterQuery, Model, Schema, UpdateQuery, UpdateWithAggregationPipeline } from 'mongoose';
-import { AbilityPredicate, DeleteResult, DynamicApiCallbackMethods, UpdateResult } from '../../interfaces';
+import {
+  AbilityPredicate,
+  AuthAbilityPredicate,
+  DeleteResult,
+  DynamicApiCallbackMethods,
+  UpdateResult,
+} from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { DynamicApiResetPasswordOptions } from '../../modules';
 import { DynamicApiGlobalStateService } from '../dynamic-api-global-state/dynamic-api-global-state.service';
@@ -56,6 +63,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
   protected async findOneDocumentWithAbilityPredicate(
     _id: string | Schema.Types.ObjectId | undefined,
     conditions: FilterQuery<Entity> = {},
+    authAbilityPredicate?: AuthAbilityPredicate<Entity>,
   ) {
     const document = await this.findOneDocument(this.entity, {
       ...(
@@ -68,8 +76,8 @@ export abstract class BaseService<Entity extends BaseEntity> {
       throw new BadRequestException('Document not found');
     }
 
-    if (this.abilityPredicate) {
-      this.handleAbilityPredicate(document);
+    if (authAbilityPredicate || this.abilityPredicate) {
+      this.handleAbilityPredicate(document, authAbilityPredicate);
     }
 
     return document;
@@ -157,8 +165,11 @@ export abstract class BaseService<Entity extends BaseEntity> {
       .build();
   }
 
-  protected handleAbilityPredicate(document: Entity) {
-    const isAllowed = this.abilityPredicate(document, this.user);
+  protected handleAbilityPredicate(document: Entity, authAbilityPredicate?: AuthAbilityPredicate<Entity>) {
+    const isAllowed = authAbilityPredicate
+      ? authAbilityPredicate(this.buildInstance(document))
+      : this.abilityPredicate(document, this.user);
+
     if (!isAllowed) {
       throw new ForbiddenException('Forbidden resource');
     }

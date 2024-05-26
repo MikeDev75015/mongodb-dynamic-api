@@ -31,7 +31,7 @@ type DynamicApiResetPasswordOptions<Entity extends BaseEntity = any> = {
   expirationInMinutes: number;
   resetPasswordCallback: DynamicApiResetPasswordCallback<Entity>;
   changePasswordCallback: DynamicApiServiceCallback<Entity>;
-  abilityPredicate?: AuthAbilityPredicate;
+  changePasswordAbilityPredicate?: AuthAbilityPredicate;
 };
 
 type DynamicApiAuthOptions<Entity extends BaseEntity = any> = {

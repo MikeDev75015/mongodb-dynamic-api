@@ -34,10 +34,10 @@ export class AuthModule {
       changePasswordCallback,
       emailField,
       expirationInMinutes,
-      abilityPredicate,
+      changePasswordAbilityPredicate,
     } = resetPassword;
     const resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined = resetPasswordCallback
-      ? { resetPasswordCallback, changePasswordCallback, emailField, expirationInMinutes, abilityPredicate }
+      ? { resetPasswordCallback, changePasswordCallback, emailField, expirationInMinutes, changePasswordAbilityPredicate: changePasswordAbilityPredicate }
       : undefined;
 
     const AuthController = createAuthController(

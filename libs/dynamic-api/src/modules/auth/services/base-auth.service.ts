@@ -1,6 +1,6 @@
-import { BadRequestException, Logger, Type, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Logger, Type, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { Model } from 'mongoose';
+import { Model, UpdateQuery, UpdateWithAggregationPipeline } from 'mongoose';
 import { DynamicApiResetPasswordCallbackMethods, DynamicApiServiceCallback } from '../../../interfaces';
 import { BaseEntity } from '../../../models';
 import { BaseService, BcryptService } from '../../../services';
@@ -13,7 +13,6 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
   protected additionalRequestFields: (keyof Entity)[] = [];
   protected registerCallback: DynamicApiServiceCallback<Entity> | undefined;
   protected loginCallback: DynamicApiServiceCallback<Entity> | undefined;
-
   protected resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined;
 
   private resetPasswordCallbackMethods: DynamicApiResetPasswordCallbackMethods<Entity> | undefined;
@@ -115,7 +114,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     }
 
     this.resetPasswordCallbackMethods = {
-      findUserByEmail: async (email: string) => {
+      findUserByEmail: async () => {
         // @ts-ignore
         const user = await this.model.findOne({ [this.resetPasswordOptions.emailField]: email })
         .lean()
@@ -127,11 +126,11 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
 
         return this.buildInstance(user as Entity);
       },
-      updateUserByEmail: async (email: string, data: Partial<Entity>) => {
+      updateUserByEmail: async (update: UpdateQuery<Entity> | UpdateWithAggregationPipeline) => {
         const user = await this.model.findOneAndUpdate(
           // @ts-ignore
           { [this.resetPasswordOptions.emailField]: email },
-          data,
+          update,
           { new: true },
         ).lean().exec();
 
@@ -180,9 +179,13 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
         undefined,
         // @ts-ignore
         { [this.resetPasswordOptions.emailField]: email },
+        this.resetPasswordOptions?.changePasswordAbilityPredicate,
       );
       userId = _id.toString();
     } catch (error) {
+      if (error.status === 403) {
+        throw new ForbiddenException('You are not allowed to change your password.');
+      }
       this.logger.warn('Invalid email, user not found');
     }
 
@@ -199,8 +202,9 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     );
 
     if (this.resetPasswordOptions?.changePasswordCallback) {
-      const user = await this.findOneDocumentWithAbilityPredicate(userId);
-      await this.resetPasswordOptions.changePasswordCallback(this.buildInstance(user), this.callbackMethods);
+      const user = (await this.model.findOne({ _id: userId }).lean().exec()) as Entity;
+      const instance = this.buildInstance(user);
+      await this.resetPasswordOptions.changePasswordCallback(instance, this.callbackMethods);
     }
   }
 
