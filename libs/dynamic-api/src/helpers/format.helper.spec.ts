@@ -1,4 +1,11 @@
-import { getFormattedApiTag, isValidVersion, pascalCase, provideName } from './format.helper';
+import {
+  getFormattedApiTag,
+  isEmptyObject,
+  isNotEmptyObject,
+  isValidVersion,
+  pascalCase,
+  provideName,
+} from './format.helper';
 
 describe('FormatHelper', () => {
   describe('pascalCase', () => {
@@ -50,6 +57,34 @@ describe('FormatHelper', () => {
     it('should return the policies guard name', () => {
       expect(provideName('CreateOne', 'EntityName', undefined, 'PoliciesGuard')).toBe('CreateOneEntityNamePoliciesGuard');
       expect(provideName('CreateOne', 'EntityName', '1', 'PoliciesGuard')).toBe('CreateOneEntityNameV1PoliciesGuard');
+    });
+  });
+
+  describe('isEmptyObject', () => {
+    it('should return true for empty object', () => {
+      expect(isEmptyObject({})).toBe(true);
+    });
+
+    it('should return false for non empty object', () => {
+      expect(isEmptyObject({ key: 'value' })).toBe(false);
+    });
+
+    it('should return true for undefined', () => {
+      expect(isEmptyObject(undefined)).toBe(true);
+    });
+  });
+
+  describe('isNotEmptyObject', () => {
+    it('should return false for empty object', () => {
+      expect(isNotEmptyObject({})).toBe(false);
+    });
+
+    it('should return true for non empty object', () => {
+      expect(isNotEmptyObject({ key: 'value' })).toBe(true);
+    });
+
+    it('should return false for undefined', () => {
+      expect(isNotEmptyObject(undefined)).toBe(false);
     });
   });
 });
