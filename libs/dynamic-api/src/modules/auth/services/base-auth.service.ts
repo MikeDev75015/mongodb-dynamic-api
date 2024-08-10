@@ -12,6 +12,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
   protected passwordField = 'password' as keyof Entity;
   protected additionalRequestFields: (keyof Entity)[] = [];
   protected registerCallback: DynamicApiServiceCallback<Entity> | undefined;
+  protected updateAccountCallback: DynamicApiServiceCallback<Entity> | undefined;
   protected loginCallback: DynamicApiServiceCallback<Entity> | undefined;
   protected resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined;
 
@@ -28,6 +29,8 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
   }
 
   protected async validateUser(login: string, pass: string): Promise<Entity> {
+    this.verifyArguments(login, pass);
+
     const user = (
       // @ts-ignore
       await this.model.findOne({ [this.loginField]: login }).lean().exec()
@@ -50,6 +53,8 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
   }
 
   protected async login(user: Entity, fromMember = false) {
+    this.verifyArguments(user);
+
     if (!fromMember && !!this.loginCallback) {
       const fullUser = (await this.model.findOne({ _id: user.id }).lean().exec()) as Entity;
       const instance = this.buildInstance(fullUser);
@@ -74,6 +79,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
   }
 
   protected async register(userToCreate: Partial<Entity>) {
+    this.verifyArguments(userToCreate);
     this.checkFieldsValidity(userToCreate);
 
     try {
@@ -97,6 +103,8 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
   }
 
   protected async getAccount({ id }: Entity): Promise<Entity> {
+    this.verifyArguments(id);
+
     const user = (await this.model.findOne({ _id: id }).lean().exec()) as Entity;
 
     const fieldsToBuild = [
@@ -108,7 +116,27 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     return this.buildUserFields(user, fieldsToBuild);
   }
 
+  protected async updateAccount({ id }: Entity, update: Partial<Entity>): Promise<Entity> {
+    this.verifyArguments(id, update);
+
+    await this.model.updateOne(
+      { _id: id },
+      // @ts-ignore
+      { $set: update },
+    );
+
+    if (this.updateAccountCallback) {
+      const fullUser = (await this.model.findOne({ _id: id }).lean().exec()) as Entity;
+      const instance = this.buildInstance(fullUser);
+      await this.updateAccountCallback(instance, this.callbackMethods);
+    }
+
+    return this.getAccount({ id } as Entity);
+  }
+
   protected async resetPassword(email: string) {
+    this.verifyArguments(email);
+
     if (!this.resetPasswordOptions) {
       return;
     }
@@ -153,6 +181,8 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
   }
 
   protected async changePassword(resetPasswordToken: string, newPassword: string) {
+    this.verifyArguments(resetPasswordToken, newPassword);
+
     let email: string;
     let exp: number;
 
@@ -198,7 +228,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     await this.model.updateOne(
       { _id: userId },
       // @ts-ignore
-      { [this.passwordField]: hashedPassword },
+      { $set: { [this.passwordField]: hashedPassword } },
     );
 
     if (this.resetPasswordOptions?.changePasswordCallback) {

@@ -1,8 +1,15 @@
+import { createMock } from '@golevelup/ts-jest';
 import { Type } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
 import { buildDynamicApiModuleOptionsMock } from '../../../__mocks__/dynamic-api.module.mock';
 import { buildModelMock } from '../../../__mocks__/model.mock';
-import { createDuplicateOneController, createDuplicateOneServiceProvider } from './duplicate-one.helper';
+import { DuplicateOneService } from './duplicate-one-service.interface';
+import {
+  createDuplicateOneController,
+  createDuplicateOneGateway,
+  createDuplicateOneServiceProvider,
+} from './duplicate-one.helper';
 
 describe('DuplicateOneHelper', () => {
   let entity: Type;
@@ -59,6 +66,23 @@ describe('DuplicateOneHelper', () => {
       expect(spyServiceDuplicateOne).toHaveBeenCalledWith('test', {
         unit: 'test',
       });
+    });
+  });
+
+  describe('createDuplicateOneGateway', () => {
+    it('should instantiate DuplicateOne gateway with default values', async () => {
+      const gatewayClass = createDuplicateOneGateway(
+        entity,
+        { path: 'path' },
+        { type: 'DuplicateOne' },
+      );
+
+      const service = createMock<DuplicateOneService<any>>();
+      const jwtService = createMock<JwtService>();
+
+      const gateway = new gatewayClass(service, jwtService);
+
+      expect(gateway).toBeDefined();
     });
   });
 });

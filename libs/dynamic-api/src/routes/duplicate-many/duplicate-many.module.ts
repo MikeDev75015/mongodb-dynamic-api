@@ -1,7 +1,14 @@
 import { DynamicModule, Module, Type, ValidationPipeOptions } from '@nestjs/common';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { GatewayMetadata } from '@nestjs/websockets';
+import { DynamicApiModule } from '../../dynamic-api.module';
+import { initializeConfigFromOptions } from '../../helpers';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiWebSocketOptions } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import { createDuplicateManyController, createDuplicateManyServiceProvider } from './duplicate-many.helper';
+import {
+  createDuplicateManyController,
+  createDuplicateManyGateway,
+  createDuplicateManyServiceProvider,
+} from './duplicate-many.helper';
 
 @Module({})
 export class DuplicateManyModule {
@@ -12,6 +19,7 @@ export class DuplicateManyModule {
     routeConfig: DynamicAPIRouteConfig<Entity>,
     version?: string,
     validationPipeOptions?: ValidationPipeOptions,
+    webSocket?: DynamicApiWebSocketOptions,
   ): DynamicModule {
     const controller = createDuplicateManyController(
       entity,
@@ -22,11 +30,29 @@ export class DuplicateManyModule {
     );
     const ServiceProvider = createDuplicateManyServiceProvider(entity, version, routeConfig.callback);
 
+    const gatewayOptions = webSocket
+      ? initializeConfigFromOptions(webSocket)
+      : DynamicApiModule.state.get<GatewayMetadata>('gatewayOptions');
+
     return {
       module: DuplicateManyModule,
       imports: [databaseModule],
       controllers: [controller],
-      providers: [ServiceProvider],
+      providers: [
+        ServiceProvider,
+        ...(
+          gatewayOptions ? [
+            createDuplicateManyGateway(
+              entity,
+              controllerOptions,
+              routeConfig,
+              version,
+              validationPipeOptions,
+              gatewayOptions,
+            )
+          ] : []
+        ),
+      ],
     };
   }
 }

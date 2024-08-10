@@ -12,8 +12,10 @@ describe('DynamicApiConfigModule', () => {
     isAuthEnabled: false,
     isGlobalCacheEnabled: false,
     jwtSecret: '',
+    jwtExpirationTime: 0,
     routesConfig: undefined,
-    uri: ''
+    uri: '',
+    gatewayOptions: undefined,
   };
 
   describe('register', () => {

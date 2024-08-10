@@ -1,3 +1,4 @@
+import { createMock } from '@golevelup/ts-jest';
 import { BaseEntity } from '../../../models';
 import { AuthService } from '../interfaces';
 import { AuthControllerMixin } from './auth-controller.mixin';
@@ -15,17 +16,7 @@ describe('AuthControllerMixin', () => {
     field3?: string;
   }
 
-  let service: AuthService<TestEntity>;
-
-  beforeEach(async () => {
-    service = {
-      login: jest.fn(),
-      register: jest.fn(),
-      getAccount: jest.fn(),
-      resetPassword: jest.fn(),
-      changePassword: jest.fn(),
-    } as unknown as AuthService<TestEntity>;
-  });
+  const service = createMock<AuthService<TestEntity>>();
 
   it('should throw error when invalid entity is provided', () => {
     expect(() => AuthControllerMixin<TestEntity>(
@@ -76,6 +67,7 @@ describe('AuthControllerMixin', () => {
     expect(controller).toHaveProperty('login', expect.any(Function));
     expect(controller).toHaveProperty('register', expect.any(Function));
     expect(controller).toHaveProperty('getAccount', expect.any(Function));
+    expect(controller).toHaveProperty('updateAccount', expect.any(Function));
     expect(controller).toHaveProperty('resetPassword', expect.any(Function));
     expect(controller).toHaveProperty('changePassword', expect.any(Function));
   });
@@ -119,6 +111,25 @@ describe('AuthControllerMixin', () => {
       await controller.getAccount({ user });
 
       expect(service.getAccount).toHaveBeenCalledWith(user);
+    });
+  });
+
+  describe('updateAccount', () => {
+    it('should call service updateAccount', async () => {
+      const AuthController = AuthControllerMixin(
+        TestEntity,
+        'loginField',
+        'passwordField',
+        undefined,
+        undefined,
+        undefined,
+      );
+      const controller = new AuthController(service);
+      const user = new TestEntity();
+
+      await controller.updateAccount({ user }, {});
+
+      expect(service.updateAccount).toHaveBeenCalledWith(user, {});
     });
   });
 

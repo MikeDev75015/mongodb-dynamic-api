@@ -1,8 +1,15 @@
+import { createMock } from '@golevelup/ts-jest';
 import { Type } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
 import { buildDynamicApiModuleOptionsMock } from '../../../__mocks__/dynamic-api.module.mock';
 import { buildModelMock } from '../../../__mocks__/model.mock';
-import { createDeleteManyController, createDeleteManyServiceProvider } from './delete-many.helper';
+import { DeleteManyService } from './delete-many-service.interface';
+import {
+  createDeleteManyController,
+  createDeleteManyGateway,
+  createDeleteManyServiceProvider,
+} from './delete-many.helper';
 
 describe('DeleteManyHelper', () => {
   let entity: Type;
@@ -57,6 +64,23 @@ describe('DeleteManyHelper', () => {
       await controller.deleteMany({ ids: ['test', 'test2'] });
 
       expect(spyServiceDeleteMany).toHaveBeenCalledWith(['test', 'test2']);
+    });
+  });
+
+  describe('createDeleteManyGateway', () => {
+    it('should instantiate DeleteMany gateway with default values', async () => {
+      const gatewayClass = createDeleteManyGateway(
+        entity,
+        { path: 'path' },
+        { type: 'DeleteMany' },
+      );
+
+      const service = createMock<DeleteManyService<any>>();
+      const jwtService = createMock<JwtService>();
+
+      const gateway = new gatewayClass(service, jwtService);
+
+      expect(gateway).toBeDefined();
     });
   });
 });

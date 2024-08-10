@@ -1,8 +1,15 @@
+import { createMock } from '@golevelup/ts-jest';
 import { Type } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
 import { buildDynamicApiModuleOptionsMock } from '../../../__mocks__/dynamic-api.module.mock';
 import { buildModelMock } from '../../../__mocks__/model.mock';
-import { createReplaceOneController, createReplaceOneServiceProvider } from './replace-one.helper';
+import { ReplaceOneService } from './replace-one-service.interface';
+import {
+  createReplaceOneController,
+  createReplaceOneGateway,
+  createReplaceOneServiceProvider,
+} from './replace-one.helper';
 
 describe('ReplaceOneHelper', () => {
   let entity: Type;
@@ -59,6 +66,23 @@ describe('ReplaceOneHelper', () => {
       expect(spyServiceReplaceOne).toHaveBeenCalledWith('test', {
         unit: 'test',
       });
+    });
+  });
+
+  describe('createReplaceOneGateway', () => {
+    it('should instantiate ReplaceOne gateway with default values', async () => {
+      const gatewayClass = createReplaceOneGateway(
+        entity,
+        { path: 'path' },
+        { type: 'ReplaceOne' },
+      );
+
+      const service = createMock<ReplaceOneService<any>>();
+      const jwtService = createMock<JwtService>();
+
+      const gateway = new gatewayClass(service, jwtService);
+
+      expect(gateway).toBeDefined();
     });
   });
 });

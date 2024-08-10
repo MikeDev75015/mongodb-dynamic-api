@@ -6,8 +6,10 @@ import {
   UseInterceptors,
   ValidationPipeOptions,
 } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
+import { WebSocketGateway } from '@nestjs/websockets';
 import { Model } from 'mongoose';
 import { ValidatorPipe } from '../../decorators';
 import { DynamicApiModule } from '../../dynamic-api.module';
@@ -16,12 +18,14 @@ import {
   DynamicApiControllerOptions,
   DynamicAPIRouteConfig,
   DynamicApiServiceCallback,
-  DynamicAPIServiceProvider,
+  DynamicAPIServiceProvider, GatewayOptions,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseCreateManyService } from './base-create-many.service';
 import { CreateManyControllerConstructor } from './create-many-controller.interface';
 import { CreateManyControllerMixin } from './create-many-controller.mixin';
+import { CreateManyGatewayConstructor } from './create-many-gateway.interface';
+import { CreateManyGatewayMixin } from './create-many-gateway.mixin';
 import { CreateManyService } from './create-many-service.interface';
 
 function createCreateManyServiceProvider<Entity extends BaseEntity>(
@@ -90,4 +94,32 @@ function createCreateManyController<Entity extends BaseEntity>(
   return CreateManyController;
 }
 
-export { createCreateManyController, createCreateManyServiceProvider };
+function createCreateManyGateway<Entity extends BaseEntity>(
+  entity: Type<Entity>,
+  controllerOptions: DynamicApiControllerOptions<Entity>,
+  routeConfig: DynamicAPIRouteConfig<Entity>,
+  version?: string,
+  validationPipeOptions?: ValidationPipeOptions,
+  gatewayOptions: GatewayOptions = {},
+): CreateManyGatewayConstructor<Entity> {
+  @WebSocketGateway(gatewayOptions)
+  @ValidatorPipe(validationPipeOptions)
+  class CreateManyGateway extends CreateManyGatewayMixin(
+    entity,
+    controllerOptions,
+    routeConfig,
+    version,
+  ) {
+    constructor(
+      @Inject(provideName(routeConfig.type, entity.name, version, 'Service'))
+      protected readonly service: CreateManyService<Entity>,
+      protected readonly jwtService: JwtService,
+    ) {
+      super(service, jwtService);
+    }
+  }
+
+  return CreateManyGateway;
+}
+
+export { createCreateManyController, createCreateManyGateway, createCreateManyServiceProvider };

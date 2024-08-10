@@ -5,7 +5,12 @@ import { HttpAdapterHost } from '@nestjs/core/helpers/http-adapter-host';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Cache } from 'cache-manager';
 import { DynamicApiJwtAuthGuard } from './guards';
-import { buildSchemaFromEntity, getDefaultRouteDescription, isValidVersion } from './helpers';
+import {
+  buildSchemaFromEntity,
+  getDefaultRouteDescription,
+  initializeConfigFromOptions,
+  isValidVersion,
+} from './helpers';
 import { DynamicApiCacheInterceptor } from './interceptors';
 import {
   DYNAMIC_API_GLOBAL_STATE,
@@ -14,6 +19,7 @@ import {
   DynamicApiForRootOptions,
   DynamicApiGlobalState,
   DynamicAPIRouteConfig,
+  DynamicApiWebSocketOptions,
   RouteModule,
   RoutesConfig,
   RouteType,
@@ -87,7 +93,7 @@ export class DynamicApiModule {
         ),
         ...(
           useAuth?.userEntity ? [
-            AuthModule.forRoot<Entity>(useAuth),
+            AuthModule.forRoot<Entity>({ ...useAuth, webSocket: useAuth.webSocket ?? webSocket }),
           ] : []
         ),
       ],

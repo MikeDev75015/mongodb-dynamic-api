@@ -6,8 +6,10 @@ import {
   UseInterceptors,
   ValidationPipeOptions,
 } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
+import { WebSocketGateway } from '@nestjs/websockets';
 import { Model } from 'mongoose';
 import { ValidatorPipe } from '../../decorators';
 import { DynamicApiModule } from '../../dynamic-api.module';
@@ -17,11 +19,14 @@ import {
   DynamicAPIRouteConfig,
   DynamicApiServiceCallback,
   DynamicAPIServiceProvider,
+  GatewayOptions,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseGetManyService } from './base-get-many.service';
 import { GetManyControllerConstructor } from './get-many-controller.interface';
 import { GetManyControllerMixin } from './get-many-controller.mixin';
+import { GetManyGatewayConstructor } from './get-many-gateway.interface';
+import { GetManyGatewayMixin } from './get-many-gateway.mixin';
 import { GetManyService } from './get-many-service.interface';
 
 function createGetManyServiceProvider<Entity extends BaseEntity>(
@@ -90,4 +95,32 @@ function createGetManyController<Entity extends BaseEntity>(
   return GetManyController;
 }
 
-export { createGetManyController, createGetManyServiceProvider };
+function createGetManyGateway<Entity extends BaseEntity>(
+  entity: Type<Entity>,
+  controllerOptions: DynamicApiControllerOptions<Entity>,
+  routeConfig: DynamicAPIRouteConfig<Entity>,
+  version?: string,
+  validationPipeOptions?: ValidationPipeOptions,
+  gatewayOptions: GatewayOptions = {},
+): GetManyGatewayConstructor<Entity> {
+  @WebSocketGateway(gatewayOptions)
+  @ValidatorPipe(validationPipeOptions)
+  class GetManyGateway extends GetManyGatewayMixin(
+    entity,
+    controllerOptions,
+    routeConfig,
+    version,
+  ) {
+    constructor(
+      @Inject(provideName(routeConfig.type, entity.name, version, 'Service'))
+      protected readonly service: GetManyService<Entity>,
+      protected readonly jwtService: JwtService,
+    ) {
+      super(service, jwtService);
+    }
+  }
+
+  return GetManyGateway;
+}
+
+export { createGetManyController, createGetManyGateway, createGetManyServiceProvider };

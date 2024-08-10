@@ -6,8 +6,10 @@ import {
   UseInterceptors,
   ValidationPipeOptions,
 } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
+import { WebSocketGateway } from '@nestjs/websockets';
 import { Model } from 'mongoose';
 import { ValidatorPipe } from '../../decorators';
 import { DynamicApiModule } from '../../dynamic-api.module';
@@ -17,11 +19,14 @@ import {
   DynamicAPIRouteConfig,
   DynamicApiServiceCallback,
   DynamicAPIServiceProvider,
+  GatewayOptions,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseGetOneService } from './base-get-one.service';
 import { GetOneControllerConstructor } from './get-one-controller.interface';
 import { GetOneControllerMixin } from './get-one-controller.mixin';
+import { GetOneGatewayConstructor } from './get-one-gateway.interface';
+import { GetOneGatewayMixin } from './get-one-gateway.mixin';
 import { GetOneService } from './get-one-service.interface';
 
 function createGetOneServiceProvider<Entity extends BaseEntity>(
@@ -90,4 +95,32 @@ function createGetOneController<Entity extends BaseEntity>(
   return GetOneController;
 }
 
-export { createGetOneController, createGetOneServiceProvider };
+function createGetOneGateway<Entity extends BaseEntity>(
+  entity: Type<Entity>,
+  controllerOptions: DynamicApiControllerOptions<Entity>,
+  routeConfig: DynamicAPIRouteConfig<Entity>,
+  version?: string,
+  validationPipeOptions?: ValidationPipeOptions,
+  gatewayOptions: GatewayOptions = {},
+): GetOneGatewayConstructor<Entity> {
+  @WebSocketGateway(gatewayOptions)
+  @ValidatorPipe(validationPipeOptions)
+  class GetOneGateway extends GetOneGatewayMixin(
+    entity,
+    controllerOptions,
+    routeConfig,
+    version,
+  ) {
+    constructor(
+      @Inject(provideName(routeConfig.type, entity.name, version, 'Service'))
+      protected readonly service: GetOneService<Entity>,
+      protected readonly jwtService: JwtService,
+    ) {
+      super(service, jwtService);
+    }
+  }
+
+  return GetOneGateway;
+}
+
+export { createGetOneController, createGetOneGateway, createGetOneServiceProvider };

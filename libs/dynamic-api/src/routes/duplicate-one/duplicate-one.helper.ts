@@ -6,8 +6,10 @@ import {
   UseInterceptors,
   ValidationPipeOptions,
 } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
+import { WebSocketGateway } from '@nestjs/websockets';
 import { Model } from 'mongoose';
 import { ValidatorPipe } from '../../decorators';
 import { DynamicApiModule } from '../../dynamic-api.module';
@@ -17,11 +19,14 @@ import {
   DynamicAPIRouteConfig,
   DynamicApiServiceCallback,
   DynamicAPIServiceProvider,
+  GatewayOptions,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseDuplicateOneService } from './base-duplicate-one.service';
 import { DuplicateOneControllerConstructor } from './duplicate-one-controller.interface';
 import { DuplicateOneControllerMixin } from './duplicate-one-controller.mixin';
+import { DuplicateOneGatewayConstructor } from './duplicate-one-gateway.interface';
+import { DuplicateOneGatewayMixin } from './duplicate-one-gateway.mixin';
 import { DuplicateOneService } from './duplicate-one-service.interface';
 
 function createDuplicateOneServiceProvider<Entity extends BaseEntity>(
@@ -90,4 +95,32 @@ function createDuplicateOneController<Entity extends BaseEntity>(
   return DuplicateOneController;
 }
 
-export { createDuplicateOneController, createDuplicateOneServiceProvider };
+function createDuplicateOneGateway<Entity extends BaseEntity>(
+  entity: Type<Entity>,
+  controllerOptions: DynamicApiControllerOptions<Entity>,
+  routeConfig: DynamicAPIRouteConfig<Entity>,
+  version?: string,
+  validationPipeOptions?: ValidationPipeOptions,
+  gatewayOptions: GatewayOptions = {},
+): DuplicateOneGatewayConstructor<Entity> {
+  @WebSocketGateway(gatewayOptions)
+  @ValidatorPipe(validationPipeOptions)
+  class DuplicateOneGateway extends DuplicateOneGatewayMixin(
+    entity,
+    controllerOptions,
+    routeConfig,
+    version,
+  ) {
+    constructor(
+      @Inject(provideName(routeConfig.type, entity.name, version, 'Service'))
+      protected readonly service: DuplicateOneService<Entity>,
+      protected readonly jwtService: JwtService,
+    ) {
+      super(service, jwtService);
+    }
+  }
+
+  return DuplicateOneGateway;
+}
+
+export { createDuplicateOneController, createDuplicateOneGateway, createDuplicateOneServiceProvider };

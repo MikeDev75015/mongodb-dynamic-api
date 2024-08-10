@@ -50,6 +50,12 @@ export abstract class BaseService<Entity extends BaseEntity> {
     return paths.includes('deletedAt') && paths.includes('isDeleted');
   }
 
+  protected verifyArguments(...args: unknown[]) {
+    if (args.some((arg) => arg === undefined)) {
+      throw new BadRequestException('Invalid or missing argument');
+    }
+  }
+
   protected async findManyDocumentsWithAbilityPredicate(conditions: FilterQuery<Entity> = {}) {
     const documents = await this.findManyDocuments(this.entity, conditions);
 

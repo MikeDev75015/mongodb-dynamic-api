@@ -6,14 +6,22 @@ import { JwtAuthGuard } from '../../modules';
 
 class AuthDecoratorsBuilder implements DynamicApiDecoratorBuilder<any> {
   constructor(
-    private readonly protectRegister: boolean | undefined,
-    private readonly AuthRegisterPoliciesGuard: Type,
+    private readonly isProtected: boolean | undefined,
+    private readonly AuthPoliciesGuard: Type,
   ) {}
 
   public build() {
-    return !this.protectRegister
-      ? [Public(), UseGuards(this.AuthRegisterPoliciesGuard)]
-      : [ApiBearerAuth(), UseGuards(JwtAuthGuard, this.AuthRegisterPoliciesGuard)];
+    return !this.isProtected
+      ? [Public()]
+      : [
+        ApiBearerAuth(),
+        UseGuards(
+          JwtAuthGuard,
+          ...(
+            this.AuthPoliciesGuard ? [this.AuthPoliciesGuard] : []
+          ),
+        ),
+      ];
   }
 }
 

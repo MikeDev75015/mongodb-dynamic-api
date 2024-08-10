@@ -7,6 +7,6 @@ interface PoliciesGuard {
 }
 
 type PoliciesGuardConstructor<Entity extends BaseEntity> = new (model: Model<Entity>) => PoliciesGuard;
-type RegisterPoliciesGuardConstructor = new () => PoliciesGuard;
+type AuthPoliciesGuardConstructor = new () => PoliciesGuard;
 
-export { PoliciesGuardConstructor, PoliciesGuard, RegisterPoliciesGuardConstructor };
+export { PoliciesGuardConstructor, PoliciesGuard, AuthPoliciesGuardConstructor };

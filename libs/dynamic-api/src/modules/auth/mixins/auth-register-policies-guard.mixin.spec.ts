@@ -1,6 +1,6 @@
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { BaseEntity } from '../../../models';
-import { AuthRegisterPoliciesGuardMixin } from './auth-register-policies-guard.mixin';
+import { AuthPoliciesGuardMixin } from './auth-policies-guard.mixin';
 
 describe('AuthRegisterPoliciesGuardMixin', () => {
   let user: any;
@@ -19,7 +19,7 @@ describe('AuthRegisterPoliciesGuardMixin', () => {
 
 
   beforeEach(async () => {
-    class AuthRegisterPoliciesGuard extends AuthRegisterPoliciesGuardMixin(User, undefined) {}
+    class AuthRegisterPoliciesGuard extends AuthPoliciesGuardMixin(User, undefined) {}
 
     guard = new AuthRegisterPoliciesGuard();
     context = { switchToHttp: () => ({ getRequest: () => ({ user }) } as any) } as ExecutionContext;

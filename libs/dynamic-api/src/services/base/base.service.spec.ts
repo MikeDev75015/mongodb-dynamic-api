@@ -547,4 +547,14 @@ describe('BaseService', () => {
       );
     });
   });
+
+  describe('verifyArguments', () => {
+    it('should throw a BadRequestException if one argument is not defined', () => {
+      const service = new TestService({} as any);
+
+      expect(() => service['verifyArguments']({} as any, 12, undefined, 'test')).toThrow(
+        new BadRequestException('Invalid or missing argument'),
+      );
+    });
+  });
 });

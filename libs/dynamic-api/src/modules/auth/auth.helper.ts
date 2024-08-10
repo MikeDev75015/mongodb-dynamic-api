@@ -1,32 +1,44 @@
 import {
-  Controller, ForbiddenException,
+  Controller,
+  ForbiddenException,
   Inject,
   Injectable,
   Type,
-  UnauthorizedException,
-  UsePipes,
-  ValidationPipe,
+  UnauthorizedException, UseFilters,
   ValidationPipeOptions,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { PassportStrategy } from '@nestjs/passport';
 import { ApiTags } from '@nestjs/swagger';
+import { WebSocketGateway } from '@nestjs/websockets';
 import { Model } from 'mongoose';
 import { Strategy } from 'passport-local';
+import { ValidatorPipe } from '../../decorators';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { AuthAbilityPredicate, DynamicApiServiceCallback, DynamicAPIServiceProvider } from '../../interfaces';
+import { DynamicAPIWsExceptionFilter } from '../../filters/ws-exception/dynamic-api-ws-exception.filter';
+import {
+  AuthAbilityPredicate,
+  DynamicApiServiceCallback,
+  DynamicAPIServiceProvider,
+  GatewayOptions,
+} from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BcryptService } from '../../services';
 import {
   AuthControllerConstructor,
-  AuthService, DynamicApiLoginOptions,
-  DynamicApiRegisterOptions, DynamicApiResetPasswordOptions,
+  AuthGatewayConstructor,
+  AuthService,
+  DynamicApiLoginOptions,
+  DynamicApiRegisterOptions,
+  DynamicApiResetPasswordOptions,
+  DynamicApiUpdateAccountOptions,
 } from './interfaces';
-import { AuthControllerMixin } from './mixins';
+import { AuthControllerMixin, AuthGatewayMixin } from './mixins';
 import { BaseAuthService } from './services';
 
 const authServiceProviderName = 'DynamicApiAuthService';
+const authGatewayProviderName = 'DynamicApiAuthGateway';
 const localStrategyProviderName = 'DynamicApiLocalStrategy';
 
 function createLocalStrategyProvider<Entity extends BaseEntity>(
@@ -73,6 +85,7 @@ function createAuthServiceProvider<Entity extends BaseEntity>(
   { loginField, passwordField, additionalFields = [], callback: loginCallback }: DynamicApiLoginOptions<Entity>,
   registerCallback: DynamicApiServiceCallback<Entity> | undefined,
   resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined,
+  updateAccountCallback: DynamicApiServiceCallback<Entity> | undefined,
 ): DynamicAPIServiceProvider {
   class AuthService extends BaseAuthService<Entity> {
     protected entity = userEntity;
@@ -80,6 +93,8 @@ function createAuthServiceProvider<Entity extends BaseEntity>(
     protected loginField = loginField;
     protected passwordField = passwordField;
     protected registerCallback = registerCallback;
+
+    protected updateAccountCallback = updateAccountCallback;
     protected loginCallback = loginCallback;
     protected resetPasswordOptions = resetPasswordOptions;
 
@@ -108,19 +123,19 @@ function createAuthController<Entity extends BaseEntity>(
   registerOptions: DynamicApiRegisterOptions<Entity> | undefined,
   validationPipeOptions: ValidationPipeOptions | undefined,
   resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined,
+  updateAccountOptions: DynamicApiUpdateAccountOptions<Entity> | undefined,
 ): AuthControllerConstructor<Entity> {
   @Controller('auth')
   @ApiTags('Auth')
-  @UsePipes(
-    new ValidationPipe(validationPipeOptions ?? { transform: true }),
-  )
+  @ValidatorPipe(validationPipeOptions)
   class AuthController extends AuthControllerMixin(
     userEntity,
     loginField,
     passwordField,
     additionalFields,
-  registerOptions ?? {},
-  resetPasswordOptions,
+    registerOptions,
+    resetPasswordOptions,
+    updateAccountOptions,
   ) {
     constructor(
       @Inject(authServiceProviderName)
@@ -133,10 +148,43 @@ function createAuthController<Entity extends BaseEntity>(
   return AuthController;
 }
 
+function createAuthGateway<Entity extends BaseEntity>(
+  userEntity: Type<Entity>,
+  loginOptions: DynamicApiLoginOptions<Entity>,
+  registerOptions: DynamicApiRegisterOptions<Entity> | undefined,
+  validationPipeOptions: ValidationPipeOptions | undefined,
+  resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined,
+  updateAccountOptions: DynamicApiUpdateAccountOptions<Entity> | undefined,
+  gatewayOptions: GatewayOptions,
+): AuthGatewayConstructor<Entity> {
+  @WebSocketGateway(gatewayOptions)
+  @UseFilters(new DynamicAPIWsExceptionFilter())
+  @ValidatorPipe(validationPipeOptions)
+  class AuthGateway extends AuthGatewayMixin(
+    userEntity,
+    loginOptions ?? {},
+    registerOptions ?? {},
+    resetPasswordOptions,
+    updateAccountOptions,
+  ) {
+    constructor(
+      @Inject(authServiceProviderName)
+      protected readonly service: AuthService<Entity>,
+      protected readonly jwtService: JwtService,
+    ) {
+      super(service, jwtService);
+    }
+  }
+
+  return AuthGateway;
+}
+
 export {
   authServiceProviderName,
+  authGatewayProviderName,
   createAuthController,
   createAuthServiceProvider,
+  createAuthGateway,
   createLocalStrategyProvider,
   localStrategyProviderName,
 };

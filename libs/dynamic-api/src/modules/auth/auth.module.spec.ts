@@ -3,10 +3,12 @@ import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { PassportModule } from '@nestjs/passport';
 import { Schema } from 'mongoose';
+import { getFullAuthOptionsMock } from '../../../__mocks__/auth-full-options.mock';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import * as Helpers from '../../helpers';
 import { BaseEntity } from '../../models';
 import { BcryptService, DynamicApiGlobalStateService } from '../../services';
+import { authGatewayProviderName } from './auth.helper';
 import * as AuthHelpers from './auth.helper';
 import { AuthModule } from './auth.module';
 import { DynamicApiAuthOptions } from './interfaces';
@@ -36,7 +38,10 @@ jest.mock(
 jest.mock(
   '../../helpers',
   () => (
-    { buildSchemaFromEntity: jest.fn() }
+    {
+      buildSchemaFromEntity: jest.fn(),
+      initializeConfigFromOptions: jest.fn(),
+    }
   ),
 );
 jest.mock(
@@ -48,7 +53,12 @@ jest.mock(
 jest.mock(
   './auth.helper',
   () => (
-    { createAuthController: jest.fn(), createAuthServiceProvider: jest.fn(), createLocalStrategyProvider: jest.fn() }
+    {
+      createAuthController: jest.fn(),
+      createAuthServiceProvider: jest.fn(),
+      createLocalStrategyProvider: jest.fn(),
+      createAuthGateway: jest.fn(),
+    }
   ),
 );
 jest.mock(
@@ -70,44 +80,24 @@ describe('AuthModule', () => {
   let module: DynamicModule;
   let spyInitializeAuthOptions: jest.SpyInstance;
   const basicOptions: DynamicApiAuthOptions<UserEntity> = { userEntity: UserEntity };
-  const fullOptions: DynamicApiAuthOptions<UserEntity> = {
-    userEntity: UserEntity,
-    login: {
-      loginField: 'name',
-      passwordField: 'password',
-      additionalFields: [],
-      abilityPredicate: jest.fn(),
-      callback: jest.fn(),
-    },
-    register: {
-      additionalFields: [],
-      protected: false,
-      abilityPredicate: jest.fn(),
-      callback: jest.fn(),
-    },
-    resetPassword: {
-      resetPasswordCallback: jest.fn(),
-      changePasswordCallback: jest.fn(),
-      emailField: 'email',
-      expirationInMinutes: 30,
-      changePasswordAbilityPredicate: jest.fn(),
-    },
-    jwt: { secret: 'secret', expiresIn: '1h' },
-    validationPipeOptions: { whitelist: true },
-  };
+  const fakeGatewayOptions = { namespace: 'namespace' };
+  const fullOptions = getFullAuthOptionsMock(UserEntity, 'email', 'password')
 
   let spyBuildSchemaFromEntity: jest.SpyInstance;
+  let spyInitializeConfigFromOptions: jest.SpyInstance;
   let spyMongooseModuleForFeature: jest.SpyInstance;
   let spyDynamicApiModuleStateGet: jest.SpyInstance;
   let spyJwtModuleRegister: jest.SpyInstance;
   let spyCreateAuthController: jest.SpyInstance;
   let spyCreateAuthServiceProvider: jest.SpyInstance;
   let spyCreateLocalStrategyProvider: jest.SpyInstance;
+  let spyCreateAuthGateway: jest.SpyInstance;
   let addEntitySchemaSpy: jest.SpyInstance;
 
   const AuthController = jest.fn();
   const AuthServiceProvider = { provide: 'authServiceProviderName', useClass: jest.fn() };
   const LocalStrategyProvider = { provide: 'localStrategyProviderName', useClass: jest.fn() };
+  const AuthGateway = jest.fn();
   const fakeMongooseDynamicModule = { module: 'MongooseDynamicModule' } as unknown as DynamicModule;
   const fakeJwtDynamicModule = { module: 'JwtDynamicModule' } as unknown as DynamicModule;
   const fakeSchema = {} as Schema;
@@ -124,7 +114,7 @@ describe('AuthModule', () => {
     spyMongooseModuleForFeature =
       jest.spyOn(MongooseModule, 'forFeature').mockImplementationOnce(fakeMongooseModuleForFeature);
     spyDynamicApiModuleStateGet =
-      jest.spyOn(DynamicApiModule.state, 'get').mockImplementationOnce(fakeDynamicApiModuleStateGet);
+      jest.spyOn(DynamicApiModule.state, 'get').mockImplementation(fakeDynamicApiModuleStateGet);
     spyJwtModuleRegister = jest.spyOn(JwtModule, 'register').mockImplementationOnce(fakeJwtModuleRegister);
 
     spyCreateAuthController =
@@ -134,6 +124,8 @@ describe('AuthModule', () => {
     spyCreateLocalStrategyProvider =
       jest.spyOn(AuthHelpers, 'createLocalStrategyProvider')
       .mockImplementationOnce(jest.fn(() => LocalStrategyProvider));
+    spyCreateAuthGateway =
+      jest.spyOn(AuthHelpers, 'createAuthGateway').mockImplementationOnce(jest.fn(() => AuthGateway));
     addEntitySchemaSpy = jest
     .spyOn(DynamicApiGlobalStateService, 'addEntitySchema');
   });
@@ -142,6 +134,8 @@ describe('AuthModule', () => {
     describe('with default options', () => {
       beforeEach(() => {
         module = AuthModule.forRoot(basicOptions);
+        spyInitializeConfigFromOptions =
+          jest.spyOn(Helpers, 'initializeConfigFromOptions').mockImplementationOnce(() => undefined);
       });
 
       it('should return dynamic module', () => {
@@ -172,6 +166,7 @@ describe('AuthModule', () => {
           },
           undefined,
           undefined,
+          { additionalFieldsToExclude: [] },
         );
 
         expect(spyCreateAuthServiceProvider).toHaveBeenCalledTimes(1);
@@ -182,6 +177,7 @@ describe('AuthModule', () => {
             passwordField: 'password',
             additionalFields: [],
           },
+          undefined,
           undefined,
           undefined,
         );
@@ -199,7 +195,7 @@ describe('AuthModule', () => {
 
         expect(spyBuildSchemaFromEntity).toHaveBeenCalledWith(UserEntity);
         expect(spyMongooseModuleForFeature)
-        .toHaveBeenCalledWith([{ name: UserEntity.name, schema: fakeSchema }], fakeConnectionName);
+        .toHaveBeenCalledWith([{ name: UserEntity.name, schema: fakeSchema }], 'ut-connection-name');
         expect(spyDynamicApiModuleStateGet).toHaveBeenCalled();
         expect(spyJwtModuleRegister)
         .toHaveBeenCalledWith({
@@ -224,6 +220,8 @@ describe('AuthModule', () => {
 
       beforeEach(() => {
         module = AuthModule.forRoot(fullOptions, [fakeImport]);
+        spyInitializeConfigFromOptions =
+          jest.spyOn(Helpers, 'initializeConfigFromOptions').mockImplementationOnce(() => fakeGatewayOptions);
       });
 
       it('should have initialized options', () => {
@@ -238,6 +236,7 @@ describe('AuthModule', () => {
           fullOptions.register,
           fullOptions.validationPipeOptions,
           fullOptions.resetPassword,
+          fullOptions.updateAccount,
         );
 
         expect(spyCreateAuthServiceProvider).toHaveBeenCalledTimes(1);
@@ -246,6 +245,7 @@ describe('AuthModule', () => {
           fullOptions.login,
           fullOptions.register.callback,
           fullOptions.resetPassword,
+          fullOptions.updateAccount.callback,
         );
 
         expect(spyCreateLocalStrategyProvider).toHaveBeenCalledTimes(1);
@@ -253,6 +253,22 @@ describe('AuthModule', () => {
           fullOptions.login.loginField,
           fullOptions.login.passwordField,
           fullOptions.login.abilityPredicate,
+        );
+
+        expect(spyCreateAuthGateway).toHaveBeenCalledTimes(1);
+        expect(spyCreateAuthGateway).toHaveBeenCalledWith(
+          UserEntity,
+          {
+            loginField: fullOptions.login.loginField,
+            passwordField: fullOptions.login.passwordField,
+            additionalFields: fullOptions.login.additionalFields,
+            abilityPredicate: fullOptions.login.abilityPredicate,
+          },
+          fullOptions.register,
+          fullOptions.validationPipeOptions,
+          fullOptions.resetPassword,
+          fullOptions.updateAccount,
+          fakeGatewayOptions,
         );
       });
 
@@ -274,6 +290,23 @@ describe('AuthModule', () => {
           secret: fullOptions.jwt.secret,
           signOptions: { expiresIn: fullOptions.jwt.expiresIn },
         });
+      });
+
+      it('should have providers', () => {
+        expect(module.providers).toEqual([
+          AuthServiceProvider,
+          LocalStrategyProvider,
+          JwtStrategy,
+          BcryptService,
+          {
+            provide: authGatewayProviderName,
+            useClass: AuthGateway,
+          },
+        ]);
+      });
+
+      it('should have controllers', () => {
+        expect(module.controllers).toEqual([AuthController]);
       });
     });
   });

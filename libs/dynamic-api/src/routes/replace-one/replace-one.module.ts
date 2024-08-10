@@ -1,7 +1,14 @@
 import { DynamicModule, Module, Type, ValidationPipeOptions } from '@nestjs/common';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { GatewayMetadata } from '@nestjs/websockets';
+import { DynamicApiModule } from '../../dynamic-api.module';
+import { initializeConfigFromOptions } from '../../helpers';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiWebSocketOptions } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import { createReplaceOneController, createReplaceOneServiceProvider } from './replace-one.helper';
+import {
+  createReplaceOneController,
+  createReplaceOneGateway,
+  createReplaceOneServiceProvider,
+} from './replace-one.helper';
 
 @Module({})
 export class ReplaceOneModule {
@@ -12,6 +19,7 @@ export class ReplaceOneModule {
     routeConfig: DynamicAPIRouteConfig<Entity>,
     version?: string,
     validationPipeOptions?: ValidationPipeOptions,
+    webSocket?: DynamicApiWebSocketOptions,
   ): DynamicModule {
     const controller = createReplaceOneController(
       entity,
@@ -22,11 +30,29 @@ export class ReplaceOneModule {
     );
     const ServiceProvider = createReplaceOneServiceProvider(entity, version, routeConfig.callback);
 
+    const gatewayOptions = webSocket
+      ? initializeConfigFromOptions(webSocket)
+      : DynamicApiModule.state.get<GatewayMetadata>('gatewayOptions');
+
     return {
       module: ReplaceOneModule,
       imports: [databaseModule],
       controllers: [controller],
-      providers: [ServiceProvider],
+      providers: [
+        ServiceProvider,
+        ...(
+          gatewayOptions ? [
+            createReplaceOneGateway(
+              entity,
+              controllerOptions,
+              routeConfig,
+              version,
+              validationPipeOptions,
+              gatewayOptions,
+            )
+          ] : []
+        ),
+      ],
     };
   }
 }

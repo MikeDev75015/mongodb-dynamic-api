@@ -45,7 +45,7 @@ export abstract class BaseDuplicateManyService<Entity extends BaseEntity>
 
             return { ...acc, [key]: value };
           }, {}),
-          ...partial,
+          ...partial ?? {},
         }
       )));
       const documents = await this.model.find({ _id: { $in: duplicatedList.map(({ _id }) => _id.toString()) } })

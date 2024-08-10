@@ -1,7 +1,10 @@
 import { DynamicModule, Module, Type, ValidationPipeOptions } from '@nestjs/common';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { GatewayMetadata } from '@nestjs/websockets';
+import { DynamicApiModule } from '../../dynamic-api.module';
+import { initializeConfigFromOptions } from '../../helpers';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiWebSocketOptions } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import { createUpdateOneController, createUpdateOneServiceProvider } from './update-one.helper';
+import { createUpdateOneController, createUpdateOneGateway, createUpdateOneServiceProvider } from './update-one.helper';
 
 @Module({})
 export class UpdateOneModule {
@@ -12,6 +15,7 @@ export class UpdateOneModule {
     routeConfig: DynamicAPIRouteConfig<Entity>,
     version?: string,
     validationPipeOptions?: ValidationPipeOptions,
+    webSocket?: DynamicApiWebSocketOptions,
   ): DynamicModule {
     const controller = createUpdateOneController(
       entity,
@@ -22,11 +26,29 @@ export class UpdateOneModule {
     );
     const ServiceProvider = createUpdateOneServiceProvider(entity, version, routeConfig.callback);
 
+    const gatewayOptions = webSocket
+      ? initializeConfigFromOptions(webSocket)
+      : DynamicApiModule.state.get<GatewayMetadata>('gatewayOptions');
+
     return {
       module: UpdateOneModule,
       imports: [databaseModule],
       controllers: [controller],
-      providers: [ServiceProvider],
+      providers: [
+        ServiceProvider,
+        ...(
+          gatewayOptions ? [
+            createUpdateOneGateway(
+              entity,
+              controllerOptions,
+              routeConfig,
+              version,
+              validationPipeOptions,
+              gatewayOptions,
+            )
+          ] : []
+        ),
+      ],
     };
   }
 }

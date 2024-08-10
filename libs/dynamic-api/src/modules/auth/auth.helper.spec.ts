@@ -8,7 +8,12 @@ import {
   createLocalStrategyProvider,
   localStrategyProviderName,
 } from './auth.helper';
-import { AuthService, DynamicApiRegisterOptions, DynamicApiResetPasswordOptions } from './interfaces';
+import {
+  AuthService,
+  DynamicApiRegisterOptions,
+  DynamicApiResetPasswordOptions,
+  DynamicApiUpdateAccountOptions,
+} from './interfaces';
 
 describe('AuthHelper', () => {
   class UserEntity extends BaseEntity {
@@ -42,6 +47,11 @@ describe('AuthHelper', () => {
     transformOptions: {
       enableImplicitConversion: true,
     },
+  };
+  const updateAccountOptions: DynamicApiUpdateAccountOptions<UserEntity> = {
+    callback: jest.fn(),
+    abilityPredicate: jest.fn(),
+    additionalFieldsToExclude: ['pass'],
   };
 
   describe('createLocalStrategyProvider', () => {
@@ -132,6 +142,7 @@ describe('AuthHelper', () => {
         },
         undefined,
         undefined,
+        undefined,
       );
 
       expect(provider).toEqual({
@@ -157,6 +168,7 @@ describe('AuthHelper', () => {
           },
           registerOptions.callback,
           resetPasswordOptions,
+          updateAccountOptions.callback,
         );
 
         AuthService = provider.useClass;
@@ -205,6 +217,7 @@ describe('AuthHelper', () => {
         registerOptions,
         validationPipeOptions,
         resetPasswordOptions,
+        updateAccountOptions,
       );
 
       expect(AuthController).toEqual(expect.any(Function));
@@ -215,6 +228,7 @@ describe('AuthHelper', () => {
       AuthController = createAuthController(
         UserEntity,
         { loginField, passwordField, additionalFields: undefined },
+        undefined,
         undefined,
         undefined,
         undefined,

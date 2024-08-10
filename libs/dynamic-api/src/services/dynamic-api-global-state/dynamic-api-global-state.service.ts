@@ -18,6 +18,7 @@ export class DynamicApiGlobalStateService {
     isAuthEnabled: false,
     credentials: null,
     jwtSecret: undefined,
+    jwtExpirationTime: undefined,
     cacheExcludedPaths: [],
     routesConfig: {
       excluded: [],

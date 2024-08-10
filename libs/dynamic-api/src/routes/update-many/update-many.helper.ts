@@ -6,8 +6,10 @@ import {
   UseInterceptors,
   ValidationPipeOptions,
 } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
+import { WebSocketGateway } from '@nestjs/websockets';
 import { Model } from 'mongoose';
 import { ValidatorPipe } from '../../decorators';
 import { DynamicApiModule } from '../../dynamic-api.module';
@@ -17,11 +19,14 @@ import {
   DynamicAPIRouteConfig,
   DynamicApiServiceCallback,
   DynamicAPIServiceProvider,
+  GatewayOptions,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseUpdateManyService } from './base-update-many.service';
 import { UpdateManyControllerConstructor } from './update-many-controller.interface';
 import { UpdateManyControllerMixin } from './update-many-controller.mixin';
+import { UpdateManyGatewayConstructor } from './update-many-gateway.interface';
+import { UpdateManyGatewayMixin } from './update-many-gateway.mixin';
 import { UpdateManyService } from './update-many-service.interface';
 
 function createUpdateManyServiceProvider<Entity extends BaseEntity>(
@@ -90,4 +95,32 @@ function createUpdateManyController<Entity extends BaseEntity>(
   return UpdateManyController;
 }
 
-export { createUpdateManyController, createUpdateManyServiceProvider };
+function createUpdateManyGateway<Entity extends BaseEntity>(
+  entity: Type<Entity>,
+  controllerOptions: DynamicApiControllerOptions<Entity>,
+  routeConfig: DynamicAPIRouteConfig<Entity>,
+  version?: string,
+  validationPipeOptions?: ValidationPipeOptions,
+  gatewayOptions: GatewayOptions = {},
+): UpdateManyGatewayConstructor<Entity> {
+  @WebSocketGateway(gatewayOptions)
+  @ValidatorPipe(validationPipeOptions)
+  class UpdateManyGateway extends UpdateManyGatewayMixin(
+    entity,
+    controllerOptions,
+    routeConfig,
+    version,
+  ) {
+    constructor(
+      @Inject(provideName(routeConfig.type, entity.name, version, 'Service'))
+      protected readonly service: UpdateManyService<Entity>,
+      protected readonly jwtService: JwtService,
+    ) {
+      super(service, jwtService);
+    }
+  }
+
+  return UpdateManyGateway;
+}
+
+export { createUpdateManyController, createUpdateManyGateway, createUpdateManyServiceProvider };

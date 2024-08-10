@@ -294,16 +294,22 @@ describe('BaseAuthService', () => {
   });
 
   describe('getAccount', () => {
+    const fakeUserId = 'fake-id';
+
     beforeEach(() => {
-      exec.mockResolvedValueOnce(fakeUser);
+      exec.mockResolvedValueOnce({ ...fakeUser, id: fakeUserId });
       spyBuildUserFields.mockReturnValueOnce(fakeLoginBuilt);
     });
 
     it('should return user with only login and additional fields', async () => {
-      const result = await service['getAccount']({ id: fakeUser.id } as User);
+      const result = await service['getAccount']({ id: fakeUserId } as User);
 
-      expect(model.findOne).toHaveBeenCalledWith({ _id: fakeUser.id });
-      expect(spyBuildUserFields).toHaveBeenCalledWith(fakeUser, ['_id', fakeLoginField, ...service['additionalRequestFields']]);
+      expect(model.findOne).toHaveBeenCalledWith({ _id: fakeUserId });
+      expect(spyBuildUserFields)
+      .toHaveBeenCalledWith(
+        { ...fakeUser, id: fakeUserId },
+        ['_id', fakeLoginField, ...service['additionalRequestFields']],
+      );
       expect(result).toEqual(fakeLoginBuilt);
     });
   });
@@ -486,7 +492,8 @@ describe('BaseAuthService', () => {
         undefined,
       );
       expect(spyBcriptHashPassword).toHaveBeenCalledWith(newPassword);
-      expect(model.updateOne).toHaveBeenCalledWith({ _id: fakeUser._id }, { [fakePasswordField]: hashedPassword });
+      expect(model.updateOne)
+      .toHaveBeenCalledWith({ _id: fakeUser._id }, { $set: { [fakePasswordField]: hashedPassword } });
       expect(spyBuildInstance).toHaveBeenCalledWith(fakeUser);
       expect(changePasswordCallback).toHaveBeenCalledTimes(1);
       expect(changePasswordCallback).toHaveBeenCalledWith(fakeUserInstance, service['callbackMethods']);
