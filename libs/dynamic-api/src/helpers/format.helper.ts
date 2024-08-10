@@ -22,7 +22,7 @@ function provideName(
   routeType: RouteType,
   entityName: string,
   version: string | undefined,
-  suffix: 'Service' | 'Controller' | 'PoliciesGuard',
+  suffix: 'Service' | 'Controller' | 'PoliciesGuard' | 'Gateway',
 ) {
   return `${getNamePrefix(routeType, entityName, version)}${suffix}`;
 }

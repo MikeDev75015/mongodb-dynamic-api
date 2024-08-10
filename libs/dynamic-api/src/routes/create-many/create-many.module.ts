@@ -1,7 +1,14 @@
 import { DynamicModule, Module, Type, ValidationPipeOptions } from '@nestjs/common';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { GatewayMetadata } from '@nestjs/websockets';
+import { DynamicApiModule } from '../../dynamic-api.module';
+import { initializeConfigFromOptions } from '../../helpers';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiWebSocketOptions } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import { createCreateManyController, createCreateManyServiceProvider } from './create-many.helper';
+import {
+  createCreateManyController,
+  createCreateManyGateway,
+  createCreateManyServiceProvider,
+} from './create-many.helper';
 
 @Module({})
 export class CreateManyModule {
@@ -12,6 +19,7 @@ export class CreateManyModule {
     routeConfig: DynamicAPIRouteConfig<Entity>,
     version?: string,
     validationPipeOptions?: ValidationPipeOptions,
+    webSocket?: DynamicApiWebSocketOptions,
   ): DynamicModule {
     const controller = createCreateManyController(
       entity,
@@ -22,11 +30,29 @@ export class CreateManyModule {
     );
     const ServiceProvider = createCreateManyServiceProvider(entity, version, routeConfig.callback);
 
+    const gatewayOptions = webSocket
+      ? initializeConfigFromOptions(webSocket)
+      : DynamicApiModule.state.get<GatewayMetadata>('gatewayOptions');
+
     return {
       module: CreateManyModule,
       imports: [databaseModule],
       controllers: [controller],
-      providers: [ServiceProvider],
+      providers: [
+        ServiceProvider,
+        ...(
+          gatewayOptions ? [
+            createCreateManyGateway(
+              entity,
+              controllerOptions,
+              routeConfig,
+              version,
+              validationPipeOptions,
+              gatewayOptions,
+            )
+          ] : []
+        ),
+      ],
     };
   }
 }

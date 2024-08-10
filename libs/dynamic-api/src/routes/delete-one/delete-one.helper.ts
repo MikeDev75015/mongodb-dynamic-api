@@ -6,17 +6,26 @@ import {
   UseInterceptors,
   ValidationPipeOptions,
 } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
+import { WebSocketGateway } from '@nestjs/websockets';
 import { Model } from 'mongoose';
 import { ValidatorPipe } from '../../decorators';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { provideName } from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
+import {
+  DynamicApiControllerOptions,
+  DynamicAPIRouteConfig,
+  DynamicAPIServiceProvider,
+  GatewayOptions,
+} from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseDeleteOneService } from './base-delete-one.service';
 import { DeleteOneControllerConstructor } from './delete-one-controller.interface';
 import { DeleteOneControllerMixin } from './delete-one-controller.mixin';
+import { DeleteOneGatewayConstructor } from './delete-one-gateway.interface';
+import { DeleteOneGatewayMixin } from './delete-one-gateway.mixin';
 import { DeleteOneService } from './delete-one-service.interface';
 
 function createDeleteOneServiceProvider<Entity extends BaseEntity>(
@@ -83,4 +92,32 @@ function createDeleteOneController<Entity extends BaseEntity>(
   return DeleteOneController;
 }
 
-export { createDeleteOneController, createDeleteOneServiceProvider };
+function createDeleteOneGateway<Entity extends BaseEntity>(
+  entity: Type<Entity>,
+  controllerOptions: DynamicApiControllerOptions<Entity>,
+  routeConfig: DynamicAPIRouteConfig<Entity>,
+  version?: string,
+  validationPipeOptions?: ValidationPipeOptions,
+  gatewayOptions: GatewayOptions = {},
+): DeleteOneGatewayConstructor<Entity> {
+  @WebSocketGateway(gatewayOptions)
+  @ValidatorPipe(validationPipeOptions)
+  class DeleteOneGateway extends DeleteOneGatewayMixin(
+    entity,
+    controllerOptions,
+    routeConfig,
+    version,
+  ) {
+    constructor(
+      @Inject(provideName(routeConfig.type, entity.name, version, 'Service'))
+      protected readonly service: DeleteOneService<Entity>,
+      protected readonly jwtService: JwtService,
+    ) {
+      super(service, jwtService);
+    }
+  }
+
+  return DeleteOneGateway;
+}
+
+export { createDeleteOneController, createDeleteOneGateway, createDeleteOneServiceProvider };

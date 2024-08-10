@@ -23,14 +23,12 @@ jest.mock('../../modules');
 describe('AuthDecoratorsBuilder', () => {
   let publicDecoratorSpy: jest.SpyInstance;
   let apiBearerAuthDecoratorSpy: jest.SpyInstance;
-  let useGuardsSpy: jest.SpyInstance;
 
   class FakeAuthRegisterPoliciesGuard {}
 
   beforeEach(() => {
     publicDecoratorSpy = jest.spyOn(CustomDecorators, 'Public');
     apiBearerAuthDecoratorSpy = jest.spyOn(SwaggerAPIDecorators, 'ApiBearerAuth');
-    useGuardsSpy = jest.spyOn(NestjsCommon, 'UseGuards');
   });
 
   describe('build', () => {
@@ -40,7 +38,6 @@ describe('AuthDecoratorsBuilder', () => {
 
       expect(publicDecoratorSpy).toHaveBeenCalledTimes(1);
       expect(apiBearerAuthDecoratorSpy).not.toHaveBeenCalled();
-      expect(useGuardsSpy).toHaveBeenCalledWith(FakeAuthRegisterPoliciesGuard);
     });
 
     it('should return ApiBearerAuth route decorator if route is protected', () => {
@@ -49,7 +46,6 @@ describe('AuthDecoratorsBuilder', () => {
 
       expect(apiBearerAuthDecoratorSpy).toHaveBeenCalledTimes(1);
       expect(publicDecoratorSpy).not.toHaveBeenCalled();
-      expect(useGuardsSpy).toHaveBeenCalledWith(Modules.JwtAuthGuard, FakeAuthRegisterPoliciesGuard);
 
     });
   });

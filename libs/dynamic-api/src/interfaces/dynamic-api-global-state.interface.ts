@@ -25,6 +25,7 @@ interface DynamicApiGlobalState {
   isAuthEnabled: boolean;
   credentials: Credentials;
   jwtSecret: string | undefined;
+  jwtExpirationTime: string | number | undefined;
   routesConfig: RoutesConfig;
   gatewayOptions: GatewayMetadata | undefined;
 }

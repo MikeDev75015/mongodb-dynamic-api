@@ -1,8 +1,12 @@
 import { DynamicModule, Module, Type, ValidationPipeOptions } from '@nestjs/common';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { GatewayMetadata } from '@nestjs/websockets';
+import { DynamicApiModule } from '../../dynamic-api.module';
+import { initializeConfigFromOptions } from '../../helpers';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiWebSocketOptions } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import {
   createDeleteManyController,
+  createDeleteManyGateway,
   createDeleteManyServiceProvider,
 } from './delete-many.helper';
 
@@ -15,6 +19,7 @@ export class DeleteManyModule {
     routeConfig: DynamicAPIRouteConfig<Entity>,
     version?: string,
     validationPipeOptions?: ValidationPipeOptions,
+    webSocket?: DynamicApiWebSocketOptions,
   ): DynamicModule {
     const controller = createDeleteManyController(
       entity,
@@ -25,11 +30,29 @@ export class DeleteManyModule {
     );
     const ServiceProvider = createDeleteManyServiceProvider(entity, version);
 
+    const gatewayOptions = webSocket
+      ? initializeConfigFromOptions(webSocket)
+      : DynamicApiModule.state.get<GatewayMetadata>('gatewayOptions');
+
     return {
       module: DeleteManyModule,
       imports: [databaseModule],
       controllers: [controller],
-      providers: [ServiceProvider],
+      providers: [
+        ServiceProvider,
+        ...(
+          gatewayOptions ? [
+            createDeleteManyGateway(
+              entity,
+              controllerOptions,
+              routeConfig,
+              version,
+              validationPipeOptions,
+              gatewayOptions,
+            ),
+          ] : []
+        ),
+      ],
     };
   }
 }

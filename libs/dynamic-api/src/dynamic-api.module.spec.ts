@@ -351,6 +351,7 @@ describe('DynamicApiModule', () => {
           { description: 'fake-description', ...createManyRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
+          undefined,
         );
         expect(spyCreateOneModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
@@ -359,6 +360,7 @@ describe('DynamicApiModule', () => {
           { description: 'fake-description', ...createOneRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
+          undefined,
         );
         expect(spyDeleteManyModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
@@ -367,6 +369,7 @@ describe('DynamicApiModule', () => {
           { description: 'fake-description', ...deleteManyRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
+          undefined,
         );
         expect(spyDeleteOneModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
@@ -375,6 +378,7 @@ describe('DynamicApiModule', () => {
           { description: 'fake-description', ...deleteOneRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
+          undefined,
         );
         expect(spyDuplicateManyModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
@@ -383,6 +387,7 @@ describe('DynamicApiModule', () => {
           { description: 'fake-description', ...duplicateManyRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
+          undefined,
         );
         expect(spyDuplicateOneModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
@@ -391,6 +396,7 @@ describe('DynamicApiModule', () => {
           { description: 'fake-description', ...duplicateOneRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
+          undefined,
         );
         expect(spyGetManyModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
@@ -399,6 +405,7 @@ describe('DynamicApiModule', () => {
           { description: 'fake-description', ...getManyRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
+          undefined,
         );
         expect(spyGetOneModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
@@ -407,6 +414,7 @@ describe('DynamicApiModule', () => {
           { description: 'fake-description', ...getOneRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
+          undefined,
         );
         expect(spyReplaceOneModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
@@ -415,6 +423,7 @@ describe('DynamicApiModule', () => {
           { description: 'fake-description', ...replaceOneRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
+          undefined,
         );
         expect(spyUpdateManyModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
@@ -423,6 +432,7 @@ describe('DynamicApiModule', () => {
           { description: 'fake-description', ...updateManyRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
+          undefined,
         );
         expect(spyUpdateOneModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
@@ -431,6 +441,7 @@ describe('DynamicApiModule', () => {
           { description: 'fake-description', ...updateOneRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
+          undefined,
         );
       });
 
@@ -543,6 +554,7 @@ describe('DynamicApiModule', () => {
           createManyRoute,
           createManyRoute.version,
           createManyRoute.validationPipeOptions,
+          undefined,
         );
         expect(spyCreateOneModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
@@ -551,6 +563,7 @@ describe('DynamicApiModule', () => {
           createOneRoute,
           createOneRoute.version,
           createOneRoute.validationPipeOptions,
+          undefined,
         );
         expect(spyDeleteOneModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
@@ -559,6 +572,7 @@ describe('DynamicApiModule', () => {
           deleteOneRoute,
           deleteOneRoute.version,
           deleteOneRoute.validationPipeOptions,
+          undefined,
         );
         expect(spyDeleteManyModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
@@ -567,6 +581,7 @@ describe('DynamicApiModule', () => {
           deleteManyRoute,
           deleteManyRoute.version,
           deleteManyRoute.validationPipeOptions,
+          undefined,
         );
         expect(spyDuplicateManyModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
@@ -575,6 +590,7 @@ describe('DynamicApiModule', () => {
           duplicateManyRoute,
           duplicateManyRoute.version,
           duplicateManyRoute.validationPipeOptions,
+          undefined,
         );
         expect(spyDuplicateOneModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
@@ -583,6 +599,7 @@ describe('DynamicApiModule', () => {
           duplicateOneRoute,
           duplicateOneRoute.version,
           duplicateOneRoute.validationPipeOptions,
+          undefined,
         );
         expect(spyGetManyModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
@@ -591,6 +608,7 @@ describe('DynamicApiModule', () => {
           getManyRoute,
           getManyRoute.version,
           getManyRoute.validationPipeOptions,
+          undefined,
         );
         expect(spyGetOneModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
@@ -599,6 +617,7 @@ describe('DynamicApiModule', () => {
           getOneRoute,
           getOneRoute.version,
           getOneRoute.validationPipeOptions,
+          undefined,
         );
         expect(spyReplaceOneModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
@@ -607,6 +626,7 @@ describe('DynamicApiModule', () => {
           replaceOneRoute,
           replaceOneRoute.version,
           replaceOneRoute.validationPipeOptions,
+          undefined,
         );
         expect(spyUpdateManyModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
@@ -615,6 +635,7 @@ describe('DynamicApiModule', () => {
           updateManyRoute,
           updateManyRoute.version,
           updateManyRoute.validationPipeOptions,
+          undefined,
         );
         expect(spyUpdateOneModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
@@ -623,6 +644,7 @@ describe('DynamicApiModule', () => {
           updateOneRoute,
           updateOneRoute.version,
           updateOneRoute.validationPipeOptions,
+          undefined,
         );
       });
 

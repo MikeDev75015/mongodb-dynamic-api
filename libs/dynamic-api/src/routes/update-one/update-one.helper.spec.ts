@@ -1,8 +1,11 @@
+import { createMock } from '@golevelup/ts-jest';
 import { Type } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
 import { buildDynamicApiModuleOptionsMock } from '../../../__mocks__/dynamic-api.module.mock';
 import { buildModelMock } from '../../../__mocks__/model.mock';
-import { createUpdateOneController, createUpdateOneServiceProvider } from './update-one.helper';
+import { UpdateOneService } from './update-one-service.interface';
+import { createUpdateOneController, createUpdateOneGateway, createUpdateOneServiceProvider } from './update-one.helper';
 
 describe('UpdateOneHelper', () => {
   let entity: Type;
@@ -59,6 +62,23 @@ describe('UpdateOneHelper', () => {
       expect(spyServiceUpdateOne).toHaveBeenCalledWith('test', {
         unit: 'test',
       });
+    });
+  });
+
+  describe('createUpdateOneGateway', () => {
+    it('should instantiate UpdateOne gateway with default values', async () => {
+      const gatewayClass = createUpdateOneGateway(
+        entity,
+        { path: 'path' },
+        { type: 'UpdateOne' },
+      );
+
+      const service = createMock<UpdateOneService<any>>();
+      const jwtService = createMock<JwtService>();
+
+      const gateway = new gatewayClass(service, jwtService);
+
+      expect(gateway).toBeDefined();
     });
   });
 });

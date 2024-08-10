@@ -1,8 +1,11 @@
+import { createMock } from '@golevelup/ts-jest';
 import { Type } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
 import { buildDynamicApiModuleOptionsMock } from '../../../__mocks__/dynamic-api.module.mock';
 import { buildModelMock } from '../../../__mocks__/model.mock';
-import { createDeleteOneController, createDeleteOneServiceProvider } from './delete-one.helper';
+import { DeleteOneService } from './delete-one-service.interface';
+import { createDeleteOneController, createDeleteOneGateway, createDeleteOneServiceProvider } from './delete-one.helper';
 
 describe('DeleteOneHelper', () => {
   let entity: Type;
@@ -57,6 +60,23 @@ describe('DeleteOneHelper', () => {
       await controller.deleteOne('test');
 
       expect(spyServiceDeleteOne).toHaveBeenCalledWith('test');
+    });
+  });
+
+  describe('createDeleteOneGateway', () => {
+    it('should instantiate DeleteOne gateway with default values', async () => {
+      const gatewayClass = createDeleteOneGateway(
+        entity,
+        { path: 'path' },
+        { type: 'DeleteOne' },
+      );
+
+      const service = createMock<DeleteOneService<any>>();
+      const jwtService = createMock<JwtService>();
+
+      const gateway = new gatewayClass(service, jwtService);
+
+      expect(gateway).toBeDefined();
     });
   });
 });

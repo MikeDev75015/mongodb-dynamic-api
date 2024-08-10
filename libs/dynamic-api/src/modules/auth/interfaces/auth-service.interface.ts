@@ -11,6 +11,8 @@ interface AuthService<Entity extends BaseEntity> {
 
   getAccount(user: Entity): Promise<Entity>;
 
+  updateAccount(user: Entity, update: Partial<Entity>): Promise<Entity>;
+
   resetPassword(email: string): Promise<void>;
 
   changePassword(resetPasswordToken: string, newPassword: string): Promise<void>;

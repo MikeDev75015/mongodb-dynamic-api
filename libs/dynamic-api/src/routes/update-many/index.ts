@@ -3,4 +3,6 @@ export * from './update-many.helper';
 export * from './update-many.module';
 export * from './update-many-controller.interface';
 export * from './update-many-controller.mixin';
+export * from './update-many-gateway.interface';
+export * from './update-many-gateway.mixin';
 export * from './update-many-service.interface';

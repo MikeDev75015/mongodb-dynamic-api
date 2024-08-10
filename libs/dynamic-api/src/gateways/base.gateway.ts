@@ -1,8 +1,9 @@
 import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
+import { isEmpty } from 'lodash';
+import { ManyEntityQuery } from '../dtos';
 import { DynamicApiModule } from '../dynamic-api.module';
-import { isNotEmptyObject } from '../helpers';
 import { ExtendedSocket } from '../interfaces';
 import { BaseEntity } from '../models';
 
@@ -32,9 +33,9 @@ export abstract class BaseGateway<Entity extends BaseEntity> {
       }
 
       // noinspection JSUnusedLocalSymbols
-      const { iat, exp, ...user } = verified;
+      const { iat, exp, ...user } = verified ?? {};
 
-      socket.user = isNotEmptyObject(user) ? user as unknown as Entity : undefined;
+      socket.user = !isEmpty(user) ? user as unknown as Entity : undefined;
     }
 
     if (socket.user?.id && verified?.exp > Date.now() / 1000) {
@@ -42,5 +43,15 @@ export abstract class BaseGateway<Entity extends BaseEntity> {
     }
 
     throw new WsException('Unauthorized');
+  }
+
+  protected isValidManyBody<T extends object>(body: T) {
+    return Boolean('ids' in body &&
+      Array.isArray((
+        body as ManyEntityQuery
+      ).ids) &&
+      (
+        body as ManyEntityQuery
+      ).ids.length);
   }
 }

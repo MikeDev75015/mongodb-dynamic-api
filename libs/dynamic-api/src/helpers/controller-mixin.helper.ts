@@ -1,11 +1,10 @@
 import { Type } from '@nestjs/common';
-import { ApiProperty, PickType } from '@nestjs/swagger';
-import { Type as TypeTransformer } from 'class-transformer';
-import { ArrayMinSize, IsInstance, ValidateNested } from 'class-validator';
+import { PickType } from '@nestjs/swagger';
 import { DeletePresenter, EntityParam } from '../dtos';
 import { DTOsBundle, DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../interfaces';
 import { EntityBodyMixin, EntityPresenterMixin } from '../mixins';
 import { BaseEntity } from '../models';
+import { CreateManyBodyDtoMixin } from '../routes';
 import { getPredicateFromControllerAbilityPredicates } from './controller-ability-predicates.helper';
 import { getFormattedApiTag } from './format.helper';
 import { addVersionSuffix } from './versioning-config.helper';
@@ -23,14 +22,7 @@ function buildCreateManyBodyDTO<Entity extends BaseEntity>(
     writable: false,
   });
 
-  class CreateManyBody {
-    @ApiProperty({ type: [DtoBody] })
-    @ValidateNested({ each: true })
-    @IsInstance(DtoBody, { each: true })
-    @ArrayMinSize(1)
-    @TypeTransformer(() => DtoBody)
-    list: DtoBody[];
-  }
+  class CreateManyBody extends CreateManyBodyDtoMixin(DtoBody) {}
 
   class RouteBody extends PickType(CustomBody ?? CreateManyBody, ['list']) {}
 

@@ -1,8 +1,11 @@
+import { createMock } from '@golevelup/ts-jest';
 import { Type } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
 import { buildDynamicApiModuleOptionsMock } from '../../../__mocks__/dynamic-api.module.mock';
 import { buildModelMock } from '../../../__mocks__/model.mock';
-import { createGetManyController, createGetManyServiceProvider } from './get-many.helper';
+import { GetManyService } from './get-many-service.interface';
+import { createGetManyController, createGetManyGateway, createGetManyServiceProvider } from './get-many.helper';
 
 describe('GetManyHelper', () => {
   let entity: Type;
@@ -50,6 +53,23 @@ describe('GetManyHelper', () => {
       await controller.getMany({ limit: 1, page: 1 });
 
       expect(spyServiceGetMany).toHaveBeenCalledWith({ limit: 1, page: 1 });
+    });
+  });
+
+  describe('createGetManyGateway', () => {
+    it('should instantiate GetMany gateway with default values', async () => {
+      const gatewayClass = createGetManyGateway(
+        entity,
+        { path: 'path' },
+        { type: 'GetMany' },
+      );
+
+      const service = createMock<GetManyService<any>>();
+      const jwtService = createMock<JwtService>();
+
+      const gateway = new gatewayClass(service, jwtService);
+
+      expect(gateway).toBeDefined();
     });
   });
 });

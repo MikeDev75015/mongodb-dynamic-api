@@ -3,4 +3,6 @@ export * from './duplicate-one.helper';
 export * from './duplicate-one.module';
 export * from './duplicate-one-controller.interface';
 export * from './duplicate-one-controller.mixin';
+export * from './duplicate-one-gateway.interface';
+export * from './duplicate-one-gateway.mixin';
 export * from './duplicate-one-service.interface';

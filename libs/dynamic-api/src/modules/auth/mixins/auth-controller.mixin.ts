@@ -3,18 +3,20 @@ import { ApiBearerAuth, ApiOkResponse, ApiProperty, IntersectionType, PartialTyp
 import { AuthDecoratorsBuilder } from '../../../builders';
 import { ApiEndpointVisibility, Public } from '../../../decorators';
 import { RouteDecoratorsHelper } from '../../../helpers';
+import { EntityBodyMixin } from '../../../mixins';
 import { BaseEntity } from '../../../models';
 import { ChangePasswordDto } from '../dtos/change-password.dto';
 import { ResetPasswordDto } from '../dtos/reset-password.dto';
-import { JwtAuthGuard, LocalAuthGuard } from '../guards';
+import { JwtAuthGuard, LocalAuthGuard, ResetPasswordGuard } from '../guards';
 import {
   AuthController,
   AuthControllerConstructor,
   AuthService,
   DynamicApiRegisterOptions,
   DynamicApiResetPasswordOptions,
+  DynamicApiUpdateAccountOptions,
 } from '../interfaces';
-import { AuthRegisterPoliciesGuardMixin } from './auth-register-policies-guard.mixin';
+import { AuthPoliciesGuardMixin } from './auth-policies-guard.mixin';
 
 function AuthControllerMixin<Entity extends BaseEntity>(
   userEntity: Type<Entity>,
@@ -26,7 +28,8 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     protected: registerProtected,
     abilityPredicate: registerAbilityPredicate,
   }: DynamicApiRegisterOptions<Entity> = {},
-  resetPasswordOptions?: DynamicApiResetPasswordOptions<Entity>,
+  resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> = {},
+  updateAccountOptions: DynamicApiUpdateAccountOptions<Entity> = {},
 ): AuthControllerConstructor<Entity> {
   if (!loginField || !passwordField) {
     throw new Error('Login and password fields are required');
@@ -78,6 +81,16 @@ function AuthControllerMixin<Entity extends BaseEntity>(
       : AuthBodyPasswordFieldDto,
   ) {}
 
+  class AuthUpdateAccountDto extends EntityBodyMixin(
+    userEntity,
+    true,
+    [
+      loginField,
+      passwordField,
+      ...updateAccountOptions.additionalFieldsToExclude ?? [],
+    ],
+  ) {}
+
   class AuthPresenter {
     @ApiProperty()
     accessToken: string;
@@ -86,9 +99,14 @@ function AuthControllerMixin<Entity extends BaseEntity>(
   // @ts-ignore
   class AuthUserPresenter extends PickType(userEntity, ['id', loginField, ...additionalRequestFields]) {}
 
-  class AuthRegisterPoliciesGuard extends AuthRegisterPoliciesGuardMixin(userEntity, registerAbilityPredicate) {}
+  class AuthRegisterPoliciesGuard extends AuthPoliciesGuardMixin(userEntity, registerAbilityPredicate) {}
+  const authRegisterDecorators = new AuthDecoratorsBuilder(registerProtected, AuthRegisterPoliciesGuard);
 
-  const authDecorators = new AuthDecoratorsBuilder(registerProtected, AuthRegisterPoliciesGuard);
+  class AuthUpdateAccountPoliciesGuard extends AuthPoliciesGuardMixin(userEntity, updateAccountOptions.abilityPredicate) {}
+  const authUpdateAccountDecorators = new AuthDecoratorsBuilder(
+    true,
+    AuthUpdateAccountPoliciesGuard
+  );
 
   class BaseAuthController implements AuthController<Entity> {
     constructor(protected readonly service: AuthService<Entity>) {}
@@ -102,6 +120,17 @@ function AuthControllerMixin<Entity extends BaseEntity>(
       return this.service.getAccount(req.user);
     }
 
+    @RouteDecoratorsHelper(authUpdateAccountDecorators)
+    @HttpCode(HttpStatus.OK)
+    @ApiOkResponse({ type: AuthUserPresenter })
+    @Patch('account')
+    updateAccount(
+      @Request() req: { user: Entity },
+      @Body() body: AuthUpdateAccountDto,
+    ) {
+      return this.service.updateAccount(req.user, body);
+    }
+
     @Public()
     @UseGuards(LocalAuthGuard)
     @HttpCode(HttpStatus.OK)
@@ -111,7 +140,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
       return this.service.login(req.user);
     }
 
-    @RouteDecoratorsHelper(authDecorators)
+    @RouteDecoratorsHelper(authRegisterDecorators)
     @HttpCode(HttpStatus.CREATED)
     @ApiOkResponse({ type: AuthPresenter })
     @Post('register')
@@ -120,6 +149,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     }
 
     @ApiEndpointVisibility(!!resetPasswordOptions, Public())
+    @UseGuards(new ResetPasswordGuard(!!resetPasswordOptions.emailField))
     @HttpCode(HttpStatus.NO_CONTENT)
     @Post('reset-password')
     resetPassword(@Body() { email }: ResetPasswordDto) {
@@ -127,6 +157,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     }
 
     @ApiEndpointVisibility(!!resetPasswordOptions, Public())
+    @UseGuards(new ResetPasswordGuard(!!resetPasswordOptions.emailField))
     @HttpCode(HttpStatus.NO_CONTENT)
     @Patch('change-password')
     changePassword(@Body() { resetPasswordToken, newPassword }: ChangePasswordDto) {
