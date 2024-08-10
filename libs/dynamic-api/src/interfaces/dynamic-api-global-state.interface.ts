@@ -1,3 +1,4 @@
+import { GatewayMetadata } from '@nestjs/websockets';
 import { Schema } from 'mongoose';
 import { RouteType } from './dynamic-api-route-type.type';
 
@@ -25,6 +26,7 @@ interface DynamicApiGlobalState {
   credentials: Credentials;
   jwtSecret: string | undefined;
   routesConfig: RoutesConfig;
+  gatewayOptions: GatewayMetadata | undefined;
 }
 
 export { DynamicApiGlobalState, Credentials, EntitySchemas, RoutesConfig };

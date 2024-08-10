@@ -1,11 +1,19 @@
+import { INestApplication } from '@nestjs/common';
 import { TestingModule } from '@nestjs/testing';
+import { MessageBody, SubscribeMessage, WebSocketGateway } from '@nestjs/websockets';
 import mongoose from 'mongoose';
 import * as supertest from 'supertest';
+import { io } from 'socket.io-client';
 
 type RequestOptions<Query extends object = any> = {
   query?: Query;
   authToken?: string;
   headers?: Record<string, unknown>;
+};
+
+type SocketOptions = {
+  accessToken?: string;
+  namespace?: string;
 };
 
 const truncateMongoDb = async (): Promise<void> => {
@@ -19,10 +27,18 @@ const truncateMongoDb = async (): Promise<void> => {
   await connection.close();
 };
 
+const verifyApp = () => {
+  if (!global.app?.getHttpServer) {
+    throw new Error('App is not initialized');
+  }
+
+  return supertest.agent(global.app.getHttpServer());
+};
+
 export async function createTestingApp(
   moduleRef: TestingModule,
   initFixtures?: (connection: mongoose.Connection) => Promise<void>,
-  initMainCb?: (app: any) => Promise<void>,
+  initMainCb?: (app: INestApplication) => Promise<void>,
 ) {
   global.app = moduleRef.createNestApplication();
 
@@ -55,13 +71,9 @@ export async function closeTestingApp(connections: mongoose.Connection[]): Promi
   }
 }
 
-const verifyApp = () => {
-  if (!global.app?.getHttpServer) {
-    throw new Error('App is not initialized');
-  }
+export const handleSocketException = jest.fn();
 
-  return supertest.agent(global.app.getHttpServer());
-};
+export const handleSocketResponse = jest.fn();
 
 export const server = {
   get: async <Query extends object = any, Response = any>(path: string, { authToken, query, headers = {} }: RequestOptions<Query> = {}): Promise<Response> => {
@@ -122,4 +134,39 @@ export const server = {
       ...headers,
     }) as unknown as Promise<Response>;
   },
+  emit: async <Data, Response = any>(event: string, data?: Data, { accessToken, namespace }: SocketOptions = {}): Promise<Response> => {
+    verifyApp();
+
+    try {
+      await global.app.getUrl();
+    } catch {
+      await global.app.listen(8080);
+    }
+
+    return new Promise<Response>((resolve) => {
+      const ws = io('http://localhost:8080', { query: { accessToken }, path: namespace });
+
+      ws.on('exception', (exception) => {
+        handleSocketException(exception);
+        ws.close();
+        resolve(exception);
+      });
+
+      ws.on(event, (data) => {
+        handleSocketResponse(data);
+        ws.close();
+        resolve(data);
+      });
+
+      ws.emit(event, data);
+    });
+  },
 };
+
+@WebSocketGateway()
+export class TestGateway {
+  @SubscribeMessage('test')
+  test(@MessageBody() data: any) {
+    return { event: 'test', data };
+  }
+}

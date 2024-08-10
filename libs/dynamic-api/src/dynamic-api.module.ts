@@ -62,6 +62,7 @@ export class DynamicApiModule {
       cacheOptions = {},
       useAuth,
       routesConfig,
+      webSocket,
     }: DynamicApiForRootOptions<Entity> = {},
   ): DynamicModule {
     if (!uri) {
@@ -72,7 +73,7 @@ export class DynamicApiModule {
 
     this.state.set([
       'partial',
-      this.buildStateFromOptions(uri, useGlobalCache, cacheOptions, useAuth, routesConfig),
+      this.buildStateFromOptions(uri, useGlobalCache, cacheOptions, useAuth, routesConfig, webSocket),
     ]);
 
     return {
@@ -104,6 +105,7 @@ export class DynamicApiModule {
     entity,
     controllerOptions,
     routes,
+    webSocket: featureWebSocket,
   }: DynamicApiForFeatureOptions<Entity>): Promise<DynamicModule> {
     const schema = buildSchemaFromEntity(entity);
     const databaseModule = MongooseModule.forFeature(
@@ -165,6 +167,7 @@ export class DynamicApiModule {
                 description: routeDescription,
                 version: routeVersion,
                 validationPipeOptions: routeValidationPipeOptions,
+                webSocket: routeWebSocket,
               } = routeConfig;
 
               const module = moduleByRouteType.get(type);
@@ -192,6 +195,7 @@ export class DynamicApiModule {
                 { ...routeConfig, description },
                 version,
                 validationPipeOptions ?? { transform: true },
+                routeWebSocket ?? featureWebSocket,
               );
             }),
           ],
@@ -233,6 +237,7 @@ export class DynamicApiModule {
    * @param {DynamicApiCacheOptions} cacheOptions - The cache options.
    * @param {DynamicApiAuthOptions} useAuth - The auth options.
    * @param routesConfig - The route's configurations.
+   * @param webSocket - The web socket options.
    * @returns {{ initialized: boolean; isGlobalCacheEnabled: boolean }} - The built state.
    */
   private static buildStateFromOptions(
@@ -241,6 +246,7 @@ export class DynamicApiModule {
     cacheOptions: DynamicApiCacheOptions,
     useAuth?: DynamicApiAuthOptions,
     routesConfig?: Partial<RoutesConfig>,
+    webSocket?: DynamicApiWebSocketOptions,
   ): Partial<DynamicApiGlobalState> {
     const routesConfigState = this.state.get<RoutesConfig>('routesConfig');
 
@@ -259,6 +265,8 @@ export class DynamicApiModule {
             passwordField: !useAuth.login?.passwordField ? 'password' : String(useAuth.login.passwordField),
           },
           jwtSecret: useAuth.jwt?.secret ?? 'dynamic-api-jwt-secret',
+          jwtExpirationTime: useAuth.jwt?.expiresIn ?? '1d',
+          gatewayOptions: initializeConfigFromOptions(webSocket),
         } : {}
       ),
       ...(
@@ -269,6 +277,7 @@ export class DynamicApiModule {
           },
         } : {}
       ),
+      gatewayOptions: initializeConfigFromOptions(webSocket),
     };
   }
 
