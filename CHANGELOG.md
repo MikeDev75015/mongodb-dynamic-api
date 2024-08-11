@@ -1,5 +1,12 @@
 Changelog
 
+## [2.4.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.3.17...v2.4.0) (2024-08-11)
+
+
+### web-socket
+
+* **web-socket:** add all modules configuration ([bf51c9a](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/bf51c9ae0037c285ad251250f9dbb3cd29e42dec))
+
 ## [2.3.17](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.3.16...v2.3.17) (2024-05-26)
 
 
