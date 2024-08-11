@@ -1406,6 +1406,550 @@ describe('DynamicApiModule forRoot (e2e)', () => {
           });
         });
       });
+
+      describe('EVENT auth-register with register options', () => {
+        @Schema({ collection: 'users' })
+        class User extends BaseEntity {
+          @Prop({ type: String, required: true })
+          email: string;
+
+          @Prop({ type: String, required: true })
+          password: string;
+
+          @Prop({ type: String, default: 'user' })
+          role: 'admin' | 'user' | 'client' = 'user';
+
+          @Prop({ type: Boolean, default: false })
+          isVerified: boolean;
+        }
+
+        const admin = { email: 'admin@test.co', password: 'admin', role: 'admin', isVerified: true };
+        const user = { email: 'user@test.co', password: 'user' };
+
+        beforeEach(async () => {
+          const bcryptService = new BcryptService();
+
+          const fixtures = async (_: Connection) => {
+            const model = await getModelFromEntity(User);
+            await model.insertMany([
+              { ...admin, password: await bcryptService.hashPassword(admin.password) },
+              { ...user, password: await bcryptService.hashPassword(user.password) },
+            ]);
+          };
+
+          await initModule(
+            {
+              useAuth: {
+                userEntity: User,
+                register: {
+                  protected: true,
+                  abilityPredicate: (user: User) => user.isVerified,
+                  additionalFields: ['role'],
+                  callback: async (user: User, { updateOneDocument }) => {
+                    if (user.role !== 'admin') {
+                      return;
+                    }
+
+                    await updateOneDocument(User, { _id: user.id }, { $set: { isVerified: true } });
+                  },
+                },
+                login: {
+                  additionalFields: ['role', 'isVerified'],
+                },
+              },
+              webSocket: true,
+            }, fixtures,
+            async (_: INestApplication) => {
+              _.useWebSocketAdapter(new SocketAdapter(_));
+            },
+          );
+        });
+
+        describe('protected', () => {
+          it('should throw a ws exception if user is not logged in and protected is true', async () => {
+            await server.emit('auth-register', { email: 'unit@test.co', password: 'test' });
+
+            expect(handleSocketException).toHaveBeenCalledTimes(1);
+            expect(handleSocketException).toHaveBeenCalledWith({
+              message: 'Unauthorized',
+            });
+            expect(handleSocketResponse).not.toHaveBeenCalled();
+          });
+        });
+
+        describe('abilityPredicate', () => {
+          it('should not create a new user if user is not verified', async () => {
+            const { email, password } = user;
+            const { accessToken } = await server.emit('auth-login', { email, password });
+            handleSocketResponse.mockReset();
+
+            await server.emit('auth-register', { email: 'unit@test.co', password: 'test' }, {
+              accessToken,
+            });
+
+            expect(handleSocketException).toHaveBeenCalledTimes(1);
+            expect(handleSocketException).toHaveBeenCalledWith({
+              message: 'Access denied',
+            });
+            expect(handleSocketResponse).not.toHaveBeenCalled();
+          });
+
+          it('should create a new user and return access token if user is verified', async () => {
+            const { email, password } = admin;
+            const { accessToken } = await server.emit('auth-login', { email, password });
+            handleSocketResponse.mockReset();
+
+            await server.emit('auth-register', { email: 'unit@test.co', password: 'test' }, {
+              accessToken,
+            });
+
+            expect(handleSocketException).not.toHaveBeenCalled();
+            expect(handleSocketResponse).toHaveBeenCalledTimes(1);
+            expect(handleSocketResponse).toHaveBeenCalledWith({ accessToken: expect.any(String) });
+          });
+        });
+
+        describe('additionalFields', () => {
+          it('should allow to register a new user with additional fields', async () => {
+            const { email, password } = admin;
+            const { accessToken } = await server.emit('auth-login', { email, password });
+            handleSocketResponse.mockReset();
+
+            await server.emit(
+              'auth-register',
+              { email: 'client@test.co', password: 'client', role: 'client' },
+              {
+                accessToken,
+              },
+            );
+
+            expect(handleSocketException).not.toHaveBeenCalled();
+            expect(handleSocketResponse).toHaveBeenCalledTimes(1);
+            expect(handleSocketResponse).toHaveBeenCalledWith({ accessToken: expect.any(String) });
+          });
+        });
+
+        describe('callback', () => {
+          let adminAccessToken: string;
+
+          beforeEach(async () => {
+            const { email, password } = admin;
+            const { accessToken } = await server.emit('auth-login', { email, password });
+            adminAccessToken = accessToken;
+            handleSocketResponse.mockReset();
+          });
+
+          it('should not set isVerified to true if role is not admin', async () => {
+            const { accessToken: clientAccessToken } = await server.emit(
+              'auth-register',
+              { email: 'client@test.co', password: 'client', role: 'client' },
+              {
+                accessToken: adminAccessToken,
+              },
+            );
+            handleSocketResponse.mockReset();
+
+            const body = await server.emit(
+              'auth-get-account',
+              undefined,
+              { accessToken: clientAccessToken },
+            );
+
+            expect(handleSocketException).not.toHaveBeenCalled();
+            expect(handleSocketResponse).toHaveBeenCalledTimes(1);
+            expect(body).toHaveProperty('isVerified', false);
+          });
+
+          it('should set isVerified to true if role is admin', async () => {
+            const { accessToken: admin2AccessToken } = await server.emit(
+              'auth-register',
+              { email: 'admin2@test.co', password: 'admin2', role: 'admin' },
+              {
+                accessToken: adminAccessToken,
+              },
+            );
+            handleSocketResponse.mockReset();
+
+            const body = await server.emit(
+              'auth-get-account',
+              undefined,
+              { accessToken: admin2AccessToken },
+            );
+
+            expect(handleSocketException).not.toHaveBeenCalled();
+            expect(handleSocketResponse).toHaveBeenCalledTimes(1);
+            expect(body).toHaveProperty('isVerified', true);
+          });
+        });
+      });
+
+      describe('EVENT auth-login with login options', () => {
+        @Schema({ collection: 'users' })
+        class User extends BaseEntity {
+          @Prop({ type: String, required: true })
+          username: string;
+
+          @Prop({ type: String, required: true })
+          pass: string;
+
+          @Prop({ type: String, default: 'user' })
+          role: 'admin' | 'user' | 'client' = 'user';
+
+          @Prop({ type: Boolean, default: false })
+          isVerified: boolean;
+        }
+
+        const admin = { username: 'admin', pass: 'admin', role: 'admin', isVerified: true };
+        const user = { username: 'user', pass: 'user' };
+        const client = { username: 'client', pass: 'client', role: 'client', isVerified: true };
+
+        beforeEach(async () => {
+          const bcryptService = new BcryptService();
+
+          const fixtures = async (_: Connection) => {
+            const model = await getModelFromEntity(User);
+            await model.insertMany([
+              { ...admin, pass: await bcryptService.hashPassword(admin.pass) },
+              { ...user, pass: await bcryptService.hashPassword(user.pass) },
+              { ...client, pass: await bcryptService.hashPassword(client.pass) },
+            ]);
+          };
+
+          await initModule(
+            {
+            useAuth: {
+              userEntity: User,
+              login: {
+                loginField: 'username',
+                passwordField: 'pass',
+                additionalFields: ['role', 'isVerified'],
+                abilityPredicate: (user: User) => user.role === 'admin' || user.role === 'user',
+                callback: async (user: User) => {
+                  if (user.isVerified) {
+                    return;
+                  }
+
+                  throw new UnauthorizedException(`Hello ${user.username}, you must verify your account first!`);
+                },
+              },
+            },
+            webSocket: true,
+          }, fixtures,
+            async (_: INestApplication) => {
+              _.useWebSocketAdapter(new SocketAdapter(_));
+            },
+          );
+        });
+
+        describe('loginField', () => {
+          it('should throw a ws exception if loginField is missing', async () => {
+            await server.emit('auth-login', { pass: 'test' });
+
+            expect(handleSocketException).toHaveBeenCalledTimes(1);
+            expect(handleSocketException).toHaveBeenCalledWith({
+              message: 'Unauthorized',
+            });
+            expect(handleSocketResponse).not.toHaveBeenCalled();
+          });
+        });
+
+        describe('passwordField', () => {
+          it('should throw an unauthorized exception if passwordField is missing', async () => {
+            await server.emit('auth-login', { username: 'unit' });
+
+            expect(handleSocketException).toHaveBeenCalledTimes(1);
+            expect(handleSocketException).toHaveBeenCalledWith({
+              message: 'Unauthorized',
+            });
+            expect(handleSocketResponse).not.toHaveBeenCalled();
+          });
+        });
+
+        describe('abilityPredicate', () => {
+          it('should throw a ws exception if user role is not admin or user', async () => {
+            const { username, pass } = client;
+            await server.emit('auth-login', { username, pass });
+
+            expect(handleSocketException).toHaveBeenCalledTimes(1);
+            expect(handleSocketException).toHaveBeenCalledWith({
+              message: 'Access denied',
+            });
+            expect(handleSocketResponse).not.toHaveBeenCalled();
+          });
+        });
+
+        describe('callback', () => {
+          it('should throw a ws exception if user is not verified', async () => {
+            const { username, pass } = user;
+            await server.emit('auth-login', { username, pass });
+
+            expect(handleSocketException).toHaveBeenCalledTimes(1);
+            expect(handleSocketException).toHaveBeenCalledWith({
+              message: 'Hello user, you must verify your account first!',
+            });
+            expect(handleSocketResponse).not.toHaveBeenCalled();
+          });
+        });
+
+        describe('additionalFields', () => {
+          it('should return additional fields', async () => {
+            const { username, pass } = admin;
+            const { accessToken } = await server.emit('auth-login', { username, pass });
+            handleSocketResponse.mockReset();
+
+            await server.emit(
+              'auth-get-account',
+              undefined,
+              { accessToken },
+            );
+
+            expect(handleSocketException).not.toHaveBeenCalled();
+            expect(handleSocketResponse).toHaveBeenCalledTimes(1);
+            expect(handleSocketResponse).toHaveBeenCalledWith(
+              { id: expect.any(String), username: 'admin', role: 'admin', isVerified: true },
+            );
+          });
+        });
+      });
+
+      describe('useAuth with resetPassword options', () => {
+        @Schema({ collection: 'users' })
+        class User extends BaseEntity {
+          @Prop({ type: String, required: true })
+          email: string;
+
+          @Prop({ type: String, required: true })
+          password: string;
+
+          @Prop({ type: Boolean, default: false })
+          isVerified: boolean;
+
+          @Prop({ type: String })
+          resetPasswordToken: string;
+        }
+
+        let model: mongoose.Model<User>;
+        let user: User;
+        let client: User;
+        let app: INestApplication;
+
+        beforeEach(async () => {
+          user = { email: 'user@test.co', password: 'user', isVerified: true } as User;
+          client = { email: 'client@test.co', password: 'client' } as User;
+
+          const bcryptService = new BcryptService();
+
+          const fixtures = async (_: Connection) => {
+            model = await getModelFromEntity(User);
+            await model.insertMany([
+              { ...user, password: await bcryptService.hashPassword(user.password) },
+              { ...client, password: await bcryptService.hashPassword(client.password) },
+            ]);
+          };
+
+          app = await initModule(
+            {
+            useAuth: {
+              userEntity: User,
+              resetPassword: {
+                emailField: 'email',
+                expirationInMinutes: 1,
+                resetPasswordCallback: async (
+                  { resetPasswordToken }: { resetPasswordToken: string; email: string },
+                  { updateUserByEmail },
+                ) => {
+                  await updateUserByEmail({ $set: { resetPasswordToken } });
+                },
+                changePasswordAbilityPredicate: (user: User) => user.isVerified && !!user.resetPasswordToken,
+                changePasswordCallback: async (user: User, { updateOneDocument }) => {
+                  await updateOneDocument(User, { _id: user.id }, { $unset: { resetPasswordToken: 1 } });
+                },
+              },
+            },
+            webSocket: true,
+          }, fixtures,
+            async (_: INestApplication) => {
+              _.useWebSocketAdapter(new SocketAdapter(_));
+            },
+          );
+        });
+
+        describe('EVENT auth-reset-password', () => {
+          it(
+            'should throw a ws exception if email is missing if no validation options are provided',
+            async () => {
+              await server.emit('auth-reset-password', {});
+
+              expect(handleSocketException).toHaveBeenCalledTimes(1);
+              expect(handleSocketException).toHaveBeenCalledWith({
+                message: 'Invalid or missing argument',
+              });
+              expect(handleSocketResponse).not.toHaveBeenCalled();
+            }
+          );
+
+          it(
+            'should not throw a ws exception if email is invalid if no validation options are provided',
+            async () => {
+              await server.emit('auth-reset-password', { email: 'unit.test.co' });
+
+              expect(handleSocketException).not.toHaveBeenCalled();
+              expect(handleSocketResponse).toHaveBeenCalledTimes(1);
+            }
+          );
+
+          it('should not throw a ws exception if email is not found', async () => {
+            await server.emit('auth-reset-password', { email: 'invalid@test.co' });
+
+            expect(handleSocketException).not.toHaveBeenCalled();
+            expect(handleSocketResponse).toHaveBeenCalledTimes(1);
+          });
+
+          describe('resetPasswordCallback', () => {
+            it('should set resetPasswordToken if email is valid', async () => {
+              const { email } = user;
+              const { resetPasswordToken: resetPasswordTokenBeforeUpdate } = (
+                await model.findOne({ email }).lean().exec()
+              ) as User;
+
+              await server.emit('auth-reset-password', { email });
+
+              const { resetPasswordToken: resetPasswordTokenAfterUpdate } = (
+                await model.findOne({ email }).lean().exec()
+              ) as User;
+
+
+              expect(handleSocketException).not.toHaveBeenCalled();
+              expect(handleSocketResponse).toHaveBeenCalledTimes(1);
+              expect(resetPasswordTokenBeforeUpdate).toStrictEqual(undefined);
+              expect(resetPasswordTokenAfterUpdate).toStrictEqual(expect.any(String));
+            });
+          });
+        });
+
+        describe('EVENT auth-change-password', () => {
+          it('should throw a ws exception if resetPasswordToken is missing', async () => {
+            await server.emit('auth-change-password', { newPassword: 'test' });
+
+            expect(handleSocketException).toHaveBeenCalledTimes(1);
+            expect(handleSocketException).toHaveBeenCalledWith({
+              message: 'Invalid or missing argument',
+            });
+            expect(handleSocketResponse).not.toHaveBeenCalled();
+          });
+
+          it('should throw a ws exception if newPassword is missing', async () => {
+            await server.emit('auth-change-password', { resetPasswordToken: 'resetPasswordToken' });
+
+            expect(handleSocketException).toHaveBeenCalledTimes(1);
+            expect(handleSocketException).toHaveBeenCalledWith({
+              message: 'Invalid or missing argument',
+            });
+            expect(handleSocketResponse).not.toHaveBeenCalled();
+          });
+
+          it('should throw a ws exception if resetPasswordToken is invalid', async () => {
+            await server.emit(
+              'auth-change-password',
+              { resetPasswordToken: 'test', newPassword: 'newPassword' },
+            );
+
+            expect(handleSocketException).toHaveBeenCalledTimes(1);
+            expect(handleSocketException).toHaveBeenCalledWith({
+              message: 'Invalid reset password token. Please redo the reset password process.',
+            });
+            expect(handleSocketResponse).not.toHaveBeenCalled();
+          });
+
+          it('should throw a ws exception if resetPasswordToken is expired', async () => {
+            const jwtService = app.get<JwtService>(JwtService);
+            const expiredResetPasswordToken = jwtService.sign({ email: user.email }, { expiresIn: 1 });
+            await wait(500);
+
+            await server.emit(
+              'auth-change-password',
+              { resetPasswordToken: expiredResetPasswordToken, newPassword: 'newPassword' },
+            );
+
+            expect(handleSocketException).toHaveBeenCalledTimes(1);
+            expect(handleSocketException).toHaveBeenCalledWith({
+              message: 'Time to reset password has expired. Please redo the reset password process.',
+            });
+            expect(handleSocketResponse).not.toHaveBeenCalled();
+          });
+
+          describe('changePasswordAbilityPredicate', () => {
+            let resetPasswordToken: string;
+
+            beforeEach(async () => {
+              await server.emit('auth-reset-password', { email: client.email });
+              handleSocketResponse.mockReset();
+
+              const { resetPasswordToken: token } = (
+                await model.findOne({ email: client.email }).lean().exec()
+              ) as User;
+
+              resetPasswordToken = token;
+            });
+
+            it('should throw a ws exception if user is not allowed to change password', async () => {
+              await server.emit(
+                'auth-change-password',
+                { resetPasswordToken, newPassword: 'newPassword' },
+              );
+
+              expect(handleSocketException).toHaveBeenCalledTimes(1);
+              expect(handleSocketException).toHaveBeenCalledWith({
+                message: 'You are not allowed to change your password.',
+              });
+              expect(handleSocketResponse).not.toHaveBeenCalled();
+            });
+          });
+
+          describe('changePasswordCallback', () => {
+            let resetPasswordToken: string;
+
+            beforeEach(async () => {
+              await server.emit('auth-reset-password', { email: user.email });
+              handleSocketResponse.mockReset();
+
+              const { resetPasswordToken: token } = (
+                await model.findOne({ email: user.email }).lean().exec()
+              ) as User;
+
+              resetPasswordToken = token;
+            });
+
+            it('should change password and unset resetPasswordToken if resetPasswordToken is valid', async () => {
+              const newPassword = 'newPassword';
+              const bcryptService = app.get<BcryptService>(BcryptService);
+              const { password: passwordBeforeUpdate } = (
+                await model.findOne({ email: user.email }).lean().exec()
+              ) as User;
+
+              await server.emit(
+                'auth-change-password',
+                { resetPasswordToken, newPassword },
+              );
+
+              const { password: passwordAfterUpdate, resetPasswordToken: tokenAfterUpdate } = (
+                await model.findOne({ email: user.email }).lean().exec()
+              ) as User;
+
+              const isPreviousPassword = await bcryptService.comparePassword(user.password, passwordBeforeUpdate);
+              expect(isPreviousPassword).toBe(true);
+
+              const isNewPassword = await bcryptService.comparePassword(newPassword, passwordAfterUpdate);
+              expect(isNewPassword).toBe(true);
+
+              expect(tokenAfterUpdate).toStrictEqual(undefined);
+
+              expect(handleSocketException).not.toHaveBeenCalled();
+              expect(handleSocketResponse).toHaveBeenCalledTimes(1);
+            });
+          });
+        });
+      });
     });
   });
 });
