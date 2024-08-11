@@ -2,6 +2,7 @@ import { ExecutionContext, ForbiddenException, Injectable, Type } from '@nestjs/
 import { WsException } from '@nestjs/websockets';
 import { AuthAbilityPredicate, AuthPoliciesGuardConstructor } from '../../../interfaces';
 import { BaseEntity } from '../../../models';
+import { JwtSocketAuthGuard } from '../guards';
 
 function AuthPoliciesGuardMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
@@ -33,17 +34,21 @@ function AuthSocketPoliciesGuardMixin<Entity extends BaseEntity>(
   abilityPredicate: AuthAbilityPredicate | undefined,
 ): AuthPoliciesGuardConstructor {
   @Injectable()
-  class BaseAuthSocketPoliciesGuard {
+  class BaseAuthSocketPoliciesGuard extends JwtSocketAuthGuard {
     protected entity = entity;
     protected abilityPredicate = abilityPredicate;
 
-    canActivate(context: ExecutionContext): boolean {
+    override async canActivate(context: ExecutionContext): Promise<boolean> {
       const [socket] = context.getArgs();
 
-      if (this.abilityPredicate && (
-        !socket.user || !this.abilityPredicate(socket.user)
-      )) {
-        throw new WsException('Access denied');
+      if (this.abilityPredicate) {
+        const accessToken = this.getAccessTokenFromSocketQuery(socket);
+
+        socket.user = await this.extractUserFromToken(accessToken);
+
+        if (!socket.user || !this.abilityPredicate(socket.user)) {
+          throw new WsException('Access denied');
+        }
       }
 
       return true;

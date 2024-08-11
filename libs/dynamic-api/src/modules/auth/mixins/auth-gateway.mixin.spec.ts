@@ -264,20 +264,6 @@ describe('AuthGatewayMixin', () => {
       expect(service.register).toHaveBeenCalledTimes(1);
       expect(service.register).toHaveBeenCalledWith(registerDto);
     });
-
-    it('should throw Access denied error if user does not have permission to register', async () => {
-      const AuthGateway = AuthGatewayMixin(
-        TestEntity,
-        login,
-        register,
-      );
-      gateway = new AuthGateway(service, jwtService);
-      register.abilityPredicate = jest.fn(() => false);
-
-      await expect(gateway.register(socket, registerDto)).rejects.toThrow(new WsException('Access denied'));
-
-      expect(service.register).not.toHaveBeenCalled();
-    });
   });
 
   describe('resetPassword', () => {

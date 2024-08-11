@@ -166,10 +166,6 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
     ) {
       this.addUserToSocket(socket, !registerProtected && !registerAbilityPredicate);
 
-      if (registerAbilityPredicate && !registerAbilityPredicate(socket.user)) {
-        throw new WsException('Access denied');
-      }
-
       return {
         event: registerEvent,
         data: await this.service.register(data),
