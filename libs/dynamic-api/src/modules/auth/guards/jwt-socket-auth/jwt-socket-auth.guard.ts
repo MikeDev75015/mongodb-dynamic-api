@@ -1,8 +1,9 @@
-import { CanActivate, ExecutionContext, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
 import { isEmpty } from 'lodash';
 import { DynamicApiModule } from '../../../../dynamic-api.module';
+import { ExtendedSocket } from '../../../../interfaces';
 
 @Injectable()
 export class JwtSocketAuthGuard implements CanActivate {
@@ -11,35 +12,9 @@ export class JwtSocketAuthGuard implements CanActivate {
   public async canActivate(context: ExecutionContext): Promise<boolean> {
     const [socket] = context.getArgs();
 
-    const accessToken = socket.handshake.query.accessToken as string;
+    const accessToken = this.getAccessTokenFromSocketQuery(socket);
 
-    if (!accessToken) {
-      throw new WsException('Unauthorized');
-    }
-
-    const jwtService = new JwtService({
-      secret: DynamicApiModule.state.get('jwtSecret'),
-      signOptions: {
-        expiresIn: DynamicApiModule.state.get('jwtExpirationTime'),
-      },
-    });
-
-    let verified: { iat: number; exp: number };
-
-    try {
-      verified = await jwtService.verifyAsync(accessToken, {
-        secret: DynamicApiModule.state.get('jwtSecret'),
-        ignoreExpiration: false,
-      });
-    } catch (e: any) {
-      this.logger.warn('jwtService.verify error');
-      this.logger.warn(e.message);
-
-      throw new UnauthorizedException('Unauthorized');
-    }
-
-    // noinspection JSUnusedLocalSymbols
-    const { iat, exp, ...user } = verified;
+    const user = await this.extractUserFromToken(accessToken);
 
     if (isEmpty(user)) {
       this.logger.warn('No user data');
@@ -48,5 +23,38 @@ export class JwtSocketAuthGuard implements CanActivate {
 
     socket.user = user;
     return true;
+  }
+
+  protected getAccessTokenFromSocketQuery(socket: ExtendedSocket): string {
+    const accessToken = socket.handshake.query.accessToken as string;
+
+    if (!accessToken) {
+      throw new WsException('Unauthorized');
+    }
+
+    return accessToken;
+  }
+
+  protected async extractUserFromToken(accessToken: string): Promise<unknown> {
+    const jwtService = new JwtService({
+      secret: DynamicApiModule.state.get('jwtSecret'),
+      signOptions: {
+        expiresIn: DynamicApiModule.state.get('jwtExpirationTime'),
+      },
+    });
+
+    try {
+      const { iat, exp, ...user } = await jwtService.verifyAsync(accessToken, {
+        secret: DynamicApiModule.state.get('jwtSecret'),
+        ignoreExpiration: false,
+      });
+
+      return user;
+    } catch (e: any) {
+      this.logger.warn('extractUserFromToken jwtService.verify error');
+      this.logger.warn(e.message);
+
+      throw new WsException('Unauthorized');
+    }
   }
 }
