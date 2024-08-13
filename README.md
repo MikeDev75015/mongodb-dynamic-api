@@ -56,7 +56,7 @@ npm install --save mongodb-dynamic-api
 
 <div style="text-align: center; width: 100%;">
 
-# Dynamic API Module
+# Dynamic API Module<br>with WebSockets
 
 </div>
 
@@ -70,8 +70,9 @@ In summary, DynamicApiModule is a flexible and configurable module using NestJS 
 [Versioning](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/versioning.md),
 [Validation](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/validation.md),
 [Caching](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/caching.md),
-[Authentication](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/authentication.md) and
-[Authorization](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/authorization.md).
+[Authentication](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/authentication.md),
+[Authorization](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/authorization.md) and
+[WebSockets](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/websockets.md).
 
 </p>
 
@@ -204,6 +205,7 @@ Go further with optional features like:
 - **[Caching](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/caching.md)**
 - **[Authentication](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/authentication.md)**
 - **[Authorization](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/authorization.md)**
+- **[WebSockets](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/websockets.md)**
 
 
 
