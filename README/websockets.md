@@ -34,13 +34,13 @@ async function bootstrap() {
 
 **Usage**
 
+`webSocket: GatewayMetadata | boolean;`
+
 You can enable WebSockets in your application at global,
 module or route level by setting the `webSocket` property to `true`
 or by passing a [GatewayMetadata](https://github.com/nestjs/nest/blob/master/packages/websockets/interfaces/gateway-metadata.interface.ts) object.
 
-`webSocket: GatewayMetadata | boolean;`
-
-<br>*If the webSocket is specified at the global level, it will be applied to all modules and routes,
+*If the webSocket is specified at the global level, it will be applied to all modules and routes,
 at the module level, it will be applied to all routes in the module,
 and at the route level, it will be applied only to the route.*
 
@@ -65,7 +65,7 @@ export class AppModule {}
   imports: [
     DynamicApiModule.forFeature({
       ...,
-      webSocket: { namespace: '/v1' }, // <- add this line
+      webSocket: { namespace: '/v1' }, // <- add this line, the socket url will be your-api-url/v1
     }),
   ],
 })
@@ -80,8 +80,11 @@ export class FeatureModule {}
   imports: [
     DynamicApiModule.forFeature({
       ...,
+      controllerOptions: {
+        path: 'feature',
+      },
       routes: [
-        { type: 'GetMany', webSocket: true }, // <- add this line
+        { type: 'GetMany', webSocket: true }, // <- add this line, event name will be 'feature-get-many'
         { type: 'GetOne' },
       ],
     }),
@@ -89,6 +92,15 @@ export class FeatureModule {}
 })
 export class FeatureModule {}
 ```
+
+**Events**
+
+- For authentication, event names are :
+  `auth-register`, `auth-login`, `auth-get-account`, `auth-update-account`, `auth-reset-password`, `auth-change-password`.
+
+
+- For each feature they are automatically generated based on the route path and the route type.
+  <br>For example, the event name for a `GetMany` route with the path `feature` will be `feature-get-many`.
 
 
 ___
