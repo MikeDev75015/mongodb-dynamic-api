@@ -123,7 +123,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
       { _id: id },
       // @ts-ignore
       { $set: update },
-    );
+    ).exec();
 
     if (this.updateAccountCallback) {
       const fullUser = (await this.model.findOne({ _id: id }).lean().exec()) as Entity;

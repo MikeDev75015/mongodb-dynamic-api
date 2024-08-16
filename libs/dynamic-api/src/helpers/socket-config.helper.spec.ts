@@ -26,6 +26,27 @@ describe('SocketConfigHelper', () => {
       expect(spySocketAdapter).toHaveBeenCalledTimes(1);
       expect(spySocketAdapter).toHaveBeenCalledWith(fakeApp);
     });
+
+    it('should exit on MaxListenersExceededWarning error', () => {
+      const spyConsoleWarn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const spyProcessExit = jest.spyOn(process, 'exit').mockImplementation(() => ({}) as never);
+
+      const fakeError = {
+        name: 'MaxListenersExceededWarning',
+      };
+
+      spySocketAdapter.mockImplementationOnce(() => {
+        process.emit('warning' as any, fakeError as any);
+      });
+
+      enableDynamicAPIWebSockets(fakeApp, 50);
+
+      expect(fakeApp.useWebSocketAdapter).toHaveBeenCalledTimes(1);
+      expect(spyConsoleWarn).toHaveBeenNthCalledWith(1, '\nTo fix the MaxListenersExceededWarning, you can increase the maxListeners');
+      expect(spyConsoleWarn).toHaveBeenNthCalledWith(2, 'by passing the value to the enableDynamicAPIWebSockets function as the second argument:\n');
+      expect(spyConsoleWarn).toHaveBeenNthCalledWith(3, '>>> enableDynamicAPIWebSockets(app, 15);\n\n');
+      expect(spyProcessExit).toHaveBeenNthCalledWith(1, 1);
+    });
   });
 
   describe('initializeConfigFromOptions', () => {

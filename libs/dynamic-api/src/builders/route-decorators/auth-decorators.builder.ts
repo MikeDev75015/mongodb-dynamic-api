@@ -7,7 +7,7 @@ import { JwtAuthGuard } from '../../modules';
 class AuthDecoratorsBuilder implements DynamicApiDecoratorBuilder<any> {
   constructor(
     private readonly isProtected: boolean | undefined,
-    private readonly AuthPoliciesGuard: Type,
+    private readonly AuthPoliciesGuard: Type | undefined,
   ) {}
 
   public build() {

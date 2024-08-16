@@ -63,6 +63,7 @@ describe('BaseAuthService', () => {
   const fakeLoginCallback = jest.fn();
   const resetPasswordCallback = jest.fn();
   const changePasswordCallback = jest.fn();
+  const updateAccountCallback = jest.fn();
 
   class AuthService extends BaseAuthService<User> {
     protected additionalRequestFields: (keyof User)[] = ['nickname'];
@@ -311,6 +312,40 @@ describe('BaseAuthService', () => {
         ['_id', fakeLoginField, ...service['additionalRequestFields']],
       );
       expect(result).toEqual(fakeLoginBuilt);
+    });
+  });
+
+  describe('updateAccount', () => {
+    let spyBuildInstance: jest.SpyInstance;
+    let spyGetAccount: jest.SpyInstance;
+
+    const fakeUserId = 'fake-id';
+    const update = { nickname: 'new-nickname' };
+
+    beforeEach(() => {
+      spyGetAccount = jest.spyOn<any, any>(service, 'getAccount').mockResolvedValueOnce(fakeUser);
+      spyBuildInstance = jest.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
+    });
+
+    it('should update user and return getAccount response', async () => {
+      service['updateAccountCallback'] = undefined;
+      await service['updateAccount']({ id: fakeUserId } as User, update);
+
+      expect(model.updateOne).toHaveBeenCalledWith({ _id: fakeUserId }, { $set: update });
+      expect(spyBuildInstance).not.toHaveBeenCalled();
+      expect(spyGetAccount).toHaveBeenCalledWith({ id: fakeUserId });
+    });
+
+    it('should update user and call updateCallback if it is defined', async () => {
+      service['updateAccountCallback'] = updateAccountCallback;
+      exec.mockResolvedValueOnce(undefined).mockResolvedValueOnce(fakeUser);
+      const result = await service['updateAccount']({ id: fakeUserId } as User, update);
+
+      expect(spyBuildInstance).toHaveBeenCalledWith(fakeUser);
+      expect(updateAccountCallback).toHaveBeenCalledTimes(1);
+      expect(updateAccountCallback).toHaveBeenCalledWith(fakeUserInstance, service['callbackMethods']);
+      expect(spyGetAccount).toHaveBeenCalledWith({ id: fakeUserId });
+      expect(result).toEqual(fakeUser);
     });
   });
 

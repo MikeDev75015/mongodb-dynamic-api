@@ -17,7 +17,7 @@ function enableDynamicAPIWebSockets(app: INestApplication, maxListeners?: number
   initEventsListeners(maxListeners);
 
   process.on('warning', function (err) {
-    if ('MaxListenersExceededWarning' == err.name) {
+    if ('MaxListenersExceededWarning' === err.name) {
       console.warn('\nTo fix the MaxListenersExceededWarning, you can increase the maxListeners');
       console.warn('by passing the value to the enableDynamicAPIWebSockets function as the second argument:\n');
       console.warn('>>> enableDynamicAPIWebSockets(app, 15);\n\n');

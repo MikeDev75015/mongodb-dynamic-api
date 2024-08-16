@@ -1,7 +1,5 @@
-import * as NestjsCommon from '@nestjs/common';
 import * as SwaggerAPIDecorators from '@nestjs/swagger';
 import * as CustomDecorators from '../../decorators';
-import * as Modules from '../../modules';
 import { AuthDecoratorsBuilder } from './auth-decorators.builder';
 
 jest.mock('@nestjs/common', () => {
@@ -18,7 +16,6 @@ jest.mock('@nestjs/swagger', () => {
 
 });
 jest.mock('../../decorators');
-jest.mock('../../modules');
 
 describe('AuthDecoratorsBuilder', () => {
   let publicDecoratorSpy: jest.SpyInstance;
@@ -41,6 +38,15 @@ describe('AuthDecoratorsBuilder', () => {
     });
 
     it('should return ApiBearerAuth route decorator if route is protected', () => {
+      const authDecoratorsBuilder = new AuthDecoratorsBuilder(true, undefined);
+      authDecoratorsBuilder.build();
+
+      expect(apiBearerAuthDecoratorSpy).toHaveBeenCalledTimes(1);
+      expect(publicDecoratorSpy).not.toHaveBeenCalled();
+
+    });
+
+    it('should return ApiBearerAuth with guards if protected', () => {
       const authDecoratorsBuilder = new AuthDecoratorsBuilder(true, FakeAuthRegisterPoliciesGuard);
       authDecoratorsBuilder.build();
 
