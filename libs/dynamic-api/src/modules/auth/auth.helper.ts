@@ -162,7 +162,7 @@ function createAuthGateway<Entity extends BaseEntity>(
   @ValidatorPipe(validationPipeOptions)
   class AuthGateway extends AuthGatewayMixin(
     userEntity,
-    loginOptions ?? {},
+    loginOptions,
     registerOptions ?? {},
     resetPasswordOptions,
     updateAccountOptions,

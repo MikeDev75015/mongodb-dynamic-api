@@ -1,9 +1,10 @@
 import { ForbiddenException, Type, UnauthorizedException, ValidationPipeOptions } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { describe } from 'node:test';
 import { BaseEntity } from '../../models';
 import {
   authServiceProviderName,
-  createAuthController,
+  createAuthController, createAuthGateway,
   createAuthServiceProvider,
   createLocalStrategyProvider,
   localStrategyProviderName,
@@ -236,6 +237,43 @@ describe('AuthHelper', () => {
 
       const authController = new AuthController(service);
       expect(authController).toHaveProperty('service', service);
+    });
+  });
+
+  describe('createAuthGateway', () => {
+    let Gateway: Type;
+    const service = {} as AuthService<UserEntity>;
+    const jwtService = {} as JwtService;
+
+    it('should return a gateway', () => {
+      Gateway = createAuthGateway(
+        UserEntity,
+        { loginField, passwordField, additionalFields: additionalRequestFields },
+        registerOptions,
+        validationPipeOptions,
+        resetPasswordOptions,
+        updateAccountOptions,
+        { namespace: 'auth' },
+      );
+
+      expect(Gateway).toEqual(expect.any(Function));
+      expect(Gateway.name).toBe('AuthGateway');
+    });
+
+    it('should have a constructor with service and jwtService properties', () => {
+      Gateway = createAuthGateway(
+        UserEntity,
+        { loginField, passwordField },
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { namespace: 'auth' },
+      );
+
+      const gateway = new Gateway(service, jwtService);
+      expect(gateway).toHaveProperty('service', service);
+      expect(gateway).toHaveProperty('jwtService', jwtService);
     });
   });
 });
