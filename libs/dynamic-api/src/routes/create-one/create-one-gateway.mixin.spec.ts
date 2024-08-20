@@ -1,5 +1,6 @@
 import { createMock } from '@golevelup/ts-jest';
 import { JwtService } from '@nestjs/jwt';
+import { plainToInstance } from 'class-transformer';
 import { BaseGateway } from '../../gateways';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket } from '../../interfaces';
 import { BaseEntity } from '../../models';
@@ -23,6 +24,10 @@ describe('CreateOneGatewayMixin', () => {
     type: 'CreateOne',
   } as DynamicAPIRouteConfig<TestEntity>;
 
+  const body = { field1: 'test' };
+
+  const fakeEntity = plainToInstance(TestEntity, { field1: 'test' });
+
   it('should return a class that extends BaseGateway and implements CreateOneGateway', () => {
     CreateOneGateway = CreateOneGatewayMixin(
       TestEntity,
@@ -34,7 +39,7 @@ describe('CreateOneGatewayMixin', () => {
     expect(CreateOneGateway.name).toBe('BaseCreateOneTestEntityGateway');
   });
 
-  it('should have an createOne method that calls the service', async () => {
+  it('should call the service and return event and data', async () => {
     CreateOneGateway = CreateOneGatewayMixin(
       TestEntity,
       controllerOptions,
@@ -43,11 +48,31 @@ describe('CreateOneGatewayMixin', () => {
 
     const createOneGateway = new CreateOneGateway(service, jwtService);
 
-    const body = { field1: 'test' };
+    service.createOne.mockResolvedValueOnce(fakeEntity);
 
-    await createOneGateway.createOne(socket, body);
+    await expect(createOneGateway.createOne(socket, body)).resolves.toEqual({
+      event: 'test-create-one',
+      data: fakeEntity,
+    });
 
     expect(service.createOne).toHaveBeenCalledWith({ field1: 'test' });
+  });
+
+  it('should use eventName from routeConfig if provided', async () => {
+    CreateOneGateway = CreateOneGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      { ...routeConfig, eventName: 'custom-event' },
+    );
+
+    const createOneGateway = new CreateOneGateway(service, jwtService);
+
+    service.createOne.mockResolvedValueOnce(fakeEntity);
+
+    await expect(createOneGateway.createOne(socket, body)).resolves.toEqual({
+      event: 'custom-event',
+      data: fakeEntity,
+    });
   });
 
   it('should throw an exception if body is empty', async () => {

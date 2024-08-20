@@ -1,6 +1,7 @@
 import { createMock } from '@golevelup/ts-jest';
 import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
+import { plainToInstance } from 'class-transformer';
 import { BaseGateway } from '../../gateways';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket } from '../../interfaces';
 import { BaseEntity } from '../../models';
@@ -19,10 +20,19 @@ describe('UpdateManyGatewayMixin', () => {
   const service = createMock<UpdateManyService<TestEntity>>();
   const jwtService = createMock<JwtService>();
 
-  const controllerOptions = {} as DynamicApiControllerOptions<TestEntity>;
+  const controllerOptions = {
+    path: 'test',
+  } as DynamicApiControllerOptions<TestEntity>;
   const routeConfig = {
     type: 'UpdateMany',
   } as DynamicAPIRouteConfig<TestEntity>;
+
+  const body = {
+    ids: ['1', '2', '3'],
+    field1: 'test',
+  };
+
+  const fakeEntity = plainToInstance(TestEntity, { field1: 'test' });
 
   it('should return a class that extends BaseGateway and implements UpdateManyGateway', () => {
     UpdateManyGateway = UpdateManyGatewayMixin(
@@ -35,7 +45,7 @@ describe('UpdateManyGatewayMixin', () => {
     expect(UpdateManyGateway.name).toBe('BaseUpdateManyTestEntityGateway');
   });
 
-  it('should have an updateMany method that calls the service', async () => {
+  it('should call the service and return event and data', async () => {
     UpdateManyGateway = UpdateManyGatewayMixin(
       TestEntity,
       controllerOptions,
@@ -44,14 +54,31 @@ describe('UpdateManyGatewayMixin', () => {
 
     const updateManyGateway = new UpdateManyGateway(service, jwtService);
 
-    const body = {
-      ids: ['1', '2', '3'],
-      field1: 'test',
-    };
+    service.updateMany.mockResolvedValueOnce([fakeEntity]);
 
-    await updateManyGateway.updateMany(socket, body);
+    await expect(updateManyGateway.updateMany(socket, body)).resolves.toEqual({
+      event: 'test-update-many',
+      data: [fakeEntity],
+    });
 
-    expect(service.updateMany).toHaveBeenCalledWith(['1', '2', '3'], { field1: 'test' });
+    expect(service.updateMany).toHaveBeenCalledWith(body.ids, { field1: 'test' });
+  });
+
+  it('should use eventName from routeConfig if provided', async () => {
+    UpdateManyGateway = UpdateManyGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      { ...routeConfig, eventName: 'custom-event' },
+    );
+
+    const updateManyGateway = new UpdateManyGateway(service, jwtService);
+
+    service.updateMany.mockResolvedValueOnce([fakeEntity]);
+
+    await expect(updateManyGateway.updateMany(socket, body)).resolves.toEqual({
+      event: 'custom-event',
+      data: [fakeEntity],
+    });
   });
 
   test.each([

@@ -18,10 +18,18 @@ describe('DeleteOneGatewayMixin', () => {
   const service = createMock<DeleteOneService<TestEntity>>();
   const jwtService = createMock<JwtService>();
 
-  const controllerOptions = {} as DynamicApiControllerOptions<TestEntity>;
+  const controllerOptions = {
+    path: 'test',
+  } as DynamicApiControllerOptions<TestEntity>;
   const routeConfig = {
     type: 'DeleteOne',
   } as DynamicAPIRouteConfig<TestEntity>;
+
+  const body = {
+    id: '1',
+  };
+
+  const fakeDeleteResult = { deletedCount: 1 };
 
   it('should return a class that extends BaseGateway and implements DeleteOneGateway', () => {
     DeleteOneGateway = DeleteOneGatewayMixin(
@@ -34,7 +42,7 @@ describe('DeleteOneGatewayMixin', () => {
     expect(DeleteOneGateway.name).toBe('BaseDeleteOneTestEntityGateway');
   });
 
-  it('should have an deleteOne method that calls the service', async () => {
+  it('should call the service and return event and data', async () => {
     DeleteOneGateway = DeleteOneGatewayMixin(
       TestEntity,
       controllerOptions,
@@ -43,13 +51,31 @@ describe('DeleteOneGatewayMixin', () => {
 
     const deleteOneGateway = new DeleteOneGateway(service, jwtService);
 
-    const body = {
-      id: '1',
-    };
+    service.deleteOne.mockResolvedValueOnce(fakeDeleteResult);
 
-    await deleteOneGateway.deleteOne(socket, body);
+    await expect(deleteOneGateway.deleteOne(socket, body)).resolves.toEqual({
+      event: 'test-delete-one',
+      data: fakeDeleteResult,
+    });
 
     expect(service.deleteOne).toHaveBeenCalledWith('1');
+  });
+
+  it('should use eventName from routeConfig if provided', async () => {
+    DeleteOneGateway = DeleteOneGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      { ...routeConfig, eventName: 'custom-event' },
+    );
+
+    const deleteOneGateway = new DeleteOneGateway(service, jwtService);
+
+    service.deleteOne.mockResolvedValueOnce(fakeDeleteResult);
+
+    await expect(deleteOneGateway.deleteOne(socket, body)).resolves.toEqual({
+      event: 'custom-event',
+      data: fakeDeleteResult,
+    });
   });
 
   test.each([
