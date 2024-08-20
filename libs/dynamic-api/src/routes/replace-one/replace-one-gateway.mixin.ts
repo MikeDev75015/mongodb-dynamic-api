@@ -27,7 +27,7 @@ function ReplaceOneGatewayMixin<Entity extends BaseEntity>(
     version,
   );
 
-  const event = kebabCase(`${controllerOptions.path}/${routeType}`);
+  const event = routeConfig.eventName ?? kebabCase(`${controllerOptions.path}/${routeType}`);
 
   class BaseReplaceOneGateway extends BaseGateway<Entity> implements ReplaceOneGateway<Entity> {
     protected readonly entity = entity;

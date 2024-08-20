@@ -1,5 +1,6 @@
 import { createMock } from '@golevelup/ts-jest';
 import { JwtService } from '@nestjs/jwt';
+import { plainToInstance } from 'class-transformer';
 import { BaseGateway } from '../../gateways';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket } from '../../interfaces';
 import { BaseEntity } from '../../models';
@@ -25,6 +26,12 @@ describe('CreateManyGatewayMixin', () => {
     type: 'CreateMany',
   } as DynamicAPIRouteConfig<TestEntity>;
 
+  const fakeEntity = plainToInstance(TestEntity, { field1: 'test' });
+
+  const body = {
+    list: [{ field1: 'test' }],
+  };
+
   it('should return a class that extends BaseGateway and implements CreateManyGateway', () => {
     CreateManyGateway = CreateManyGatewayMixin(
       TestEntity,
@@ -36,7 +43,7 @@ describe('CreateManyGatewayMixin', () => {
     expect(CreateManyGateway.name).toBe('BaseCreateManyTestEntityGateway');
   });
 
-  it('should have an createMany method that calls the service', async () => {
+  it('should call the service and return event and data', async () => {
     CreateManyGateway = CreateManyGatewayMixin(
       TestEntity,
       controllerOptions,
@@ -45,13 +52,31 @@ describe('CreateManyGatewayMixin', () => {
 
     const createManyGateway = new CreateManyGateway(service, jwtService);
 
-    const body = {
-      list: [{ field1: 'test' }],
-    };
+    service.createMany.mockResolvedValueOnce([fakeEntity]);
 
-    await createManyGateway.createMany(socket, body);
+    await expect(createManyGateway.createMany(socket, body)).resolves.toEqual({
+      event: 'test-create-many',
+      data: [fakeEntity],
+    });
 
-    expect(service.createMany).toHaveBeenCalledWith([{ field1: 'test' }]);
+    expect(service.createMany).toHaveBeenCalledWith(body.list);
+  });
+
+  it('should use eventName from routeConfig if provided', async () => {
+    CreateManyGateway = CreateManyGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      { ...routeConfig, eventName: 'custom-event' },
+    );
+
+    const createManyGateway = new CreateManyGateway(service, jwtService);
+
+    service.createMany.mockResolvedValueOnce([]);
+
+    await expect(createManyGateway.createMany(socket, body)).resolves.toEqual({
+      event: 'custom-event',
+      data: [],
+    });
   });
 
   test.each([

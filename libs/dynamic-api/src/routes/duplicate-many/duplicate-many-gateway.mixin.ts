@@ -27,7 +27,7 @@ function DuplicateManyGatewayMixin<Entity extends BaseEntity>(
     version,
   );
 
-  const event = kebabCase(`${controllerOptions.path}/${routeType}`);
+  const event = routeConfig.eventName ?? kebabCase(`${controllerOptions.path}/${routeType}`);
 
   class BaseDuplicateManyGateway extends BaseGateway<Entity> implements DuplicateManyGateway<Entity> {
     protected readonly entity = entity;

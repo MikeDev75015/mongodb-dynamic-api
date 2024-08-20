@@ -1,5 +1,6 @@
 import { createMock } from '@golevelup/ts-jest';
 import { JwtService } from '@nestjs/jwt';
+import { plainToInstance } from 'class-transformer';
 import { BaseGateway } from '../../gateways';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket } from '../../interfaces';
 import { BaseEntity } from '../../models';
@@ -18,10 +19,18 @@ describe('GetOneGatewayMixin', () => {
   const service = createMock<GetOneService<TestEntity>>();
   const jwtService = createMock<JwtService>();
 
-  const controllerOptions = {} as DynamicApiControllerOptions<TestEntity>;
+  const controllerOptions = {
+    path: 'test',
+  } as DynamicApiControllerOptions<TestEntity>;
   const routeConfig = {
     type: 'GetOne',
   } as DynamicAPIRouteConfig<TestEntity>;
+
+  const body = {
+    id: '1',
+  };
+
+  const fakeEntity = plainToInstance(TestEntity, { field1: 'test' });
 
   it('should return a class that extends BaseGateway and implements GetOneGateway', () => {
     GetOneGateway = GetOneGatewayMixin(
@@ -34,7 +43,7 @@ describe('GetOneGatewayMixin', () => {
     expect(GetOneGateway.name).toBe('BaseGetOneTestEntityGateway');
   });
 
-  it('should have an getOne method that calls the service', async () => {
+  it('should call the service and return event and data', async () => {
     GetOneGateway = GetOneGatewayMixin(
       TestEntity,
       controllerOptions,
@@ -43,13 +52,31 @@ describe('GetOneGatewayMixin', () => {
 
     const getOneGateway = new GetOneGateway(service, jwtService);
 
-    const body = {
-      id: '1',
-    };
+    service.getOne.mockResolvedValueOnce(fakeEntity);
 
-    await getOneGateway.getOne(socket, body);
+    await expect(getOneGateway.getOne(socket, body)).resolves.toEqual({
+      event: 'test-get-one',
+      data: fakeEntity,
+    });
 
-    expect(service.getOne).toHaveBeenCalledWith('1');
+    expect(service.getOne).toHaveBeenCalledWith(body.id);
+  });
+
+  it('should use eventName from routeConfig if provided', async () => {
+    GetOneGateway = GetOneGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      { ...routeConfig, eventName: 'custom-event' },
+    );
+
+    const getOneGateway = new GetOneGateway(service, jwtService);
+
+    service.getOne.mockResolvedValueOnce(fakeEntity);
+
+    await expect(getOneGateway.getOne(socket, body)).resolves.toEqual({
+      event: 'custom-event',
+      data: fakeEntity,
+    });
   });
 
   test.each([

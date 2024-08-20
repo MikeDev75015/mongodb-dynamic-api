@@ -1,5 +1,6 @@
 import { createMock } from '@golevelup/ts-jest';
 import { JwtService } from '@nestjs/jwt';
+import { plainToInstance } from 'class-transformer';
 import { BaseGateway } from '../../gateways';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket } from '../../interfaces';
 import { BaseEntity } from '../../models';
@@ -18,10 +19,16 @@ describe('GetManyGatewayMixin', () => {
   const service = createMock<GetManyService<TestEntity>>();
   const jwtService = createMock<JwtService>();
 
-  const controllerOptions = {} as DynamicApiControllerOptions<TestEntity>;
+  const controllerOptions = {
+    path: 'test',
+  } as DynamicApiControllerOptions<TestEntity>;
   const routeConfig = {
     type: 'GetMany',
   } as DynamicAPIRouteConfig<TestEntity>;
+
+  const body = { field1: 'test' };
+
+  const fakeEntity = plainToInstance(TestEntity, { field1: 'test' });
 
   it('should return a class that extends BaseGateway and implements GetManyGateway', () => {
     GetManyGateway = GetManyGatewayMixin(
@@ -34,7 +41,7 @@ describe('GetManyGatewayMixin', () => {
     expect(GetManyGateway.name).toBe('BaseGetManyTestEntityGateway');
   });
 
-  it('should have an getMany method that calls the service', async () => {
+  it('should call the service and return event and data', async () => {
     GetManyGateway = GetManyGatewayMixin(
       TestEntity,
       controllerOptions,
@@ -43,10 +50,30 @@ describe('GetManyGatewayMixin', () => {
 
     const getManyGateway = new GetManyGateway(service, jwtService);
 
-    const body = { field1: 'test' };
+    service.getMany.mockResolvedValueOnce([fakeEntity]);
 
-    await getManyGateway.getMany(socket, body);
+    await expect(getManyGateway.getMany(socket, body)).resolves.toEqual({
+      event: 'test-get-many',
+      data: [fakeEntity],
+    });
 
     expect(service.getMany).toHaveBeenCalledWith({ field1: 'test' });
+  });
+
+  it('should use eventName from routeConfig if provided', async () => {
+    GetManyGateway = GetManyGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      { ...routeConfig, eventName: 'custom-event-name' },
+    );
+
+    const getManyGateway = new GetManyGateway(service, jwtService);
+
+    service.getMany.mockResolvedValueOnce([fakeEntity]);
+
+    await expect(getManyGateway.getMany(socket, body)).resolves.toEqual({
+      event: 'custom-event-name',
+      data: [fakeEntity],
+    });
   });
 });

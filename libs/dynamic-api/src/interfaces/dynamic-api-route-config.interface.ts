@@ -16,6 +16,7 @@ interface DynamicAPIRouteConfig<Entity extends BaseEntity> {
   abilityPredicate?: AbilityPredicate<Entity>;
   callback?: DynamicApiServiceCallback<Entity>;
   webSocket?: DynamicApiWebSocketOptions;
+  eventName?: string;
 }
 
 export { DynamicAPIRouteConfig };

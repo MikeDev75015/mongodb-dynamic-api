@@ -18,10 +18,18 @@ describe('DeleteManyGatewayMixin', () => {
   const service = createMock<DeleteManyService<TestEntity>>();
   const jwtService = createMock<JwtService>();
 
-  const controllerOptions = {} as DynamicApiControllerOptions<TestEntity>;
+  const controllerOptions = {
+    path: 'test',
+  } as DynamicApiControllerOptions<TestEntity>;
   const routeConfig = {
     type: 'DeleteMany',
   } as DynamicAPIRouteConfig<TestEntity>;
+
+  const body = {
+    ids: ['1', '2', '3'],
+  };
+
+  const fakeDeleteResult = { deletedCount: 3 };
 
   it('should return a class that extends BaseGateway and implements DeleteManyGateway', () => {
     DeleteManyGateway = DeleteManyGatewayMixin(
@@ -34,7 +42,7 @@ describe('DeleteManyGatewayMixin', () => {
     expect(DeleteManyGateway.name).toBe('BaseDeleteManyTestEntityGateway');
   });
 
-  it('should have an deleteMany method that calls the service', async () => {
+  it('should call the service and return event and data', async () => {
     DeleteManyGateway = DeleteManyGatewayMixin(
       TestEntity,
       controllerOptions,
@@ -43,13 +51,31 @@ describe('DeleteManyGatewayMixin', () => {
 
     const deleteManyGateway = new DeleteManyGateway(service, jwtService);
 
-    const body = {
-      ids: ['1', '2', '3'],
-    };
+    service.deleteMany.mockResolvedValueOnce(fakeDeleteResult);
 
-    await deleteManyGateway.deleteMany(socket, body);
+    await expect(deleteManyGateway.deleteMany(socket, body)).resolves.toEqual({
+      event: 'test-delete-many',
+      data: fakeDeleteResult,
+    });
 
-    expect(service.deleteMany).toHaveBeenCalledWith(['1', '2', '3']);
+    expect(service.deleteMany).toHaveBeenCalledWith(body.ids);
+  });
+
+  it('should use eventName from routeConfig if provided', async () => {
+    DeleteManyGateway = DeleteManyGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      { ...routeConfig, eventName: 'custom-event' },
+    );
+
+    const deleteManyGateway = new DeleteManyGateway(service, jwtService);
+
+    service.deleteMany.mockResolvedValueOnce(fakeDeleteResult);
+
+    await expect(deleteManyGateway.deleteMany(socket, body)).resolves.toEqual({
+      event: 'custom-event',
+      data: fakeDeleteResult,
+    });
   });
 
   test.each([

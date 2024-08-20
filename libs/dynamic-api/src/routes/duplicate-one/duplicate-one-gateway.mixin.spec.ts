@@ -1,5 +1,6 @@
 import { createMock } from '@golevelup/ts-jest';
 import { JwtService } from '@nestjs/jwt';
+import { plainToInstance } from 'class-transformer';
 import { BaseGateway } from '../../gateways';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket } from '../../interfaces';
 import { BaseEntity } from '../../models';
@@ -23,6 +24,10 @@ describe('DuplicateOneGatewayMixin', () => {
     type: 'DuplicateOne',
   } as DynamicAPIRouteConfig<TestEntity>;
 
+  const body = { id: '1' };
+
+  const fakeEntity = plainToInstance(TestEntity, { field1: 'test' });
+
   it('should return a class that extends BaseGateway and implements DuplicateOneGateway', () => {
     DuplicateOneGateway = DuplicateOneGatewayMixin(
       TestEntity,
@@ -34,7 +39,7 @@ describe('DuplicateOneGatewayMixin', () => {
     expect(DuplicateOneGateway.name).toBe('BaseDuplicateOneTestEntityGateway');
   });
 
-  it('should have an duplicateOne method that calls the service', async () => {
+  it('should call the service and return event and data', async () => {
     DuplicateOneGateway = DuplicateOneGatewayMixin(
       TestEntity,
       controllerOptions,
@@ -43,11 +48,31 @@ describe('DuplicateOneGatewayMixin', () => {
 
     const duplicateOneGateway = new DuplicateOneGateway(service, jwtService);
 
-    const body = { id: '1' };
+    service.duplicateOne.mockResolvedValueOnce(fakeEntity);
 
-    await duplicateOneGateway.duplicateOne(socket, body);
+    await expect(duplicateOneGateway.duplicateOne(socket, body)).resolves.toEqual({
+      event: 'test-duplicate-one',
+      data: fakeEntity,
+    });
 
-    expect(service.duplicateOne).toHaveBeenCalledWith('1', {});
+    expect(service.duplicateOne).toHaveBeenCalledWith(body.id, {});
+  });
+
+  it('should use eventName from routeConfig if provided', async () => {
+    DuplicateOneGateway = DuplicateOneGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      { ...routeConfig, eventName: 'custom-event' },
+    );
+
+    const duplicateOneGateway = new DuplicateOneGateway(service, jwtService);
+
+    service.duplicateOne.mockResolvedValueOnce(fakeEntity);
+
+    await expect(duplicateOneGateway.duplicateOne(socket, body)).resolves.toEqual({
+      event: 'custom-event',
+      data: fakeEntity,
+    });
   });
 
   test.each([

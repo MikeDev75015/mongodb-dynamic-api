@@ -27,7 +27,7 @@ function GetOneGatewayMixin<Entity extends BaseEntity>(
     version,
   );
 
-  const event = kebabCase(`${controllerOptions.path}/${routeType}`);
+  const event = routeConfig.eventName ?? kebabCase(`${controllerOptions.path}/${routeType}`);
 
   class BaseGetOneGateway extends BaseGateway<Entity> implements GetOneGateway<Entity> {
     protected readonly entity = entity;

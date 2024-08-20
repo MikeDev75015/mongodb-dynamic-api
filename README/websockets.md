@@ -81,11 +81,15 @@ export class FeatureModule {}
     DynamicApiModule.forFeature({
       ...,
       controllerOptions: {
-        path: 'feature',
+        path: 'features',
       },
       routes: [
-        { type: 'GetMany', webSocket: true }, // <- add this line, event name will be 'feature-get-many'
-        { type: 'GetOne' },
+        { type: 'GetMany', webSocket: true }, // <- add this line, event name will be 'features-get-many'
+        {
+          type: 'CreateOne',
+          webSocket: true,
+          eventName: 'custom-event-name', // <- add this line, event name will be 'custom-event-name'
+        },
       ],
     }),
   ],
@@ -100,7 +104,13 @@ export class FeatureModule {}
 
 
 - For each feature they are automatically generated based on the route path and the route type.
-  <br>For example, the event name for a `GetMany` route with the path `feature` will be `feature-get-many`.
+  <br>For example, the event name for a `GetMany` route with the path `features` will be `features-get-many`.
+
+
+- You can also specify a custom event name by passing a string to the `eventName` property of the route object.
+  <br>For example, `{ type: 'GetMany', eventName: 'custom-event-name' }`.
+
+```typescript
 
 
 ___

@@ -1,5 +1,6 @@
 import { createMock } from '@golevelup/ts-jest';
 import { JwtService } from '@nestjs/jwt';
+import { plainToInstance } from 'class-transformer';
 import { BaseGateway } from '../../gateways';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket } from '../../interfaces';
 import { BaseEntity } from '../../models';
@@ -18,10 +19,19 @@ describe('DuplicateManyGatewayMixin', () => {
   const service = createMock<DuplicateManyService<TestEntity>>();
   const jwtService = createMock<JwtService>();
 
-  const controllerOptions = {} as DynamicApiControllerOptions<TestEntity>;
+  const controllerOptions = {
+    path: 'test',
+  } as DynamicApiControllerOptions<TestEntity>;
   const routeConfig = {
     type: 'DuplicateMany',
   } as DynamicAPIRouteConfig<TestEntity>;
+
+  const body = {
+    ids: ['1', '2', '3'],
+    field1: 'test',
+  };
+
+  const fakeEntity = plainToInstance(TestEntity, { field1: 'test' });
 
   it('should return a class that extends BaseGateway and implements DuplicateManyGateway', () => {
     DuplicateManyGateway = DuplicateManyGatewayMixin(
@@ -34,7 +44,7 @@ describe('DuplicateManyGatewayMixin', () => {
     expect(DuplicateManyGateway.name).toBe('BaseDuplicateManyTestEntityGateway');
   });
 
-  it('should have an duplicateMany method that calls the service', async () => {
+  it('should call the service and return event and data', async () => {
     DuplicateManyGateway = DuplicateManyGatewayMixin(
       TestEntity,
       controllerOptions,
@@ -43,14 +53,31 @@ describe('DuplicateManyGatewayMixin', () => {
 
     const duplicateManyGateway = new DuplicateManyGateway(service, jwtService);
 
-    const body = {
-      ids: ['1', '2', '3'],
-      field1: 'test',
-    };
+    service.duplicateMany.mockResolvedValueOnce([fakeEntity]);
 
-    await duplicateManyGateway.duplicateMany(socket, body);
+    await expect(duplicateManyGateway.duplicateMany(socket, body)).resolves.toEqual({
+      event: 'test-duplicate-many',
+      data: [fakeEntity],
+    });
 
-    expect(service.duplicateMany).toHaveBeenCalledWith(['1', '2', '3'], { field1: 'test' });
+    expect(service.duplicateMany).toHaveBeenCalledWith(body.ids, { field1: 'test' });
+  });
+
+  it('should use eventName from routeConfig if provided', async () => {
+    DuplicateManyGateway = DuplicateManyGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      { ...routeConfig, eventName: 'custom-event-name' },
+    );
+
+    const duplicateManyGateway = new DuplicateManyGateway(service, jwtService);
+
+    service.duplicateMany.mockResolvedValueOnce([fakeEntity]);
+
+    await expect(duplicateManyGateway.duplicateMany(socket, body)).resolves.toEqual({
+      event: 'custom-event-name',
+      data: [fakeEntity],
+    });
   });
 
   test.each([
