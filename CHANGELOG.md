@@ -1,5 +1,12 @@
 Changelog
 
+## [2.5.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.4.5...v2.5.0) (2024-08-20)
+
+
+### web-socket
+
+* **web-socket:** add the possibility to customize event names ([64020d2](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/64020d29c3b3ce96e172db9253b22c812d0deb4e))
+
 ## [2.4.5](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.4.4...v2.4.5) (2024-08-16)
 
 ## [2.4.4](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.4.3...v2.4.4) (2024-08-14)
