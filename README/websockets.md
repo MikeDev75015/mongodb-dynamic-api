@@ -110,8 +110,6 @@ export class FeatureModule {}
 - You can also specify a custom event name by passing a string to the `eventName` property of the route object.
   <br>For example, `{ type: 'GetMany', eventName: 'custom-event-name' }`.
 
-```typescript
-
 
 ___
 
