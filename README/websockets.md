@@ -103,8 +103,13 @@ export class FeatureModule {}
   `auth-register`, `auth-login`, `auth-get-account`, `auth-update-account`, `auth-reset-password`, `auth-change-password`.
 
 
-- For each feature they are automatically generated based on the route path and the route type.
-  <br>For example, the event name for a `GetMany` route with the path `features` will be `features-get-many`.
+- For each feature they are automatically generated based on the route type, the entity name and the sub path if specified.
+  <br>For example, the event name for a `GetMany` route of the `Feature` entity will be `get-many-features`.
+  <br>The event name for a `GetMany` route of the `Feature` entity with `sub` as sub path will be `get-many-sub-features`.
+
+
+- However, when your application starts, you will see the list of all the events generated for each feature in the console.
+  ![Websockets events log](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/images/dynamic-api-websocket-events-log.png?raw=true "Websockets events log")
 
 
 - You can also specify a custom event name by passing a string to the `eventName` property of the route object.
