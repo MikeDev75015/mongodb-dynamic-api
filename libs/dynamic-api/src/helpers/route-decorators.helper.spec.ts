@@ -11,6 +11,7 @@ describe('RouteDecoratorsHelper', () => {
       undefined,
       undefined,
       undefined,
+      undefined,
     );
     const spyBuild = jest.spyOn(routeDecorators, 'build');
 

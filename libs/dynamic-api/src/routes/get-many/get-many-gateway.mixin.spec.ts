@@ -53,7 +53,7 @@ describe('GetManyGatewayMixin', () => {
     service.getMany.mockResolvedValueOnce([fakeEntity]);
 
     await expect(getManyGateway.getMany(socket, body)).resolves.toEqual({
-      event: 'test-get-many',
+      event: 'get-many-test-entity',
       data: [fakeEntity],
     });
 
@@ -73,6 +73,23 @@ describe('GetManyGatewayMixin', () => {
 
     await expect(getManyGateway.getMany(socket, body)).resolves.toEqual({
       event: 'custom-event-name',
+      data: [fakeEntity],
+    });
+  });
+
+  it('should use subPath in eventName if provided', async () => {
+    GetManyGateway = GetManyGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      { ...routeConfig, subPath: 'sub' },
+    );
+
+    const getManyGateway = new GetManyGateway(service, jwtService);
+
+    service.getMany.mockResolvedValueOnce([fakeEntity]);
+
+    await expect(getManyGateway.getMany(socket, body)).resolves.toEqual({
+      event: 'get-many-sub-test-entity',
       data: [fakeEntity],
     });
   });

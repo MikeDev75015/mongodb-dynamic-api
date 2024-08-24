@@ -19,6 +19,7 @@ function DuplicateOneGatewayMixin<Entity extends BaseEntity>(
 ): DuplicateOneGatewayConstructor<Entity> {
   const {
     routeType,
+    displayedName,
     isPublic,
   } = getControllerMixinData(
     entity,
@@ -27,7 +28,7 @@ function DuplicateOneGatewayMixin<Entity extends BaseEntity>(
     version,
   );
 
-  const event = routeConfig.eventName ?? kebabCase(`${controllerOptions.path}/${routeType}`);
+  const event = routeConfig.eventName ?? kebabCase(`${routeType}/${displayedName}`);
 
   class BaseDuplicateOneGateway extends BaseGateway<Entity> implements DuplicateOneGateway<Entity> {
     protected readonly entity = entity;
@@ -61,7 +62,7 @@ function DuplicateOneGatewayMixin<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(BaseDuplicateOneGateway, 'name', {
-    value: `Base${provideName(routeType, entity.name, version, 'Gateway')}`,
+    value: `Base${provideName(routeType, displayedName, version, 'Gateway')}`,
     writable: false,
   });
 

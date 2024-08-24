@@ -30,6 +30,7 @@ import { UpdateOneService } from './update-one-service.interface';
 
 function createUpdateOneServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
+  displayedName: string,
   version: string | undefined,
   callback: DynamicApiServiceCallback<Entity> | undefined,
 ): DynamicAPIServiceProvider {
@@ -49,18 +50,19 @@ function createUpdateOneServiceProvider<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(UpdateOneService, 'name', {
-    value: provideName('UpdateOne', entity.name, version, 'Service'),
+    value: provideName('UpdateOne', displayedName, version, 'Service'),
     writable: false,
   });
 
   return {
-    provide: provideName('UpdateOne', entity.name, version, 'Service'),
+    provide: provideName('UpdateOne', displayedName, version, 'Service'),
     useClass: UpdateOneService,
   };
 }
 
 function createUpdateOneController<Entity extends BaseEntity>(
   entity: Type<Entity>,
+  displayedName: string,
   controllerOptions: DynamicApiControllerOptions<Entity>,
   routeConfig: DynamicAPIRouteConfig<Entity>,
   version?: string,
@@ -79,7 +81,7 @@ function createUpdateOneController<Entity extends BaseEntity>(
     version,
   ) {
     constructor(
-      @Inject(provideName('UpdateOne', entity.name, version, 'Service'))
+      @Inject(provideName('UpdateOne', displayedName, version, 'Service'))
       protected readonly service: UpdateOneService<Entity>,
     ) {
       super(service);
@@ -87,7 +89,7 @@ function createUpdateOneController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(UpdateOneController, 'name', {
-    value: `${provideName('UpdateOne', entity.name, version, 'Controller')}`,
+    value: `${provideName('UpdateOne', displayedName, version, 'Controller')}`,
     writable: false,
   });
 
@@ -96,6 +98,7 @@ function createUpdateOneController<Entity extends BaseEntity>(
 
 function createUpdateOneGateway<Entity extends BaseEntity>(
   entity: Type<Entity>,
+  displayedName: string,
   controllerOptions: DynamicApiControllerOptions<Entity>,
   routeConfig: DynamicAPIRouteConfig<Entity>,
   version?: string,
@@ -111,13 +114,18 @@ function createUpdateOneGateway<Entity extends BaseEntity>(
     version,
   ) {
     constructor(
-      @Inject(provideName(routeConfig.type, entity.name, version, 'Service'))
+      @Inject(provideName(routeConfig.type, displayedName, version, 'Service'))
       protected readonly service: UpdateOneService<Entity>,
       protected readonly jwtService: JwtService,
     ) {
       super(service, jwtService);
     }
   }
+
+  Object.defineProperty(UpdateOneGateway, 'name', {
+    value: `${provideName(routeConfig.type, displayedName, version, 'Gateway')}`,
+    writable: false,
+  });
 
   return UpdateOneGateway;
 }

@@ -56,7 +56,7 @@ describe('UpdateOneGatewayMixin', () => {
     service.updateOne.mockResolvedValueOnce(fakeEntity);
 
     await expect(updateOneGateway.updateOne(socket, body)).resolves.toEqual({
-      event: 'test-update-one',
+      event: 'update-one-test-entity',
       data: fakeEntity,
     });
 
@@ -76,6 +76,23 @@ describe('UpdateOneGatewayMixin', () => {
 
     await expect(updateOneGateway.updateOne(socket, body)).resolves.toEqual({
       event: 'custom-event',
+      data: fakeEntity,
+    });
+  });
+
+  it('should use subPath in eventName if provided', async () => {
+    UpdateOneGateway = UpdateOneGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      { ...routeConfig, subPath: 'sub' },
+    );
+
+    const updateOneGateway = new UpdateOneGateway(service, jwtService);
+
+    service.updateOne.mockResolvedValueOnce(fakeEntity);
+
+    await expect(updateOneGateway.updateOne(socket, body)).resolves.toEqual({
+      event: 'update-one-sub-test-entity',
       data: fakeEntity,
     });
   });

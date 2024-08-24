@@ -19,6 +19,7 @@ function GetOneGatewayMixin<Entity extends BaseEntity>(
 ): GetOneGatewayConstructor<Entity> {
   const {
     routeType,
+    displayedName,
     isPublic,
   } = getControllerMixinData(
     entity,
@@ -27,7 +28,7 @@ function GetOneGatewayMixin<Entity extends BaseEntity>(
     version,
   );
 
-  const event = routeConfig.eventName ?? kebabCase(`${controllerOptions.path}/${routeType}`);
+  const event = routeConfig.eventName ?? kebabCase(`${routeType}/${displayedName}`);
 
   class BaseGetOneGateway extends BaseGateway<Entity> implements GetOneGateway<Entity> {
     protected readonly entity = entity;
@@ -59,7 +60,7 @@ function GetOneGatewayMixin<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(BaseGetOneGateway, 'name', {
-    value: `Base${provideName(routeType, entity.name, version, 'Gateway')}`,
+    value: `Base${provideName(routeType, displayedName, version, 'Gateway')}`,
     writable: false,
   });
 

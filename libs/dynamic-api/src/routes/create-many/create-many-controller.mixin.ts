@@ -15,6 +15,7 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
 ): CreateManyControllerConstructor<Entity> {
   const {
     routeType,
+    displayedName,
     description,
     isPublic,
     RouteBody,
@@ -30,6 +31,7 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
   const routeDecoratorsBuilder = new RouteDecoratorsBuilder(
     routeType,
     entity,
+    routeConfig.subPath,
     version,
     description,
     isPublic,
@@ -42,6 +44,7 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
   class CreateManyPoliciesGuard extends CreatePoliciesGuardMixin(
     entity,
     routeType,
+    displayedName,
     version,
     abilityPredicate,
   ) {}
@@ -51,8 +54,7 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
 
     constructor(
       protected readonly service: CreateManyService<Entity>,
-    ) {
-    }
+    ) {}
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(CreateManyPoliciesGuard)
@@ -63,7 +65,7 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(BaseCreateManyController, 'name', {
-    value: `Base${provideName('CreateMany', entity.name, version, 'Controller')}`,
+    value: `Base${provideName('CreateMany', displayedName, version, 'Controller')}`,
     writable: false,
   });
 

@@ -1,10 +1,12 @@
 import { DynamicModule, ValidationPipeOptions } from '@nestjs/common';
+import * as Helpers from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import { DuplicateOneModule } from './duplicate-one.module';
 import * as DuplicateOneHelpers from './duplicate-one.helper';
+import { DuplicateOneModule } from './duplicate-one.module';
 
 jest.mock('./duplicate-one.helper');
+jest.mock('../../helpers');
 
 class Entity extends BaseEntity {}
 
@@ -21,10 +23,12 @@ describe('DuplicateOneModule', () => {
   const routeConfig: DynamicAPIRouteConfig<Entity> = { type: 'DuplicateOne', callback: routeConfigCallback };
   const version = 'fakeVersion';
   const validationPipeOptions: ValidationPipeOptions = { transform: true };
+  const fakeDisplayedName = 'FakeDisplayedName';
 
   beforeEach(() => {
     spyCreateDuplicateOneController = jest.spyOn(DuplicateOneHelpers, 'createDuplicateOneController').mockReturnValue(FakeController);
     spyCreateDuplicateOneServiceProvider = jest.spyOn(DuplicateOneHelpers, 'createDuplicateOneServiceProvider').mockReturnValue(FakeServiceProvider);
+    jest.spyOn(Helpers, 'getDisplayedName').mockReturnValue(fakeDisplayedName);
   });
 
   describe('forFeature', () => {
@@ -38,8 +42,10 @@ describe('DuplicateOneModule', () => {
         providers: [FakeServiceProvider],
       });
 
-      expect(spyCreateDuplicateOneController).toHaveBeenCalledWith(Entity, controllerOptions, routeConfig, version, validationPipeOptions);
-      expect(spyCreateDuplicateOneServiceProvider).toHaveBeenCalledWith(Entity, version, routeConfigCallback);
+      expect(spyCreateDuplicateOneController)
+      .toHaveBeenCalledWith(Entity, fakeDisplayedName, controllerOptions, routeConfig, version, validationPipeOptions);
+      expect(spyCreateDuplicateOneServiceProvider)
+      .toHaveBeenCalledWith(Entity, fakeDisplayedName, version, routeConfigCallback);
     });
   });
 });

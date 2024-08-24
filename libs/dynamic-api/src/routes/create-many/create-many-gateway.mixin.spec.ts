@@ -55,7 +55,7 @@ describe('CreateManyGatewayMixin', () => {
     service.createMany.mockResolvedValueOnce([fakeEntity]);
 
     await expect(createManyGateway.createMany(socket, body)).resolves.toEqual({
-      event: 'test-create-many',
+      event: 'create-many-test-entity',
       data: [fakeEntity],
     });
 
@@ -75,6 +75,23 @@ describe('CreateManyGatewayMixin', () => {
 
     await expect(createManyGateway.createMany(socket, body)).resolves.toEqual({
       event: 'custom-event',
+      data: [],
+    });
+  });
+
+  it('should use subPath in eventName if provided', async () => {
+    CreateManyGateway = CreateManyGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      { ...routeConfig, subPath: 'sub' },
+    );
+
+    const createManyGateway = new CreateManyGateway(service, jwtService);
+
+    service.createMany.mockResolvedValueOnce([]);
+
+    await expect(createManyGateway.createMany(socket, body)).resolves.toEqual({
+      event: 'create-many-sub-test-entity',
       data: [],
     });
   });

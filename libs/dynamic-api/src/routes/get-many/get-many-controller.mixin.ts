@@ -4,7 +4,6 @@ import { EntityQuery } from '../../dtos';
 import {
   addVersionSuffix,
   getControllerMixinData,
-  getFormattedApiTag,
   provideName,
   RouteDecoratorsHelper,
 } from '../../helpers';
@@ -22,6 +21,7 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
 ): GetManyControllerConstructor<Entity> {
   const {
     routeType,
+    displayedName,
     description,
     isPublic,
     RoutePresenter,
@@ -38,13 +38,14 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
   ) {}
 
   Object.defineProperty(RouteQuery, 'name', {
-    value: `${routeType}${getFormattedApiTag(controllerOptions.apiTag, entity.name)}${addVersionSuffix(version)}Query`,
+    value: `${routeType}${displayedName}${addVersionSuffix(version)}Query`,
     writable: false,
   });
 
   const routeDecoratorsBuilder = new RouteDecoratorsBuilder(
     routeType,
     entity,
+    routeConfig.subPath,
     version,
     description,
     isPublic,
@@ -56,9 +57,15 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
   class GetManyPoliciesGuard extends CreatePoliciesGuardMixin(
     entity,
     routeType,
+    displayedName,
     version,
     abilityPredicate,
   ) {}
+
+  Object.defineProperty(GetManyPoliciesGuard, 'name', {
+    value: `${routeType}${displayedName}${addVersionSuffix(version)}PoliciesGuard`,
+    writable: false,
+  });
 
   class BaseGetManyController implements GetManyController<Entity> {
     protected readonly entity = entity;
@@ -74,7 +81,7 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(BaseGetManyController, 'name', {
-    value: `Base${provideName('GetMany', entity.name, version, 'Controller')}`,
+    value: `Base${provideName('GetMany', displayedName, version, 'Controller')}`,
     writable: false,
   });
 

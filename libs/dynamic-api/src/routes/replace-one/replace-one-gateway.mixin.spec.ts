@@ -55,7 +55,10 @@ describe('ReplaceOneGatewayMixin', () => {
 
     service.replaceOne.mockResolvedValueOnce(fakeEntity);
 
-    await replaceOneGateway.replaceOne(socket, body);
+    await expect(replaceOneGateway.replaceOne(socket, body)).resolves.toEqual({
+      event: 'replace-one-test-entity',
+      data: fakeEntity,
+    });
 
     expect(service.replaceOne).toHaveBeenCalledWith(body.id, { field1: 'value' });
   });
@@ -73,6 +76,23 @@ describe('ReplaceOneGatewayMixin', () => {
 
     await expect(replaceOneGateway.replaceOne(socket, body)).resolves.toEqual({
       event: 'custom-event',
+      data: fakeEntity,
+    });
+  });
+
+  it('should use subPath in eventName if provided', async () => {
+    ReplaceOneGateway = ReplaceOneGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      { ...routeConfig, subPath: 'sub' },
+    );
+
+    const replaceOneGateway = new ReplaceOneGateway(service, jwtService);
+
+    service.replaceOne.mockResolvedValueOnce(fakeEntity);
+
+    await expect(replaceOneGateway.replaceOne(socket, body)).resolves.toEqual({
+      event: 'replace-one-sub-test-entity',
       data: fakeEntity,
     });
   });

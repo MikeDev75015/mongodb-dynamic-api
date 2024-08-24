@@ -10,6 +10,7 @@ import { createDeleteOneController, createDeleteOneGateway, createDeleteOneServi
 describe('DeleteOneHelper', () => {
   let entity: Type;
   let model: Model<any>;
+  const displayedName = 'DisplayedName';
 
   beforeEach(() => {
     entity = buildDynamicApiModuleOptionsMock().entity;
@@ -18,11 +19,11 @@ describe('DeleteOneHelper', () => {
 
   describe('createDeleteOneServiceProvider', () => {
     it('should return DeleteOne provider', () => {
-      const { provide, useClass } = createDeleteOneServiceProvider(entity, '1');
+      const { provide, useClass } = createDeleteOneServiceProvider(entity, displayedName, '1');
       const service = new useClass(model);
 
-      expect(provide).toBe(`DeleteOne${entity.name}V1Service`);
-      expect(useClass.name).toBe(`DeleteOne${entity.name}V1Service`);
+      expect(provide).toBe(`DeleteOne${displayedName}V1Service`);
+      expect(useClass.name).toBe(`DeleteOne${displayedName}V1Service`);
       expect(service.entity).toBe(entity);
     });
   });
@@ -31,6 +32,7 @@ describe('DeleteOneHelper', () => {
     it('should return DeleteOne controller', () => {
       const controllerClass = createDeleteOneController(
         entity,
+        displayedName,
         {
           path: 'path',
           apiTag: 'apiTag',
@@ -39,7 +41,7 @@ describe('DeleteOneHelper', () => {
         '1',
       );
 
-      expect(controllerClass.name).toBe(`DeleteOne${entity.name}V1Controller`);
+      expect(controllerClass.name).toBe(`DeleteOne${displayedName}V1Controller`);
     });
 
     it('should instantiate DeleteOne controller with default values', async () => {
@@ -48,6 +50,7 @@ describe('DeleteOneHelper', () => {
       };
       const controllerClass = createDeleteOneController(
         entity,
+        displayedName,
         { path: 'path' },
         { type: 'DeleteOne' },
       );
@@ -67,6 +70,7 @@ describe('DeleteOneHelper', () => {
     it('should instantiate DeleteOne gateway with default values', async () => {
       const gatewayClass = createDeleteOneGateway(
         entity,
+        displayedName,
         { path: 'path' },
         { type: 'DeleteOne' },
       );

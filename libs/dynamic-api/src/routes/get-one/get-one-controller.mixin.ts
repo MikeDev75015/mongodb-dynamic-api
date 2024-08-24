@@ -16,6 +16,7 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
 ): GetOneControllerConstructor<Entity> {
   const {
     routeType,
+    displayedName,
     description,
     isPublic,
     RoutePresenter,
@@ -30,6 +31,7 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
   const routeDecoratorsBuilder = new RouteDecoratorsBuilder(
     routeType,
     entity,
+    routeConfig.subPath,
     version,
     description,
     isPublic,
@@ -42,6 +44,7 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
   class GetOnePoliciesGuard extends CreatePoliciesGuardMixin(
     entity,
     routeType,
+    displayedName,
     version,
     abilityPredicate,
   ) {}
@@ -60,7 +63,7 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(BaseGetOneController, 'name', {
-    value: `Base${provideName('GetOne', entity.name, version, 'Controller')}`,
+    value: `Base${provideName('GetOne', displayedName, version, 'Controller')}`,
     writable: false,
   });
 

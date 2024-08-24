@@ -1,7 +1,7 @@
 import { DynamicModule, Module, Type, ValidationPipeOptions } from '@nestjs/common';
 import { GatewayMetadata } from '@nestjs/websockets';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { initializeConfigFromOptions } from '../../helpers';
+import { getDisplayedName, initializeConfigFromOptions } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiWebSocketOptions } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import {
@@ -21,14 +21,17 @@ export class DeleteManyModule {
     validationPipeOptions?: ValidationPipeOptions,
     webSocket?: DynamicApiWebSocketOptions,
   ): DynamicModule {
+    const displayedName = getDisplayedName(controllerOptions.apiTag, entity.name, routeConfig.subPath);
+
     const controller = createDeleteManyController(
       entity,
+      displayedName,
       controllerOptions,
       routeConfig,
       version,
       validationPipeOptions,
     );
-    const ServiceProvider = createDeleteManyServiceProvider(entity, version);
+    const ServiceProvider = createDeleteManyServiceProvider(entity, displayedName, version);
 
     const gatewayOptions = webSocket
       ? initializeConfigFromOptions(webSocket)
@@ -44,6 +47,7 @@ export class DeleteManyModule {
           gatewayOptions ? [
             createDeleteManyGateway(
               entity,
+              displayedName,
               controllerOptions,
               routeConfig,
               version,

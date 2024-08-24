@@ -51,7 +51,7 @@ describe('CreateOneGatewayMixin', () => {
     service.createOne.mockResolvedValueOnce(fakeEntity);
 
     await expect(createOneGateway.createOne(socket, body)).resolves.toEqual({
-      event: 'test-create-one',
+      event: 'create-one-test-entity',
       data: fakeEntity,
     });
 
@@ -71,6 +71,23 @@ describe('CreateOneGatewayMixin', () => {
 
     await expect(createOneGateway.createOne(socket, body)).resolves.toEqual({
       event: 'custom-event',
+      data: fakeEntity,
+    });
+  });
+
+  it('should use subPath in eventName if provided', async () => {
+    CreateOneGateway = CreateOneGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      { ...routeConfig, subPath: 'sub' },
+    );
+
+    const createOneGateway = new CreateOneGateway(service, jwtService);
+
+    service.createOne.mockResolvedValueOnce(fakeEntity);
+
+    await expect(createOneGateway.createOne(socket, body)).resolves.toEqual({
+      event: 'create-one-sub-test-entity',
       data: fakeEntity,
     });
   });

@@ -28,6 +28,7 @@ import { DeleteManyControllerMixin } from './delete-many-controller.mixin';
 
 function createDeleteManyServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
+  displayedName: string,
   version: string | undefined,
 ): DynamicAPIServiceProvider {
   class DeleteManyService extends BaseDeleteManyService<Entity> {
@@ -45,18 +46,19 @@ function createDeleteManyServiceProvider<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(DeleteManyService, 'name', {
-    value: provideName('DeleteMany', entity.name, version, 'Service'),
+    value: provideName('DeleteMany', displayedName, version, 'Service'),
     writable: false,
   });
 
   return {
-    provide: provideName('DeleteMany', entity.name, version, 'Service'),
+    provide: provideName('DeleteMany', displayedName, version, 'Service'),
     useClass: DeleteManyService,
   };
 }
 
 function createDeleteManyController<Entity extends BaseEntity>(
   entity: Type<Entity>,
+  displayedName: string,
   controllerOptions: DynamicApiControllerOptions<Entity>,
   routeConfig: DynamicAPIRouteConfig<Entity>,
   version?: string,
@@ -75,7 +77,7 @@ function createDeleteManyController<Entity extends BaseEntity>(
     version,
   ) {
     constructor(
-      @Inject(provideName('DeleteMany', entity.name, version, 'Service'))
+      @Inject(provideName('DeleteMany', displayedName, version, 'Service'))
       protected readonly service: DeleteManyService<Entity>,
     ) {
       super(service);
@@ -83,7 +85,7 @@ function createDeleteManyController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(DeleteManyController, 'name', {
-    value: `${provideName('DeleteMany', entity.name, version, 'Controller')}`,
+    value: `${provideName('DeleteMany', displayedName, version, 'Controller')}`,
     writable: false,
   });
 
@@ -92,6 +94,7 @@ function createDeleteManyController<Entity extends BaseEntity>(
 
 function createDeleteManyGateway<Entity extends BaseEntity>(
   entity: Type<Entity>,
+  displayedName: string,
   controllerOptions: DynamicApiControllerOptions<Entity>,
   routeConfig: DynamicAPIRouteConfig<Entity>,
   version?: string,
@@ -107,13 +110,18 @@ function createDeleteManyGateway<Entity extends BaseEntity>(
     version,
   ) {
     constructor(
-      @Inject(provideName(routeConfig.type, entity.name, version, 'Service'))
+      @Inject(provideName(routeConfig.type, displayedName, version, 'Service'))
       protected readonly service: DeleteManyService<Entity>,
       protected readonly jwtService: JwtService,
     ) {
       super(service, jwtService);
     }
   }
+
+  Object.defineProperty(DeleteManyGateway, 'name', {
+    value: `${provideName(routeConfig.type, displayedName, version, 'Gateway')}`,
+    writable: false,
+  });
 
   return DeleteManyGateway;
 }

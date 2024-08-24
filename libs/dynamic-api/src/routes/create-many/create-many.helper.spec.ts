@@ -14,6 +14,7 @@ import {
 describe('CreateManyHelper', () => {
   let entity: Type;
   let model: Model<any>;
+  const displayedName = 'DisplayedName';
 
   beforeEach(() => {
     entity = buildDynamicApiModuleOptionsMock().entity;
@@ -22,11 +23,11 @@ describe('CreateManyHelper', () => {
 
   describe('createCreateManyServiceProvider', () => {
     it('should return CreateMany provider', () => {
-      const { provide, useClass } = createCreateManyServiceProvider(entity, '1', undefined);
+      const { provide, useClass } = createCreateManyServiceProvider(entity, displayedName, '1', undefined);
       const service = new useClass(model);
 
-      expect(provide).toBe(`CreateMany${entity.name}V1Service`);
-      expect(useClass.name).toBe(`CreateMany${entity.name}V1Service`);
+      expect(provide).toBe(`CreateMany${displayedName}V1Service`);
+      expect(useClass.name).toBe(`CreateMany${displayedName}V1Service`);
       expect(service.entity).toBe(entity);
     });
   });
@@ -35,6 +36,7 @@ describe('CreateManyHelper', () => {
     it('should return CreateMany controller', () => {
       const controllerClass = createCreateManyController(
         entity,
+        displayedName,
         {
           path: 'path',
           apiTag: 'apiTag',
@@ -43,7 +45,7 @@ describe('CreateManyHelper', () => {
         '1',
       );
 
-      expect(controllerClass.name).toBe(`CreateMany${entity.name}V1Controller`);
+      expect(controllerClass.name).toBe(`CreateMany${displayedName}V1Controller`);
     });
 
     it('should instantiate CreateMany controller with default values', async () => {
@@ -52,6 +54,7 @@ describe('CreateManyHelper', () => {
       };
       const controllerClass = createCreateManyController(
         entity,
+        displayedName,
         { path: 'path' },
         { type: 'CreateMany' },
       );
@@ -71,6 +74,7 @@ describe('CreateManyHelper', () => {
     it('should instantiate CreateMany gateway with default values', async () => {
       const gatewayClass = createCreateManyGateway(
         entity,
+        displayedName,
         { path: 'path' },
         { type: 'CreateMany' },
       );

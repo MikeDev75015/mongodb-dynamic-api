@@ -55,7 +55,7 @@ describe('GetOneGatewayMixin', () => {
     service.getOne.mockResolvedValueOnce(fakeEntity);
 
     await expect(getOneGateway.getOne(socket, body)).resolves.toEqual({
-      event: 'test-get-one',
+      event: 'get-one-test-entity',
       data: fakeEntity,
     });
 
@@ -75,6 +75,23 @@ describe('GetOneGatewayMixin', () => {
 
     await expect(getOneGateway.getOne(socket, body)).resolves.toEqual({
       event: 'custom-event',
+      data: fakeEntity,
+    });
+  });
+
+  it('should use subPath in eventName if provided', async () => {
+    GetOneGateway = GetOneGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      { ...routeConfig, subPath: 'sub' },
+    );
+
+    const getOneGateway = new GetOneGateway(service, jwtService);
+
+    service.getOne.mockResolvedValueOnce(fakeEntity);
+
+    await expect(getOneGateway.getOne(socket, body)).resolves.toEqual({
+      event: 'get-one-sub-test-entity',
       data: fakeEntity,
     });
   });

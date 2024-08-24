@@ -1,12 +1,18 @@
 import { Type } from '@nestjs/common';
 import { PickType } from '@nestjs/swagger';
 import { DeletePresenter, EntityParam } from '../dtos';
-import { DTOsBundle, DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../interfaces';
+import {
+  AbilityPredicate,
+  DTOsBundle,
+  DynamicApiControllerOptions,
+  DynamicAPIRouteConfig,
+  RouteType,
+} from '../interfaces';
 import { EntityBodyMixin, EntityPresenterMixin } from '../mixins';
 import { BaseEntity } from '../models';
 import { CreateManyBodyDtoMixin } from '../routes';
 import { getPredicateFromControllerAbilityPredicates } from './controller-ability-predicates.helper';
-import { getFormattedApiTag } from './format.helper';
+import { getDisplayedName } from './format.helper';
 import { addVersionSuffix } from './versioning-config.helper';
 
 function buildCreateManyBodyDTO<Entity extends BaseEntity>(
@@ -27,7 +33,7 @@ function buildCreateManyBodyDTO<Entity extends BaseEntity>(
   class RouteBody extends PickType(CustomBody ?? CreateManyBody, ['list']) {}
 
   Object.defineProperty(RouteBody, 'name', {
-    value: CustomBody ? CustomBody.name : `CreateMany${displayedName}${addVersionSuffix(version)}Dto`,
+    value: `CreateMany${displayedName}${addVersionSuffix(version)}Dto`,
     writable: false,
   });
 
@@ -78,7 +84,7 @@ function buildDefaultRoutePresenter<Entity extends BaseEntity>(
   displayedName: string,
   version: string,
   CustomPresenter: Type,
-): Type {
+): DTOsBundle['presenter'] {
   class RoutePresenter extends (
     CustomPresenter ?? EntityPresenterMixin(entity)
   ) {}
@@ -143,9 +149,9 @@ function getDTOsByRouteType<Entity extends BaseEntity>(
     case 'ReplaceOne':
     case 'UpdateOne':
       return {
+        EntityParam,
         RouteBody,
         RoutePresenter,
-        EntityParam,
       };
 
     case 'GetMany':
@@ -167,21 +173,30 @@ function getDTOsByRouteType<Entity extends BaseEntity>(
 function getControllerMixinData<Entity extends BaseEntity>(
   entity: Type<Entity>,
   {
-    path,
     apiTag,
     isPublic: isPublicController,
     abilityPredicates: controllerAbilityPredicates,
   }: DynamicApiControllerOptions<Entity>,
   {
     type: routeType,
+    subPath,
     description,
     dTOs,
     isPublic: isPublicRoute,
     abilityPredicate: routeAbilityPredicate,
   }: DynamicAPIRouteConfig<Entity>,
   version?: string,
-) {
-  const displayedName = getFormattedApiTag(apiTag, entity.name);
+): {
+  RoutePresenter: DTOsBundle['presenter'];
+  RouteBody?: DTOsBundle['body'];
+  EntityParam?: Type;
+  routeType: RouteType;
+  displayedName: string;
+  description: string;
+  isPublic: boolean;
+  abilityPredicate: AbilityPredicate<Entity>;
+} {
+  const displayedName = getDisplayedName(apiTag,  entity.name, subPath);
 
   let isPublic: boolean;
   if (typeof isPublicRoute === 'boolean') {

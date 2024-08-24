@@ -19,6 +19,7 @@ function DeleteManyGatewayMixin<Entity extends BaseEntity>(
 ): DeleteManyGatewayConstructor<Entity> {
   const {
     routeType,
+    displayedName,
     isPublic,
   } = getControllerMixinData(
     entity,
@@ -27,7 +28,7 @@ function DeleteManyGatewayMixin<Entity extends BaseEntity>(
     version,
   );
 
-  const event = routeConfig.eventName ?? kebabCase(`${controllerOptions.path}/${routeType}`);
+  const event = routeConfig.eventName ?? kebabCase(`${routeType}/${displayedName}`);
 
   class BaseDeleteManyGateway extends BaseGateway<Entity> implements DeleteManyGateway<Entity> {
     protected readonly entity = entity;
@@ -59,7 +60,7 @@ function DeleteManyGatewayMixin<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(BaseDeleteManyGateway, 'name', {
-    value: `Base${provideName(routeType, entity.name, version, 'Gateway')}`,
+    value: `Base${provideName(routeType, displayedName, version, 'Gateway')}`,
     writable: false,
   });
 

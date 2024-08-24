@@ -14,6 +14,7 @@ import {
 describe('ReplaceOneHelper', () => {
   let entity: Type;
   let model: Model<any>;
+  const displayedName = 'DisplayedName';
 
   beforeEach(() => {
     entity = buildDynamicApiModuleOptionsMock().entity;
@@ -22,11 +23,11 @@ describe('ReplaceOneHelper', () => {
 
   describe('createReplaceOneServiceProvider', () => {
     it('should return ReplaceOne provider', () => {
-      const { provide, useClass } = createReplaceOneServiceProvider(entity, '1', undefined);
+      const { provide, useClass } = createReplaceOneServiceProvider(entity, displayedName, '1', undefined);
       const service = new useClass(model);
 
-      expect(provide).toBe(`ReplaceOne${entity.name}V1Service`);
-      expect(useClass.name).toBe(`ReplaceOne${entity.name}V1Service`);
+      expect(provide).toBe(`ReplaceOne${displayedName}V1Service`);
+      expect(useClass.name).toBe(`ReplaceOne${displayedName}V1Service`);
       expect(service.entity).toBe(entity);
     });
   });
@@ -35,6 +36,7 @@ describe('ReplaceOneHelper', () => {
     it('should return ReplaceOne controller', () => {
       const controllerClass = createReplaceOneController(
         entity,
+        displayedName,
         {
           path: 'path',
           apiTag: 'apiTag',
@@ -43,7 +45,7 @@ describe('ReplaceOneHelper', () => {
         '1',
       );
 
-      expect(controllerClass.name).toBe(`ReplaceOne${entity.name}V1Controller`);
+      expect(controllerClass.name).toBe(`ReplaceOne${displayedName}V1Controller`);
     });
 
     it('should instantiate ReplaceOne controller with default values', async () => {
@@ -52,6 +54,7 @@ describe('ReplaceOneHelper', () => {
       };
       const controllerClass = createReplaceOneController(
         entity,
+        displayedName,
         { path: 'path' },
         { type: 'ReplaceOne' },
       );
@@ -73,6 +76,7 @@ describe('ReplaceOneHelper', () => {
     it('should instantiate ReplaceOne gateway with default values', async () => {
       const gatewayClass = createReplaceOneGateway(
         entity,
+        displayedName,
         { path: 'path' },
         { type: 'ReplaceOne' },
       );

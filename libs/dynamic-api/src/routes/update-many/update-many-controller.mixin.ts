@@ -15,6 +15,7 @@ function UpdateManyControllerMixin<Entity extends BaseEntity>(
 ): UpdateManyControllerConstructor<Entity> {
   const {
     routeType,
+    displayedName,
     description,
     isPublic,
     RouteBody,
@@ -43,6 +44,7 @@ function UpdateManyControllerMixin<Entity extends BaseEntity>(
   class UpdateManyPoliciesGuard extends CreatePoliciesGuardMixin(
     entity,
     routeType,
+    displayedName,
     version,
     abilityPredicate,
   ) {}
@@ -62,7 +64,7 @@ function UpdateManyControllerMixin<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(BaseUpdateManyController, 'name', {
-    value: `Base${provideName('UpdateMany', entity.name, version, 'Controller')}`,
+    value: `Base${provideName('UpdateMany', displayedName, version, 'Controller')}`,
     writable: false,
   });
 

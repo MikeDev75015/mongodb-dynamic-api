@@ -14,6 +14,7 @@ import {
 describe('DuplicateManyHelper', () => {
   let entity: Type;
   let model: Model<any>;
+  const displayedName = 'DisplayedName';
 
   beforeEach(() => {
     entity = buildDynamicApiModuleOptionsMock().entity;
@@ -22,11 +23,11 @@ describe('DuplicateManyHelper', () => {
 
   describe('createDuplicateManyServiceProvider', () => {
     it('should return DuplicateMany provider', () => {
-      const { provide, useClass } = createDuplicateManyServiceProvider(entity, '1', undefined);
+      const { provide, useClass } = createDuplicateManyServiceProvider(entity, displayedName, '1', undefined);
       const service = new useClass(model);
 
-      expect(provide).toBe(`DuplicateMany${entity.name}V1Service`);
-      expect(useClass.name).toBe(`DuplicateMany${entity.name}V1Service`);
+      expect(provide).toBe(`DuplicateMany${displayedName}V1Service`);
+      expect(useClass.name).toBe(`DuplicateMany${displayedName}V1Service`);
       expect(service.entity).toBe(entity);
     });
   });
@@ -35,6 +36,7 @@ describe('DuplicateManyHelper', () => {
     it('should return DuplicateMany controller', () => {
       const controllerClass = createDuplicateManyController(
         entity,
+        displayedName,
         {
           path: 'path',
           apiTag: 'apiTag',
@@ -43,7 +45,7 @@ describe('DuplicateManyHelper', () => {
         '1',
       );
 
-      expect(controllerClass.name).toBe(`DuplicateMany${entity.name}V1Controller`);
+      expect(controllerClass.name).toBe(`DuplicateMany${displayedName}V1Controller`);
     });
 
     it('should instantiate DuplicateMany controller with default values', async () => {
@@ -52,6 +54,7 @@ describe('DuplicateManyHelper', () => {
       };
       const controllerClass = createDuplicateManyController(
         entity,
+        displayedName,
         { path: 'path' },
         { type: 'DuplicateMany' },
       );
@@ -73,6 +76,7 @@ describe('DuplicateManyHelper', () => {
     it('should instantiate DuplicateMany gateway with default values', async () => {
       const gatewayClass = createDuplicateManyGateway(
         entity,
+        displayedName,
         { path: 'path' },
         { type: 'DuplicateMany' },
       );
