@@ -1,5 +1,12 @@
 Changelog
 
+## [2.6.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.5.1...v2.6.0) (2024-08-24)
+
+
+### api
+
+* **api:** handle route with sub path ([1b57ff0](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/1b57ff09a3ad8e524a50de466d0bfa6b34bcfe9b))
+
 ## [2.5.1](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.5.0...v2.5.1) (2024-08-20)
 
 ## [2.5.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.4.5...v2.5.0) (2024-08-20)
