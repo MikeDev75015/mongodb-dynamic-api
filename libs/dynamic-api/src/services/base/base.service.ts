@@ -6,7 +6,7 @@ import {
   ServiceUnavailableException,
   Type,
 } from '@nestjs/common';
-import { Builder } from 'builder-pattern';
+import { plainToInstance } from 'class-transformer';
 import { FilterQuery, Model, Schema, UpdateQuery, UpdateWithAggregationPipeline } from 'mongoose';
 import {
   AbilityPredicate,
@@ -166,9 +166,10 @@ export abstract class BaseService<Entity extends BaseEntity> {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { _id, id, __v, ...rest } = document;
 
-    return Builder(this.entity, rest as Partial<Entity>)
-      .id(_id?.toString() ?? id)
-      .build();
+    return plainToInstance(this.entity, {
+      ...rest as Partial<Entity>,
+      id: _id?.toString() ?? id,
+    });
   }
 
   protected handleAbilityPredicate(document: Entity, authAbilityPredicate?: AuthAbilityPredicate<Entity>) {
