@@ -1,4 +1,4 @@
-import { Builder } from 'builder-pattern';
+import { plainToInstance } from 'class-transformer';
 import { Model } from 'mongoose';
 import { DeletePresenter } from '../../dtos';
 import { DeleteResult } from '../../interfaces';
@@ -34,9 +34,9 @@ export abstract class BaseDeleteManyService<Entity extends BaseEntity>
         op = await this.model.deleteMany({ _id: { $in: ids } }).exec();
       }
 
-      return Builder(DeletePresenter).deletedCount(op.deletedCount).build();
+      return plainToInstance(DeletePresenter, { deletedCount: op.deletedCount });
     } catch (error: any) {
-      return Builder(DeletePresenter).deletedCount(0).build();
+      return plainToInstance(DeletePresenter, { deletedCount: 0 });
     }
   }
 }

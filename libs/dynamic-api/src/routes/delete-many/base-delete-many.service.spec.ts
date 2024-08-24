@@ -1,4 +1,4 @@
-import { Builder } from 'builder-pattern';
+import { plainToInstance } from 'class-transformer';
 import { Model } from 'mongoose';
 import { DeletePresenter } from '../../dtos';
 import { BaseDeleteManyService } from './base-delete-many.service';
@@ -35,7 +35,7 @@ describe('BaseDeleteManyService', () => {
   }
 
   beforeEach(() => {
-    presenter = Builder(DeletePresenter, deleted).build();
+    presenter = plainToInstance(DeletePresenter, deleted);
   });
 
   it('should have deleteMany method', () => {
