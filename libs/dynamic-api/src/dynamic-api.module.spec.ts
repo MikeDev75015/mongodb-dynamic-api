@@ -175,7 +175,7 @@ describe('DynamicApiModule', () => {
       jest.spyOn(helpers, 'getDefaultRouteDescription').mockReturnValue('fake-description');
       jest.spyOn(helpers, 'isValidVersion').mockReturnValue(true);
       jest.spyOn(helpers, 'addVersionSuffix').mockReturnValue('fake-version');
-      jest.spyOn(helpers, 'getFormattedApiTag').mockReturnValue('fake-formatted-api-tag');
+      jest.spyOn(helpers, 'getDisplayedName').mockReturnValue('fake-formatted-api-tag');
       jest.spyOn(helpers, 'RouteDecoratorsHelper').mockReturnValue((_: any) => undefined);
       jest.spyOn(helpers, 'provideName').mockReturnValue('fake-provided-name');
       jest.spyOn(helpers, 'getControllerMixinData').mockReturnValue({

@@ -301,13 +301,16 @@ export class DynamicApiModule {
   ): DynamicAPIRouteConfig<Entity>[] {
     const defaults = controllerRoutesConfig.defaults ?? stateRoutesConfig.defaults;
     const excluded = controllerRoutesConfig.excluded ?? stateRoutesConfig.excluded;
-    return defaults.filter(
+
+    const routesWithSubPath = routes.filter((route) => route.subPath);
+
+    return routesWithSubPath.concat(defaults.filter(
       (type) => !excluded.includes(type),
     )
     .map((type) => {
-      const configuredRoute = routes.find((route) => route.type === type);
+      const configuredRoute = routes.find((route) => route.type === type && !route.subPath);
 
       return configuredRoute ?? { type };
-    }).concat(routes.filter((route) => !defaults.includes(route.type)));
+    }));
   }
 }

@@ -28,6 +28,7 @@ describe('RouteDecoratorsBuilder', () => {
       undefined,
       undefined,
       undefined,
+      undefined,
     );
   });
 
@@ -39,21 +40,29 @@ describe('RouteDecoratorsBuilder', () => {
     });
 
     test.each([
-      ['GetMany', undefined, undefined, undefined, undefined, undefined, 4],
-      ['GetOne', undefined, undefined, fakeParam, undefined, undefined, 5],
-      ['CreateMany', undefined, undefined, undefined, fakeManyBody, undefined, 4],
-      ['CreateOne', undefined, undefined, undefined, fakeBody, undefined, 4],
-      ['UpdateMany', '2', undefined, undefined, undefined, undefined, 3],
-      ['UpdateOne', undefined, undefined, fakeParam, undefined, undefined, 4],
-      ['ReplaceOne', undefined, undefined, fakeParam, undefined, undefined, 4],
-      ['DuplicateMany', undefined, 'test', undefined, undefined, undefined, 3],
-      ['DuplicateOne', undefined, 'test', fakeParam, undefined, undefined, 4],
-      ['DeleteMany', '1', undefined, undefined, undefined, undefined, 3],
-      ['DeleteOne', undefined, undefined, fakeParam, undefined, undefined, 4],
+      ['GetMany', undefined, undefined, undefined, undefined, undefined, undefined, 4],
+      ['GetOne', undefined, undefined, undefined, fakeParam, undefined, undefined, 5],
+      ['GetOne', 'sub', undefined, undefined, fakeParam, undefined, undefined, 5],
+      ['CreateMany', undefined, undefined, undefined, undefined, fakeManyBody, undefined, 4],
+      ['CreateMany', 'sub', undefined, undefined, undefined, fakeManyBody, undefined, 4],
+      ['CreateOne', undefined, undefined, undefined, undefined, fakeBody, undefined, 4],
+      ['UpdateMany', undefined, '2', undefined, undefined, undefined, undefined, 3],
+      ['UpdateOne', undefined, undefined, undefined, fakeParam, undefined, undefined, 4],
+      ['UpdateOne', 'sub', undefined, undefined, fakeParam, undefined, undefined, 4],
+      ['ReplaceOne', undefined, undefined, undefined, fakeParam, undefined, undefined, 4],
+      ['ReplaceOne', 'sub', undefined, undefined, fakeParam, undefined, undefined, 4],
+      ['DuplicateMany', undefined, undefined, 'test', undefined, undefined, undefined, 3],
+      ['DuplicateMany', 'sub', undefined, 'test', undefined, undefined, undefined, 3],
+      ['DuplicateOne', undefined, undefined, 'test', fakeParam, undefined, undefined, 4],
+      ['DuplicateOne', 'sub', undefined, 'test', fakeParam, undefined, undefined, 4],
+      ['DeleteMany', undefined, '1', undefined, undefined, undefined, undefined, 3],
+      ['DeleteOne', undefined, undefined, undefined, fakeParam, undefined, undefined, 4],
+      ['DeleteOne', 'sub', undefined, undefined, fakeParam, undefined, undefined, 4],
     ])(
       'should return an array of route decorators for %s',
       (
         routeType,
+        subPath,
         version,
         description,
         param: Type,
@@ -70,6 +79,7 @@ describe('RouteDecoratorsBuilder', () => {
         routeDecoratorsBuilder = new RouteDecoratorsBuilder(
           routeType as RouteType,
           entity,
+          subPath,
           version,
           description,
           routeType === 'GetMany',
