@@ -11,6 +11,7 @@ interface DynamicAPIRouteConfig<Entity extends BaseEntity> {
   isPublic?: boolean;
   description?: string;
   version?: string;
+  subPath?: string;
   dTOs?: DTOsBundle;
   validationPipeOptions?: ValidationPipeOptions;
   abilityPredicate?: AbilityPredicate<Entity>;

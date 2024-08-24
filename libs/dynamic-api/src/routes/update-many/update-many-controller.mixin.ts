@@ -30,6 +30,7 @@ function UpdateManyControllerMixin<Entity extends BaseEntity>(
   const routeDecoratorsBuilder = new RouteDecoratorsBuilder(
     routeType,
     entity,
+    routeConfig.subPath,
     version,
     description,
     isPublic,

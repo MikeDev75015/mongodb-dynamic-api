@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse } from '@ne
 import { keys, lowerCase, lowerFirst, upperFirst } from 'lodash';
 import { Public } from '../../decorators';
 import { DynamicApiModule } from '../../dynamic-api.module';
+import { pascalCase } from '../../helpers';
 import { DynamicApiDecoratorBuilder, RouteType } from '../../interfaces';
 import { BaseEntity } from '../../models';
 
@@ -21,6 +22,7 @@ class RouteDecoratorsBuilder<Entity extends BaseEntity> implements DynamicApiDec
   constructor(
     private readonly routeType: RouteType,
     private readonly entity: Type<Entity>,
+    private readonly subPath: string | undefined,
     private readonly version: string | undefined,
     private readonly description: string | undefined,
     private readonly isPublic: boolean | undefined,
@@ -51,39 +53,49 @@ class RouteDecoratorsBuilder<Entity extends BaseEntity> implements DynamicApiDec
       routeDecorators.push(ApiBearerAuth());
     }
 
+    const subPath = this.subPath ?? '';
+
+    const addSubPath = (before = true): string => {
+      if (!this.subPath) {
+        return '';
+      }
+
+      return before ? this.subPath + '/' : '/' + this.subPath;
+    };
+
     switch (this.routeType) {
       case 'GetMany':
-        routeDecorators.push(Get());
+        routeDecorators.push(Get(subPath));
         break;
       case 'GetOne':
-        routeDecorators.push(Get(`:${paramKey}`));
+        routeDecorators.push(Get(`${addSubPath()}:${paramKey}`));
         break;
       case 'CreateMany':
-        routeDecorators.push(Post('many'));
+        routeDecorators.push(Post(`many${addSubPath(false)}`));
         break;
       case 'CreateOne':
-        routeDecorators.push(Post());
+        routeDecorators.push(Post(subPath));
         break;
       case 'UpdateMany':
-        routeDecorators.push(Patch());
+        routeDecorators.push(Patch(subPath));
         break;
       case 'UpdateOne':
-        routeDecorators.push(Patch(`:${paramKey}`));
+        routeDecorators.push(Patch(`${addSubPath()}:${paramKey}`));
         break;
       case 'ReplaceOne':
-        routeDecorators.push(Put(`:${paramKey}`));
+        routeDecorators.push(Put(`${addSubPath()}:${paramKey}`));
         break;
       case 'DuplicateMany':
-        routeDecorators.push(Post(`duplicate`));
+        routeDecorators.push(Post(`duplicate${addSubPath(false)}`));
         break;
       case 'DuplicateOne':
-        routeDecorators.push(Post(`duplicate/:${paramKey}`));
+        routeDecorators.push(Post(`duplicate${addSubPath(false)}/:${paramKey}`));
         break;
       case 'DeleteMany':
-        routeDecorators.push(Delete());
+        routeDecorators.push(Delete(subPath));
         break;
       case 'DeleteOne':
-        routeDecorators.push(Delete(`:${paramKey}`));
+        routeDecorators.push(Delete(`${addSubPath()}:${paramKey}`));
         break;
       default:
         throw new Error(
@@ -95,12 +107,14 @@ class RouteDecoratorsBuilder<Entity extends BaseEntity> implements DynamicApiDec
   }
 
   private getApiDecorators(paramKey?: string) {
+    const feature = this.subPath ? `${pascalCase(this.subPath)}-${this.entity.name}` : this.entity.name;
+
     return [
       ApiOperation({
-        operationId: `${lowerFirst(this.routeType)}${this.entity.name}${this.version ? 'V' + this.version : ''}`,
+        operationId: `${lowerFirst(this.routeType)}${feature}${this.version ? 'V' + this.version : ''}`,
         summary:
           this.description ??
-          `${upperFirst(lowerCase(this.routeType))} ${lowerCase(this.entity.name)}`,
+          `${upperFirst(lowerCase(this.routeType))} ${lowerCase(feature)}`,
       }),
       ApiResponse({
         type: this.dTOs.presenter ?? this.entity,
