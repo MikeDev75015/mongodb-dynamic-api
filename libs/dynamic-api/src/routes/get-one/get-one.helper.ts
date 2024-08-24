@@ -31,6 +31,7 @@ import { GetOneService } from './get-one-service.interface';
 
 function createGetOneServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
+  displayedName: string,
   version: string | undefined,
   callback: DynamicApiServiceCallback<Entity> | undefined,
 ): DynamicAPIServiceProvider {
@@ -50,18 +51,19 @@ function createGetOneServiceProvider<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(GetOneService, 'name', {
-    value: provideName('GetOne', entity.name, version, 'Service'),
+    value: provideName('GetOne', displayedName, version, 'Service'),
     writable: false,
   });
 
   return {
-    provide: provideName('GetOne', entity.name, version, 'Service'),
+    provide: provideName('GetOne', displayedName, version, 'Service'),
     useClass: GetOneService,
   };
 }
 
 function createGetOneController<Entity extends BaseEntity>(
   entity: Type<Entity>,
+  displayedName: string,
   controllerOptions: DynamicApiControllerOptions<Entity>,
   routeConfig: DynamicAPIRouteConfig<Entity>,
   version?: string,
@@ -80,7 +82,7 @@ function createGetOneController<Entity extends BaseEntity>(
     version,
   ) {
     constructor(
-      @Inject(provideName('GetOne', entity.name, version, 'Service'))
+      @Inject(provideName('GetOne', displayedName, version, 'Service'))
       protected readonly service: GetOneService<Entity>,
     ) {
       super(service);
@@ -88,7 +90,7 @@ function createGetOneController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(GetOneController, 'name', {
-    value: `${provideName('GetOne', entity.name, version, 'Controller')}`,
+    value: `${provideName('GetOne', displayedName, version, 'Controller')}`,
     writable: false,
   });
 
@@ -97,6 +99,7 @@ function createGetOneController<Entity extends BaseEntity>(
 
 function createGetOneGateway<Entity extends BaseEntity>(
   entity: Type<Entity>,
+  displayedName: string,
   controllerOptions: DynamicApiControllerOptions<Entity>,
   routeConfig: DynamicAPIRouteConfig<Entity>,
   version?: string,
@@ -112,13 +115,18 @@ function createGetOneGateway<Entity extends BaseEntity>(
     version,
   ) {
     constructor(
-      @Inject(provideName(routeConfig.type, entity.name, version, 'Service'))
+      @Inject(provideName(routeConfig.type, displayedName, version, 'Service'))
       protected readonly service: GetOneService<Entity>,
       protected readonly jwtService: JwtService,
     ) {
       super(service, jwtService);
     }
   }
+
+  Object.defineProperty(GetOneGateway, 'name', {
+    value: `${provideName(routeConfig.type, displayedName, version, 'Gateway')}`,
+    writable: false,
+  });
 
   return GetOneGateway;
 }

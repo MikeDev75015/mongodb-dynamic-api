@@ -31,6 +31,7 @@ import { ReplaceOneService } from './replace-one-service.interface';
 
 function createReplaceOneServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
+  displayedName: string,
   version: string | undefined,
   callback: DynamicApiServiceCallback<Entity> | undefined,
 ): DynamicAPIServiceProvider {
@@ -50,18 +51,19 @@ function createReplaceOneServiceProvider<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(ReplaceOneService, 'name', {
-    value: provideName('ReplaceOne', entity.name, version, 'Service'),
+    value: provideName('ReplaceOne', displayedName, version, 'Service'),
     writable: false,
   });
 
   return {
-    provide: provideName('ReplaceOne', entity.name, version, 'Service'),
+    provide: provideName('ReplaceOne', displayedName, version, 'Service'),
     useClass: ReplaceOneService,
   };
 }
 
 function createReplaceOneController<Entity extends BaseEntity>(
   entity: Type<Entity>,
+  displayedName: string,
   controllerOptions: DynamicApiControllerOptions<Entity>,
   routeConfig: DynamicAPIRouteConfig<Entity>,
   version?: string,
@@ -80,7 +82,7 @@ function createReplaceOneController<Entity extends BaseEntity>(
     version,
   ) {
     constructor(
-      @Inject(provideName('ReplaceOne', entity.name, version, 'Service'))
+      @Inject(provideName('ReplaceOne', displayedName, version, 'Service'))
       protected readonly service: ReplaceOneService<Entity>,
     ) {
       super(service);
@@ -88,7 +90,7 @@ function createReplaceOneController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(ReplaceOneController, 'name', {
-    value: `${provideName('ReplaceOne', entity.name, version, 'Controller')}`,
+    value: `${provideName('ReplaceOne', displayedName, version, 'Controller')}`,
     writable: false,
   });
 
@@ -97,6 +99,7 @@ function createReplaceOneController<Entity extends BaseEntity>(
 
 function createReplaceOneGateway<Entity extends BaseEntity>(
   entity: Type<Entity>,
+  displayedName: string,
   controllerOptions: DynamicApiControllerOptions<Entity>,
   routeConfig: DynamicAPIRouteConfig<Entity>,
   version?: string,
@@ -112,13 +115,18 @@ function createReplaceOneGateway<Entity extends BaseEntity>(
     version,
   ) {
     constructor(
-      @Inject(provideName(routeConfig.type, entity.name, version, 'Service'))
+      @Inject(provideName(routeConfig.type, displayedName, version, 'Service'))
       protected readonly service: ReplaceOneService<Entity>,
       protected readonly jwtService: JwtService,
     ) {
       super(service, jwtService);
     }
   }
+
+  Object.defineProperty(ReplaceOneGateway, 'name', {
+    value: `${provideName(routeConfig.type, displayedName, version, 'Gateway')}`,
+    writable: false,
+  });
 
   return ReplaceOneGateway;
 }

@@ -31,6 +31,7 @@ import { UpdateManyService } from './update-many-service.interface';
 
 function createUpdateManyServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
+  displayedName: string,
   version: string | undefined,
   callback: DynamicApiServiceCallback<Entity> | undefined,
 ): DynamicAPIServiceProvider {
@@ -50,18 +51,19 @@ function createUpdateManyServiceProvider<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(UpdateManyService, 'name', {
-    value: provideName('UpdateMany', entity.name, version, 'Service'),
+    value: provideName('UpdateMany', displayedName, version, 'Service'),
     writable: false,
   });
 
   return {
-    provide: provideName('UpdateMany', entity.name, version, 'Service'),
+    provide: provideName('UpdateMany', displayedName, version, 'Service'),
     useClass: UpdateManyService,
   };
 }
 
 function createUpdateManyController<Entity extends BaseEntity>(
   entity: Type<Entity>,
+  displayedName: string,
   controllerOptions: DynamicApiControllerOptions<Entity>,
   routeConfig: DynamicAPIRouteConfig<Entity>,
   version?: string,
@@ -80,7 +82,7 @@ function createUpdateManyController<Entity extends BaseEntity>(
     version,
   ) {
     constructor(
-      @Inject(provideName('UpdateMany', entity.name, version, 'Service'))
+      @Inject(provideName('UpdateMany', displayedName, version, 'Service'))
       protected readonly service: UpdateManyService<Entity>,
     ) {
       super(service);
@@ -88,7 +90,7 @@ function createUpdateManyController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(UpdateManyController, 'name', {
-    value: `${provideName('UpdateMany', entity.name, version, 'Controller')}`,
+    value: `${provideName('UpdateMany', displayedName, version, 'Controller')}`,
     writable: false,
   });
 
@@ -97,6 +99,7 @@ function createUpdateManyController<Entity extends BaseEntity>(
 
 function createUpdateManyGateway<Entity extends BaseEntity>(
   entity: Type<Entity>,
+  displayedName: string,
   controllerOptions: DynamicApiControllerOptions<Entity>,
   routeConfig: DynamicAPIRouteConfig<Entity>,
   version?: string,
@@ -112,13 +115,18 @@ function createUpdateManyGateway<Entity extends BaseEntity>(
     version,
   ) {
     constructor(
-      @Inject(provideName(routeConfig.type, entity.name, version, 'Service'))
+      @Inject(provideName(routeConfig.type, displayedName, version, 'Service'))
       protected readonly service: UpdateManyService<Entity>,
       protected readonly jwtService: JwtService,
     ) {
       super(service, jwtService);
     }
   }
+
+  Object.defineProperty(UpdateManyGateway, 'name', {
+    value: `${provideName(routeConfig.type, displayedName, version, 'Gateway')}`,
+    writable: false,
+  });
 
   return UpdateManyGateway;
 }

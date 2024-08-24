@@ -31,6 +31,7 @@ import { DuplicateManyService } from './duplicate-many-service.interface';
 
 function createDuplicateManyServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
+  displayedName: string,
   version: string | undefined,
   callback: DynamicApiServiceCallback<Entity> | undefined,
 ): DynamicAPIServiceProvider {
@@ -50,18 +51,19 @@ function createDuplicateManyServiceProvider<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(DuplicateManyService, 'name', {
-    value: provideName('DuplicateMany', entity.name, version, 'Service'),
+    value: provideName('DuplicateMany', displayedName, version, 'Service'),
     writable: false,
   });
 
   return {
-    provide: provideName('DuplicateMany', entity.name, version, 'Service'),
+    provide: provideName('DuplicateMany', displayedName, version, 'Service'),
     useClass: DuplicateManyService,
   };
 }
 
 function createDuplicateManyController<Entity extends BaseEntity>(
   entity: Type<Entity>,
+  displayedName: string,
   controllerOptions: DynamicApiControllerOptions<Entity>,
   routeConfig: DynamicAPIRouteConfig<Entity>,
   version?: string,
@@ -80,7 +82,7 @@ function createDuplicateManyController<Entity extends BaseEntity>(
     version,
   ) {
     constructor(
-      @Inject(provideName('DuplicateMany', entity.name, version, 'Service'))
+      @Inject(provideName('DuplicateMany', displayedName, version, 'Service'))
       protected readonly service: DuplicateManyService<Entity>,
     ) {
       super(service);
@@ -88,7 +90,7 @@ function createDuplicateManyController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(DuplicateManyController, 'name', {
-    value: `${provideName('DuplicateMany', entity.name, version, 'Controller')}`,
+    value: `${provideName('DuplicateMany', displayedName, version, 'Controller')}`,
     writable: false,
   });
 
@@ -97,6 +99,7 @@ function createDuplicateManyController<Entity extends BaseEntity>(
 
 function createDuplicateManyGateway<Entity extends BaseEntity>(
   entity: Type<Entity>,
+  displayedName: string,
   controllerOptions: DynamicApiControllerOptions<Entity>,
   routeConfig: DynamicAPIRouteConfig<Entity>,
   version?: string,
@@ -112,13 +115,18 @@ function createDuplicateManyGateway<Entity extends BaseEntity>(
     version,
   ) {
     constructor(
-      @Inject(provideName(routeConfig.type, entity.name, version, 'Service'))
+      @Inject(provideName(routeConfig.type, displayedName, version, 'Service'))
       protected readonly service: DuplicateManyService<Entity>,
       protected readonly jwtService: JwtService,
     ) {
       super(service, jwtService);
     }
   }
+
+  Object.defineProperty(DuplicateManyGateway, 'name', {
+    value: `${provideName(routeConfig.type, displayedName, version, 'Gateway')}`,
+    writable: false,
+  });
 
   return DuplicateManyGateway;
 }

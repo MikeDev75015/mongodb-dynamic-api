@@ -10,6 +10,7 @@ import { createGetOneController, createGetOneGateway, createGetOneServiceProvide
 describe('GetOneHelper', () => {
   let entity: Type;
   let model: Model<any>;
+  const displayedName = 'DisplayedName';
 
   beforeEach(() => {
     entity = buildDynamicApiModuleOptionsMock().entity;
@@ -18,11 +19,11 @@ describe('GetOneHelper', () => {
 
   describe('createGetOneServiceProvider', () => {
     it('should return GetOne provider', () => {
-      const { provide, useClass } = createGetOneServiceProvider(entity, '1', undefined);
+      const { provide, useClass } = createGetOneServiceProvider(entity, displayedName, '1', undefined);
       const service = new useClass(model);
 
-      expect(provide).toBe(`GetOne${entity.name}V1Service`);
-      expect(useClass.name).toBe(`GetOne${entity.name}V1Service`);
+      expect(provide).toBe(`GetOne${displayedName}V1Service`);
+      expect(useClass.name).toBe(`GetOne${displayedName}V1Service`);
       expect(service.entity).toBe(entity);
     });
   });
@@ -31,6 +32,7 @@ describe('GetOneHelper', () => {
     it('should return GetOne controller', () => {
       const controllerClass = createGetOneController(
         entity,
+        displayedName,
         {
           path: 'path',
           apiTag: 'apiTag',
@@ -39,7 +41,7 @@ describe('GetOneHelper', () => {
         '1',
       );
 
-      expect(controllerClass.name).toBe(`GetOne${entity.name}V1Controller`);
+      expect(controllerClass.name).toBe(`GetOne${displayedName}V1Controller`);
     });
 
     it('should instantiate GetOne controller with default values', async () => {
@@ -48,6 +50,7 @@ describe('GetOneHelper', () => {
       };
       const controllerClass = createGetOneController(
         entity,
+        displayedName,
         { path: 'path' },
         { type: 'GetOne' },
       );
@@ -67,6 +70,7 @@ describe('GetOneHelper', () => {
     it('should instantiate GetOne gateway with default values', async () => {
       const gatewayClass = createGetOneGateway(
         entity,
+        displayedName,
         { path: 'path' },
         { type: 'GetOne' },
       );

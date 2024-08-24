@@ -1,5 +1,5 @@
 import {
-  getFormattedApiTag,
+  getDisplayedName,
   isEmptyObject,
   isNotEmptyObject,
   isValidVersion,
@@ -35,11 +35,19 @@ describe('FormatHelper', () => {
 
   describe('getFormattedApiTag', () => {
     it('should return formatted api tag', () => {
-      expect(getFormattedApiTag('api tag', 'entityName')).toBe('ApiTag');
+      expect(getDisplayedName('api tag', 'entityName', undefined)).toBe('ApiTag');
+    });
+
+    it('should use sub path with api tag when provided', () => {
+      expect(getDisplayedName('api tag', 'entityName', 'sub')).toBe('SubApiTag');
     });
 
     it('should return entity name when no api tag is provided', () => {
-      expect(getFormattedApiTag(undefined, 'entityName')).toBe('entityName');
+      expect(getDisplayedName(undefined, 'entityName', undefined)).toBe('EntityName');
+    });
+
+    it('should use sub path with entity name when provided', () => {
+      expect(getDisplayedName(undefined, 'entityName', 'sub')).toBe('SubEntityName');
     });
   });
 

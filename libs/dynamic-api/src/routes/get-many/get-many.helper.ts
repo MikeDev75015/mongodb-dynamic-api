@@ -31,6 +31,7 @@ import { GetManyService } from './get-many-service.interface';
 
 function createGetManyServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
+  displayedName: string,
   version: string | undefined,
   callback: DynamicApiServiceCallback<Entity> | undefined,
 ): DynamicAPIServiceProvider {
@@ -50,18 +51,19 @@ function createGetManyServiceProvider<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(GetManyService, 'name', {
-    value: provideName('GetMany', entity.name, version, 'Service'),
+    value: provideName('GetMany', displayedName, version, 'Service'),
     writable: false,
   });
 
   return {
-    provide: provideName('GetMany', entity.name, version, 'Service'),
+    provide: provideName('GetMany', displayedName, version, 'Service'),
     useClass: GetManyService,
   };
 }
 
 function createGetManyController<Entity extends BaseEntity>(
   entity: Type<Entity>,
+  displayedName: string,
   controllerOptions: DynamicApiControllerOptions<Entity>,
   routeConfig: DynamicAPIRouteConfig<Entity>,
   version?: string,
@@ -80,7 +82,7 @@ function createGetManyController<Entity extends BaseEntity>(
     version,
   ) {
     constructor(
-      @Inject(provideName('GetMany', entity.name, version, 'Service'))
+      @Inject(provideName('GetMany', displayedName, version, 'Service'))
       protected readonly service: GetManyService<Entity>,
     ) {
       super(service);
@@ -88,7 +90,7 @@ function createGetManyController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(GetManyController, 'name', {
-    value: `${provideName('GetMany', entity.name, version, 'Controller')}`,
+    value: `${provideName('GetMany', displayedName, version, 'Controller')}`,
     writable: false,
   });
 
@@ -97,6 +99,7 @@ function createGetManyController<Entity extends BaseEntity>(
 
 function createGetManyGateway<Entity extends BaseEntity>(
   entity: Type<Entity>,
+  displayedName: string,
   controllerOptions: DynamicApiControllerOptions<Entity>,
   routeConfig: DynamicAPIRouteConfig<Entity>,
   version?: string,
@@ -112,13 +115,18 @@ function createGetManyGateway<Entity extends BaseEntity>(
     version,
   ) {
     constructor(
-      @Inject(provideName(routeConfig.type, entity.name, version, 'Service'))
+      @Inject(provideName(routeConfig.type, displayedName, version, 'Service'))
       protected readonly service: GetManyService<Entity>,
       protected readonly jwtService: JwtService,
     ) {
       super(service, jwtService);
     }
   }
+
+  Object.defineProperty(GetManyGateway, 'name', {
+    value: `${provideName(routeConfig.type, displayedName, version, 'Gateway')}`,
+    writable: false,
+  });
 
   return GetManyGateway;
 }

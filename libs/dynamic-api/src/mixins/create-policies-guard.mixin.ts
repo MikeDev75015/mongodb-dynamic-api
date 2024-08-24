@@ -15,6 +15,7 @@ import { BaseEntity } from '../models';
 function CreatePoliciesGuardMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   routeType: RouteType,
+  displayedName: string,
   version: string | undefined,
   abilityPredicate: AbilityPredicate<Entity> | undefined,
 ): PoliciesGuardConstructor<Entity> {
@@ -36,7 +37,7 @@ function CreatePoliciesGuardMixin<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(RoutePoliciesGuard, 'name', {
-    value: `${provideName(routeType, entity.name, version, 'PoliciesGuard')}`,
+    value: `${provideName(routeType, displayedName, version, 'PoliciesGuard')}`,
     writable: false,
   });
 

@@ -1,10 +1,12 @@
 import { DynamicModule, ValidationPipeOptions } from '@nestjs/common';
+import * as Helpers from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import { DeleteManyModule } from './delete-many.module';
 import * as DeleteManyHelpers from './delete-many.helper';
+import { DeleteManyModule } from './delete-many.module';
 
 jest.mock('./delete-many.helper');
+jest.mock('../../helpers');
 
 class Entity extends BaseEntity {}
 
@@ -20,10 +22,12 @@ describe('DeleteManyModule', () => {
   const routeConfig: DynamicAPIRouteConfig<Entity> = { type: 'DeleteMany' };
   const version = 'fakeVersion';
   const validationPipeOptions: ValidationPipeOptions = { transform: true };
+  const fakeDisplayedName = 'FakeDisplayedName';
 
   beforeEach(() => {
     spyCreateDeleteManyController = jest.spyOn(DeleteManyHelpers, 'createDeleteManyController').mockReturnValue(FakeController);
     spyCreateDeleteManyServiceProvider = jest.spyOn(DeleteManyHelpers, 'createDeleteManyServiceProvider').mockReturnValue(FakeServiceProvider);
+    jest.spyOn(Helpers, 'getDisplayedName').mockReturnValue(fakeDisplayedName);
   });
 
   describe('forFeature', () => {
@@ -37,8 +41,9 @@ describe('DeleteManyModule', () => {
         providers: [FakeServiceProvider],
       });
 
-      expect(spyCreateDeleteManyController).toHaveBeenCalledWith(Entity, controllerOptions, routeConfig, version, validationPipeOptions);
-      expect(spyCreateDeleteManyServiceProvider).toHaveBeenCalledWith(Entity, version);
+      expect(spyCreateDeleteManyController)
+      .toHaveBeenCalledWith(Entity, fakeDisplayedName, controllerOptions, routeConfig, version, validationPipeOptions);
+      expect(spyCreateDeleteManyServiceProvider).toHaveBeenCalledWith(Entity, fakeDisplayedName, version);
     });
   });
 });

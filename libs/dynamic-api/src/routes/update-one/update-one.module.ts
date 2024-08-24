@@ -1,7 +1,7 @@
 import { DynamicModule, Module, Type, ValidationPipeOptions } from '@nestjs/common';
 import { GatewayMetadata } from '@nestjs/websockets';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { initializeConfigFromOptions } from '../../helpers';
+import { getDisplayedName, initializeConfigFromOptions } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiWebSocketOptions } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { createUpdateOneController, createUpdateOneGateway, createUpdateOneServiceProvider } from './update-one.helper';
@@ -17,14 +17,17 @@ export class UpdateOneModule {
     validationPipeOptions?: ValidationPipeOptions,
     webSocket?: DynamicApiWebSocketOptions,
   ): DynamicModule {
+    const displayedName = getDisplayedName(controllerOptions.apiTag, entity.name, routeConfig.subPath);
+
     const controller = createUpdateOneController(
       entity,
+      displayedName,
       controllerOptions,
       routeConfig,
       version,
       validationPipeOptions,
     );
-    const ServiceProvider = createUpdateOneServiceProvider(entity, version, routeConfig.callback);
+    const ServiceProvider = createUpdateOneServiceProvider(entity, displayedName, version, routeConfig.callback);
 
     const gatewayOptions = webSocket
       ? initializeConfigFromOptions(webSocket)
@@ -40,6 +43,7 @@ export class UpdateOneModule {
           gatewayOptions ? [
             createUpdateOneGateway(
               entity,
+              displayedName,
               controllerOptions,
               routeConfig,
               version,

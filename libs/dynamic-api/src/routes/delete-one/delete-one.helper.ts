@@ -30,6 +30,7 @@ import { DeleteOneService } from './delete-one-service.interface';
 
 function createDeleteOneServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
+  displayedName: string,
   version: string | undefined,
 ): DynamicAPIServiceProvider {
   class DeleteOneService extends BaseDeleteOneService<Entity> {
@@ -47,18 +48,19 @@ function createDeleteOneServiceProvider<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(DeleteOneService, 'name', {
-    value: provideName('DeleteOne', entity.name, version, 'Service'),
+    value: provideName('DeleteOne', displayedName, version, 'Service'),
     writable: false,
   });
 
   return {
-    provide: provideName('DeleteOne', entity.name, version, 'Service'),
+    provide: provideName('DeleteOne', displayedName, version, 'Service'),
     useClass: DeleteOneService,
   };
 }
 
 function createDeleteOneController<Entity extends BaseEntity>(
   entity: Type<Entity>,
+  displayedName: string,
   controllerOptions: DynamicApiControllerOptions<Entity>,
   routeConfig: DynamicAPIRouteConfig<Entity>,
   version?: string,
@@ -77,7 +79,7 @@ function createDeleteOneController<Entity extends BaseEntity>(
     version,
   ) {
     constructor(
-      @Inject(provideName('DeleteOne', entity.name, version, 'Service'))
+      @Inject(provideName('DeleteOne', displayedName, version, 'Service'))
       protected readonly service: DeleteOneService<Entity>,
     ) {
       super(service);
@@ -85,7 +87,7 @@ function createDeleteOneController<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(DeleteOneController, 'name', {
-    value: `${provideName('DeleteOne', entity.name, version, 'Controller')}`,
+    value: `${provideName('DeleteOne', displayedName, version, 'Controller')}`,
     writable: false,
   });
 
@@ -94,6 +96,7 @@ function createDeleteOneController<Entity extends BaseEntity>(
 
 function createDeleteOneGateway<Entity extends BaseEntity>(
   entity: Type<Entity>,
+  displayedName: string,
   controllerOptions: DynamicApiControllerOptions<Entity>,
   routeConfig: DynamicAPIRouteConfig<Entity>,
   version?: string,
@@ -109,13 +112,18 @@ function createDeleteOneGateway<Entity extends BaseEntity>(
     version,
   ) {
     constructor(
-      @Inject(provideName(routeConfig.type, entity.name, version, 'Service'))
+      @Inject(provideName(routeConfig.type, displayedName, version, 'Service'))
       protected readonly service: DeleteOneService<Entity>,
       protected readonly jwtService: JwtService,
     ) {
       super(service, jwtService);
     }
   }
+
+  Object.defineProperty(DeleteOneGateway, 'name', {
+    value: `${provideName(routeConfig.type, displayedName, version, 'Gateway')}`,
+    writable: false,
+  });
 
   return DeleteOneGateway;
 }

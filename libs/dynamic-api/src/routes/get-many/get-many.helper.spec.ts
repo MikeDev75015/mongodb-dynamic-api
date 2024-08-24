@@ -10,6 +10,7 @@ import { createGetManyController, createGetManyGateway, createGetManyServiceProv
 describe('GetManyHelper', () => {
   let entity: Type;
   let model: Model<any>;
+  const displayedName = 'DisplayedName';
 
   beforeEach(() => {
     entity = buildDynamicApiModuleOptionsMock().entity;
@@ -18,11 +19,11 @@ describe('GetManyHelper', () => {
 
   describe('createGetManyServiceProvider', () => {
     it('should return GetMany provider', () => {
-      const { provide, useClass } = createGetManyServiceProvider(entity, '1', undefined);
+      const { provide, useClass } = createGetManyServiceProvider(entity, displayedName, '1', undefined);
       const service = new useClass(model);
 
-      expect(provide).toBe(`GetMany${entity.name}V1Service`);
-      expect(useClass.name).toBe(`GetMany${entity.name}V1Service`);
+      expect(provide).toBe(`GetMany${displayedName}V1Service`);
+      expect(useClass.name).toBe(`GetMany${displayedName}V1Service`);
       expect(service.entity).toBe(entity);
     });
   });
@@ -31,19 +32,20 @@ describe('GetManyHelper', () => {
     it('should return GetMany controller', () => {
       const controllerClass = createGetManyController(
         entity,
+        displayedName,
         { path: 'path', apiTag: 'apiTag' },
         { type: 'GetMany', description: 'description' },
         '1',
       );
 
-      expect(controllerClass.name).toBe(`GetMany${entity.name}V1Controller`);
+      expect(controllerClass.name).toBe(`GetMany${displayedName}V1Controller`);
     });
 
     it('should instantiate GetMany controller with default values', async () => {
       const service = {
         getMany: jest.fn(),
       };
-      const controllerClass = createGetManyController(entity, { path: 'path' }, { type: 'GetMany' });
+      const controllerClass = createGetManyController(entity, displayedName, { path: 'path' }, { type: 'GetMany' });
       const controller = new controllerClass(service);
       const spyServiceGetMany = jest.spyOn(service, 'getMany');
 
@@ -60,6 +62,7 @@ describe('GetManyHelper', () => {
     it('should instantiate GetMany gateway with default values', async () => {
       const gatewayClass = createGetManyGateway(
         entity,
+        displayedName,
         { path: 'path' },
         { type: 'GetMany' },
       );

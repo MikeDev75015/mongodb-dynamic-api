@@ -17,6 +17,7 @@ function DeleteManyControllerMixin<Entity extends BaseEntity>(
 ): DeleteManyControllerConstructor<Entity> {
   const {
     routeType,
+    displayedName,
     description,
     isPublic,
     RoutePresenter,
@@ -31,6 +32,7 @@ function DeleteManyControllerMixin<Entity extends BaseEntity>(
   const routeDecoratorsBuilder = new RouteDecoratorsBuilder(
     routeType,
     entity,
+    routeConfig.subPath,
     version,
     description,
     isPublic,
@@ -42,6 +44,7 @@ function DeleteManyControllerMixin<Entity extends BaseEntity>(
   class DeleteManyPoliciesGuard extends CreatePoliciesGuardMixin(
     entity,
     routeType,
+    displayedName,
     version,
     abilityPredicate,
   ) {}
@@ -61,7 +64,7 @@ function DeleteManyControllerMixin<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(BaseDeleteManyController, 'name', {
-    value: `Base${provideName('DeleteMany', entity.name, version, 'Controller')}`,
+    value: `Base${provideName('DeleteMany', displayedName, version, 'Controller')}`,
     writable: false,
   });
 

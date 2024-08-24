@@ -19,6 +19,7 @@ function ReplaceOneGatewayMixin<Entity extends BaseEntity>(
 ): ReplaceOneGatewayConstructor<Entity> {
   const {
     routeType,
+    displayedName,
     isPublic,
   } = getControllerMixinData(
     entity,
@@ -27,7 +28,7 @@ function ReplaceOneGatewayMixin<Entity extends BaseEntity>(
     version,
   );
 
-  const event = routeConfig.eventName ?? kebabCase(`${controllerOptions.path}/${routeType}`);
+  const event = routeConfig.eventName ?? kebabCase(`${routeType}/${displayedName}`);
 
   class BaseReplaceOneGateway extends BaseGateway<Entity> implements ReplaceOneGateway<Entity> {
     protected readonly entity = entity;
@@ -61,7 +62,7 @@ function ReplaceOneGatewayMixin<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(BaseReplaceOneGateway, 'name', {
-    value: `Base${provideName(routeType, entity.name, version, 'Gateway')}`,
+    value: `Base${provideName(routeType, displayedName, version, 'Gateway')}`,
     writable: false,
   });
 

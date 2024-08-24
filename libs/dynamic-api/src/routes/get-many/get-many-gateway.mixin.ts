@@ -2,6 +2,7 @@ import { Type, UseFilters } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConnectedSocket, MessageBody, SubscribeMessage } from '@nestjs/websockets';
 import { kebabCase } from 'lodash';
+import { EntityQuery } from '../../dtos';
 import { DynamicAPIWsExceptionFilter } from '../../filters/ws-exception/dynamic-api-ws-exception.filter';
 import { BaseGateway } from '../../gateways';
 import { getControllerMixinData, provideName } from '../../helpers';
@@ -18,6 +19,7 @@ function GetManyGatewayMixin<Entity extends BaseEntity>(
 ): GetManyGatewayConstructor<Entity> {
   const {
     routeType,
+    displayedName,
     isPublic,
   } = getControllerMixinData(
     entity,
@@ -26,7 +28,11 @@ function GetManyGatewayMixin<Entity extends BaseEntity>(
     version,
   );
 
-  const event = routeConfig.eventName ?? kebabCase(`${controllerOptions.path}/${routeType}`);
+  class RouteQuery extends (
+    routeConfig.dTOs?.query ?? EntityQuery
+  ) {}
+
+  const event = routeConfig.eventName ?? kebabCase(`${routeType}/${displayedName}`);
 
   class BaseGetManyGateway extends BaseGateway<Entity> implements GetManyGateway<Entity> {
     protected readonly entity = entity;
@@ -41,7 +47,7 @@ function GetManyGatewayMixin<Entity extends BaseEntity>(
     @SubscribeMessage(event)
     async getMany(
       @ConnectedSocket() socket: ExtendedSocket<Entity>,
-      @MessageBody() body: object,
+      @MessageBody() body: RouteQuery,
     ) {
       this.addUserToSocket(socket, isPublic);
 
@@ -53,7 +59,7 @@ function GetManyGatewayMixin<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(BaseGetManyGateway, 'name', {
-    value: `Base${provideName(routeType, entity.name, version, 'Gateway')}`,
+    value: `Base${provideName(routeType, displayedName, version, 'Gateway')}`,
     writable: false,
   });
 

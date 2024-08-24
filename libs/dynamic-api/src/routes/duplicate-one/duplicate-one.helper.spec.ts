@@ -14,6 +14,7 @@ import {
 describe('DuplicateOneHelper', () => {
   let entity: Type;
   let model: Model<any>;
+  const displayedName = 'DisplayedName';
 
   beforeEach(() => {
     entity = buildDynamicApiModuleOptionsMock().entity;
@@ -22,11 +23,11 @@ describe('DuplicateOneHelper', () => {
 
   describe('createDuplicateOneServiceProvider', () => {
     it('should return DuplicateOne provider', () => {
-      const { provide, useClass } = createDuplicateOneServiceProvider(entity, '1', undefined);
+      const { provide, useClass } = createDuplicateOneServiceProvider(entity, displayedName, '1', undefined);
       const service = new useClass(model);
 
-      expect(provide).toBe(`DuplicateOne${entity.name}V1Service`);
-      expect(useClass.name).toBe(`DuplicateOne${entity.name}V1Service`);
+      expect(provide).toBe(`DuplicateOne${displayedName}V1Service`);
+      expect(useClass.name).toBe(`DuplicateOne${displayedName}V1Service`);
       expect(service.entity).toBe(entity);
     });
   });
@@ -35,6 +36,7 @@ describe('DuplicateOneHelper', () => {
     it('should return DuplicateOne controller', () => {
       const controllerClass = createDuplicateOneController(
         entity,
+        displayedName,
         {
           path: 'path',
           apiTag: 'apiTag',
@@ -43,7 +45,7 @@ describe('DuplicateOneHelper', () => {
         '1',
       );
 
-      expect(controllerClass.name).toBe(`DuplicateOne${entity.name}V1Controller`);
+      expect(controllerClass.name).toBe(`DuplicateOne${displayedName}V1Controller`);
     });
 
     it('should instantiate DuplicateOne controller with default values', async () => {
@@ -52,6 +54,7 @@ describe('DuplicateOneHelper', () => {
       };
       const controllerClass = createDuplicateOneController(
         entity,
+        displayedName,
         { path: 'path' },
         { type: 'DuplicateOne' },
       );
@@ -73,6 +76,7 @@ describe('DuplicateOneHelper', () => {
     it('should instantiate DuplicateOne gateway with default values', async () => {
       const gatewayClass = createDuplicateOneGateway(
         entity,
+        displayedName,
         { path: 'path' },
         { type: 'DuplicateOne' },
       );

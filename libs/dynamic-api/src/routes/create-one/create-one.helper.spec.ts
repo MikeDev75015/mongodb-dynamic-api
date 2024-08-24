@@ -10,6 +10,7 @@ import { createCreateOneController, createCreateOneGateway, createCreateOneServi
 describe('CreateOneHelper', () => {
   let entity: Type;
   let model: Model<any>;
+  const displayedName = 'DisplayedName';
 
   beforeEach(() => {
     entity = buildDynamicApiModuleOptionsMock().entity;
@@ -18,11 +19,11 @@ describe('CreateOneHelper', () => {
 
   describe('createCreateOneServiceProvider', () => {
     it('should return CreateOne provider', () => {
-      const { provide, useClass } = createCreateOneServiceProvider(entity, '1', undefined);
+      const { provide, useClass } = createCreateOneServiceProvider(entity, displayedName, '1', undefined);
       const service = new useClass(model);
 
-      expect(provide).toBe(`CreateOne${entity.name}V1Service`);
-      expect(useClass.name).toBe(`CreateOne${entity.name}V1Service`);
+      expect(provide).toBe(`CreateOne${displayedName}V1Service`);
+      expect(useClass.name).toBe(`CreateOne${displayedName}V1Service`);
       expect(service.entity).toBe(entity);
     });
   });
@@ -31,6 +32,7 @@ describe('CreateOneHelper', () => {
     it('should return CreateOne controller', () => {
       const controllerClass = createCreateOneController(
         entity,
+        displayedName,
         {
           path: 'path',
           apiTag: 'apiTag',
@@ -39,7 +41,7 @@ describe('CreateOneHelper', () => {
         '1',
       );
 
-      expect(controllerClass.name).toBe(`CreateOne${entity.name}V1Controller`);
+      expect(controllerClass.name).toBe(`CreateOne${displayedName}V1Controller`);
     });
 
     it('should instantiate CreateOne controller with default values', async () => {
@@ -48,6 +50,7 @@ describe('CreateOneHelper', () => {
       };
       const controllerClass = createCreateOneController(
         entity,
+        displayedName,
         { path: 'path' },
         { type: 'CreateOne' },
       );
@@ -67,6 +70,7 @@ describe('CreateOneHelper', () => {
     it('should instantiate CreateOne gateway with default values', async () => {
       const gatewayClass = createCreateOneGateway(
         entity,
+        displayedName,
         { path: 'path' },
         { type: 'CreateOne' },
       );

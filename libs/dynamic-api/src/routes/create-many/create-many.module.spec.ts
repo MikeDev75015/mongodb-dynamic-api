@@ -1,10 +1,12 @@
 import { DynamicModule, ValidationPipeOptions } from '@nestjs/common';
+import * as Helpers from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import { CreateManyModule } from './create-many.module';
 import * as CreateManyHelpers from './create-many.helper';
+import { CreateManyModule } from './create-many.module';
 
 jest.mock('./create-many.helper');
+jest.mock('../../helpers');
 
 class Entity extends BaseEntity {}
 
@@ -21,10 +23,12 @@ describe('CreateManyModule', () => {
   const routeConfig: DynamicAPIRouteConfig<Entity> = { type: 'CreateMany', callback: routeConfigCallback };
   const version = 'fakeVersion';
   const validationPipeOptions: ValidationPipeOptions = { transform: true };
+  const fakeDisplayedName = 'FakeDisplayedName';
 
   beforeEach(() => {
     spyCreateCreateManyController = jest.spyOn(CreateManyHelpers, 'createCreateManyController').mockReturnValue(FakeController);
     spyCreateCreateManyServiceProvider = jest.spyOn(CreateManyHelpers, 'createCreateManyServiceProvider').mockReturnValue(FakeServiceProvider);
+    jest.spyOn(Helpers, 'getDisplayedName').mockReturnValue(fakeDisplayedName);
   });
 
   describe('forFeature', () => {
@@ -38,8 +42,9 @@ describe('CreateManyModule', () => {
         providers: [FakeServiceProvider],
       });
 
-      expect(spyCreateCreateManyController).toHaveBeenCalledWith(Entity, controllerOptions, routeConfig, version, validationPipeOptions);
-      expect(spyCreateCreateManyServiceProvider).toHaveBeenCalledWith(Entity, version, routeConfigCallback);
+      expect(spyCreateCreateManyController)
+      .toHaveBeenCalledWith(Entity, fakeDisplayedName, controllerOptions, routeConfig, version, validationPipeOptions);
+      expect(spyCreateCreateManyServiceProvider).toHaveBeenCalledWith(Entity, fakeDisplayedName, version, routeConfigCallback);
     });
   });
 });

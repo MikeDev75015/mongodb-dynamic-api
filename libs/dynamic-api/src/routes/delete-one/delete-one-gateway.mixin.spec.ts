@@ -54,7 +54,7 @@ describe('DeleteOneGatewayMixin', () => {
     service.deleteOne.mockResolvedValueOnce(fakeDeleteResult);
 
     await expect(deleteOneGateway.deleteOne(socket, body)).resolves.toEqual({
-      event: 'test-delete-one',
+      event: 'delete-one-test-entity',
       data: fakeDeleteResult,
     });
 
@@ -74,6 +74,23 @@ describe('DeleteOneGatewayMixin', () => {
 
     await expect(deleteOneGateway.deleteOne(socket, body)).resolves.toEqual({
       event: 'custom-event',
+      data: fakeDeleteResult,
+    });
+  });
+
+  it('should use subPath in eventName if provided', async () => {
+    DeleteOneGateway = DeleteOneGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      { ...routeConfig, subPath: 'sub' },
+    );
+
+    const deleteOneGateway = new DeleteOneGateway(service, jwtService);
+
+    service.deleteOne.mockResolvedValueOnce(fakeDeleteResult);
+
+    await expect(deleteOneGateway.deleteOne(socket, body)).resolves.toEqual({
+      event: 'delete-one-sub-test-entity',
       data: fakeDeleteResult,
     });
   });

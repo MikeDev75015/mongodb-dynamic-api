@@ -14,6 +14,7 @@ import {
 describe('UpdateManyHelper', () => {
   let entity: Type;
   let model: Model<any>;
+  const displayedName = 'DisplayedName';
 
   beforeEach(() => {
     entity = buildDynamicApiModuleOptionsMock().entity;
@@ -24,11 +25,11 @@ describe('UpdateManyHelper', () => {
 
   describe('createUpdateManyServiceProvider', () => {
     it('should return UpdateMany provider', () => {
-      const { provide, useClass } = createUpdateManyServiceProvider(entity, '1', undefined);
+      const { provide, useClass } = createUpdateManyServiceProvider(entity, displayedName, '1', undefined);
       const service = new useClass(model);
 
-      expect(provide).toBe(`UpdateMany${entity.name}V1Service`);
-      expect(useClass.name).toBe(`UpdateMany${entity.name}V1Service`);
+      expect(provide).toBe(`UpdateMany${displayedName}V1Service`);
+      expect(useClass.name).toBe(`UpdateMany${displayedName}V1Service`);
       expect(service.entity).toBe(entity);
     });
   });
@@ -37,6 +38,7 @@ describe('UpdateManyHelper', () => {
     it('should return UpdateMany controller', () => {
       const controllerClass = createUpdateManyController(
         entity,
+        displayedName,
         {
           path: 'path',
           apiTag: 'apiTag',
@@ -45,7 +47,7 @@ describe('UpdateManyHelper', () => {
         '1',
       );
 
-      expect(controllerClass.name).toBe(`UpdateMany${entity.name}V1Controller`);
+      expect(controllerClass.name).toBe(`UpdateMany${displayedName}V1Controller`);
     });
 
     it('should instantiate UpdateMany controller with default values', async () => {
@@ -54,6 +56,7 @@ describe('UpdateManyHelper', () => {
       };
       const controllerClass = createUpdateManyController(
         entity,
+        displayedName,
         { path: 'path' },
         { type: 'UpdateMany' },
       );
@@ -75,6 +78,7 @@ describe('UpdateManyHelper', () => {
     it('should instantiate UpdateMany gateway with default values', async () => {
       const gatewayClass = createUpdateManyGateway(
         entity,
+        displayedName,
         { path: 'path' },
         { type: 'UpdateMany' },
       );

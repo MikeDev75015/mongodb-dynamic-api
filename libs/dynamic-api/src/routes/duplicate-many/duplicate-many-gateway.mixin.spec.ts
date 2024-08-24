@@ -56,7 +56,7 @@ describe('DuplicateManyGatewayMixin', () => {
     service.duplicateMany.mockResolvedValueOnce([fakeEntity]);
 
     await expect(duplicateManyGateway.duplicateMany(socket, body)).resolves.toEqual({
-      event: 'test-duplicate-many',
+      event: 'duplicate-many-test-entity',
       data: [fakeEntity],
     });
 
@@ -76,6 +76,23 @@ describe('DuplicateManyGatewayMixin', () => {
 
     await expect(duplicateManyGateway.duplicateMany(socket, body)).resolves.toEqual({
       event: 'custom-event-name',
+      data: [fakeEntity],
+    });
+  });
+
+  it('should use subPath in eventName if provided', async () => {
+    DuplicateManyGateway = DuplicateManyGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      { ...routeConfig, subPath: 'sub' },
+    );
+
+    const duplicateManyGateway = new DuplicateManyGateway(service, jwtService);
+
+    service.duplicateMany.mockResolvedValueOnce([fakeEntity]);
+
+    await expect(duplicateManyGateway.duplicateMany(socket, body)).resolves.toEqual({
+      event: 'duplicate-many-sub-test-entity',
       data: [fakeEntity],
     });
   });

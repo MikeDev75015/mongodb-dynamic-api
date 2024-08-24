@@ -14,6 +14,7 @@ import {
 describe('DeleteManyHelper', () => {
   let entity: Type;
   let model: Model<any>;
+  const displayedName = 'DisplayedName';
 
   beforeEach(() => {
     entity = buildDynamicApiModuleOptionsMock().entity;
@@ -22,11 +23,11 @@ describe('DeleteManyHelper', () => {
 
   describe('createDeleteManyServiceProvider', () => {
     it('should return DeleteMany provider', () => {
-      const { provide, useClass } = createDeleteManyServiceProvider(entity, '1');
+      const { provide, useClass } = createDeleteManyServiceProvider(entity, displayedName, '1');
       const service = new useClass(model);
 
-      expect(provide).toBe(`DeleteMany${entity.name}V1Service`);
-      expect(useClass.name).toBe(`DeleteMany${entity.name}V1Service`);
+      expect(provide).toBe(`DeleteMany${displayedName}V1Service`);
+      expect(useClass.name).toBe(`DeleteMany${displayedName}V1Service`);
       expect(service.entity).toBe(entity);
     });
   });
@@ -35,6 +36,7 @@ describe('DeleteManyHelper', () => {
     it('should return DeleteMany controller', () => {
       const controllerClass = createDeleteManyController(
         entity,
+        displayedName,
         {
           path: 'path',
           apiTag: 'apiTag',
@@ -43,7 +45,7 @@ describe('DeleteManyHelper', () => {
         '1',
       );
 
-      expect(controllerClass.name).toBe(`DeleteMany${entity.name}V1Controller`);
+      expect(controllerClass.name).toBe(`DeleteMany${displayedName}V1Controller`);
     });
 
     it('should instantiate DeleteMany controller with default values', async () => {
@@ -52,6 +54,7 @@ describe('DeleteManyHelper', () => {
       };
       const controllerClass = createDeleteManyController(
         entity,
+        displayedName,
         { path: 'path' },
         { type: 'DeleteMany' },
       );
@@ -71,6 +74,7 @@ describe('DeleteManyHelper', () => {
     it('should instantiate DeleteMany gateway with default values', async () => {
       const gatewayClass = createDeleteManyGateway(
         entity,
+        displayedName,
         { path: 'path' },
         { type: 'DeleteMany' },
       );

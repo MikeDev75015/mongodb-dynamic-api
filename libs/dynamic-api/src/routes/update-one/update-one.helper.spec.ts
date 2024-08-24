@@ -10,6 +10,7 @@ import { createUpdateOneController, createUpdateOneGateway, createUpdateOneServi
 describe('UpdateOneHelper', () => {
   let entity: Type;
   let model: Model<any>;
+  const displayedName = 'DisplayedName';
 
   beforeEach(() => {
     entity = buildDynamicApiModuleOptionsMock().entity;
@@ -18,11 +19,11 @@ describe('UpdateOneHelper', () => {
 
   describe('createUpdateOneServiceProvider', () => {
     it('should return UpdateOne provider', () => {
-      const { provide, useClass } = createUpdateOneServiceProvider(entity, '1', undefined);
+      const { provide, useClass } = createUpdateOneServiceProvider(entity, displayedName, '1', undefined);
       const service = new useClass(model);
 
-      expect(provide).toBe(`UpdateOne${entity.name}V1Service`);
-      expect(useClass.name).toBe(`UpdateOne${entity.name}V1Service`);
+      expect(provide).toBe(`UpdateOne${displayedName}V1Service`);
+      expect(useClass.name).toBe(`UpdateOne${displayedName}V1Service`);
       expect(service.entity).toBe(entity);
     });
   });
@@ -31,6 +32,7 @@ describe('UpdateOneHelper', () => {
     it('should return UpdateOne controller', () => {
       const controllerClass = createUpdateOneController(
         entity,
+        displayedName,
         {
           path: 'path',
           apiTag: 'apiTag',
@@ -39,7 +41,7 @@ describe('UpdateOneHelper', () => {
         '1',
       );
 
-      expect(controllerClass.name).toBe(`UpdateOne${entity.name}V1Controller`);
+      expect(controllerClass.name).toBe(`UpdateOne${displayedName}V1Controller`);
     });
 
     it('should instantiate UpdateOne controller with default values', async () => {
@@ -48,6 +50,7 @@ describe('UpdateOneHelper', () => {
       };
       const controllerClass = createUpdateOneController(
         entity,
+        displayedName,
         { path: 'path' },
         { type: 'UpdateOne' },
       );
@@ -69,6 +72,7 @@ describe('UpdateOneHelper', () => {
     it('should instantiate UpdateOne gateway with default values', async () => {
       const gatewayClass = createUpdateOneGateway(
         entity,
+        displayedName,
         { path: 'path' },
         { type: 'UpdateOne' },
       );

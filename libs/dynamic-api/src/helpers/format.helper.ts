@@ -2,8 +2,8 @@ import { camelCase, upperFirst } from 'lodash';
 import { RouteType } from '../interfaces';
 import { addVersionSuffix } from './versioning-config.helper';
 
-function getNamePrefix(routeType: RouteType, entityName: string, version: string | undefined): string {
-  return `${routeType}${entityName}${addVersionSuffix(version)}`;
+function getNamePrefix(routeType: RouteType, displayedName: string, version: string | undefined): string {
+  return `${routeType}${displayedName}${addVersionSuffix(version)}`;
 }
 
 function pascalCase(str?: string) {
@@ -14,17 +14,17 @@ function isValidVersion(version: string) {
   return /^\d+$/.test(version);
 }
 
-function getFormattedApiTag(apiTag: string | undefined, entityName: string) {
-  return pascalCase(apiTag) ?? entityName;
+function getDisplayedName(apiTag: string | undefined, entityName: string, subPath: string | undefined) {
+  return pascalCase(`${subPath ? subPath + '-' : ''}${apiTag ?? entityName}`);
 }
 
 function provideName(
   routeType: RouteType,
-  entityName: string,
+  displayedName: string,
   version: string | undefined,
   suffix: 'Service' | 'Controller' | 'PoliciesGuard' | 'Gateway',
 ) {
-  return `${getNamePrefix(routeType, entityName, version)}${suffix}`;
+  return `${getNamePrefix(routeType, displayedName, version)}${suffix}`;
 }
 
 function isEmptyObject(obj?: unknown): boolean {
@@ -38,7 +38,7 @@ function isNotEmptyObject(obj?: unknown): boolean {
 export  {
   pascalCase,
   isValidVersion,
-  getFormattedApiTag,
+  getDisplayedName,
   provideName,
   isEmptyObject,
   isNotEmptyObject,

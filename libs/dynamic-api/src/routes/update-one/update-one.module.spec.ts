@@ -1,10 +1,12 @@
 import { DynamicModule, ValidationPipeOptions } from '@nestjs/common';
+import * as Helpers from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import { UpdateOneModule } from './update-one.module';
 import * as UpdateOneHelpers from './update-one.helper';
+import { UpdateOneModule } from './update-one.module';
 
 jest.mock('./update-one.helper');
+jest.mock('../../helpers');
 
 class Entity extends BaseEntity {}
 
@@ -21,10 +23,12 @@ describe('UpdateOneModule', () => {
   const routeConfig: DynamicAPIRouteConfig<Entity> = { type: 'UpdateOne', callback: routeConfigCallback };
   const version = 'fakeVersion';
   const validationPipeOptions: ValidationPipeOptions = { transform: true };
+  const fakeDisplayedName = 'FakeDisplayedName';
 
   beforeEach(() => {
     spyCreateUpdateOneController = jest.spyOn(UpdateOneHelpers, 'createUpdateOneController').mockReturnValue(FakeController);
     spyCreateUpdateOneServiceProvider = jest.spyOn(UpdateOneHelpers, 'createUpdateOneServiceProvider').mockReturnValue(FakeServiceProvider);
+    jest.spyOn(Helpers, 'getDisplayedName').mockReturnValue(fakeDisplayedName);
   });
 
   describe('forFeature', () => {
@@ -38,8 +42,10 @@ describe('UpdateOneModule', () => {
         providers: [FakeServiceProvider],
       });
 
-      expect(spyCreateUpdateOneController).toHaveBeenCalledWith(Entity, controllerOptions, routeConfig, version, validationPipeOptions);
-      expect(spyCreateUpdateOneServiceProvider).toHaveBeenCalledWith(Entity, version, routeConfigCallback);
+      expect(spyCreateUpdateOneController)
+      .toHaveBeenCalledWith(Entity, fakeDisplayedName, controllerOptions, routeConfig, version, validationPipeOptions);
+      expect(spyCreateUpdateOneServiceProvider)
+      .toHaveBeenCalledWith(Entity, fakeDisplayedName, version, routeConfigCallback);
     });
   });
 });

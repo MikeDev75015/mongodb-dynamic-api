@@ -1,4 +1,3 @@
-import { Builder } from 'builder-pattern';
 import { plainToInstance } from 'class-transformer';
 import { RouteType } from '../interfaces';
 import { BaseEntity } from '../models';

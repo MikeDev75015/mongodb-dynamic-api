@@ -19,6 +19,7 @@ function UpdateManyGatewayMixin<Entity extends BaseEntity>(
 ): UpdateManyGatewayConstructor<Entity> {
   const {
     routeType,
+    displayedName,
     isPublic,
   } = getControllerMixinData(
     entity,
@@ -27,7 +28,7 @@ function UpdateManyGatewayMixin<Entity extends BaseEntity>(
     version,
   );
 
-  const event = routeConfig.eventName ?? kebabCase(`${controllerOptions.path}/${routeType}`);
+  const event = routeConfig.eventName ?? kebabCase(`${routeType}/${displayedName}`);
 
   class BaseUpdateManyGateway extends BaseGateway<Entity> implements UpdateManyGateway<Entity> {
     protected readonly entity = entity;
@@ -65,7 +66,7 @@ function UpdateManyGatewayMixin<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(BaseUpdateManyGateway, 'name', {
-    value: `Base${provideName(routeType, entity.name, version, 'Gateway')}`,
+    value: `Base${provideName(routeType, displayedName, version, 'Gateway')}`,
     writable: false,
   });
 

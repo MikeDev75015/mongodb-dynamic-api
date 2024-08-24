@@ -16,6 +16,7 @@ function DuplicateOneControllerMixin<Entity extends BaseEntity>(
 ): DuplicateOneControllerConstructor<Entity> {
   const {
     routeType,
+    displayedName,
     description,
     isPublic,
     RouteBody,
@@ -31,6 +32,7 @@ function DuplicateOneControllerMixin<Entity extends BaseEntity>(
   const routeDecoratorsBuilder = new RouteDecoratorsBuilder(
     'DuplicateOne',
     entity,
+    routeConfig.subPath,
     version,
     description,
     isPublic,
@@ -44,6 +46,7 @@ function DuplicateOneControllerMixin<Entity extends BaseEntity>(
   class DuplicateOnePoliciesGuard extends CreatePoliciesGuardMixin(
     entity,
     routeType,
+    displayedName,
     version,
     abilityPredicate,
   ) {}
@@ -63,7 +66,7 @@ function DuplicateOneControllerMixin<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(BaseDuplicateOneController, 'name', {
-    value: `Base${provideName('DuplicateOne', entity.name, version, 'Controller')}`,
+    value: `Base${provideName('DuplicateOne', displayedName, version, 'Controller')}`,
     writable: false,
   });
 

@@ -15,6 +15,7 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
 ): UpdateOneControllerConstructor<Entity> {
   const {
     routeType,
+    displayedName,
     description,
     isPublic,
     EntityParam,
@@ -31,6 +32,7 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
   const routeDecoratorsBuilder = new RouteDecoratorsBuilder(
     routeType,
     entity,
+    routeConfig.subPath,
     version,
     description,
     isPublic,
@@ -44,6 +46,7 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
   class UpdateOnePoliciesGuard extends CreatePoliciesGuardMixin(
     entity,
     routeType,
+    displayedName,
     version,
     abilityPredicate,
   ) {}
@@ -63,7 +66,7 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
   }
 
   Object.defineProperty(BaseUpdateOneController, 'name', {
-    value: `Base${provideName('UpdateOne', entity.name, version, 'Controller')}`,
+    value: `Base${provideName('UpdateOne', displayedName, version, 'Controller')}`,
     writable: false,
   });
 
