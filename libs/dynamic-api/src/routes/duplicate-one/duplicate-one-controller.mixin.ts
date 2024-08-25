@@ -1,9 +1,10 @@
 import { Body, Param, Type, UseGuards } from '@nestjs/common';
+import { isEmpty } from 'lodash';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityParam } from '../../dtos';
-import { getControllerMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
-import { CreatePoliciesGuardMixin } from '../../mixins';
+import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
+import { CreatePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DuplicateOneController, DuplicateOneControllerConstructor } from './duplicate-one-controller.interface';
 import { DuplicateOneService } from './duplicate-one-service.interface';
@@ -11,7 +12,7 @@ import { DuplicateOneService } from './duplicate-one-service.interface';
 function DuplicateOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  { dTOs, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): DuplicateOneControllerConstructor<Entity> {
   const {
@@ -19,15 +20,32 @@ function DuplicateOneControllerMixin<Entity extends BaseEntity>(
     displayedName,
     description,
     isPublic,
-    RouteBody,
-    RoutePresenter,
     abilityPredicate,
-  } = getControllerMixinData(
+  } = getMixinData(
     entity,
     controllerOptions,
     routeConfig,
-    version,
   );
+
+  class DuplicateOneBody extends (
+    dTOs?.body ?? EntityBodyMixin(entity, true)
+  ) {}
+
+  Object.defineProperty(DuplicateOneBody, 'name', {
+    value: `DuplicateOne${displayedName}${addVersionSuffix(version)}Dto`,
+    writable: false,
+  });
+
+  class DuplicateOnePresenter extends (
+    dTOs?.presenter ?? EntityPresenterMixin(entity)
+  ) {}
+
+  Object.defineProperty(DuplicateOnePresenter, 'name', {
+    value: dTOs?.presenter
+      ? `DuplicateOne${displayedName}${addVersionSuffix(version)}Presenter`
+      : `${displayedName}${addVersionSuffix(version)}Presenter`,
+    writable: false,
+  });
 
   const routeDecoratorsBuilder = new RouteDecoratorsBuilder(
     'DuplicateOne',
@@ -38,8 +56,8 @@ function DuplicateOneControllerMixin<Entity extends BaseEntity>(
     isPublic,
     {
       param: EntityParam,
-      body: RouteBody,
-      presenter: RoutePresenter,
+      body: DuplicateOneBody,
+      presenter: DuplicateOnePresenter,
     },
   );
 
@@ -59,9 +77,21 @@ function DuplicateOneControllerMixin<Entity extends BaseEntity>(
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(DuplicateOnePoliciesGuard)
-    // @ts-ignore
-    async duplicateOne(@Param('id') id: string, @Body() body?: RouteBody) {
-      return this.service.duplicateOne(id, body as any);
+    async duplicateOne(@Param('id') id: string, @Body() body?: DuplicateOneBody) {
+      const toEntity = (
+        DuplicateOneBody as Mappable<Entity>
+      ).toEntity;
+
+      const entity = await this.service.duplicateOne(
+        id,
+        !isEmpty(body) && toEntity ? toEntity(body) : body as Partial<Entity>,
+      );
+
+      const fromEntity = (
+        DuplicateOnePresenter as Mappable<Entity>
+      ).fromEntity;
+
+      return fromEntity ? fromEntity(entity) : entity;
     }
   }
 

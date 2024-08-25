@@ -101,6 +101,7 @@ describe('CreateManyGatewayMixin', () => {
     ['list is not in the body', { field1: 'test' } as any],
     ['list is not an array', { list: '1' } as any],
     ['list is empty', { list: [] } as any],
+    ['list is invalid', { list: [{ name: 'test invalid' }, true] } as any],
   ])('should throw an exception if %s', async (_, body) => {
     CreateManyGateway = CreateManyGatewayMixin(
       TestEntity,
@@ -111,5 +112,75 @@ describe('CreateManyGatewayMixin', () => {
     const createManyGateway = new CreateManyGateway(service, jwtService);
 
     await expect(createManyGateway.createMany(socket, body)).rejects.toThrow();
+  });
+
+  it('should map body to entities if body dto has toEntities method', async () => {
+    class RouteBody {
+      list: { field1: string }[];
+
+      static toEntities(body: RouteBody): Partial<TestEntity>[] {
+        return body.list.map((e, i) => ({ field1: `${i} - ${e.field1}` }));
+      }
+    }
+
+    CreateManyGateway = CreateManyGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      { ...routeConfig, dTOs: { body: RouteBody } },
+    );
+
+    const createManyGateway = new CreateManyGateway(service, jwtService);
+
+    const fakeResponse = [{ id: '1', field1: 'test' }, { id: '2', field1: 'unit' }];
+
+    service.createMany = jest.fn().mockResolvedValueOnce(fakeResponse);
+
+    const body = { list: [{ field1: 'test' }, { field1: 'unit' }] };
+    const expectedArg = [{ field1: '0 - test' }, { field1: '1 - unit' }];
+
+    await expect(createManyGateway.createMany(socket, body)).resolves.toEqual({
+      event: 'create-many-test-entity',
+      data: fakeResponse,
+    });
+    expect(service.createMany).toHaveBeenCalledWith(expectedArg);
+  });
+
+  it('should map entities to response if presenter dto has fromEntities method', async () => {
+    class RoutePresenter {
+      count: number;
+
+      data: { ref: string; fullName: string }[];
+
+      static fromEntities(entities: TestEntity[]): RoutePresenter {
+        return {
+          count: entities.length,
+          data: entities.map(e => ({ ref: e.id, fullName: e.field1 })),
+        };
+      }
+    }
+
+    CreateManyGateway = CreateManyGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      { ...routeConfig, dTOs: { presenter: RoutePresenter } },
+    );
+
+    const createManyGateway = new CreateManyGateway(service, jwtService);
+
+    const fakeResponse = [{ id: '1', field1: 'test' }, { id: '2', field1: 'unit' }] as TestEntity[];
+
+    service.createMany.mockResolvedValueOnce(fakeResponse);
+
+    const body = { list: [{ field1: 'test' }, { field1: 'unit' }] };
+    const expectedResponse = {
+      count: 2,
+      data: [{ ref: '1', fullName: 'test' }, { ref: '2', fullName: 'unit' }],
+    };
+
+    await expect(createManyGateway.createMany(socket, body)).resolves.toEqual({
+      event: 'create-many-test-entity',
+      data: expectedResponse,
+    });
+    expect(service.createMany).toHaveBeenCalledWith(body.list);
   });
 });

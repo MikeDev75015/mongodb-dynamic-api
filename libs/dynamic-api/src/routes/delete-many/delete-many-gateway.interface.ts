@@ -1,12 +1,11 @@
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { JwtService } from '@nestjs/jwt';
-import { ManyEntityQuery, DeletePresenter } from '../../dtos';
-import { ExtendedSocket, GatewayResponse } from '../../interfaces';
+import { ManyEntityQuery } from '../../dtos';
+import { DeleteResult, ExtendedSocket, GatewayResponse } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { DeleteManyService } from './delete-many-service.interface';
 
-interface DeleteManyGateway<Entity extends BaseEntity> {
-  deleteMany(socket: ExtendedSocket, body: ManyEntityQuery): GatewayResponse<DeletePresenter>;
+interface DeleteManyGateway<_Entity extends BaseEntity, Response = any> {
+  deleteMany(socket: ExtendedSocket, body: ManyEntityQuery): GatewayResponse<(DeleteResult | Response)>;
 }
 
 type DeleteManyGatewayConstructor<Entity extends BaseEntity> = new (

@@ -1,8 +1,9 @@
 import { Body, Query, Type, UseGuards } from '@nestjs/common';
+import { isEmpty } from 'lodash';
 import { RouteDecoratorsBuilder } from '../../builders';
-import { getControllerMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
-import { CreatePoliciesGuardMixin } from '../../mixins';
+import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
+import { CreatePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DuplicateManyController, DuplicateManyControllerConstructor } from './duplicate-many-controller.interface';
 import { DuplicateManyService } from './duplicate-many-service.interface';
@@ -10,7 +11,7 @@ import { DuplicateManyService } from './duplicate-many-service.interface';
 function DuplicateManyControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  { dTOs, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): DuplicateManyControllerConstructor<Entity> {
   const {
@@ -18,15 +19,32 @@ function DuplicateManyControllerMixin<Entity extends BaseEntity>(
     displayedName,
     description,
     isPublic,
-    RouteBody,
-    RoutePresenter,
     abilityPredicate,
-  } = getControllerMixinData(
+  } = getMixinData(
     entity,
     controllerOptions,
     routeConfig,
-    version,
   );
+
+  class DuplicateManyBody extends (
+    dTOs?.body ?? EntityBodyMixin(entity, true)
+  ) {}
+
+  Object.defineProperty(DuplicateManyBody, 'name', {
+    value: `${routeType}${displayedName}${addVersionSuffix(version)}Dto`,
+    writable: false,
+  });
+
+  class DuplicateManyPresenter extends (
+    dTOs?.presenter ?? EntityPresenterMixin(entity)
+  ) {}
+
+  Object.defineProperty(DuplicateManyPresenter, 'name', {
+    value: dTOs?.presenter
+      ? `${routeType}${displayedName}${addVersionSuffix(version)}Presenter`
+      : `${displayedName}${addVersionSuffix(version)}Presenter`,
+    writable: false,
+  });
 
   const routeDecoratorsBuilder = new RouteDecoratorsBuilder(
     routeType,
@@ -36,8 +54,8 @@ function DuplicateManyControllerMixin<Entity extends BaseEntity>(
     description,
     isPublic,
     {
-      body: RouteBody,
-      presenter: RoutePresenter,
+      body: DuplicateManyBody,
+      presenter: DuplicateManyPresenter,
     },
   );
 
@@ -57,9 +75,21 @@ function DuplicateManyControllerMixin<Entity extends BaseEntity>(
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(DuplicateManyPoliciesGuard)
-    // @ts-ignore
-    async duplicateMany(@Query('ids') ids: string[], @Body() body?: RouteBody) {
-      return this.service.duplicateMany(ids, body as any);
+    async duplicateMany(@Query('ids') ids: string[], @Body() body?: DuplicateManyBody) {
+      const toEntity = (
+        DuplicateManyBody as Mappable<Entity>
+      ).toEntity;
+
+      const list = await this.service.duplicateMany(
+        ids,
+        !isEmpty(body) && toEntity ? toEntity(body) : body as Partial<Entity>,
+      );
+
+      const fromEntities = (
+        DuplicateManyPresenter as Mappable<Entity>
+      ).fromEntities;
+
+      return fromEntities ? fromEntities<DuplicateManyPresenter>(list) : list;
     }
   }
 

@@ -4,7 +4,9 @@ import { UpdateOneController } from './update-one-controller.interface';
 import { UpdateOneControllerMixin } from './update-one-controller.mixin';
 import { UpdateOneService } from './update-one-service.interface';
 
-class Entity extends BaseEntity {}
+class Entity extends BaseEntity {
+  name: string;
+}
 
 describe('UpdateOneControllerMixin', () => {
   let controller: UpdateOneController<Entity>;
@@ -38,7 +40,7 @@ describe('UpdateOneControllerMixin', () => {
 
   it('should call service.updateOne', async () => {
     const id = 'fakeId';
-    const body = {};
+    const body = { age: 20 };
     await controller.updateOne(id, body);
 
     expect(service.updateOne).toHaveBeenCalledWith(id, body);

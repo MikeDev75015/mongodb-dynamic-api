@@ -1,11 +1,11 @@
 import { JwtService } from '@nestjs/jwt';
-import { DeletePresenter, EntityParam } from '../../dtos';
-import { ExtendedSocket, GatewayResponse } from '../../interfaces';
+import { EntityParam } from '../../dtos';
+import { DeleteResult, ExtendedSocket, GatewayResponse } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { DeleteOneService } from './delete-one-service.interface';
 
-interface DeleteOneGateway<Entity extends BaseEntity> {
-  deleteOne(socket: ExtendedSocket, body: EntityParam): GatewayResponse<DeletePresenter>;
+interface DeleteOneGateway<_Entity extends BaseEntity, Response = any> {
+  deleteOne(socket: ExtendedSocket, body: EntityParam): GatewayResponse<DeleteResult | Response>;
 }
 
 type DeleteOneGatewayConstructor<Entity extends BaseEntity> = new (

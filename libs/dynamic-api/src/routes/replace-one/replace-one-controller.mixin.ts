@@ -1,8 +1,9 @@
 import { Body, Param, Type, UseGuards } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
-import { getControllerMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
-import { CreatePoliciesGuardMixin } from '../../mixins';
+import { EntityParam } from '../../dtos';
+import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
+import { CreatePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { ReplaceOneController, ReplaceOneControllerConstructor } from './replace-one-controller.interface';
 import { ReplaceOneService } from './replace-one-service.interface';
@@ -10,7 +11,7 @@ import { ReplaceOneService } from './replace-one-service.interface';
 function ReplaceOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  { dTOs, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): ReplaceOneControllerConstructor<Entity> {
   const {
@@ -18,16 +19,32 @@ function ReplaceOneControllerMixin<Entity extends BaseEntity>(
     displayedName,
     description,
     isPublic,
-    EntityParam,
-    RouteBody,
-    RoutePresenter,
     abilityPredicate,
-  } = getControllerMixinData(
+  } = getMixinData(
     entity,
     controllerOptions,
     routeConfig,
-    version,
   );
+
+  class ReplaceOneBody extends (
+    dTOs?.body ?? EntityBodyMixin(entity)
+  ) {}
+
+  Object.defineProperty(ReplaceOneBody, 'name', {
+    value: `ReplaceOne${displayedName}${addVersionSuffix(version)}Dto`,
+    writable: false,
+  });
+
+  class ReplaceOnePresenter extends (
+    dTOs?.presenter ?? EntityPresenterMixin(entity)
+  ) {}
+
+  Object.defineProperty(ReplaceOnePresenter, 'name', {
+    value: dTOs?.presenter
+      ? `ReplaceOne${displayedName}${addVersionSuffix(version)}Presenter`
+      : `${displayedName}${addVersionSuffix(version)}Presenter`,
+    writable: false,
+  });
 
   const routeDecoratorsBuilder = new RouteDecoratorsBuilder(
     routeType,
@@ -38,8 +55,8 @@ function ReplaceOneControllerMixin<Entity extends BaseEntity>(
     isPublic,
     {
       param: EntityParam,
-      body: RouteBody,
-      presenter: RoutePresenter,
+      body: ReplaceOneBody,
+      presenter: ReplaceOnePresenter,
     },
   );
 
@@ -59,9 +76,18 @@ function ReplaceOneControllerMixin<Entity extends BaseEntity>(
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(ReplaceOnePoliciesGuard)
-    // @ts-ignore
-    async replaceOne(@Param('id') id: string, @Body() body: RouteBody) {
-      return this.service.replaceOne(id, body as any);
+    async replaceOne(@Param('id') id: string, @Body() body: ReplaceOneBody) {
+      const toEntity = (
+        ReplaceOneBody as Mappable<Entity>
+      ).toEntity;
+
+      const entity = await this.service.replaceOne(id, toEntity ? toEntity(body) : body as Partial<Entity>);
+
+      const fromEntity = (
+        ReplaceOnePresenter as Mappable<Entity>
+      ).fromEntity;
+
+      return fromEntity ? fromEntity<ReplaceOnePresenter>(entity) : entity;
     }
   }
 

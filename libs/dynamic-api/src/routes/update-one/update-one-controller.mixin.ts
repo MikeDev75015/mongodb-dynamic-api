@@ -1,8 +1,10 @@
 import { Body, Param, Type, UseGuards } from '@nestjs/common';
+import { isEmpty } from 'lodash';
 import { RouteDecoratorsBuilder } from '../../builders';
-import { getControllerMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
-import { CreatePoliciesGuardMixin } from '../../mixins';
+import { EntityParam } from '../../dtos';
+import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
+import { CreatePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { UpdateOneController, UpdateOneControllerConstructor } from './update-one-controller.interface';
 import { UpdateOneService } from './update-one-service.interface';
@@ -10,7 +12,7 @@ import { UpdateOneService } from './update-one-service.interface';
 function UpdateOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  { dTOs, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): UpdateOneControllerConstructor<Entity> {
   const {
@@ -18,16 +20,32 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
     displayedName,
     description,
     isPublic,
-    EntityParam,
-    RouteBody,
-    RoutePresenter,
     abilityPredicate,
-  } = getControllerMixinData(
+  } = getMixinData(
     entity,
     controllerOptions,
     routeConfig,
-    version,
   );
+
+  class UpdateOneBody extends (
+    dTOs?.body ?? EntityBodyMixin(entity, true)
+  ) {}
+
+  Object.defineProperty(UpdateOneBody, 'name', {
+    value: `UpdateOne${displayedName}${addVersionSuffix(version)}Dto`,
+    writable: false,
+  });
+
+  class UpdateOnePresenter extends (
+    dTOs?.presenter ?? EntityPresenterMixin(entity)
+  ) {}
+
+  Object.defineProperty(UpdateOnePresenter, 'name', {
+    value: dTOs?.presenter
+      ? `UpdateOne${displayedName}${addVersionSuffix(version)}Presenter`
+      : `${displayedName}${addVersionSuffix(version)}Presenter`,
+    writable: false,
+  });
 
   const routeDecoratorsBuilder = new RouteDecoratorsBuilder(
     routeType,
@@ -38,8 +56,8 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
     isPublic,
     {
       param: EntityParam,
-      body: RouteBody,
-      presenter: RoutePresenter,
+      body: UpdateOneBody,
+      presenter: UpdateOnePresenter,
     },
   );
 
@@ -59,9 +77,22 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(UpdateOnePoliciesGuard)
-    // @ts-ignore
-    async updateOne(@Param('id') id: string, @Body() body: RouteBody) {
-      return this.service.updateOne(id, body as any);
+    async updateOne(@Param('id') id: string, @Body() body: UpdateOneBody) {
+      if (isEmpty(body)) {
+        throw new Error('Invalid request body');
+      }
+
+      const toEntity = (
+        UpdateOneBody as Mappable<Entity>
+      ).toEntity;
+
+      const entity = await this.service.updateOne(id, toEntity ? toEntity(body) : body as Partial<Entity>);
+
+      const fromEntity = (
+        UpdateOnePresenter as Mappable<Entity>
+      ).fromEntity;
+
+      return fromEntity ? fromEntity<UpdateOnePresenter>(entity) : entity;
     }
   }
 

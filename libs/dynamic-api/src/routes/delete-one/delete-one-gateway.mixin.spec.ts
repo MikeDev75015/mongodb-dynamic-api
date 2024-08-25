@@ -1,7 +1,7 @@
 import { createMock } from '@golevelup/ts-jest';
 import { JwtService } from '@nestjs/jwt';
 import { BaseGateway } from '../../gateways';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket } from '../../interfaces';
+import { DeleteResult, DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { DeleteOneGatewayConstructor } from './delete-one-gateway.interface';
 import { DeleteOneGatewayMixin } from './delete-one-gateway.mixin';
@@ -93,6 +93,33 @@ describe('DeleteOneGatewayMixin', () => {
       event: 'delete-one-sub-test-entity',
       data: fakeDeleteResult,
     });
+  });
+
+  it('should map response to presenter', async () => {
+    class Presenter {
+      isDeleted: boolean;
+
+      static fromDeleteResult(deleteResult: DeleteResult) {
+        return { isDeleted: deleteResult.deletedCount > 0 };
+      }
+    }
+
+    DeleteOneGateway = DeleteOneGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      { ...routeConfig, dTOs: { presenter: Presenter } },
+    );
+
+    const deleteOneGateway = new DeleteOneGateway(service, jwtService);
+
+    service.deleteOne.mockResolvedValueOnce({ deletedCount: 0 });
+
+    await expect(deleteOneGateway.deleteOne(socket, body)).resolves.toEqual(
+      {
+        event: 'delete-one-test-entity',
+        data: { isDeleted: false },
+      },
+    );
   });
 
   test.each([

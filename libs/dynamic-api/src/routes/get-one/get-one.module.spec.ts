@@ -13,9 +13,11 @@ class Entity extends BaseEntity {}
 describe('GetOneModule', () => {
   let spyCreateGetOneController: jest.SpyInstance;
   let spyCreateGetOneServiceProvider: jest.SpyInstance;
+  let spyCreateGetOneGateway: jest.SpyInstance;
 
   const FakeController = jest.fn();
   const FakeServiceProvider = { provide: 'fakeProvider' } as unknown as DynamicAPIServiceProvider;
+  const FakeGateway = jest.fn();
 
   const routeConfigCallback = jest.fn();
   const databaseModule = { module: 'databaseModule' } as unknown as DynamicModule;
@@ -24,11 +26,14 @@ describe('GetOneModule', () => {
   const version = 'fakeVersion';
   const validationPipeOptions: ValidationPipeOptions = { transform: true };
   const fakeDisplayedName = 'FakeDisplayedName';
+  const fakeGatewayOptions = { namespace: 'fakeNamespace' };
 
   beforeEach(() => {
     spyCreateGetOneController = jest.spyOn(GetOneHelpers, 'createGetOneController').mockReturnValue(FakeController);
     spyCreateGetOneServiceProvider = jest.spyOn(GetOneHelpers, 'createGetOneServiceProvider').mockReturnValue(FakeServiceProvider);
+    spyCreateGetOneGateway = jest.spyOn(GetOneHelpers, 'createGetOneGateway').mockReturnValue(FakeGateway);
     jest.spyOn(Helpers, 'getDisplayedName').mockReturnValue(fakeDisplayedName);
+    jest.spyOn(Helpers, 'initializeConfigFromOptions').mockReturnValue(fakeGatewayOptions);
   });
 
   describe('forFeature', () => {
@@ -46,6 +51,40 @@ describe('GetOneModule', () => {
       .toHaveBeenCalledWith(Entity, fakeDisplayedName, controllerOptions, routeConfig, version, validationPipeOptions);
       expect(spyCreateGetOneServiceProvider)
       .toHaveBeenCalledWith(Entity, fakeDisplayedName, version, routeConfigCallback);
+    });
+
+    it('should return a DynamicModule with gateway', () => {
+      const result = GetOneModule.forFeature(
+        databaseModule,
+        Entity,
+        controllerOptions,
+        routeConfig,
+        version,
+        validationPipeOptions,
+        true,
+      );
+
+      expect(result).toEqual({
+        module: GetOneModule,
+        imports: [databaseModule],
+        controllers: [FakeController],
+        providers: [FakeServiceProvider, FakeGateway],
+      });
+
+      expect(spyCreateGetOneController)
+      .toHaveBeenCalledWith(Entity, fakeDisplayedName, controllerOptions, routeConfig, version, validationPipeOptions);
+      expect(spyCreateGetOneServiceProvider)
+      .toHaveBeenCalledWith(Entity, fakeDisplayedName, version, routeConfigCallback);
+      expect(spyCreateGetOneGateway)
+      .toHaveBeenCalledWith(
+        Entity,
+        fakeDisplayedName,
+        controllerOptions,
+        routeConfig,
+        version,
+        validationPipeOptions,
+        fakeGatewayOptions,
+      );
     });
   });
 });

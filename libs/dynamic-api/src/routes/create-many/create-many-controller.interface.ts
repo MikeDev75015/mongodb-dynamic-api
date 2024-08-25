@@ -5,8 +5,8 @@ type CreateManyBody<T = any> = {
   list: Partial<T>[];
 };
 
-interface CreateManyController<Entity extends BaseEntity> {
-  createMany(body: CreateManyBody<Entity>): Promise<Entity[]>;
+interface CreateManyController<Entity extends BaseEntity, Response = any> {
+  createMany(body: CreateManyBody<Entity>): Promise<(Entity | Response)[]>;
 }
 
 type CreateManyControllerConstructor<Entity extends BaseEntity> = new (
