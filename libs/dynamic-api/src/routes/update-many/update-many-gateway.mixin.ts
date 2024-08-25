@@ -1,12 +1,13 @@
 import { Type, UseFilters } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WsException } from '@nestjs/websockets';
-import { isEmpty, kebabCase } from 'lodash';
+import { isEmpty } from 'lodash';
 import { ManyEntityQuery } from '../../dtos';
 import { DynamicAPIWsExceptionFilter } from '../../filters/ws-exception/dynamic-api-ws-exception.filter';
 import { BaseGateway } from '../../gateways';
-import { getControllerMixinData, provideName } from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket } from '../../interfaces';
+import { addVersionSuffix, getMixinData, provideName } from '../../helpers';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket, Mappable } from '../../interfaces';
+import { EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { UpdateManyGateway, UpdateManyGatewayConstructor } from './update-many-gateway.interface';
 import { UpdateManyService } from './update-many-service.interface';
@@ -14,21 +15,40 @@ import { UpdateManyService } from './update-many-service.interface';
 function UpdateManyGatewayMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  { dTOs, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): UpdateManyGatewayConstructor<Entity> {
   const {
     routeType,
     displayedName,
     isPublic,
-  } = getControllerMixinData(
+    event,
+  } = getMixinData(
     entity,
     controllerOptions,
     routeConfig,
-    version,
+    true,
   );
 
-  const event = routeConfig.eventName ?? kebabCase(`${routeType}/${displayedName}`);
+  class UpdateManyData extends (
+    dTOs?.body ?? EntityBodyMixin(entity, true)
+  ) {}
+
+  Object.defineProperty(UpdateManyData, 'name', {
+    value: `UpdateMany${displayedName}${addVersionSuffix(version)}Data`,
+    writable: false,
+  });
+
+  class UpdateManyResponse extends (
+    dTOs?.presenter ?? EntityPresenterMixin(entity)
+  ) {}
+
+  Object.defineProperty(UpdateManyResponse, 'name', {
+    value: dTOs?.presenter
+      ? `UpdateMany${displayedName}${addVersionSuffix(version)}Response`
+      : `${displayedName}${addVersionSuffix(version)}Response`,
+    writable: false,
+  });
 
   class BaseUpdateManyGateway extends BaseGateway<Entity> implements UpdateManyGateway<Entity> {
     protected readonly entity = entity;
@@ -44,7 +64,7 @@ function UpdateManyGatewayMixin<Entity extends BaseEntity>(
     @SubscribeMessage(event)
     async updateMany(
       @ConnectedSocket() socket: ExtendedSocket<Entity>,
-      @MessageBody() body: ManyEntityQuery & Partial<Entity>,
+      @MessageBody() body: ManyEntityQuery & UpdateManyData,
     ) {
       if (!this.isValidManyBody(body)) {
         throw new WsException('Invalid request body');
@@ -52,15 +72,25 @@ function UpdateManyGatewayMixin<Entity extends BaseEntity>(
 
       this.addUserToSocket(socket, isPublic);
 
-      const { ids, ...partialEntity } = body;
+      const { ids, ...data } = body;
 
-      if (isEmpty(partialEntity)) {
+      if (isEmpty(data)) {
         throw new WsException('Invalid request body');
       }
 
+      const toEntity = (
+        UpdateManyData as Mappable<Entity>
+      ).toEntity;
+
+      const list = await this.service.updateMany(ids, toEntity ? toEntity(data) : data as Partial<Entity>);
+
+      const fromEntities = (
+        UpdateManyResponse as Mappable<Entity>
+      ).fromEntities;
+
       return {
         event,
-        data: await this.service.updateMany(ids, partialEntity as unknown as Partial<Entity>),
+        data: fromEntities ? fromEntities<UpdateManyResponse>(list) : list,
       };
     }
   }

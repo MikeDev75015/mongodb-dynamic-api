@@ -1,8 +1,9 @@
 import { Body, Query, Type, UseGuards } from '@nestjs/common';
+import { isEmpty } from 'lodash';
 import { RouteDecoratorsBuilder } from '../../builders';
-import { getControllerMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
-import { CreatePoliciesGuardMixin } from '../../mixins';
+import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
+import { CreatePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { UpdateManyController, UpdateManyControllerConstructor } from './update-many-controller.interface';
 import { UpdateManyService } from './update-many-service.interface';
@@ -10,7 +11,7 @@ import { UpdateManyService } from './update-many-service.interface';
 function UpdateManyControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  { dTOs, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): UpdateManyControllerConstructor<Entity> {
   const {
@@ -18,15 +19,32 @@ function UpdateManyControllerMixin<Entity extends BaseEntity>(
     displayedName,
     description,
     isPublic,
-    RouteBody,
-    RoutePresenter,
     abilityPredicate,
-  } = getControllerMixinData(
+  } = getMixinData(
     entity,
     controllerOptions,
     routeConfig,
-    version,
   );
+
+  class UpdateManyBody extends (
+    dTOs?.body ?? EntityBodyMixin(entity, true)
+  ) {}
+
+  Object.defineProperty(UpdateManyBody, 'name', {
+    value: `UpdateMany${displayedName}${addVersionSuffix(version)}Dto`,
+    writable: false,
+  });
+
+  class UpdateManyPresenter extends (
+    dTOs?.presenter ?? EntityPresenterMixin(entity)
+  ) {}
+
+  Object.defineProperty(UpdateManyPresenter, 'name', {
+    value: dTOs?.presenter
+      ? `UpdateMany${displayedName}${addVersionSuffix(version)}Presenter`
+      : `${displayedName}${addVersionSuffix(version)}Presenter`,
+    writable: false,
+  });
 
   const routeDecoratorsBuilder = new RouteDecoratorsBuilder(
     routeType,
@@ -36,8 +54,8 @@ function UpdateManyControllerMixin<Entity extends BaseEntity>(
     description,
     isPublic,
     {
-      body: RouteBody,
-      presenter: RoutePresenter,
+      body: UpdateManyBody,
+      presenter: UpdateManyPresenter,
     },
   );
 
@@ -57,9 +75,22 @@ function UpdateManyControllerMixin<Entity extends BaseEntity>(
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(UpdateManyPoliciesGuard)
-    // @ts-ignore
-    async updateMany(@Query('ids') ids: string[], @Body() body: RouteBody) {
-      return this.service.updateMany(ids, body as any);
+    async updateMany(@Query('ids') ids: string[], @Body() body: UpdateManyBody) {
+      if (isEmpty(body)) {
+        throw new Error('Invalid request body');
+      }
+
+      const toEntity = (
+        UpdateManyBody as Mappable<Entity>
+      ).toEntity;
+
+      const list = await this.service.updateMany(ids, toEntity ? toEntity(body) : body as Partial<Entity>);
+
+      const fromEntities = (
+        UpdateManyPresenter as Mappable<Entity>
+      ).fromEntities;
+
+      return fromEntities ? fromEntities<UpdateManyPresenter>(list) : list;
     }
   }
 

@@ -4,8 +4,8 @@ import { BaseEntity } from '../../models';
 import { CreateManyBody } from './create-many-controller.interface';
 import { CreateManyService } from './create-many-service.interface';
 
-interface CreateManyGateway<Entity extends BaseEntity> {
-  createMany(socket: ExtendedSocket, body: CreateManyBody<Entity>): GatewayResponse<Entity[]>;
+interface CreateManyGateway<Entity extends BaseEntity, Response = any> {
+  createMany(socket: ExtendedSocket, body: CreateManyBody<Entity>): GatewayResponse<(Entity | Response)[]>;
 }
 
 type CreateManyGatewayConstructor<Entity extends BaseEntity> = new (

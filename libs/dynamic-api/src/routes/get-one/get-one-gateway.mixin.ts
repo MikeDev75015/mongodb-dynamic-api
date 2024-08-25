@@ -1,12 +1,12 @@
 import { Type, UseFilters } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WsException } from '@nestjs/websockets';
-import { kebabCase } from 'lodash';
 import { EntityParam } from '../../dtos';
 import { DynamicAPIWsExceptionFilter } from '../../filters/ws-exception/dynamic-api-ws-exception.filter';
 import { BaseGateway } from '../../gateways';
-import { getControllerMixinData, provideName } from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket } from '../../interfaces';
+import { addVersionSuffix, getMixinData, provideName } from '../../helpers';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket, Mappable } from '../../interfaces';
+import { EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { GetOneGateway, GetOneGatewayConstructor } from './get-one-gateway.interface';
 import { GetOneService } from './get-one-service.interface';
@@ -14,21 +14,31 @@ import { GetOneService } from './get-one-service.interface';
 function GetOneGatewayMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  { dTOs, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): GetOneGatewayConstructor<Entity> {
   const {
     routeType,
     displayedName,
     isPublic,
-  } = getControllerMixinData(
+    event,
+  } = getMixinData(
     entity,
     controllerOptions,
     routeConfig,
-    version,
+    true,
   );
 
-  const event = routeConfig.eventName ?? kebabCase(`${routeType}/${displayedName}`);
+  class GetOneResponse extends (
+    dTOs?.presenter ?? EntityPresenterMixin(entity)
+  ) {}
+
+  Object.defineProperty(GetOneResponse, 'name', {
+    value: dTOs?.presenter
+      ? `GetOne${displayedName}${addVersionSuffix(version)}Response`
+      : `${displayedName}${addVersionSuffix(version)}Response`,
+    writable: false,
+  });
 
   class BaseGetOneGateway extends BaseGateway<Entity> implements GetOneGateway<Entity> {
     protected readonly entity = entity;
@@ -52,9 +62,15 @@ function GetOneGatewayMixin<Entity extends BaseEntity>(
 
       this.addUserToSocket(socket, isPublic);
 
+      const entity = await this.service.getOne(body.id);
+
+      const fromEntity = (
+        GetOneResponse as Mappable<Entity>
+      ).fromEntity;
+
       return {
         event,
-        data: await this.service.getOne(body.id),
+        data: fromEntity ? fromEntity<GetOneResponse>(entity) : entity,
       };
     }
   }

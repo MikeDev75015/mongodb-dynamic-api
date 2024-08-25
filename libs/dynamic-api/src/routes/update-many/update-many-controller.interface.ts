@@ -1,8 +1,8 @@
 import { BaseEntity } from '../../models';
 import { UpdateManyService } from './update-many-service.interface';
 
-interface UpdateManyController<Entity extends BaseEntity> {
-  updateMany(ids: string[], partial: Partial<Entity>): Promise<Entity[]>;
+interface UpdateManyController<Entity extends BaseEntity, Body = any, Response = any> {
+  updateMany(ids: string[], partial: Body): Promise<(Entity | Response)[]>;
 }
 
 type UpdateManyControllerConstructor<Entity extends BaseEntity> = new (

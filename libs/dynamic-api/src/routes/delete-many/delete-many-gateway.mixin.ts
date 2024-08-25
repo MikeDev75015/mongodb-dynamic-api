@@ -1,12 +1,11 @@
 import { Type, UseFilters } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WsException } from '@nestjs/websockets';
-import { kebabCase } from 'lodash';
-import { ManyEntityQuery } from '../../dtos';
+import { DeletePresenter, ManyEntityQuery } from '../../dtos';
 import { DynamicAPIWsExceptionFilter } from '../../filters/ws-exception/dynamic-api-ws-exception.filter';
 import { BaseGateway } from '../../gateways';
-import { getControllerMixinData, provideName } from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket } from '../../interfaces';
+import { addVersionSuffix, getMixinData, provideName } from '../../helpers';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket, Mappable } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { DeleteManyGateway, DeleteManyGatewayConstructor } from './delete-many-gateway.interface';
 import { DeleteManyService } from './delete-many-service.interface';
@@ -14,21 +13,29 @@ import { DeleteManyService } from './delete-many-service.interface';
 function DeleteManyGatewayMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  { dTOs, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): DeleteManyGatewayConstructor<Entity> {
   const {
     routeType,
     displayedName,
     isPublic,
-  } = getControllerMixinData(
+    event,
+  } = getMixinData(
     entity,
     controllerOptions,
     routeConfig,
-    version,
+    true,
   );
 
-  const event = routeConfig.eventName ?? kebabCase(`${routeType}/${displayedName}`);
+  class DeleteManyResponse extends (dTOs?.presenter ?? DeletePresenter) {}
+
+  Object.defineProperty(DeleteManyResponse, 'name', {
+    value: dTOs?.presenter
+      ? `DeleteMany${displayedName}${addVersionSuffix(version)}Response`
+      : `DeleteResultResponse`,
+    writable: false,
+  });
 
   class BaseDeleteManyGateway extends BaseGateway<Entity> implements DeleteManyGateway<Entity> {
     protected readonly entity = entity;
@@ -52,9 +59,15 @@ function DeleteManyGatewayMixin<Entity extends BaseEntity>(
 
       this.addUserToSocket(socket, isPublic);
 
+      const deleteResult = await this.service.deleteMany(body.ids);
+
+      const fromDeleteResult = (
+        DeleteManyResponse as Mappable<Entity>
+      ).fromDeleteResult;
+
       return {
         event,
-        data: await this.service.deleteMany(body.ids),
+        data: fromDeleteResult ? fromDeleteResult<DeleteManyResponse>(deleteResult) : deleteResult,
       };
     }
   }

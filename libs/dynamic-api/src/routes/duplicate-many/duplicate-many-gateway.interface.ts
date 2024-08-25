@@ -4,8 +4,11 @@ import { ExtendedSocket, GatewayResponse } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { DuplicateManyService } from './duplicate-many-service.interface';
 
-interface DuplicateManyGateway<Entity extends BaseEntity> {
-  duplicateMany(socket: ExtendedSocket, body: ManyEntityQuery & Partial<Entity>): GatewayResponse<Entity[]>;
+interface DuplicateManyGateway<Entity extends BaseEntity, Response = any> {
+  duplicateMany(
+    socket: ExtendedSocket,
+    body: ManyEntityQuery & Partial<Entity>,
+  ): GatewayResponse<(Entity | Response)[]>;
 }
 
 type DuplicateManyGatewayConstructor<Entity extends BaseEntity> = new (

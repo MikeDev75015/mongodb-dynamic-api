@@ -1,12 +1,13 @@
 import { Type, UseFilters } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WsException } from '@nestjs/websockets';
-import { kebabCase } from 'lodash';
+import { isEmpty } from 'lodash';
 import { ManyEntityQuery } from '../../dtos';
 import { DynamicAPIWsExceptionFilter } from '../../filters/ws-exception/dynamic-api-ws-exception.filter';
 import { BaseGateway } from '../../gateways';
-import { getControllerMixinData, provideName } from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket } from '../../interfaces';
+import { addVersionSuffix, getMixinData, provideName } from '../../helpers';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket, Mappable } from '../../interfaces';
+import { EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DuplicateManyGateway, DuplicateManyGatewayConstructor } from './duplicate-many-gateway.interface';
 import { DuplicateManyService } from './duplicate-many-service.interface';
@@ -14,21 +15,40 @@ import { DuplicateManyService } from './duplicate-many-service.interface';
 function DuplicateManyGatewayMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  { dTOs, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): DuplicateManyGatewayConstructor<Entity> {
   const {
     routeType,
     displayedName,
     isPublic,
-  } = getControllerMixinData(
+    event,
+  } = getMixinData(
     entity,
     controllerOptions,
     routeConfig,
-    version,
+    true,
   );
 
-  const event = routeConfig.eventName ?? kebabCase(`${routeType}/${displayedName}`);
+  class DuplicateManyData extends (
+    dTOs?.body ?? EntityBodyMixin(entity, true)
+  ) {}
+
+  Object.defineProperty(DuplicateManyData, 'name', {
+    value: `DuplicateMany${displayedName}${addVersionSuffix(version)}Data`,
+    writable: false,
+  });
+
+  class DuplicateManyResponse extends (
+    dTOs?.presenter ?? EntityPresenterMixin(entity)
+  ) {}
+
+  Object.defineProperty(DuplicateManyResponse, 'name', {
+    value: dTOs?.presenter
+      ? `DuplicateMany${displayedName}${addVersionSuffix(version)}Response`
+      : `${displayedName}${addVersionSuffix(version)}Response`,
+    writable: false,
+  });
 
   class BaseDuplicateManyGateway extends BaseGateway<Entity> implements DuplicateManyGateway<Entity> {
     protected readonly entity = entity;
@@ -44,7 +64,7 @@ function DuplicateManyGatewayMixin<Entity extends BaseEntity>(
     @SubscribeMessage(event)
     async duplicateMany(
       @ConnectedSocket() socket: ExtendedSocket<Entity>,
-      @MessageBody() body: ManyEntityQuery & Partial<Entity>,
+      @MessageBody() body: ManyEntityQuery & DuplicateManyData,
     ) {
       if (!this.isValidManyBody(body)) {
         throw new WsException('Invalid request body');
@@ -52,11 +72,24 @@ function DuplicateManyGatewayMixin<Entity extends BaseEntity>(
 
       this.addUserToSocket(socket, isPublic);
 
-      const { ids, ...partialEntity } = body;
+      const { ids, ...data } = body;
+
+      const toEntity = (
+        DuplicateManyData as Mappable<Entity>
+      ).toEntity;
+
+      const list = await this.service.duplicateMany(
+        ids,
+        !isEmpty(data) && toEntity ? toEntity(data) : data as Partial<Entity>,
+      );
+
+      const fromEntities = (
+        DuplicateManyResponse as Mappable<Entity>
+      ).fromEntities;
 
       return {
         event,
-        data: await this.service.duplicateMany(ids, partialEntity as unknown as Partial<Entity>),
+        data: fromEntities ? fromEntities<DuplicateManyResponse>(list) : list,
       };
     }
   }

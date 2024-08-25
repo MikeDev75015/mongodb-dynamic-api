@@ -1,9 +1,9 @@
 import { Param, Type, UseGuards } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityParam } from '../../dtos';
-import { getControllerMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
-import { CreatePoliciesGuardMixin } from '../../mixins';
+import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
+import { CreatePoliciesGuardMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { GetOneController, GetOneControllerConstructor } from './get-one-controller.interface';
 import { GetOneService } from './get-one-service.interface';
@@ -11,7 +11,7 @@ import { GetOneService } from './get-one-service.interface';
 function GetOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  { dTOs, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): GetOneControllerConstructor<Entity> {
   const {
@@ -19,14 +19,23 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
     displayedName,
     description,
     isPublic,
-    RoutePresenter,
     abilityPredicate,
-  } = getControllerMixinData(
+  } = getMixinData(
     entity,
     controllerOptions,
     routeConfig,
-    version,
   );
+
+  class GetOnePresenter extends (
+    dTOs?.presenter ?? EntityPresenterMixin(entity)
+  ) {}
+
+  Object.defineProperty(GetOnePresenter, 'name', {
+    value: dTOs?.presenter
+      ? `GetOne${displayedName}${addVersionSuffix(version)}Presenter`
+      : `${displayedName}${addVersionSuffix(version)}Presenter`,
+    writable: false,
+  });
 
   const routeDecoratorsBuilder = new RouteDecoratorsBuilder(
     routeType,
@@ -37,7 +46,7 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
     isPublic,
     {
       param: EntityParam,
-      presenter: RoutePresenter,
+      presenter: GetOnePresenter,
     },
   );
 
@@ -58,7 +67,13 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(GetOnePoliciesGuard)
     async getOne(@Param('id') id: string) {
-      return this.service.getOne(id);
+      const entity = await this.service.getOne(id);
+
+      const fromEntity = (
+        GetOnePresenter as Mappable<Entity>
+      ).fromEntity;
+
+      return fromEntity ? fromEntity<GetOnePresenter>(entity) : entity;
     }
   }
 

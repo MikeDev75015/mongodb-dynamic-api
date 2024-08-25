@@ -4,7 +4,9 @@ import { UpdateManyController } from './update-many-controller.interface';
 import { UpdateManyControllerMixin } from './update-many-controller.mixin';
 import { UpdateManyService } from './update-many-service.interface';
 
-class Entity extends BaseEntity {}
+class Entity extends BaseEntity {
+  name: string;
+}
 
 describe('UpdateManyControllerMixin', () => {
   let controller: UpdateManyController<Entity>;
@@ -38,7 +40,7 @@ describe('UpdateManyControllerMixin', () => {
 
   it('should call service.updateMany', async () => {
     const ids = ['fakeId'];
-    const body = {};
+    const body = { name: 'test' };
     await controller.updateMany(ids, body);
 
     expect(service.updateMany).toHaveBeenCalledWith(ids, body);

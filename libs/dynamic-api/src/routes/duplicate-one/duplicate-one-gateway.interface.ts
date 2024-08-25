@@ -4,8 +4,8 @@ import { ExtendedSocket, GatewayResponse } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { DuplicateOneService } from './duplicate-one-service.interface';
 
-interface DuplicateOneGateway<Entity extends BaseEntity> {
-  duplicateOne(socket: ExtendedSocket, body: EntityParam & Partial<Entity>): GatewayResponse<Entity>;
+interface DuplicateOneGateway<Entity extends BaseEntity, Body = any, Response = any> {
+  duplicateOne(socket: ExtendedSocket, body: EntityParam & Body): GatewayResponse<Entity | Response>;
 }
 
 type DuplicateOneGatewayConstructor<Entity extends BaseEntity> = new (

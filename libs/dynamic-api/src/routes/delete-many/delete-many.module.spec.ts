@@ -13,9 +13,11 @@ class Entity extends BaseEntity {}
 describe('DeleteManyModule', () => {
   let spyCreateDeleteManyController: jest.SpyInstance;
   let spyCreateDeleteManyServiceProvider: jest.SpyInstance;
+  let spyCreateDeleteManyGateway: jest.SpyInstance;
 
   const FakeController = jest.fn();
   const FakeServiceProvider = { provide: 'fakeProvider' } as unknown as DynamicAPIServiceProvider;
+  const FakeGateway = jest.fn();
 
   const databaseModule = { module: 'databaseModule' } as unknown as DynamicModule;
   const controllerOptions: DynamicApiControllerOptions<Entity> = { path: 'fakePath' };
@@ -23,11 +25,14 @@ describe('DeleteManyModule', () => {
   const version = 'fakeVersion';
   const validationPipeOptions: ValidationPipeOptions = { transform: true };
   const fakeDisplayedName = 'FakeDisplayedName';
+  const fakeGatewayOptions = { namespace: 'fakeNamespace' };
 
   beforeEach(() => {
     spyCreateDeleteManyController = jest.spyOn(DeleteManyHelpers, 'createDeleteManyController').mockReturnValue(FakeController);
     spyCreateDeleteManyServiceProvider = jest.spyOn(DeleteManyHelpers, 'createDeleteManyServiceProvider').mockReturnValue(FakeServiceProvider);
+    spyCreateDeleteManyGateway = jest.spyOn(DeleteManyHelpers, 'createDeleteManyGateway').mockReturnValue(FakeGateway);
     jest.spyOn(Helpers, 'getDisplayedName').mockReturnValue(fakeDisplayedName);
+    jest.spyOn(Helpers, 'initializeConfigFromOptions').mockReturnValue(fakeGatewayOptions);
   });
 
   describe('forFeature', () => {
@@ -44,6 +49,38 @@ describe('DeleteManyModule', () => {
       expect(spyCreateDeleteManyController)
       .toHaveBeenCalledWith(Entity, fakeDisplayedName, controllerOptions, routeConfig, version, validationPipeOptions);
       expect(spyCreateDeleteManyServiceProvider).toHaveBeenCalledWith(Entity, fakeDisplayedName, version);
+    });
+
+    it('should return a DynamicModule with gateway', () => {
+      const result = DeleteManyModule.forFeature(
+        databaseModule,
+        Entity,
+        controllerOptions,
+        routeConfig,
+        version,
+        validationPipeOptions,
+        true,
+      );
+
+      expect(result).toEqual({
+        module: DeleteManyModule,
+        imports: [databaseModule],
+        controllers: [FakeController],
+        providers: [FakeServiceProvider, FakeGateway],
+      });
+
+      expect(spyCreateDeleteManyController)
+      .toHaveBeenCalledWith(Entity, fakeDisplayedName, controllerOptions, routeConfig, version, validationPipeOptions);
+      expect(spyCreateDeleteManyServiceProvider).toHaveBeenCalledWith(Entity, fakeDisplayedName, version);
+      expect(spyCreateDeleteManyGateway).toHaveBeenCalledWith(
+        Entity,
+        fakeDisplayedName,
+        controllerOptions,
+        routeConfig,
+        version,
+        validationPipeOptions,
+        fakeGatewayOptions,
+      );
     });
   });
 });

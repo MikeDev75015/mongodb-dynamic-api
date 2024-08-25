@@ -1,6 +1,6 @@
 export * from './controller-ability-predicates.helper';
-export * from './controller-mixin.helper';
 export * from './format.helper';
+export * from './mixin-data.helper';
 export * from './route-decorators.helper';
 export * from './route-description.helper';
 export * from './schema.helper';

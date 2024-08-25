@@ -1,9 +1,8 @@
 import { Query, Type, UseGuards } from '@nestjs/common';
-import { plainToInstance } from 'class-transformer';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { ManyEntityQuery, DeletePresenter } from '../../dtos';
-import { getControllerMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
 import { CreatePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DeleteManyController, DeleteManyControllerConstructor } from './delete-many-controller.interface';
@@ -12,7 +11,7 @@ import { DeleteManyService } from './delete-many-service.interface';
 function DeleteManyControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  { dTOs, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): DeleteManyControllerConstructor<Entity> {
   const {
@@ -20,14 +19,21 @@ function DeleteManyControllerMixin<Entity extends BaseEntity>(
     displayedName,
     description,
     isPublic,
-    RoutePresenter,
     abilityPredicate,
-  } = getControllerMixinData(
+  } = getMixinData(
     entity,
     controllerOptions,
     routeConfig,
-    version,
   );
+
+  class DeleteManyPresenter extends (dTOs?.presenter ?? DeletePresenter) {}
+
+  Object.defineProperty(DeleteManyPresenter, 'name', {
+    value: dTOs?.presenter
+      ? `DeleteMany${displayedName}${addVersionSuffix(version)}Presenter`
+      : `DeleteResultPresenter`,
+    writable: false,
+  });
 
   const routeDecoratorsBuilder = new RouteDecoratorsBuilder(
     routeType,
@@ -37,7 +43,7 @@ function DeleteManyControllerMixin<Entity extends BaseEntity>(
     description,
     isPublic,
     {
-      presenter: RoutePresenter,
+      presenter: DeleteManyPresenter,
     },
   );
 
@@ -58,8 +64,13 @@ function DeleteManyControllerMixin<Entity extends BaseEntity>(
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(DeleteManyPoliciesGuard)
     async deleteMany(@Query() { ids }: ManyEntityQuery) {
-      const result = await this.service.deleteMany(ids);
-      return plainToInstance(DeletePresenter, result);
+      const deleteResult = await this.service.deleteMany(ids);
+
+      const fromDeleteResult = (
+        DeleteManyPresenter as Mappable<Entity>
+      ).fromDeleteResult;
+
+      return fromDeleteResult ? fromDeleteResult<DeleteManyPresenter>(deleteResult) : deleteResult;
     }
   }
 

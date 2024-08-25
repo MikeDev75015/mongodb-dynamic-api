@@ -15,7 +15,7 @@ const baseEntityKeysToExclude = <Entity extends BaseEntity>() =>
 
 function EntityBodyMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
-  update = false,
+  optional = false,
   additionalKeysToExclude?: (keyof Entity)[],
 ) {
   const keysToExclude = [
@@ -26,7 +26,7 @@ function EntityBodyMixin<Entity extends BaseEntity>(
   // @ts-ignore
   class EntityBody extends OmitType(entity, keysToExclude) {}
 
-  return update ? PartialType(EntityBody) : EntityBody;
+  return optional ? PartialType(EntityBody) : EntityBody;
 }
 
 export { baseEntityKeysToExclude, EntityBodyMixin };

@@ -1,12 +1,13 @@
 import { Type, UseFilters } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WsException } from '@nestjs/websockets';
-import { kebabCase } from 'lodash';
+import { isEmpty } from 'lodash';
 import { EntityParam } from '../../dtos';
 import { DynamicAPIWsExceptionFilter } from '../../filters/ws-exception/dynamic-api-ws-exception.filter';
 import { BaseGateway } from '../../gateways';
-import { getControllerMixinData, provideName } from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket } from '../../interfaces';
+import { addVersionSuffix, getMixinData, provideName } from '../../helpers';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket, Mappable } from '../../interfaces';
+import { EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DuplicateOneGateway, DuplicateOneGatewayConstructor } from './duplicate-one-gateway.interface';
 import { DuplicateOneService } from './duplicate-one-service.interface';
@@ -14,21 +15,40 @@ import { DuplicateOneService } from './duplicate-one-service.interface';
 function DuplicateOneGatewayMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  { dTOs, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): DuplicateOneGatewayConstructor<Entity> {
   const {
     routeType,
     displayedName,
     isPublic,
-  } = getControllerMixinData(
+    event,
+  } = getMixinData(
     entity,
     controllerOptions,
     routeConfig,
-    version,
+    true,
   );
 
-  const event = routeConfig.eventName ?? kebabCase(`${routeType}/${displayedName}`);
+  class DuplicateOneData extends (
+    dTOs?.body ?? EntityBodyMixin(entity, true)
+  ) {}
+
+  Object.defineProperty(DuplicateOneData, 'name', {
+    value: `DuplicateOne${displayedName}${addVersionSuffix(version)}Data`,
+    writable: false,
+  });
+
+  class DuplicateOneResponse extends (
+    dTOs?.presenter ?? EntityPresenterMixin(entity)
+  ) {}
+
+  Object.defineProperty(DuplicateOneResponse, 'name', {
+    value: dTOs?.presenter
+      ? `DuplicateOne${displayedName}${addVersionSuffix(version)}Response`
+      : `${displayedName}${addVersionSuffix(version)}Response`,
+    writable: false,
+  });
 
   class BaseDuplicateOneGateway extends BaseGateway<Entity> implements DuplicateOneGateway<Entity> {
     protected readonly entity = entity;
@@ -44,7 +64,7 @@ function DuplicateOneGatewayMixin<Entity extends BaseEntity>(
     @SubscribeMessage(event)
     async duplicateOne(
       @ConnectedSocket() socket: ExtendedSocket<Entity>,
-      @MessageBody() body: EntityParam & Partial<Entity>,
+      @MessageBody() body: EntityParam & DuplicateOneData,
     ) {
       if (!body?.id) {
         throw new WsException('Invalid request body');
@@ -52,11 +72,24 @@ function DuplicateOneGatewayMixin<Entity extends BaseEntity>(
 
       this.addUserToSocket(socket, isPublic);
 
-      const { id, ...partialEntity } = body;
+      const { id, ...data } = body;
+
+      const toEntity = (
+        DuplicateOneData as Mappable<Entity>
+      ).toEntity;
+
+      const entity = await this.service.duplicateOne(
+        id,
+        !isEmpty(data) && toEntity ? toEntity(data) : data as Partial<Entity>,
+      );
+
+      const fromEntity = (
+        DuplicateOneResponse as Mappable<Entity>
+      ).fromEntity;
 
       return {
         event,
-        data: await this.service.duplicateOne(id, partialEntity as unknown as Partial<Entity>),
+        data: fromEntity ? fromEntity<DuplicateOneResponse>(entity) : entity,
       };
     }
   }

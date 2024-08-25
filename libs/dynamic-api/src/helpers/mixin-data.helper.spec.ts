@@ -1,27 +1,26 @@
 import { plainToInstance } from 'class-transformer';
-import { RouteType } from '../interfaces';
 import { BaseEntity } from '../models';
-import { getControllerMixinData } from './controller-mixin.helper';
+import { CreateManyBodyMixin } from '../routes';
+import { getMixinData } from './mixin-data.helper';
 
-describe('getControllerMixinData', () => {
+describe('getMixinData', () => {
   class TestEntity extends BaseEntity {}
   const controllerOptions = { path: '/', apiTag: 'Test', isPublic: true, abilityPredicates: [] };
   const routeConfig = { description: 'Test', dTOs: {}, isPublic: true, abilityPredicate: () => true };
   class CustomDTO {}
 
   it('should return valid controller mixin data for CreateMany route type', () => {
-    const result = getControllerMixinData(
+    const result = getMixinData(
       TestEntity,
       controllerOptions,
       {
         type: 'CreateMany',
         ...routeConfig,
       },
-      'v1',
     );
 
     const body = { list: [{ unit: 'test' }] };
-    const dto = plainToInstance(result.RouteBody, body);
+    const dto = plainToInstance(CreateManyBodyMixin(TestEntity), body);
 
     expect(result).toBeDefined();
     expect(result.routeType).toEqual('CreateMany');
@@ -33,7 +32,7 @@ describe('getControllerMixinData', () => {
     class CreateManyDTO {
       list: CustomDTO[];
     }
-    const result = getControllerMixinData(
+    const result = getMixinData(
       TestEntity,
       controllerOptions,
       {
@@ -41,7 +40,6 @@ describe('getControllerMixinData', () => {
         ...routeConfig,
         dTOs: { body: CreateManyDTO },
       },
-      'v1',
     );
 
     expect(result).toBeDefined();
@@ -49,7 +47,7 @@ describe('getControllerMixinData', () => {
 
   it('should return valid controller mixin data for CreateOne route type', () => {
     const { abilityPredicate, isPublic, ...createOneRouteConfig } = routeConfig;
-    const result = getControllerMixinData(
+    const result = getMixinData(
       TestEntity,
       controllerOptions,
       {
@@ -57,7 +55,6 @@ describe('getControllerMixinData', () => {
         ...createOneRouteConfig,
         dTOs: { body: CustomDTO },
       },
-      'v1',
     );
 
     expect(result).toBeDefined();
@@ -65,7 +62,7 @@ describe('getControllerMixinData', () => {
   });
 
   it('should return valid controller mixin data for DuplicateMany route type', () => {
-    const result = getControllerMixinData(
+    const result = getMixinData(
       TestEntity,
       { ...controllerOptions, isPublic: undefined },
       {
@@ -73,7 +70,6 @@ describe('getControllerMixinData', () => {
         ...routeConfig,
         isPublic: undefined,
       },
-      'v1',
     );
 
     expect(result).toBeDefined();
@@ -81,7 +77,7 @@ describe('getControllerMixinData', () => {
   });
 
   it('should return valid controller mixin data for DuplicateOne route type', () => {
-    const result = getControllerMixinData(
+    const result = getMixinData(
       TestEntity,
       controllerOptions,
       {
@@ -89,7 +85,6 @@ describe('getControllerMixinData', () => {
         ...routeConfig,
         dTOs: { presenter: CustomDTO },
       },
-      'v1',
     );
 
     expect(result).toBeDefined();
@@ -97,14 +92,13 @@ describe('getControllerMixinData', () => {
   });
 
   it('should return valid controller mixin data for DeleteMany route type', () => {
-    const result = getControllerMixinData(
+    const result = getMixinData(
       TestEntity,
       controllerOptions,
       {
         type: 'DeleteMany',
         ...routeConfig,
       },
-      'v1',
     );
 
     expect(result).toBeDefined();
@@ -112,14 +106,13 @@ describe('getControllerMixinData', () => {
   });
 
   it('should return valid controller mixin data for DeleteOne route type', () => {
-    const result = getControllerMixinData(
+    const result = getMixinData(
       TestEntity,
       controllerOptions,
       {
         type: 'DeleteOne',
         ...routeConfig,
       },
-      'v1',
     );
 
     expect(result).toBeDefined();
@@ -127,7 +120,7 @@ describe('getControllerMixinData', () => {
   });
 
   it('should return valid controller mixin data for GetMany route type', () => {
-    const result = getControllerMixinData(
+    const result = getMixinData(
       TestEntity,
       controllerOptions,
       {
@@ -135,7 +128,6 @@ describe('getControllerMixinData', () => {
         ...routeConfig,
         dTOs: undefined,
       },
-      'v1',
     );
 
     expect(result).toBeDefined();
@@ -143,14 +135,13 @@ describe('getControllerMixinData', () => {
   });
 
   it('should return valid controller mixin data for GetOne route type', () => {
-    const result = getControllerMixinData(
+    const result = getMixinData(
       TestEntity,
       controllerOptions,
       {
         type: 'GetOne',
         ...routeConfig,
       },
-      'v1',
     );
 
     expect(result).toBeDefined();
@@ -162,14 +153,13 @@ describe('getControllerMixinData', () => {
   });
 
   it('should return valid controller mixin data for ReplaceOne route type', () => {
-    const result = getControllerMixinData(
+    const result = getMixinData(
       TestEntity,
       controllerOptions,
       {
         type: 'ReplaceOne',
         ...routeConfig,
       },
-      'v1',
     );
 
     expect(result).toBeDefined();
@@ -177,14 +167,13 @@ describe('getControllerMixinData', () => {
   });
 
   it('should return valid controller mixin data for UpdateMany route type', () => {
-    const result = getControllerMixinData(
+    const result = getMixinData(
       TestEntity,
       controllerOptions,
       {
         type: 'UpdateMany',
         ...routeConfig,
       },
-      'v1',
     );
 
     expect(result).toBeDefined();
@@ -192,29 +181,16 @@ describe('getControllerMixinData', () => {
   });
 
   it('should return valid controller mixin data for UpdateOne route type', () => {
-    const result = getControllerMixinData(
+    const result = getMixinData(
       TestEntity,
       controllerOptions,
       {
         type: 'UpdateOne',
         ...routeConfig,
       },
-      'v1',
     );
 
     expect(result).toBeDefined();
     expect(result.routeType).toEqual('UpdateOne');
-  });
-
-  it('should throw an error for unsupported route type', () => {
-    expect(() => getControllerMixinData(
-      TestEntity,
-      controllerOptions,
-      {
-        type: 'Unsupported' as RouteType,
-        ...routeConfig,
-      },
-      'v1',
-    )).toThrowError();
   });
 });

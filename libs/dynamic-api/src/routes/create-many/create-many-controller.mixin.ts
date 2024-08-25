@@ -1,16 +1,19 @@
-import { Body, Type, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Type, UseGuards } from '@nestjs/common';
+import { isEmpty } from 'lodash';
 import { RouteDecoratorsBuilder } from '../../builders';
-import { getControllerMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
 import { CreatePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
+import { CreateManyBodyMixin } from './create-many-body.mixin';
 import { CreateManyController, CreateManyControllerConstructor } from './create-many-controller.interface';
+import { CreateManyPresenterMixin } from './create-many-presenter.mixin';
 import { CreateManyService } from './create-many-service.interface';
 
 function CreateManyControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  { dTOs, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): CreateManyControllerConstructor<Entity> {
   const {
@@ -18,15 +21,28 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
     displayedName,
     description,
     isPublic,
-    RouteBody,
-    RoutePresenter,
     abilityPredicate,
-  } = getControllerMixinData(
+  } = getMixinData(
     entity,
     controllerOptions,
     routeConfig,
-    version,
   );
+
+  class CreateManyBody extends CreateManyBodyMixin(entity, dTOs?.body) {}
+
+  Object.defineProperty(CreateManyBody, 'name', {
+    value: `${routeType}${displayedName}${addVersionSuffix(version)}Dto`,
+    writable: false,
+  });
+
+  class CreateManyPresenter extends CreateManyPresenterMixin(entity, dTOs?.presenter) {}
+
+  Object.defineProperty(CreateManyPresenter, 'name', {
+    value: dTOs?.presenter
+      ? `${routeType}${displayedName}${addVersionSuffix(version)}Presenter`
+      : `${displayedName}${addVersionSuffix(version)}Presenter`,
+    writable: false,
+  });
 
   const routeDecoratorsBuilder = new RouteDecoratorsBuilder(
     routeType,
@@ -36,8 +52,8 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
     description,
     isPublic,
     {
-      body: RouteBody,
-      presenter: RoutePresenter,
+      body: CreateManyBody,
+      presenter: CreateManyPresenter,
     },
   );
 
@@ -58,9 +74,29 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(CreateManyPoliciesGuard)
-    // @ts-ignore
-    async createMany(@Body() body: RouteBody) {
-      return this.service.createMany(body.list as unknown as Partial<Entity>[]);
+    async createMany(@Body() body: CreateManyBody) {
+      if (!(
+        'list' in body &&
+        Array.isArray(body.list) &&
+        body.list.length &&
+        body.list.every((e: object) => !isEmpty(e))
+      )) {
+        throw new BadRequestException('Invalid request body');
+      }
+
+      let toCreateList = body.list as Partial<Entity>[];
+
+      const toEntities = (
+        CreateManyBody as Mappable<Entity>
+      ).toEntities;
+
+      const list = await this.service.createMany(toEntities ? toEntities(body) : toCreateList);
+
+      const fromEntities = (
+        CreateManyPresenter as Mappable<Entity>
+      ).fromEntities;
+
+      return fromEntities ? fromEntities<CreateManyPresenter>(list) : list;
     }
   }
 

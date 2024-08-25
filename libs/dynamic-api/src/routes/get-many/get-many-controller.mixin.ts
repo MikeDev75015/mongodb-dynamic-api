@@ -1,14 +1,9 @@
 import { Query, Type, UseGuards } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityQuery } from '../../dtos';
-import {
-  addVersionSuffix,
-  getControllerMixinData,
-  provideName,
-  RouteDecoratorsHelper,
-} from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
-import { CreatePoliciesGuardMixin } from '../../mixins';
+import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
+import { CreatePoliciesGuardMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { GetManyController, GetManyControllerConstructor } from './get-many-controller.interface';
 import { GetManyService } from './get-many-service.interface';
@@ -16,7 +11,7 @@ import { GetManyService } from './get-many-service.interface';
 function GetManyControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  { dTOs, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): GetManyControllerConstructor<Entity> {
   const {
@@ -24,21 +19,28 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
     displayedName,
     description,
     isPublic,
-    RoutePresenter,
     abilityPredicate,
-  } = getControllerMixinData(
+  } = getMixinData(
     entity,
     controllerOptions,
     routeConfig,
-    version,
   );
 
-  class RouteQuery extends (
-    routeConfig.dTOs?.query ?? EntityQuery
+  class GetManyQuery extends (dTOs?.query ?? EntityQuery) {}
+
+  Object.defineProperty(GetManyQuery, 'name', {
+    value: `GetMany${displayedName}${addVersionSuffix(version)}Query`,
+    writable: false,
+  });
+
+  class GetManyPresenter extends (
+    dTOs?.presenter ?? EntityPresenterMixin(entity)
   ) {}
 
-  Object.defineProperty(RouteQuery, 'name', {
-    value: `${routeType}${displayedName}${addVersionSuffix(version)}Query`,
+  Object.defineProperty(GetManyPresenter, 'name', {
+    value: dTOs?.presenter
+      ? `GetMany${displayedName}${addVersionSuffix(version)}Presenter`
+      : `${displayedName}${addVersionSuffix(version)}Presenter`,
     writable: false,
   });
 
@@ -50,7 +52,7 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
     description,
     isPublic,
     {
-      presenter: RoutePresenter,
+      presenter: GetManyPresenter,
     },
   );
 
@@ -75,8 +77,14 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(GetManyPoliciesGuard)
-    async getMany(@Query() query: RouteQuery) {
-      return this.service.getMany(query);
+    async getMany(@Query() query: GetManyQuery) {
+      const list = await this.service.getMany(query);
+
+      const fromEntities = (
+        GetManyPresenter as Mappable<Entity>
+      ).fromEntities;
+
+      return fromEntities ? fromEntities<GetManyPresenter>(list) : list;
     }
   }
 

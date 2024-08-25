@@ -1,11 +1,12 @@
 import { Type, UseFilters } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WsException } from '@nestjs/websockets';
-import { isEmpty, kebabCase } from 'lodash';
+import { isEmpty } from 'lodash';
 import { DynamicAPIWsExceptionFilter } from '../../filters/ws-exception/dynamic-api-ws-exception.filter';
 import { BaseGateway } from '../../gateways';
-import { getControllerMixinData, provideName } from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket } from '../../interfaces';
+import { addVersionSuffix, getMixinData, provideName } from '../../helpers';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket, Mappable } from '../../interfaces';
+import { EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { CreateOneGateway, CreateOneGatewayConstructor } from './create-one-gateway.interface';
 import { CreateOneService } from './create-one-service.interface';
@@ -13,22 +14,36 @@ import { CreateOneService } from './create-one-service.interface';
 function CreateOneGatewayMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  { dTOs, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): CreateOneGatewayConstructor<Entity> {
   const {
     routeType,
     displayedName,
     isPublic,
-    RouteBody,
-  } = getControllerMixinData(
+    event,
+  } = getMixinData(
     entity,
     controllerOptions,
     routeConfig,
-    version,
+    true,
   );
 
-  const event = routeConfig.eventName ?? kebabCase(`${routeType}/${displayedName}`);
+  class CreateOneData extends (dTOs?.body ?? EntityBodyMixin(entity)) {}
+
+  Object.defineProperty(CreateOneData, 'name', {
+    value: `${routeType}${displayedName}${addVersionSuffix(version)}Data`,
+    writable: false,
+  });
+
+  class CreateOneResponse extends (dTOs?.presenter ?? EntityPresenterMixin(entity)) {}
+
+  Object.defineProperty(CreateOneResponse, 'name', {
+    value: dTOs?.presenter
+      ? `CreateOne${displayedName}${addVersionSuffix(version)}Response`
+      : `${displayedName}${addVersionSuffix(version)}Response`,
+    writable: false,
+  });
 
   class BaseCreateOneGateway extends BaseGateway<Entity> implements CreateOneGateway<Entity> {
     protected readonly entity = entity;
@@ -44,8 +59,7 @@ function CreateOneGatewayMixin<Entity extends BaseEntity>(
     @SubscribeMessage(event)
     async createOne(
       @ConnectedSocket() socket: ExtendedSocket<Entity>,
-      // @ts-ignore
-      @MessageBody() body: RouteBody,
+      @MessageBody() body: CreateOneData,
     ) {
       if (isEmpty(body)) {
         throw new WsException('Invalid request body');
@@ -53,11 +67,19 @@ function CreateOneGatewayMixin<Entity extends BaseEntity>(
 
       this.addUserToSocket(socket, isPublic);
 
-      const data = await this.service.createOne(body);
+      const toEntity = (
+        CreateOneData as Mappable<Entity>
+      ).toEntity;
+
+      const entity = await this.service.createOne(toEntity ? toEntity(body) : body as Partial<Entity>);
+
+      const fromEntity = (
+        CreateOneResponse as Mappable<Entity>
+      ).fromEntity;
 
       return {
         event,
-        data,
+        data: fromEntity ? fromEntity<CreateOneResponse>(entity) : entity,
       };
     }
   }

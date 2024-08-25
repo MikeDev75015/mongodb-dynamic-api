@@ -178,15 +178,12 @@ describe('DynamicApiModule', () => {
       jest.spyOn(helpers, 'getDisplayedName').mockReturnValue('fake-formatted-api-tag');
       jest.spyOn(helpers, 'RouteDecoratorsHelper').mockReturnValue((_: any) => undefined);
       jest.spyOn(helpers, 'provideName').mockReturnValue('fake-provided-name');
-      jest.spyOn(helpers, 'getControllerMixinData').mockReturnValue({
+      jest.spyOn(helpers, 'getMixinData').mockReturnValue({
         routeType: 'fake-route-type' as RouteType,
         description: 'fake-description',
         isPublic: false,
-        RoutePresenter: undefined,
         abilityPredicate: undefined,
         displayedName: 'fake-displayed-name',
-        RouteBody: undefined,
-        EntityParam: undefined,
       });
       mongooseModuleSpy = jest
       .spyOn(MongooseModule, 'forFeature')

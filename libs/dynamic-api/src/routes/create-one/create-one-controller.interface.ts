@@ -1,8 +1,8 @@
 import { BaseEntity } from '../../models';
 import { CreateOneService } from './create-one-service.interface';
 
-interface CreateOneController<Entity extends BaseEntity> {
-  createOne<Body>(body: Body): Promise<Entity | undefined>;
+interface CreateOneController<Entity extends BaseEntity, Response = any> {
+  createOne<Body>(body: Body): Promise<Entity | Response>;
 }
 
 type CreateOneControllerConstructor<Entity extends BaseEntity> = new (

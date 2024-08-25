@@ -3,8 +3,8 @@ import { ExtendedSocket, GatewayResponse } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { GetManyService } from './get-many-service.interface';
 
-interface GetManyGateway<Entity extends BaseEntity> {
-  getMany(socket: ExtendedSocket, body?: object): GatewayResponse<Entity[]>;
+interface GetManyGateway<Entity extends BaseEntity, Response = any> {
+  getMany(socket: ExtendedSocket, body?: object): GatewayResponse<(Entity | Response)[]>;
 }
 
 type GetManyGatewayConstructor<Entity extends BaseEntity> = new (

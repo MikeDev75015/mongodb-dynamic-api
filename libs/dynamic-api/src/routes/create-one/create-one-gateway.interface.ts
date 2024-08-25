@@ -3,8 +3,8 @@ import { ExtendedSocket, GatewayResponse } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { CreateOneService } from './create-one-service.interface';
 
-interface CreateOneGateway<Entity extends BaseEntity> {
-  createOne<Body>(socket: ExtendedSocket, body: Body): GatewayResponse<Entity | undefined>;
+interface CreateOneGateway<Entity extends BaseEntity, Response = any> {
+  createOne<Body>(socket: ExtendedSocket, body: Body): GatewayResponse<Entity | Response>;
 }
 
 type CreateOneGatewayConstructor<Entity extends BaseEntity> = new (
