@@ -1,5 +1,12 @@
 Changelog
 
+## [2.7.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.6.0...v2.7.0) (2024-08-29)
+
+
+### api
+
+* **api:** add mapping from / to entity, update related ([2af5ad3](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/2af5ad373e83b9161bf4ac8f3b4a910aa3801aef))
+
 ## [2.6.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.5.1...v2.6.0) (2024-08-24)
 
 
