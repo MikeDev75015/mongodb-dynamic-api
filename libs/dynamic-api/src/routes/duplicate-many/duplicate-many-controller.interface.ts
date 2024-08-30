@@ -1,8 +1,8 @@
 import { BaseEntity } from '../../models';
 import { DuplicateManyService } from './duplicate-many-service.interface';
 
-interface DuplicateManyController<Entity extends BaseEntity, Response = any> {
-  duplicateMany(ids: string[], body?: Partial<Entity>): Promise<(Entity | Response)[]>;
+interface DuplicateManyController<Entity extends BaseEntity, Body = any, Response = any> {
+  duplicateMany(ids: string[], body?: Body): Promise<(Entity | Response)[]>;
 }
 
 type DuplicateManyControllerConstructor<Entity extends BaseEntity> = new (

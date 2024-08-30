@@ -76,6 +76,10 @@ function DuplicateManyControllerMixin<Entity extends BaseEntity>(
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(DuplicateManyPoliciesGuard)
     async duplicateMany(@Query('ids') ids: string[], @Body() body?: DuplicateManyBody) {
+      if (!ids?.length) {
+        throw new Error('Invalid query');
+      }
+
       const toEntity = (
         DuplicateManyBody as Mappable<Entity>
       ).toEntity;
