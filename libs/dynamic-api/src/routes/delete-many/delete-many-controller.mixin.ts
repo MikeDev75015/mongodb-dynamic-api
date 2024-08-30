@@ -64,6 +64,10 @@ function DeleteManyControllerMixin<Entity extends BaseEntity>(
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(DeleteManyPoliciesGuard)
     async deleteMany(@Query() { ids }: ManyEntityQuery) {
+      if (!ids?.length) {
+        throw new Error('Invalid query');
+      }
+
       const deleteResult = await this.service.deleteMany(ids);
 
       const fromDeleteResult = (

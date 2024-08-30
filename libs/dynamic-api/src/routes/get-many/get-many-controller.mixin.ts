@@ -78,7 +78,7 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(GetManyPoliciesGuard)
     async getMany(@Query() query: GetManyQuery) {
-      const list = await this.service.getMany(query);
+      const list = await this.service.getMany(query ?? {});
 
       const fromEntities = (
         GetManyPresenter as Mappable<Entity>
