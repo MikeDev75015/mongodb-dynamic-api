@@ -1,6 +1,5 @@
 import { createMock } from '@golevelup/ts-jest';
 import { JwtService } from '@nestjs/jwt';
-import { plainToInstance } from 'class-transformer';
 import { BaseGateway } from '../../gateways';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket } from '../../interfaces';
 import { BaseEntity } from '../../models';
@@ -14,7 +13,7 @@ describe('CreateManyGatewayMixin', () => {
   }
 
   let CreateManyGateway: CreateManyGatewayConstructor<TestEntity>;
-  let socket: ExtendedSocket<TestEntity>;
+  const socket = {} as ExtendedSocket<TestEntity>;
 
   const service = createMock<CreateManyService<TestEntity>>();
   const jwtService = createMock<JwtService>();
@@ -26,11 +25,8 @@ describe('CreateManyGatewayMixin', () => {
     type: 'CreateMany',
   } as DynamicAPIRouteConfig<TestEntity>;
 
-  const fakeEntity = plainToInstance(TestEntity, { field1: 'test' });
-
-  const body = {
-    list: [{ field1: 'test' }],
-  };
+  const fakeEntity = { field1: 'test' } as TestEntity;
+  const body = { list: [{ field1: 'test' }] };
 
   it('should return a class that extends BaseGateway and implements CreateManyGateway', () => {
     CreateManyGateway = CreateManyGatewayMixin(
@@ -41,6 +37,24 @@ describe('CreateManyGatewayMixin', () => {
 
     expect(CreateManyGateway.prototype).toBeInstanceOf(BaseGateway);
     expect(CreateManyGateway.name).toBe('BaseCreateManyTestEntityGateway');
+  });
+
+  test.each([
+    ['body is empty', {} as any],
+    ['list is not in the body', { field1: 'test' } as any],
+    ['list is not an array', { list: '1' } as any],
+    ['list is empty', { list: [] } as any],
+    ['list is invalid', { list: [{ name: 'test invalid' }, true] } as any],
+  ])('should throw an exception if %s', async (_, body) => {
+    CreateManyGateway = CreateManyGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      routeConfig,
+    );
+
+    const createManyGateway = new CreateManyGateway(service, jwtService);
+
+    await expect(createManyGateway.createMany(socket, body)).rejects.toThrow();
   });
 
   it('should call the service and return event and data', async () => {
@@ -96,30 +110,12 @@ describe('CreateManyGatewayMixin', () => {
     });
   });
 
-  test.each([
-    ['body is empty', {} as any],
-    ['list is not in the body', { field1: 'test' } as any],
-    ['list is not an array', { list: '1' } as any],
-    ['list is empty', { list: [] } as any],
-    ['list is invalid', { list: [{ name: 'test invalid' }, true] } as any],
-  ])('should throw an exception if %s', async (_, body) => {
-    CreateManyGateway = CreateManyGatewayMixin(
-      TestEntity,
-      controllerOptions,
-      routeConfig,
-    );
-
-    const createManyGateway = new CreateManyGateway(service, jwtService);
-
-    await expect(createManyGateway.createMany(socket, body)).rejects.toThrow();
-  });
-
   it('should map body to entities if body dto has toEntities method', async () => {
     class RouteBody {
       list: { field1: string }[];
 
-      static toEntities(body: RouteBody): Partial<TestEntity>[] {
-        return body.list.map((e, i) => ({ field1: `${i} - ${e.field1}` }));
+      static toEntities(_: RouteBody): Partial<TestEntity>[] {
+        return _.list.map((e, i) => ({ field1: `${i} - ${e.field1}` }));
       }
     }
 
@@ -151,10 +147,10 @@ describe('CreateManyGatewayMixin', () => {
 
       data: { ref: string; fullName: string }[];
 
-      static fromEntities(entities: TestEntity[]): RoutePresenter {
+      static fromEntities(_: TestEntity[]): RoutePresenter {
         return {
-          count: entities.length,
-          data: entities.map(e => ({ ref: e.id, fullName: e.field1 })),
+          count: _.length,
+          data: _.map(e => ({ ref: e.id, fullName: e.field1 })),
         };
       }
     }

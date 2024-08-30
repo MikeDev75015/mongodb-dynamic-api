@@ -76,6 +76,10 @@ function UpdateManyControllerMixin<Entity extends BaseEntity>(
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(UpdateManyPoliciesGuard)
     async updateMany(@Query('ids') ids: string[], @Body() body: UpdateManyBody) {
+      if (!ids?.length) {
+        throw new Error('Invalid query');
+      }
+
       if (isEmpty(body)) {
         throw new Error('Invalid request body');
       }

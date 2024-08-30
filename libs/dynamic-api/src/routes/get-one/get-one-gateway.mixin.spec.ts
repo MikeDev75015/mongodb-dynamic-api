@@ -1,6 +1,5 @@
 import { createMock } from '@golevelup/ts-jest';
 import { JwtService } from '@nestjs/jwt';
-import { plainToInstance } from 'class-transformer';
 import { BaseGateway } from '../../gateways';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket } from '../../interfaces';
 import { BaseEntity } from '../../models';
@@ -14,7 +13,7 @@ describe('GetOneGatewayMixin', () => {
   }
 
   let GetOneGateway: GetOneGatewayConstructor<TestEntity>;
-  let socket: ExtendedSocket<TestEntity>;
+  const socket = {} as ExtendedSocket<TestEntity>;
 
   const service = createMock<GetOneService<TestEntity>>();
   const jwtService = createMock<JwtService>();
@@ -26,11 +25,8 @@ describe('GetOneGatewayMixin', () => {
     type: 'GetOne',
   } as DynamicAPIRouteConfig<TestEntity>;
 
-  const body = {
-    id: '1',
-  };
-
-  const fakeEntity = plainToInstance(TestEntity, { field1: 'test' });
+  const fakeEntity = { field1: 'test' } as TestEntity;
+  const body = { id: '1' };
 
   it('should return a class that extends BaseGateway and implements GetOneGateway', () => {
     GetOneGateway = GetOneGatewayMixin(
@@ -41,6 +37,20 @@ describe('GetOneGatewayMixin', () => {
 
     expect(GetOneGateway.prototype).toBeInstanceOf(BaseGateway);
     expect(GetOneGateway.name).toBe('BaseGetOneTestEntityGateway');
+  });
+
+  test.each([
+    ['id is not in the body', {} as any],
+  ])('should throw an exception if %s', async (_, body) => {
+    GetOneGateway = GetOneGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      routeConfig,
+    );
+
+    const getOneGateway = new GetOneGateway(service, jwtService);
+
+    await expect(getOneGateway.getOne(socket, body)).rejects.toThrow();
   });
 
   it('should call the service and return event and data', async () => {
@@ -96,17 +106,31 @@ describe('GetOneGatewayMixin', () => {
     });
   });
 
-  test.each([
-    ['id is not in the body', {} as any],
-  ])('should throw an exception if %s', async (_, body) => {
+  it('should map entity to response if presenter dto has fromEntity method', async () => {
+    class GetOneResponse {
+      fullName: string;
+
+      static fromEntity(_: TestEntity): GetOneResponse {
+        return { fullName: _.field1 };
+      }
+    }
+
     GetOneGateway = GetOneGatewayMixin(
       TestEntity,
       controllerOptions,
-      routeConfig,
+      { ...routeConfig, dTOs: { presenter: GetOneResponse } },
     );
 
-    const getOneGateway = new GetOneGateway(service, jwtService);
+    const createOneGateway = new GetOneGateway(service, jwtService);
+    service.getOne.mockResolvedValueOnce(fakeEntity);
+    const body = { id: '1' };
+    const presenter = { fullName: 'test' };
 
-    await expect(getOneGateway.getOne(socket, body)).rejects.toThrow();
+    await expect(createOneGateway.getOne(socket, body)).resolves.toEqual({
+      event: 'get-one-test-entity',
+      data: presenter,
+    });
+    expect(service.getOne).toHaveBeenCalledTimes(1);
+    expect(service.getOne).toHaveBeenCalledWith(body.id);
   });
 });

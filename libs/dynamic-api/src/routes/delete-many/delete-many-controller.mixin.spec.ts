@@ -1,5 +1,4 @@
 import { createMock } from '@golevelup/ts-jest';
-import { Type } from '@nestjs/common';
 import { DeleteResult, DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { DeleteManyController } from './delete-many-controller.interface';
@@ -14,22 +13,15 @@ describe('DeleteManyControllerMixin', () => {
   const controllerOptions: DynamicApiControllerOptions<Entity> = { path: 'test' };
   const routeConfig: DynamicAPIRouteConfig<Entity> = { type: 'DeleteMany' };
   const version = '1';
-
   const service = createMock<DeleteManyService<Entity>>();
-
   const fakeDeleteResult = { deletedCount: 3 };
 
-  const initController = (
-    _entity: Type<Entity> = Entity,
-    _controllerOptions: DynamicApiControllerOptions<Entity> = controllerOptions,
-    _routeConfig: DynamicAPIRouteConfig<Entity> = routeConfig,
-    _version: string = version,
-  ) => {
+  const initController = (_routeConfig: DynamicAPIRouteConfig<Entity> = routeConfig) => {
     class Controller extends DeleteManyControllerMixin(
-      _entity,
-      _controllerOptions,
+      Entity,
+      controllerOptions,
       _routeConfig,
-      _version,
+      version,
     ) {
       constructor() {
         super(service);
@@ -39,22 +31,34 @@ describe('DeleteManyControllerMixin', () => {
     return new Controller();
   }
 
+  beforeEach(() => {
+    service.deleteMany.mockResolvedValueOnce(fakeDeleteResult);
+  });
+
   it('should create controller', () => {
     controller = initController();
     expect(controller).toBeDefined();
     expect(controller['entity']).toBe(Entity);
   });
 
+  it('should throw error if ids is invalid', async () => {
+    controller = initController();
+    const ids = [];
+
+    await expect(controller.deleteMany({ ids })).rejects.toThrow(new Error('Invalid query'));
+    expect(service.deleteMany).toHaveBeenCalledTimes(0);
+  });
+
   it('should call service.deleteMany and return response', async () => {
     controller = initController();
-    const query = { ids: [] };
-    service.deleteMany.mockResolvedValueOnce(fakeDeleteResult);
+    const query = { ids: ['1'] };
 
     await expect(controller.deleteMany(query)).resolves.toEqual(fakeDeleteResult);
+    expect(service.deleteMany).toHaveBeenCalledTimes(1);
     expect(service.deleteMany).toHaveBeenCalledWith(query.ids);
   });
 
-  it('should map response to presenter', async () => {
+  it('should map response to presenter if presenter dto has fromDeleteResult method', async () => {
     class Presenter {
       isDeleted: boolean;
 
@@ -63,14 +67,11 @@ describe('DeleteManyControllerMixin', () => {
       }
     }
 
-    controller = initController(
-      undefined,
-      undefined,
-      { ...routeConfig, dTOs: { presenter: Presenter } },
-    );
+    controller = initController({ ...routeConfig, dTOs: { presenter: Presenter } });
+    const query = { ids: ['1'] };
 
-    service.deleteMany.mockResolvedValueOnce(fakeDeleteResult);
-
-    await expect(controller.deleteMany({ ids: [] })).resolves.toEqual({ isDeleted: true });
+    await expect(controller.deleteMany(query)).resolves.toEqual({ isDeleted: true });
+    expect(service.deleteMany).toHaveBeenCalledTimes(1);
+    expect(service.deleteMany).toHaveBeenCalledWith(query.ids);
   });
 });

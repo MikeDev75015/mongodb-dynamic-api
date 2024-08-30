@@ -1,5 +1,4 @@
 import { createMock } from '@golevelup/ts-jest';
-import { Type } from '@nestjs/common';
 import { DeleteResult, DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { DeleteOneController } from './delete-one-controller.interface';
@@ -14,22 +13,15 @@ describe('DeleteOneControllerMixin', () => {
   const controllerOptions: DynamicApiControllerOptions<Entity> = { path: 'test' };
   const routeConfig: DynamicAPIRouteConfig<Entity> = { type: 'DeleteOne' };
   const version = '1';
-
-  const fakeDeleteResult = { deletedCount: 1 };
-
   const service = createMock<DeleteOneService<Entity>>();
+  const fakeDeleteResult = { deletedCount: 1 } as DeleteResult;
 
-  const initController = (
-    _entity: Type<Entity> = Entity,
-    _controllerOptions: DynamicApiControllerOptions<Entity> = controllerOptions,
-    _routeConfig: DynamicAPIRouteConfig<Entity> = routeConfig,
-    _version: string = version,
-  ) => {
+  const initController = (_routeConfig: DynamicAPIRouteConfig<Entity> = routeConfig) => {
     class Controller extends DeleteOneControllerMixin(
-      _entity,
-      _controllerOptions,
+      Entity,
+      controllerOptions,
       _routeConfig,
-      _version,
+      version,
     ) {
       constructor() {
         super(service);
@@ -37,16 +29,21 @@ describe('DeleteOneControllerMixin', () => {
     }
 
     return new Controller();
-  }
+  };
+
+  beforeEach(() => {
+    service.deleteOne.mockResolvedValueOnce(fakeDeleteResult);
+  });
 
   it('should create controller', () => {
-    expect(initController()).toBeDefined();
+    controller = initController();
+    expect(controller).toBeDefined();
+    expect(controller['entity']).toBe(Entity);
   });
 
   it('should call service.deleteOne and return response', async () => {
     controller = initController();
     const query = 'fake-id';
-    service.deleteOne.mockResolvedValueOnce(fakeDeleteResult);
 
     await expect(controller.deleteOne(query)).resolves.toEqual(fakeDeleteResult);
     expect(service.deleteOne).toHaveBeenCalledTimes(1);
@@ -62,14 +59,11 @@ describe('DeleteOneControllerMixin', () => {
       }
     }
 
-    controller = initController(
-      undefined,
-      undefined,
-      { ...routeConfig, dTOs: { presenter: Presenter } },
-    );
+    controller = initController({ ...routeConfig, dTOs: { presenter: Presenter } });
+    const query = 'fake-id';
 
-    service.deleteOne.mockResolvedValueOnce(fakeDeleteResult);
-
-    await expect(controller.deleteOne('fake-id')).resolves.toEqual({ isDeleted: true });
+    await expect(controller.deleteOne(query)).resolves.toEqual({ isDeleted: true });
+    expect(service.deleteOne).toHaveBeenCalledTimes(1);
+    expect(service.deleteOne).toHaveBeenCalledWith(query);
   });
 });
