@@ -1,4 +1,4 @@
-import { Type } from '@nestjs/common';
+import { createMock } from '@golevelup/ts-jest';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { CreateOneController } from './create-one-controller.interface';
@@ -15,24 +15,15 @@ describe('CreateOneControllerMixin', () => {
   const controllerOptions: DynamicApiControllerOptions<Entity> = { path: 'test' };
   const routeConfig: DynamicAPIRouteConfig<Entity> = { type: 'CreateOne' };
   const version = '1';
+  const service = createMock<CreateOneService<Entity>>();
+  const fakeEntity = { id: '1', name: 'test' } as Entity;
 
-  const service = {
-    createOne: jest.fn(),
-  } as CreateOneService<Entity>;
-
-  const fakeServiceResponse = { id: '1', name: 'test' };
-
-  const initController = (
-    _entity: Type<Entity>,
-    _controllerOptions: DynamicApiControllerOptions<Entity>,
-    _routeConfig: DynamicAPIRouteConfig<Entity>,
-    _version?: string,
-  ) => {
+  const initController = (_routeConfig = routeConfig) => {
     class Controller extends CreateOneControllerMixin(
-      _entity,
-      _controllerOptions,
+      Entity,
+      controllerOptions,
       _routeConfig,
-      _version,
+      version,
     ) {
       constructor() {
         super(service);
@@ -42,26 +33,21 @@ describe('CreateOneControllerMixin', () => {
     return new Controller();
   };
 
+  beforeEach(() => {
+    service.createOne.mockResolvedValueOnce(fakeEntity);
+  });
+
   it('should create controller', () => {
-    expect(initController(
-      Entity,
-      controllerOptions,
-      routeConfig,
-      version,
-    )).toBeDefined();
+    controller = initController();
+    expect(controller).toBeDefined();
+    expect(controller['entity']).toBe(Entity);
   });
 
   it('should call service.createOne and return response', async () => {
-    controller = initController(
-      Entity,
-      controllerOptions,
-      routeConfig,
-      version,
-    );
-    service.createOne = jest.fn().mockResolvedValueOnce(fakeServiceResponse);
+    controller = initController();
     const body = { name: 'test' };
 
-    await expect(controller.createOne(body)).resolves.toEqual(fakeServiceResponse);
+    await expect(controller.createOne(body)).resolves.toEqual(fakeEntity);
     expect(service.createOne).toHaveBeenCalledTimes(1);
     expect(service.createOne).toHaveBeenCalledWith(body);
   });
@@ -70,22 +56,16 @@ describe('CreateOneControllerMixin', () => {
     class CreateOneBody {
       fullName: string;
 
-      static toEntity(body: CreateOneBody) {
-        return { name: body.fullName };
+      static toEntity(_: CreateOneBody) {
+        return { name: _.fullName };
       }
     }
 
-    controller = initController(
-      Entity,
-      controllerOptions,
-      { ...routeConfig, dTOs: { body: CreateOneBody } },
-      version,
-    );
-    service.createOne = jest.fn().mockResolvedValueOnce(fakeServiceResponse);
+    controller = initController({ ...routeConfig, dTOs: { body: CreateOneBody } });
     const body = { fullName: 'test' };
     const expectedArg = { name: 'test' };
 
-    await expect(controller.createOne(body)).resolves.toEqual(fakeServiceResponse);
+    await expect(controller.createOne(body)).resolves.toEqual(fakeEntity);
     expect(service.createOne).toHaveBeenCalledTimes(1);
     expect(service.createOne).toHaveBeenCalledWith(expectedArg);
   });
@@ -95,18 +75,12 @@ describe('CreateOneControllerMixin', () => {
       ref: string;
       fullName: string;
 
-      static fromEntity(entity: Entity): CreateOnePresenter {
-        return { ref: entity.id, fullName: entity.name };
+      static fromEntity(_: Entity): CreateOnePresenter {
+        return { ref: _.id, fullName: _.name };
       }
     }
 
-    controller = initController(
-      Entity,
-      controllerOptions,
-      { ...routeConfig, dTOs: { presenter: CreateOnePresenter } },
-      version,
-    );
-    service.createOne = jest.fn().mockResolvedValueOnce(fakeServiceResponse);
+    controller = initController({ ...routeConfig, dTOs: { presenter: CreateOnePresenter } });
     const body = { name: 'test' };
     const presenter = { ref: '1', fullName: 'test' };
 

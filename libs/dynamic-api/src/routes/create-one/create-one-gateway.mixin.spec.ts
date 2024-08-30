@@ -1,6 +1,5 @@
 import { createMock } from '@golevelup/ts-jest';
 import { JwtService } from '@nestjs/jwt';
-import { plainToInstance } from 'class-transformer';
 import { BaseGateway } from '../../gateways';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket } from '../../interfaces';
 import { BaseEntity } from '../../models';
@@ -14,7 +13,7 @@ describe('CreateOneGatewayMixin', () => {
   }
 
   let CreateOneGateway: CreateOneGatewayConstructor<TestEntity>;
-  let socket: ExtendedSocket<TestEntity>;
+  const socket = {} as ExtendedSocket<TestEntity>;
 
   const service = createMock<CreateOneService<TestEntity>>();
   const jwtService = createMock<JwtService>();
@@ -24,9 +23,8 @@ describe('CreateOneGatewayMixin', () => {
     type: 'CreateOne',
   } as DynamicAPIRouteConfig<TestEntity>;
 
+  const fakeEntity = { id: '1', field1: 'test' } as TestEntity;
   const body = { field1: 'test' };
-
-  const fakeEntity = plainToInstance(TestEntity, { id: '1', field1: 'test' });
 
   it('should return a class that extends BaseGateway and implements CreateOneGateway', () => {
     CreateOneGateway = CreateOneGatewayMixin(
@@ -110,8 +108,8 @@ describe('CreateOneGatewayMixin', () => {
     class CreateOneData {
       fullName: string;
 
-      static toEntity(body: CreateOneData) {
-        return { field1: body.fullName };
+      static toEntity(_: CreateOneData) {
+        return { field1: _.fullName };
       }
     }
 
@@ -139,8 +137,8 @@ describe('CreateOneGatewayMixin', () => {
       ref: string;
       fullName: string;
 
-      static fromEntity(entity: TestEntity): CreateOneResponse {
-        return { ref: entity.id, fullName: entity.field1 };
+      static fromEntity(_: TestEntity): CreateOneResponse {
+        return { ref: _.id, fullName: _.field1 };
       }
     }
 

@@ -1,6 +1,5 @@
 import { createMock } from '@golevelup/ts-jest';
 import { JwtService } from '@nestjs/jwt';
-import { plainToInstance } from 'class-transformer';
 import { BaseGateway } from '../../gateways';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket } from '../../interfaces';
 import { BaseEntity } from '../../models';
@@ -14,7 +13,7 @@ describe('ReplaceOneGatewayMixin', () => {
   }
 
   let ReplaceOneGateway: ReplaceOneGatewayConstructor<TestEntity>;
-  let socket: ExtendedSocket<TestEntity>;
+  const socket = {} as ExtendedSocket<TestEntity>;
 
   const service = createMock<ReplaceOneService<TestEntity>>();
   const jwtService = createMock<JwtService>();
@@ -26,12 +25,8 @@ describe('ReplaceOneGatewayMixin', () => {
     type: 'ReplaceOne',
   } as DynamicAPIRouteConfig<TestEntity>;
 
-  const body = {
-    id: '1',
-    field1: 'value',
-  };
-
-  const fakeEntity = plainToInstance(TestEntity, { field1: 'test' });
+  const fakeEntity = { id: '1', field1: 'test' } as TestEntity;
+  const body = { id: '1', field1: 'value' };
 
   it('should return a class that extends BaseGateway and implements ReplaceOneGateway', () => {
     ReplaceOneGateway = ReplaceOneGatewayMixin(
@@ -42,6 +37,21 @@ describe('ReplaceOneGatewayMixin', () => {
 
     expect(ReplaceOneGateway.prototype).toBeInstanceOf(BaseGateway);
     expect(ReplaceOneGateway.name).toBe('BaseReplaceOneTestEntityGateway');
+  });
+
+  test.each([
+    ['id is not in the body', {} as any],
+    ['id is only field in the body', { id: '1' }],
+  ])('should throw an exception if %s', async (_, body) => {
+    ReplaceOneGateway = ReplaceOneGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      routeConfig,
+    );
+
+    const replaceOneGateway = new ReplaceOneGateway(service, jwtService);
+
+    await expect(replaceOneGateway.replaceOne(socket, body)).rejects.toThrow();
   });
 
   it('should call the service and return event and data', async () => {
@@ -97,18 +107,59 @@ describe('ReplaceOneGatewayMixin', () => {
     });
   });
 
-  test.each([
-    ['id is not in the body', {} as any],
-    ['id is only field in the body', { id: '1' }],
-  ])('should throw an exception if %s', async (_, body) => {
+  it('should map body to entity if body dto has toEntity method', async () => {
+    class ReplaceOneData {
+      fullName: string;
+
+      static toEntity(_: ReplaceOneData) {
+        return { field1: _.fullName };
+      }
+    }
+
     ReplaceOneGateway = ReplaceOneGatewayMixin(
       TestEntity,
       controllerOptions,
-      routeConfig,
+      { ...routeConfig, dTOs: { body: ReplaceOneData } },
     );
 
     const replaceOneGateway = new ReplaceOneGateway(service, jwtService);
+    service.replaceOne.mockResolvedValueOnce(fakeEntity);
+    const body = { id: '1', fullName: 'test' };
+    const expectedArg = { field1: 'test' };
 
-    await expect(replaceOneGateway.replaceOne(socket, body)).rejects.toThrow();
+    await expect(replaceOneGateway.replaceOne(socket, body)).resolves.toEqual({
+      event: 'replace-one-test-entity',
+      data: fakeEntity,
+    });
+    expect(service.replaceOne).toHaveBeenCalledTimes(1);
+    expect(service.replaceOne).toHaveBeenCalledWith(body.id, expectedArg);
+  });
+
+  it('should map entity to response if presenter dto has fromEntity method', async () => {
+    class ReplaceOneResponse {
+      ref: string;
+      fullName: string;
+
+      static fromEntity(_: TestEntity): ReplaceOneResponse {
+        return { ref: _.id, fullName: _.field1 };
+      }
+    }
+
+    ReplaceOneGateway = ReplaceOneGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      { ...routeConfig, dTOs: { presenter: ReplaceOneResponse } },
+    );
+
+    const replaceOneGateway = new ReplaceOneGateway(service, jwtService);
+    service.replaceOne.mockResolvedValueOnce(fakeEntity);
+    const presenter = { ref: '1', fullName: 'test' };
+
+    await expect(replaceOneGateway.replaceOne(socket, body)).resolves.toEqual({
+      event: 'replace-one-test-entity',
+      data: presenter,
+    });
+    expect(service.replaceOne).toHaveBeenCalledTimes(1);
+    expect(service.replaceOne).toHaveBeenCalledWith(body.id, { field1: body.field1 });
   });
 });

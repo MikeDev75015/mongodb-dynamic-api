@@ -13,7 +13,7 @@ describe('DeleteOneGatewayMixin', () => {
   }
 
   let DeleteOneGateway: DeleteOneGatewayConstructor<TestEntity>;
-  let socket: ExtendedSocket<TestEntity>;
+  const socket = {} as ExtendedSocket<TestEntity>;
 
   const service = createMock<DeleteOneService<TestEntity>>();
   const jwtService = createMock<JwtService>();
@@ -25,11 +25,9 @@ describe('DeleteOneGatewayMixin', () => {
     type: 'DeleteOne',
   } as DynamicAPIRouteConfig<TestEntity>;
 
-  const body = {
-    id: '1',
-  };
-
   const fakeDeleteResult = { deletedCount: 1 };
+  const body = { id: '1' };
+
 
   it('should return a class that extends BaseGateway and implements DeleteOneGateway', () => {
     DeleteOneGateway = DeleteOneGatewayMixin(

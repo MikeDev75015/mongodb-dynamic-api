@@ -13,7 +13,7 @@ describe('DeleteManyGatewayMixin', () => {
   }
 
   let DeleteManyGateway: DeleteManyGatewayConstructor<TestEntity>;
-  let socket: ExtendedSocket<TestEntity>;
+  const socket = {} as ExtendedSocket<TestEntity>;
 
   const service = createMock<DeleteManyService<TestEntity>>();
   const jwtService = createMock<JwtService>();
@@ -25,11 +25,8 @@ describe('DeleteManyGatewayMixin', () => {
     type: 'DeleteMany',
   } as DynamicAPIRouteConfig<TestEntity>;
 
-  const body = {
-    ids: ['1', '2', '3'],
-  };
-
-  const fakeDeleteResult = { deletedCount: 3 };
+  const fakeDeleteResult = { deletedCount: 3 } as DeleteResult;
+  const body = { ids: ['1', '2', '3'] };
 
   it('should return a class that extends BaseGateway and implements DeleteManyGateway', () => {
     DeleteManyGateway = DeleteManyGatewayMixin(
@@ -40,6 +37,22 @@ describe('DeleteManyGatewayMixin', () => {
 
     expect(DeleteManyGateway.prototype).toBeInstanceOf(BaseGateway);
     expect(DeleteManyGateway.name).toBe('BaseDeleteManyTestEntityGateway');
+  });
+
+  test.each([
+    ['ids is not in the body', {} as any],
+    ['ids is not an array', { ids: '1' } as any],
+    ['ids is empty', { ids: [] } as any],
+  ])('should throw an exception if %s', async (_, body) => {
+    DeleteManyGateway = DeleteManyGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      routeConfig,
+    );
+
+    const deleteManyGateway = new DeleteManyGateway(service, jwtService);
+
+    await expect(deleteManyGateway.deleteMany(socket, body)).rejects.toThrow();
   });
 
   it('should call the service and return event and data', async () => {
@@ -99,8 +112,8 @@ describe('DeleteManyGatewayMixin', () => {
     class Presenter {
       isDeleted: boolean;
 
-      static fromDeleteResult(deleteResult: DeleteResult) {
-        return { isDeleted: deleteResult.deletedCount > 0 };
+      static fromDeleteResult(_: DeleteResult) {
+        return { isDeleted: _.deletedCount > 0 };
       }
     }
 
@@ -120,21 +133,5 @@ describe('DeleteManyGatewayMixin', () => {
     });
     expect(service.deleteMany).toHaveBeenCalledTimes(1);
     expect(service.deleteMany).toHaveBeenCalledWith(['1']);
-  });
-
-  test.each([
-    ['ids is not in the body', {} as any],
-    ['ids is not an array', { ids: '1' } as any],
-    ['ids is empty', { ids: [] } as any],
-  ])('should throw an exception if %s', async (_, body) => {
-    DeleteManyGateway = DeleteManyGatewayMixin(
-      TestEntity,
-      controllerOptions,
-      routeConfig,
-    );
-
-    const deleteManyGateway = new DeleteManyGateway(service, jwtService);
-
-    await expect(deleteManyGateway.deleteMany(socket, body)).rejects.toThrow();
   });
 });
