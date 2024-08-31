@@ -12,6 +12,7 @@ class RouteDecoratorsBuilder<Entity extends BaseEntity> implements DynamicApiDec
     'GetMany',
     'CreateMany',
     'DuplicateMany',
+    'Aggregate',
   ];
 
   private readonly bodyRouteTypeIsOptional: RouteType[] = [
@@ -96,6 +97,9 @@ class RouteDecoratorsBuilder<Entity extends BaseEntity> implements DynamicApiDec
         break;
       case 'DeleteOne':
         routeDecorators.push(Delete(`${addSubPath()}:${paramKey}`));
+        break;
+      case 'Aggregate':
+        routeDecorators.push(Post(`aggregate${addSubPath(false)}`));
         break;
       default:
         throw new Error(

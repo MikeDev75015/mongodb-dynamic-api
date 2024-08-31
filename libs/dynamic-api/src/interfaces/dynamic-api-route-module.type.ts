@@ -9,6 +9,7 @@ import {
   ReplaceOneModule,
   UpdateManyModule,
   UpdateOneModule,
+  AggregateModule,
 } from '../routes';
 
 type RouteModule =
@@ -21,6 +22,7 @@ type RouteModule =
   | GetOneModule
   | ReplaceOneModule
   | UpdateManyModule
-  | UpdateOneModule;
+  | UpdateOneModule
+  | AggregateModule;
 
 export { RouteModule };

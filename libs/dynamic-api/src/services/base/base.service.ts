@@ -168,7 +168,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
 
     return plainToInstance(this.entity, {
       ...rest as Partial<Entity>,
-      id: _id?.toString() ?? id,
+      ...(_id || id ? { id: _id?.toString() ?? id } : {}),
     });
   }
 

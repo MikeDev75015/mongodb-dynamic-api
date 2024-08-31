@@ -21,6 +21,7 @@ import {
   ReplaceOneModule,
   UpdateManyModule,
   UpdateOneModule,
+  AggregateModule,
 } from './routes';
 import { DynamicApiGlobalStateService } from './services';
 import { DynamicApiCacheInterceptor } from './interceptors';
@@ -169,6 +170,14 @@ describe('DynamicApiModule', () => {
     const fakeSchema = { set: jest.fn(), index: jest.fn(), pre: jest.fn() } as unknown as Schema;
     const fakeDatabaseModule = { module: 'fake-database-module' };
 
+    class AggregateQuery {
+      name: string;
+
+      static toPipeline(query: AggregateQuery): any[] {
+        return [{ $match: { name: query.name } }];
+      }
+    }
+
     beforeEach(() => {
       defaultOptions = buildDynamicApiModuleOptionsMock();
       jest.spyOn(helpers, 'buildSchemaFromEntity').mockReturnValue(fakeSchema as any);
@@ -262,6 +271,7 @@ describe('DynamicApiModule', () => {
       let spyReplaceOneModule: jest.SpyInstance;
       let spyUpdateManyModule: jest.SpyInstance;
       let spyUpdateOneModule: jest.SpyInstance;
+      let spyAggregateModule: jest.SpyInstance;
 
       class fakeQuery {}
       class fakeParam {}
@@ -286,6 +296,7 @@ describe('DynamicApiModule', () => {
         spyReplaceOneModule = jest.spyOn(ReplaceOneModule, 'forFeature');
         spyUpdateManyModule = jest.spyOn(UpdateManyModule, 'forFeature');
         spyUpdateOneModule = jest.spyOn(UpdateOneModule, 'forFeature');
+        spyAggregateModule = jest.spyOn(AggregateModule, 'forFeature');
         DynamicApiModule.state.set(['initialized', true]);
       });
 
@@ -320,6 +331,7 @@ describe('DynamicApiModule', () => {
         const replaceOneRoute: DynamicAPIRouteConfig<any> = { type: 'ReplaceOne' };
         const updateManyRoute: DynamicAPIRouteConfig<any> = { type: 'UpdateMany' };
         const updateOneRoute: DynamicAPIRouteConfig<any> = { type: 'UpdateOne' };
+        const aggregateRoute: DynamicAPIRouteConfig<any> = { type: 'Aggregate', dTOs: { query: AggregateQuery } };
 
         const options = buildDynamicApiModuleOptionsMock({
           controllerOptions: { path: 'fake-path', version: '1', validationPipeOptions: { transform: true } },
@@ -335,12 +347,13 @@ describe('DynamicApiModule', () => {
             replaceOneRoute,
             updateManyRoute,
             updateOneRoute,
+            aggregateRoute,
           ],
         });
 
         const module = await DynamicApiModule.forFeature(options);
 
-        expect(module.imports.length).toStrictEqual(11);
+        expect(module.imports.length).toStrictEqual(12);
         expect(spyCreateManyModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
           options.entity,
@@ -440,6 +453,15 @@ describe('DynamicApiModule', () => {
           options.controllerOptions.validationPipeOptions,
           undefined,
         );
+        expect(spyAggregateModule).toHaveBeenCalledWith(
+          fakeDatabaseModule,
+          options.entity,
+          options.controllerOptions,
+          { description: 'fake-description', ...aggregateRoute },
+          options.controllerOptions.version,
+          options.controllerOptions.validationPipeOptions,
+          undefined,
+        );
       });
 
       it('should import route modules with route options', async () => {
@@ -518,6 +540,13 @@ describe('DynamicApiModule', () => {
           version: '2',
           validationPipeOptions: { forbidNonWhitelisted: true },
         };
+        const aggregateRoute: DynamicAPIRouteConfig<any> = {
+          type: 'Aggregate',
+          description: 'Aggregate items',
+          dTOs: { query: AggregateQuery, presenter: fakePresenter },
+          version: '2',
+          validationPipeOptions: { forbidNonWhitelisted: true },
+        };
 
         const options = buildDynamicApiModuleOptionsMock({
           controllerOptions: {
@@ -538,12 +567,13 @@ describe('DynamicApiModule', () => {
             replaceOneRoute,
             updateManyRoute,
             updateOneRoute,
+            aggregateRoute,
           ],
         });
 
         const module = await DynamicApiModule.forFeature(options);
 
-        expect(module.imports.length).toStrictEqual(11);
+        expect(module.imports.length).toStrictEqual(12);
         expect(spyCreateManyModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
           options.entity,
@@ -641,6 +671,15 @@ describe('DynamicApiModule', () => {
           updateOneRoute,
           updateOneRoute.version,
           updateOneRoute.validationPipeOptions,
+          undefined,
+        );
+        expect(spyAggregateModule).toHaveBeenCalledWith(
+          fakeDatabaseModule,
+          options.entity,
+          options.controllerOptions,
+          aggregateRoute,
+          aggregateRoute.version,
+          aggregateRoute.validationPipeOptions,
           undefined,
         );
       });
