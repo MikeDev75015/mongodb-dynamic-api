@@ -27,7 +27,7 @@ import {
 import { BaseEntity } from './models';
 import { AuthModule, DynamicApiAuthOptions, DynamicApiConfigModule } from './modules';
 import {
-  CreateManyModule,
+  AggregateModule, CreateManyModule,
   CreateOneModule,
   DeleteManyModule,
   DeleteOneModule,
@@ -156,6 +156,7 @@ export class DynamicApiModule {
           [castType('ReplaceOne'), castModule(ReplaceOneModule)],
           [castType('UpdateMany'), castModule(UpdateManyModule)],
           [castType('UpdateOne'), castModule(UpdateOneModule)],
+          [castType('Aggregate'), castModule(AggregateModule)],
         ]);
 
         routes = this.setDefaultRoutes(
@@ -303,8 +304,9 @@ export class DynamicApiModule {
     const excluded = controllerRoutesConfig.excluded ?? stateRoutesConfig.excluded;
 
     const routesWithSubPath = routes.filter((route) => route.subPath);
+    const routesWithoutSubPath = routes.filter((route) => !route.subPath && !defaults.includes(route.type));
 
-    return routesWithSubPath.concat(defaults.filter(
+    return routesWithSubPath.concat(routesWithoutSubPath, defaults.filter(
       (type) => !excluded.includes(type),
     )
     .map((type) => {

@@ -1,4 +1,5 @@
 import { Type } from '@nestjs/common';
+import { PipelineStage } from 'mongodb-pipeline-builder';
 import { DeleteResult } from './dynamic-api-route-response.type';
 
 
@@ -10,6 +11,10 @@ interface Mappable<Entity> {
   fromEntities?: <Presenter = any>(entities: Entity[]) => Presenter[];
 }
 
+interface Aggregatable<Query> {
+  toPipeline?: (query: Query) => PipelineStage[];
+}
+
 type DTOsBundle = {
   query?: Type;
   param?: Type;
@@ -17,4 +22,4 @@ type DTOsBundle = {
   presenter?: Type;
 };
 
-export { DTOsBundle, Mappable };
+export { Aggregatable, DTOsBundle, Mappable };
