@@ -99,7 +99,7 @@ class RouteDecoratorsBuilder<Entity extends BaseEntity> implements DynamicApiDec
         routeDecorators.push(Delete(`${addSubPath()}:${paramKey}`));
         break;
       case 'Aggregate':
-        routeDecorators.push(Post(`aggregate${addSubPath(false)}`));
+        routeDecorators.push(Get(subPath));
         break;
       default:
         throw new Error(
