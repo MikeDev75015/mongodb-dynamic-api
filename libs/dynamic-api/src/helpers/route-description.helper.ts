@@ -27,6 +27,8 @@ function getDefaultRouteDescription(routeType: RouteType, entityName: string): s
       return `Update many ${contentName}`;
     case 'UpdateOne':
       return `Update one ${contentName}`;
+    case 'Aggregate':
+      return `Get aggregated ${contentName}`;
     default:
       throw new Error(`Route type "${routeType}" is not supported`);
   }
