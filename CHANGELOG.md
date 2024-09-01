@@ -1,5 +1,12 @@
 Changelog
 
+## [2.8.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.7.1...v2.8.0) (2024-09-01)
+
+
+### api
+
+* **api:** add aggregate route ([9d47e3b](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/9d47e3bf6182047aa7dc0a1fd1209513122c83e6))
+
 ## [2.7.1](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.7.0...v2.7.1) (2024-08-30)
 
 ## [2.7.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.6.0...v2.7.0) (2024-08-29)
