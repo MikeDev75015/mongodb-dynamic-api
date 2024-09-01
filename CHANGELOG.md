@@ -1,5 +1,7 @@
 Changelog
 
+## [2.8.2](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.8.1...v2.8.2) (2024-09-01)
+
 ## [2.8.1](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.8.0...v2.8.1) (2024-09-01)
 
 
