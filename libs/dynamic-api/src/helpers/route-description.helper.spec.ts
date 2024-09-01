@@ -46,6 +46,10 @@ describe('RouteDescriptionHelper', () => {
       expect(getDefaultRouteDescription('UpdateOne', 'Entity')).toBe('Update one entity');
     });
 
+    it('should return default description for Aggregate', () => {
+      expect(getDefaultRouteDescription('Aggregate', 'Entity')).toBe('Get aggregated entity');
+    });
+
     it('should throw an error for unsupported route type', () => {
       expect(() => getDefaultRouteDescription('FakeRouteType' as any, 'Entity'))
       .toThrowError('Route type "FakeRouteType" is not supported');
