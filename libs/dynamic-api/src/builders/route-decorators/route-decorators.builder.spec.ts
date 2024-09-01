@@ -58,6 +58,7 @@ describe('RouteDecoratorsBuilder', () => {
       ['DeleteMany', undefined, '1', undefined, undefined, undefined, undefined, 3],
       ['DeleteOne', undefined, undefined, undefined, fakeParam, undefined, undefined, 4],
       ['DeleteOne', 'sub', undefined, undefined, fakeParam, undefined, undefined, 4],
+      ['Aggregate', undefined, undefined, undefined, undefined, undefined, undefined, 3],
     ])(
       'should return an array of route decorators for %s',
       (
