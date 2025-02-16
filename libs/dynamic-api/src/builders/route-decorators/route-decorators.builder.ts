@@ -12,7 +12,6 @@ class RouteDecoratorsBuilder<Entity extends BaseEntity> implements DynamicApiDec
     'GetMany',
     'CreateMany',
     'DuplicateMany',
-    'Aggregate',
   ];
 
   private readonly bodyRouteTypeIsOptional: RouteType[] = [
@@ -32,8 +31,8 @@ class RouteDecoratorsBuilder<Entity extends BaseEntity> implements DynamicApiDec
       body?: Type;
       presenter?: Type;
     } = {},
-  ) {
-  }
+    private readonly isArrayResponse: boolean = false,
+  ) {}
 
   public build() {
     const [paramKey] = this.dTOs.param ? keys(new this.dTOs.param()) : [];
@@ -81,22 +80,22 @@ class RouteDecoratorsBuilder<Entity extends BaseEntity> implements DynamicApiDec
         routeDecorators.push(Patch(subPath));
         break;
       case 'UpdateOne':
-        routeDecorators.push(Patch(`${addSubPath()}:${paramKey}`));
+        routeDecorators.push(Patch(`:${paramKey}${addSubPath(false)}`));
         break;
       case 'ReplaceOne':
-        routeDecorators.push(Put(`${addSubPath()}:${paramKey}`));
+        routeDecorators.push(Put(`:${paramKey}${addSubPath(false)}`));
         break;
       case 'DuplicateMany':
         routeDecorators.push(Post(`duplicate${addSubPath(false)}`));
         break;
       case 'DuplicateOne':
-        routeDecorators.push(Post(`duplicate${addSubPath(false)}/:${paramKey}`));
+        routeDecorators.push(Post(`duplicate/:${paramKey}${addSubPath(false)}`));
         break;
       case 'DeleteMany':
         routeDecorators.push(Delete(subPath));
         break;
       case 'DeleteOne':
-        routeDecorators.push(Delete(`${addSubPath()}:${paramKey}`));
+        routeDecorators.push(Delete(`:${paramKey}${addSubPath(false)}`));
         break;
       case 'Aggregate':
         routeDecorators.push(Get(subPath));
@@ -122,7 +121,7 @@ class RouteDecoratorsBuilder<Entity extends BaseEntity> implements DynamicApiDec
       }),
       ApiResponse({
         type: this.dTOs.presenter ?? this.entity,
-        isArray: this.responseRouteTypeIsArray.includes(this.routeType),
+        isArray: this.responseRouteTypeIsArray.includes(this.routeType) || this.isArrayResponse,
       }),
       ...(
         this.dTOs.body ? [
