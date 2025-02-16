@@ -58,6 +58,7 @@ type DynamicAPISwaggerOptions = {
   description?: string;
   version?: string;
   path?: string;
+  jsonFilePath?: string;
   swaggerExtraConfig?: DynamicAPISwaggerExtraConfig;
   swaggerDocumentOptions?: SwaggerDocumentOptions;
 }

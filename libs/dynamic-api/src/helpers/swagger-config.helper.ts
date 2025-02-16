@@ -1,5 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import * as fs from 'node:fs';
 import { DynamicAPISwaggerExtraConfig, DynamicAPISwaggerOptions } from '../interfaces';
 import jsonFile from '../version.json';
 
@@ -135,6 +136,10 @@ function enableDynamicAPISwagger(
   }
 
   const document = SwaggerModule.createDocument(app, config.build(), swaggerDocumentOptions);
+
+  if (options?.jsonFilePath) {
+    fs.writeFileSync(options?.jsonFilePath, JSON.stringify(document, null, 2));
+  }
 
   SwaggerModule.setup(
     path,

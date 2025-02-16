@@ -3,6 +3,9 @@ import { OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
 import { closeApp, initApp } from '../../__mocks__/app.mock';
 import { DynamicAPISwaggerExtraConfig } from '../interfaces';
 import { enableDynamicAPISwagger } from './swagger-config.helper';
+import * as fs from 'node:fs';
+
+jest.mock('node:fs');
 
 describe('SwaggerConfigHelper', () => {
   let app: INestApplication;
@@ -32,6 +35,7 @@ describe('SwaggerConfigHelper', () => {
 
     it('should call createDocument with custom config', () => {
       createDocumentSpy.mockReturnValue(document);
+      const writeFileSyncSpy = jest.spyOn(fs, 'writeFileSync');
 
       enableDynamicAPISwagger(app, {
         title: 'My API',
@@ -60,10 +64,12 @@ describe('SwaggerConfigHelper', () => {
           oAuth2: true,
         },
         swaggerDocumentOptions: { deepScanRoutes: true },
+        jsonFilePath: './custom-file.json',
       });
 
       expect(createDocumentSpy).toHaveBeenCalledWith(app, expect.any(Object), { deepScanRoutes: true });
       expect(setupSpy).toHaveBeenCalledWith('/custom-path', app, document);
+      expect(writeFileSyncSpy).toHaveBeenCalledWith('./custom-file.json', JSON.stringify(document, null, 2));
     });
 
     it('should call createDocument with another config', () => {
