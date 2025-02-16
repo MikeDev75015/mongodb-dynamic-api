@@ -1,5 +1,18 @@
 Changelog
 
+## [2.9.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.8.3...v2.9.0) (2025-02-16)
+
+
+### api
+
+* **api:** add aggregate route ([e4b1a7ba](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/e4b1a7ba61819bf20f531b619a5f46ce753dcb0b))
+* **api:** add before save callback ([f5ba7b5a](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/f5ba7b5aed41804ef39894b3d333300c65f95e8b))
+
+
+### swagger
+
+* **swagger:** add the possibility to write json file to another path ([a41356e8](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/a41356e81da07d7abd5c8eec46855b38ba2aea44))
+
 ## [2.8.3](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.8.2...v2.8.3) (2024-09-07)
 
 ## [2.8.2](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.8.1...v2.8.2) (2024-09-01)
