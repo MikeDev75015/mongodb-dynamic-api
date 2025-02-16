@@ -9,6 +9,7 @@ interface Mappable<Entity> {
   fromDeleteResult?: <Presenter = any>(result: DeleteResult) => Presenter;
   fromEntity?: <Presenter = any>(entity: Entity) => Presenter;
   fromEntities?: <Presenter = any>(entities: Entity[]) => Presenter[];
+  fromAggregate?: <Presenter = any>(entities: Entity[], count: number, totalPage: number) => Presenter;
 }
 
 interface Aggregatable<Query> {

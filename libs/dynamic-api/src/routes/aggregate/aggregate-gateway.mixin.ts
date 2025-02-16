@@ -56,7 +56,11 @@ function AggregateGatewayMixin<Entity extends BaseEntity>(
     writable: false,
   });
 
-  class BaseAggregateGateway extends BaseGateway<Entity> implements AggregateGateway<Entity> {
+  class BaseAggregateGateway extends BaseGateway<Entity> implements AggregateGateway<
+    Entity,
+    AggregateData,
+    AggregateResponse
+  > {
     protected readonly entity = entity;
 
     constructor(
@@ -86,15 +90,15 @@ function AggregateGatewayMixin<Entity extends BaseEntity>(
 
       this.addUserToSocket(socket, isPublic);
 
-      const list = await this.service.aggregate(toPipeline(body));
+      const { list, count, totalPage } = await this.service.aggregate(toPipeline(body));
 
-      const fromEntities = (
+      const fromAggregate = (
         AggregateResponse as Mappable<Entity>
-      ).fromEntities;
+      ).fromAggregate;
 
       return {
         event,
-        data: fromEntities ? fromEntities(list) : list,
+        data: fromAggregate ? fromAggregate(list, count, totalPage) : list,
       };
     }
   }

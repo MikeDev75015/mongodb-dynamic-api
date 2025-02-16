@@ -1,4 +1,5 @@
 import { Type } from '@nestjs/common';
+import { PipelineStage } from 'mongodb-pipeline-builder';
 import { FilterQuery, UpdateQuery, UpdateWithAggregationPipeline } from 'mongoose';
 import { BaseEntity } from '../models';
 import { DeleteResult, UpdateResult } from './dynamic-api-route-response.type';
@@ -18,6 +19,7 @@ type DynamicApiCallbackMethods = {
   ): Promise<UpdateResult>;
   deleteManyDocuments<T>(entity: Type<T>, ids: string[]): Promise<DeleteResult>;
   deleteOneDocument<T>(entity: Type<T>, id: string): Promise<DeleteResult>;
+  aggregateDocuments<T>(entity: Type<T>, pipeline: PipelineStage[]): Promise<T[]>
 };
 
 type DynamicApiServiceCallback<Entity extends BaseEntity> = (

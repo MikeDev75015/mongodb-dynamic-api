@@ -4,7 +4,7 @@ import { BaseEntity } from '../../models';
 import { AggregateService } from './aggregate-service.interface';
 
 interface AggregateGateway<Entity extends BaseEntity, Data = any, Response = any> {
-  aggregate(socket: ExtendedSocket, body: Data): GatewayResponse<(Entity | Response)[]>;
+  aggregate(socket: ExtendedSocket, body: Data): GatewayResponse<Entity[] | Response[] | Response>;
 }
 
 type AggregateGatewayConstructor<Entity extends BaseEntity> = new (

@@ -25,9 +25,12 @@ describe('BaseAggregateService', () => {
   const pipelineStages = [{ $match: { name: 'test' } }] as PipelineStage[];
   const aggregated = { _id: 'ObjectId' as unknown as ObjectId, __v: 1, name: 'test' } as Entity;
 
-  const initService = (documents: Entity[] = []) => {
+  const initService = (documents: Entity[] = [], withPagination = false) => {
     modelMock = {
-      aggregate: jest.fn().mockResolvedValue(documents),
+      aggregate: jest.fn().mockResolvedValue(!withPagination
+        ? documents
+        : [{ docs: documents, count: [{ totalElements: documents.length }] }]
+      ),
     } as unknown as Model<Entity>;
 
     return new TestService(modelMock);
@@ -39,15 +42,36 @@ describe('BaseAggregateService', () => {
   });
 
   describe('aggregate', () => {
-    it('should return created list with id defined', async () => {
+    it('should return list without pagination', async () => {
       service = initService([aggregated]);
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { _id, __v, ...documentWithoutIdAndVersion } = aggregated;
 
-      await expect(service.aggregate(pipelineStages)).resolves.toStrictEqual([{
-        ...documentWithoutIdAndVersion,
-        id: aggregated._id,
-      }]);
+      await expect(service.aggregate(pipelineStages)).resolves.toStrictEqual({
+        list: [{
+          ...documentWithoutIdAndVersion,
+          id: aggregated._id,
+        }],
+        count: 1,
+        totalPage: 1,
+      });
+    });
+
+    it('should return found with pagination', async () => {
+      service = initService([aggregated], true);
+      const pipeline = [...pipelineStages, { $limit: 2 }, { $skip: 0 }];
+      const pipelineStagesWithPagination = [
+        { $facet: { docs: pipeline, count: [...pipeline, { $count: 'totalElements' }] } },
+      ] as PipelineStage[];
+
+      await expect(service.aggregate(pipelineStagesWithPagination)).resolves.toStrictEqual({
+        list: [{
+          id: aggregated._id,
+          name: 'test',
+        }],
+        count: 1,
+        totalPage: 1,
+      });
     });
 
     it('should call callback if it is defined', async () => {

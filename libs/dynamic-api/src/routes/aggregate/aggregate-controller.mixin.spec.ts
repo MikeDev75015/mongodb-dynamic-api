@@ -32,6 +32,12 @@ describe('AggregateControllerMixin', () => {
     name: string;
   }
 
+  class EmptyQuery {
+    static toPipeline(_: EmptyQuery): PipelineStage[] {
+      return [];
+    }
+  }
+
   const query = { name: 'test' };
 
   const initController = (_routeConfig = routeConfig) => {
@@ -50,7 +56,11 @@ describe('AggregateControllerMixin', () => {
   };
 
   beforeEach(() => {
-    service.aggregate.mockResolvedValueOnce(fakeEntities);
+    service.aggregate.mockResolvedValueOnce({
+      list: fakeEntities,
+      count: fakeEntities.length,
+      totalPage: 1,
+    });
   });
 
   it('should create controller', () => {
@@ -66,10 +76,10 @@ describe('AggregateControllerMixin', () => {
   });
 
   it('should throw an exception if query is empty', async () => {
-    controller = initController({ ...routeConfig, dTOs: { query: QueryWithStatic } });
+    controller = initController({ ...routeConfig, dTOs: { query: EmptyQuery } });
 
     await expect(controller.aggregate({})).rejects.toThrow(
-      new BadRequestException('Invalid query'),
+      new BadRequestException('Invalid pipeline, no stages found'),
     );
   });
 
@@ -89,13 +99,13 @@ describe('AggregateControllerMixin', () => {
     expect(service.aggregate).toHaveBeenCalledWith([{ $match: { name: query.name } }]);
   });
 
-  it('should map entities to response if presenter dto has fromEntities method', async () => {
+  it('should map to response if presenter dto has fromAggregate method', async () => {
     class RoutePresenter {
       count: number;
 
       data: { ref: string; fullName: string }[];
 
-      static fromEntities(_: Entity[]): RoutePresenter {
+      static fromAggregate(_: Entity[], count: number, totalPage: number): RoutePresenter {
         return {
           count: _.length,
           data: _.map(e => ({ ref: e.id, fullName: e.name })),

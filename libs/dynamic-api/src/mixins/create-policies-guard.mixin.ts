@@ -1,5 +1,6 @@
 import { Injectable, Type } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { PipelineStage } from 'mongodb-pipeline-builder';
 import { Model } from 'mongoose';
 import { DynamicApiModule } from '../dynamic-api.module';
 import { BasePoliciesGuard } from '../guards';
@@ -18,12 +19,14 @@ function CreatePoliciesGuardMixin<Entity extends BaseEntity>(
   displayedName: string,
   version: string | undefined,
   abilityPredicate: AbilityPredicate<Entity> | undefined,
+  queryToPipeline?: (query: unknown) => PipelineStage[],
 ): PoliciesGuardConstructor<Entity> {
   @Injectable()
   class RoutePoliciesGuard extends BasePoliciesGuard<Entity> implements PoliciesGuard {
     protected routeType = routeType;
     protected entity = entity;
     protected abilityPredicate: AbilityPredicate<Entity> | undefined = abilityPredicate;
+    protected queryToPipeline = queryToPipeline;
 
     constructor(
       @InjectModel(

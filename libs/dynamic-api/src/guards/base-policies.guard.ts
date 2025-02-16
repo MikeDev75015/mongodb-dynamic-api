@@ -1,4 +1,5 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Type } from '@nestjs/common';
+import { PipelineStage } from 'mongodb-pipeline-builder';
 import { Model } from 'mongoose';
 import { AbilityPredicate, RouteType } from '../interfaces';
 import { BaseEntity } from '../models';
@@ -10,6 +11,8 @@ export abstract class BasePoliciesGuard<Entity extends BaseEntity> extends BaseS
   protected entity: Type<Entity>;
 
   protected abilityPredicate: AbilityPredicate<Entity> | undefined;
+
+  protected queryToPipeline?: (query: unknown) => PipelineStage[];
 
   protected constructor(protected readonly model: Model<Entity>) {
     super(model);
@@ -27,6 +30,8 @@ export abstract class BasePoliciesGuard<Entity extends BaseEntity> extends BaseS
 
       if (params?.id) {
         await this.findOneDocumentWithAbilityPredicate(params.id, query);
+      } else if (this.routeType === 'Aggregate' && query && this.queryToPipeline) {
+        await this.aggregateDocumentsWithAbilityPredicate(this.queryToPipeline(query));
       } else {
         await this.findManyDocumentsWithAbilityPredicate(query);
       }
