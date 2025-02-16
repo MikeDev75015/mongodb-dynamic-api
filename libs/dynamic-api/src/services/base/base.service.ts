@@ -1,20 +1,8 @@
-import {
-  BadRequestException,
-  ConflictException,
-  ForbiddenException,
-  NotFoundException,
-  ServiceUnavailableException,
-  Type,
-} from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, HttpException, NotFoundException, ServiceUnavailableException, Type } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
-import { FilterQuery, Model, Schema, UpdateQuery, UpdateWithAggregationPipeline } from 'mongoose';
-import {
-  AbilityPredicate,
-  AuthAbilityPredicate,
-  DeleteResult,
-  DynamicApiCallbackMethods,
-  UpdateResult,
-} from '../../interfaces';
+import { PipelineStage } from 'mongodb-pipeline-builder';
+import { FilterQuery, Model, PipelineStage as MongoosePipelineStage, Schema, UpdateQuery, UpdateWithAggregationPipeline } from 'mongoose';
+import { AbilityPredicate, AuthAbilityPredicate, DeleteResult, DynamicApiCallbackMethods, UpdateResult } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { DynamicApiResetPasswordOptions } from '../../modules';
 import { DynamicApiGlobalStateService } from '../dynamic-api-global-state/dynamic-api-global-state.service';
@@ -42,6 +30,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
       updateOneDocument: this.updateOneDocument.bind(this),
       deleteManyDocuments: this.deleteManyDocuments.bind(this),
       deleteOneDocument: this.deleteOneDocument.bind(this),
+      aggregateDocuments: this.aggregateDocuments.bind(this),
     };
   }
 
@@ -54,6 +43,16 @@ export abstract class BaseService<Entity extends BaseEntity> {
     if (args.some((arg) => arg === undefined)) {
       throw new BadRequestException('Invalid or missing argument');
     }
+  }
+
+  protected async aggregateDocumentsWithAbilityPredicate(pipeline: any[]) {
+    const documents = await this.aggregateDocuments(this.entity, pipeline);
+
+    if (this.abilityPredicate) {
+      documents.forEach((d) => this.handleAbilityPredicate(d));
+    }
+
+    return documents;
   }
 
   protected async findManyDocumentsWithAbilityPredicate(conditions: FilterQuery<Entity> = {}) {
@@ -87,6 +86,11 @@ export abstract class BaseService<Entity extends BaseEntity> {
     }
 
     return document;
+  }
+
+  protected async aggregateDocuments<T>(entity: Type<T>, pipeline: PipelineStage[]): Promise<T[]> {
+    const model = await DynamicApiGlobalStateService.getEntityModel(entity);
+    return model.aggregate(pipeline as MongoosePipelineStage[]).exec() as Promise<T[]>;
   }
 
   protected async findManyDocuments<T>(entity: Type<T>, query: FilterQuery<T>): Promise<T[]> {
@@ -199,6 +203,10 @@ export abstract class BaseService<Entity extends BaseEntity> {
       return;
     }
 
+    if (error instanceof HttpException) {
+      throw error;
+    }
+
     throw new ServiceUnavailableException(error.message);
   }
 
@@ -214,6 +222,10 @@ export abstract class BaseService<Entity extends BaseEntity> {
 
     if (!reThrow) {
       return;
+    }
+
+    if (error instanceof HttpException) {
+      throw error;
     }
 
     throw new ServiceUnavailableException(error.message);

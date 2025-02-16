@@ -40,6 +40,7 @@ describe('BaseService', () => {
   beforeEach(() => {
     const lean = jest.fn(() => ({ exec }));
     fakeModel = {
+      aggregate: jest.fn(() => ({ exec })),
       find: jest.fn(() => ({ lean })),
       findOne: jest.fn(() => ({ lean })),
       create: jest.fn(),
@@ -59,6 +60,7 @@ describe('BaseService', () => {
     it('should have methods', () => {
 
       expect(service['callbackMethods']).toEqual({
+        aggregateDocuments: expect.any(Function),
         findManyDocuments: expect.any(Function),
         findOneDocument: expect.any(Function),
         createManyDocuments: expect.any(Function),
@@ -99,6 +101,54 @@ describe('BaseService', () => {
       const service = new TestService(model);
 
       expect(service.isSoftDeletable).toBe(false);
+    });
+  });
+
+  describe('aggregateDocumentsWithAbilityPredicate', () => {
+    it('should not call handleAbilityPredicate return an array of documents', async () => {
+      const documents = [{ name: 'toto' }, { name: 'unit' }];
+      const model = {
+        aggregate: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(documents),
+      } as unknown as Model<any>;
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
+      const service = new TestService(model);
+
+      const result = await service['aggregateDocumentsWithAbilityPredicate']([]);
+
+      expect(result).toEqual(documents);
+    });
+
+    it('should call handleAbilityPredicate for each document and return an array of documents', async () => {
+      const documents = [{ name: 'toto' }, { name: 'unit' }];
+      const model = {
+        aggregate: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(documents),
+      } as unknown as Model<any>;
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
+
+      const service = new TestService(model);
+      service['abilityPredicate'] = jest.fn().mockReturnValue(true);
+
+      const result = await service['aggregateDocumentsWithAbilityPredicate']([]);
+
+      expect(result).toEqual(documents);
+      expect(service['abilityPredicate']).toHaveBeenCalledTimes(documents.length);
+    });
+
+    it('should throw a ForbiddenException if the abilityPredicate returns false', async () => {
+      const documents = [{ name: 'toto' }, { name: 'unit' }];
+      const model = {
+        aggregate: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(documents),
+      } as unknown as Model<any>;
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
+      const service = new TestService(model);
+      service['abilityPredicate'] = jest.fn().mockReturnValue(false);
+
+      await expect(service['aggregateDocumentsWithAbilityPredicate']([])).rejects.toThrow(
+        new ForbiddenException('Forbidden resource'),
+      );
     });
   });
 
@@ -232,6 +282,20 @@ describe('BaseService', () => {
       await expect(service['findOneDocumentWithAbilityPredicate']('id')).rejects.toThrow(
         new NotFoundException('Document not found'),
       );
+    });
+  });
+
+  describe('aggregateDocuments', () => {
+    it('should call the model aggregate method with the pipeline and return the documents', async () => {
+      const documents = [{ name: 'toto' }, { name: 'unit' }];
+      exec.mockResolvedValue(documents);
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel);
+      const service = new TestService(fakeModel);
+
+      const result = await service['callbackMethods'].aggregateDocuments(TestEntity, []);
+
+      expect(result).toEqual(documents);
+      expect(fakeModel.aggregate).toHaveBeenCalledWith([]);
     });
   });
 

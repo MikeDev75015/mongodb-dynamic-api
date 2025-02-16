@@ -97,7 +97,11 @@ describe('AggregateGatewayMixin', () => {
 
     const aggregateGateway = new AggregateGateway(service, jwtService);
 
-    service.aggregate.mockResolvedValueOnce([fakeEntity]);
+    service.aggregate.mockResolvedValueOnce({
+      list: [fakeEntity],
+      count: 1,
+      totalPage: 1,
+    });
 
     await expect(aggregateGateway.aggregate(socket, data)).resolves.toEqual({
       event: 'aggregate-test-entity',
@@ -116,7 +120,11 @@ describe('AggregateGatewayMixin', () => {
 
     const aggregateGateway = new AggregateGateway(service, jwtService);
 
-    service.aggregate.mockResolvedValueOnce([]);
+    service.aggregate.mockResolvedValueOnce({
+      list: [],
+      count: 0,
+      totalPage: 0,
+    });
 
     await expect(aggregateGateway.aggregate(socket, data)).resolves.toEqual({
       event: 'custom-event',
@@ -133,7 +141,11 @@ describe('AggregateGatewayMixin', () => {
 
     const aggregateGateway = new AggregateGateway(service, jwtService);
 
-    service.aggregate.mockResolvedValueOnce([]);
+    service.aggregate.mockResolvedValueOnce({
+      list: [],
+      count: 0,
+      totalPage: 0,
+    });
 
     await expect(aggregateGateway.aggregate(socket, data)).resolves.toEqual({
       event: 'aggregate-sub-test-entity',
@@ -141,15 +153,15 @@ describe('AggregateGatewayMixin', () => {
     });
   });
 
-  it('should map entities to response if presenter dto has fromEntities method', async () => {
+  it('should map entities to response if presenter dto has fromAggregate method', async () => {
     class RoutePresenter {
       count: number;
 
       data: { ref: string; fullName: string }[];
 
-      static fromEntities(_: TestEntity[]): RoutePresenter {
+      static fromAggregate(_: TestEntity[], count: number): RoutePresenter {
         return {
-          count: _.length,
+          count,
           data: _.map(e => ({ ref: e.id, fullName: e.field1 })),
         };
       }
@@ -165,7 +177,11 @@ describe('AggregateGatewayMixin', () => {
 
     const fakeResponse = [{ id: '1', field1: 'test' }, { id: '2', field1: 'unit' }] as TestEntity[];
 
-    service.aggregate.mockResolvedValueOnce(fakeResponse);
+    service.aggregate.mockResolvedValueOnce({
+      list: fakeResponse,
+      count: fakeResponse.length,
+      totalPage: 1,
+    });
 
     const expectedResponse = {
       count: 2,

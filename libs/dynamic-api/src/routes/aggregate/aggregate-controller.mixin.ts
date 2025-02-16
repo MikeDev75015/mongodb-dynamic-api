@@ -1,5 +1,4 @@
 import { BadRequestException, Query, Type, UseGuards } from '@nestjs/common';
-import { isEmpty } from 'lodash';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { Aggregatable, DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
@@ -12,7 +11,7 @@ import { AggregateService } from './aggregate-service.interface';
 function AggregateControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, isArrayResponse, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): AggregateControllerConstructor<Entity> {
   const {
@@ -57,7 +56,12 @@ function AggregateControllerMixin<Entity extends BaseEntity>(
     {
       presenter: AggregatePresenter,
     },
+    isArrayResponse,
   );
+
+  const toPipeline = (
+    AggregateQuery as Aggregatable<AggregateQuery>
+  ).toPipeline;
 
   class AggregatePoliciesGuard extends CreatePoliciesGuardMixin(
     entity,
@@ -65,9 +69,10 @@ function AggregateControllerMixin<Entity extends BaseEntity>(
     displayedName,
     version,
     abilityPredicate,
+    toPipeline,
   ) {}
 
-  class BaseAggregateController implements AggregateController<Entity> {
+  class BaseAggregateController implements AggregateController<Entity, AggregateQuery, AggregatePresenter> {
     protected readonly entity = entity;
 
     constructor(
@@ -77,10 +82,6 @@ function AggregateControllerMixin<Entity extends BaseEntity>(
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(AggregatePoliciesGuard)
     async aggregate(@Query() query: AggregateQuery) {
-      if (isEmpty(query)) {
-        throw new BadRequestException('Invalid query');
-      }
-
       const toPipeline = (
         AggregateQuery as Aggregatable<AggregateQuery>
       ).toPipeline;
@@ -89,13 +90,19 @@ function AggregateControllerMixin<Entity extends BaseEntity>(
         throw new BadRequestException('Query DTO must have toPipeline static method');
       }
 
-      const list = await this.service.aggregate(toPipeline(query));
+      const pipelineBuilt = toPipeline(query);
 
-      const fromEntities = (
+      if (!pipelineBuilt.length) {
+        throw new BadRequestException('Invalid pipeline, no stages found');
+      }
+
+      const { list, count, totalPage } = await this.service.aggregate(pipelineBuilt);
+
+      const fromAggregate = (
         AggregatePresenter as Mappable<Entity>
-      ).fromEntities;
+      ).fromAggregate;
 
-      return fromEntities ? fromEntities<AggregatePresenter>(list) : list;
+      return fromAggregate ? fromAggregate<AggregatePresenter>(list, count, totalPage) : list;
     }
   }
 

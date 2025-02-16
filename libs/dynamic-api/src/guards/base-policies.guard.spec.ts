@@ -49,13 +49,24 @@ describe('BasePoliciesGuard', () => {
     expect(spy).toHaveBeenCalled();
   });
 
+  it('should call aggregateDocuments if routeType is Aggregate and queryToPipeline is defined', async () => {
+    const spy = jest.spyOn<any, any>(guard, 'aggregateDocumentsWithAbilityPredicate').mockImplementationOnce(jest.fn());
+    guard['abilityPredicate'] = jest.fn();
+    guard['routeType'] = 'Aggregate';
+    guard['queryToPipeline'] = jest.fn();
+    context.switchToHttp().getRequest().user = {};
+    context.switchToHttp().getRequest().query = {};
+    await guard.canActivate(context);
+    expect(spy).toHaveBeenCalled();
+  });
+
   it('should return true if abilityPredicate is not defined', async () => {
     guard['abilityPredicate'] = undefined;
     await expect(guard.canActivate(context)).resolves.toBe(true);
   });
 
   it('should return true if abilityPredicate is defined', async () => {
-    const spy = jest.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockImplementationOnce(jest.fn());
+    jest.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockImplementationOnce(jest.fn());
     guard['abilityPredicate'] = jest.fn();
     context.switchToHttp().getRequest().user = {};
     await expect(guard.canActivate(context)).resolves.toBe(true);
