@@ -10,4 +10,5 @@ export * from './mixins';
 export * from './models';
 export * from './routes';
 export * from './services';
+export * from './utils';
 export * from './dynamic-api.module';
