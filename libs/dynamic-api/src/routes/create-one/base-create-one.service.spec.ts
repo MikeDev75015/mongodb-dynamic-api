@@ -48,6 +48,7 @@ describe('BaseCreateOneService', () => {
       service.callback = callback;
       await service.createOne(toCreate);
 
+      expect(callback).toHaveBeenCalledTimes(1);
       expect(callback).toHaveBeenCalledWith(created, service.callbackMethods);
     });
 
@@ -68,6 +69,16 @@ describe('BaseCreateOneService', () => {
       (modelMock.create as jest.Mock).mockRejectedValue(new Error('create error'));
 
       await expect(service.createOne(toCreate)).rejects.toThrow('create error');
+    });
+
+    it('should call beforeSaveCallback if it is defined', async () => {
+      service = initService(created);
+      const beforeSaveCallback = jest.fn(() => Promise.resolve(toCreate));
+      service.beforeSaveCallback = beforeSaveCallback;
+      await service.createOne(toCreate);
+
+      expect(beforeSaveCallback).toHaveBeenCalledTimes(1);
+      expect(beforeSaveCallback).toHaveBeenCalledWith(undefined, { toCreate }, service.callbackMethods);
     });
   });
 });

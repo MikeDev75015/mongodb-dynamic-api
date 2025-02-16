@@ -19,8 +19,15 @@ describe('BaseUpdateOneService', () => {
     name: 'updated',
   };
 
-  const initService = (exec = jest.fn()) => {
+  const initService = (exec = jest.fn(), findOneExec = jest.fn()) => {
     modelMock = {
+      findOne: jest.fn(() => (
+        {
+          lean: jest.fn(() => (
+            { exec: findOneExec }
+          )),
+        }
+      )),
       findOneAndUpdate: jest.fn(() => ({ lean: jest.fn(() => ({ exec })) })),
     } as any;
 
@@ -43,7 +50,8 @@ describe('BaseUpdateOneService', () => {
     });
 
     it('should call model.findOneAndUpdate and return the new document', async () => {
-      service = initService(jest.fn().mockResolvedValueOnce(updatedDocument));
+      service =
+        initService(jest.fn().mockResolvedValueOnce(updatedDocument), jest.fn().mockResolvedValueOnce(document));
       jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -60,19 +68,36 @@ describe('BaseUpdateOneService', () => {
         {
           _id: document._id,
         },
-        { name: updatedDocument.name },
+        { $set: { name: updatedDocument.name } },
         { new: true },
       );
     });
 
     it('should call callback if it is defined', async () => {
-      service = initService(jest.fn().mockResolvedValueOnce(updatedDocument));
+      service =
+        initService(jest.fn().mockResolvedValueOnce(updatedDocument), jest.fn().mockResolvedValueOnce(document));
       jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       const callback = jest.fn(() => Promise.resolve());
       service.callback = callback;
       await service.updateOne(document._id, { name: updatedDocument.name });
 
       expect(callback).toHaveBeenCalledWith(updatedDocument, service.callbackMethods);
+    });
+
+    it('should call beforeSaveCallback if it is defined', async () => {
+      service =
+        initService(jest.fn().mockResolvedValueOnce(updatedDocument), jest.fn().mockResolvedValueOnce(document));
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const beforeSaveCallback = jest.fn(() => Promise.resolve());
+      service.beforeSaveCallback = beforeSaveCallback;
+      await service.updateOne(document._id, { name: updatedDocument.name });
+
+      expect(beforeSaveCallback)
+      .toHaveBeenCalledWith(
+        document,
+        { id: document._id, update: { name: updatedDocument.name } },
+        service.callbackMethods,
+      );
     });
   });
 });

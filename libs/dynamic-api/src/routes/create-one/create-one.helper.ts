@@ -16,7 +16,7 @@ import { DynamicApiModule } from '../../dynamic-api.module';
 import { provideName } from '../../helpers';
 import {
   DynamicApiControllerOptions,
-  DynamicAPIRouteConfig,
+  DynamicAPIRouteConfig, DynamicApiServiceBeforeSaveCallback,
   DynamicApiServiceCallback,
   DynamicAPIServiceProvider, GatewayOptions,
 } from '../../interfaces';
@@ -33,9 +33,11 @@ function createCreateOneServiceProvider<Entity extends BaseEntity>(
   displayedName: string,
   version: string | undefined,
   callback: DynamicApiServiceCallback<Entity> | undefined,
+  beforeSaveCallback: DynamicApiServiceBeforeSaveCallback<Entity> | undefined,
 ): DynamicAPIServiceProvider {
   class CreateOneService extends BaseCreateOneService<Entity> {
     protected readonly entity = entity;
+    protected readonly beforeSaveCallback = beforeSaveCallback;
     protected readonly callback = callback;
 
     constructor(
