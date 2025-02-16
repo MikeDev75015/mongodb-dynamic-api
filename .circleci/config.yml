@@ -5,6 +5,12 @@ orbs:
   jq: circleci/jq@2.2.0
   docker: circleci/docker@2.6.0
 
+executors:
+  node:
+    docker:
+      - image: cimg/node:20.18.1
+    resource_class: medium
+
 aliases:
   - &install-deps
     run:
@@ -194,9 +200,7 @@ commands:
 jobs:
   dependencies-job:
     description: "Install dependencies, update cache"
-    docker:
-      - image: cimg/node:20.10.0
-    resource_class: medium
+    executor: node
     steps:
       - checkout
       - *update-npm-version
@@ -205,9 +209,7 @@ jobs:
       - *save-cache
 
   build-job:
-    docker:
-      - image: cimg/node:20.10.0
-    resource_class: medium
+    executor: node
     parameters:
       persist:
         type: boolean
@@ -220,9 +222,7 @@ jobs:
       - *notify-success
 
   test-job:
-    docker:
-      - image: cimg/node:20.10.0
-    resource_class: medium
+    executor: node
     parallelism: 8
     steps:
       - checkout
@@ -232,9 +232,7 @@ jobs:
       - *notify-success
 
   test-with-sonarcloud-job:
-    docker:
-      - image: cimg/node:20.10.0
-    resource_class: medium
+    executor: node
     steps:
       - checkout
       - *restore-cache
@@ -245,7 +243,7 @@ jobs:
 
   e2e-tests-mongodb-job:
     docker:
-      - image: cimg/node:20.10.0
+      - image: cimg/node:20.18.1
       - image: mongo:latest
         command: --auth
         environment:
@@ -275,9 +273,7 @@ jobs:
       - *notify-success
 
   merge-release-pr-job:
-    docker:
-      - image: cimg/node:20.10.0
-    resource_class: medium
+    executor: node
     parameters:
       branch:
         type: string
@@ -292,9 +288,7 @@ jobs:
       - *notify-success
 
   create-develop-pr-job:
-    docker:
-      - image: cimg/node:20.10.0
-    resource_class: medium
+    executor: node
     steps:
       - checkout
       - *restore-cache
@@ -305,9 +299,7 @@ jobs:
       - *notify-success
 
   create-version-tags-job:
-    docker:
-      - image: cimg/node:20.10.0
-    resource_class: medium
+    executor: node
     steps:
       - checkout
       - *restore-cache
@@ -318,9 +310,7 @@ jobs:
       - *notify-success
 
   publish-release-job:
-    docker:
-      - image: cimg/node:20.10.0
-    resource_class: medium
+    executor: node
     parameters:
       branch:
         type: string
