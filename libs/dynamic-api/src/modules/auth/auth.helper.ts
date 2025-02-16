@@ -16,7 +16,7 @@ import { Model } from 'mongoose';
 import { Strategy } from 'passport-local';
 import { ValidatorPipe } from '../../decorators';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { DynamicAPIWsExceptionFilter } from '../../filters/ws-exception/dynamic-api-ws-exception.filter';
+import { DynamicAPIWsExceptionFilter } from '../../filters';
 import {
   AuthAbilityPredicate,
   DynamicApiServiceCallback,
