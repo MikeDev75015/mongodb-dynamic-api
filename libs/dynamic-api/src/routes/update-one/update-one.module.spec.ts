@@ -20,9 +20,14 @@ describe('UpdateOneModule', () => {
   const FakeGateway = jest.fn();
 
   const routeConfigCallback = jest.fn();
+  const routeConfigBeforeSaveCallback = jest.fn();
   const databaseModule = { module: 'databaseModule' } as unknown as DynamicModule;
   const controllerOptions: DynamicApiControllerOptions<Entity> = { path: 'fakePath' };
-  const routeConfig: DynamicAPIRouteConfig<Entity> = { type: 'UpdateOne', callback: routeConfigCallback };
+  const routeConfig: DynamicAPIRouteConfig<Entity> = {
+    type: 'UpdateOne',
+    callback: routeConfigCallback,
+    beforeSaveCallback: routeConfigBeforeSaveCallback,
+  };
   const version = 'fakeVersion';
   const validationPipeOptions: ValidationPipeOptions = { transform: true };
   const fakeDisplayedName = 'FakeDisplayedName';
@@ -50,7 +55,7 @@ describe('UpdateOneModule', () => {
       expect(spyCreateUpdateOneController)
       .toHaveBeenCalledWith(Entity, fakeDisplayedName, controllerOptions, routeConfig, version, validationPipeOptions);
       expect(spyCreateUpdateOneServiceProvider)
-      .toHaveBeenCalledWith(Entity, fakeDisplayedName, version, routeConfigCallback);
+      .toHaveBeenCalledWith(Entity, fakeDisplayedName, version, routeConfigCallback, routeConfigBeforeSaveCallback);
     });
 
     it('should return a DynamicModule with gateway', () => {
@@ -74,7 +79,7 @@ describe('UpdateOneModule', () => {
       expect(spyCreateUpdateOneController)
       .toHaveBeenCalledWith(Entity, fakeDisplayedName, controllerOptions, routeConfig, version, validationPipeOptions);
       expect(spyCreateUpdateOneServiceProvider)
-      .toHaveBeenCalledWith(Entity, fakeDisplayedName, version, routeConfigCallback);
+      .toHaveBeenCalledWith(Entity, fakeDisplayedName, version, routeConfigCallback, routeConfigBeforeSaveCallback);
       expect(spyCreateUpdateOneGateway)
       .toHaveBeenCalledWith(
         Entity,

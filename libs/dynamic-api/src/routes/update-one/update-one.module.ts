@@ -27,7 +27,9 @@ export class UpdateOneModule {
       version,
       validationPipeOptions,
     );
-    const ServiceProvider = createUpdateOneServiceProvider(entity, displayedName, version, routeConfig.callback);
+    const ServiceProvider = createUpdateOneServiceProvider(
+      entity, displayedName, version, routeConfig.callback, routeConfig.beforeSaveCallback,
+    );
 
     const gatewayOptions = webSocket
       ? initializeConfigFromOptions(webSocket)

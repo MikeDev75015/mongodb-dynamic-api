@@ -19,7 +19,7 @@ describe('CreateOneHelper', () => {
 
   describe('createCreateOneServiceProvider', () => {
     it('should return CreateOne provider', () => {
-      const { provide, useClass } = createCreateOneServiceProvider(entity, displayedName, '1', undefined);
+      const { provide, useClass } = createCreateOneServiceProvider(entity, displayedName, '1', undefined, undefined);
       const service = new useClass(model);
 
       expect(provide).toBe(`CreateOne${displayedName}V1Service`);

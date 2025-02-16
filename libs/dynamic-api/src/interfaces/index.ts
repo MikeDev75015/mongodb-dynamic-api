@@ -12,6 +12,7 @@ export * from './dynamic-api-route-module.type';
 export * from './dynamic-api-route-response.type';
 export * from './dynamic-api-route-type.type';
 export * from './dynamic-api-schema-options.interface';
+export * from './dynamic-api-service-before-save-callback.interface';
 export * from './dynamic-api-service-callback.interface';
 export * from './dynamic-api-service-provider.interface';
 export * from './dynamic-api-swagger-options.type';
