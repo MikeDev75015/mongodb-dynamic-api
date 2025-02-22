@@ -6,13 +6,7 @@ import { DynamicApiModule } from '../../dynamic-api.module';
 import { buildSchemaFromEntity, initializeConfigFromOptions } from '../../helpers';
 import { BaseEntity } from '../../models';
 import { BcryptService, DynamicApiGlobalStateService } from '../../services';
-import {
-  authGatewayProviderName,
-  createAuthController,
-  createAuthGateway,
-  createAuthServiceProvider,
-  createLocalStrategyProvider,
-} from './auth.helper';
+import { authGatewayProviderName, createAuthController, createAuthGateway, createAuthServiceProvider, createLocalStrategyProvider } from './auth.helper';
 import { DynamicApiAuthOptions, DynamicApiResetPasswordOptions } from './interfaces';
 import { JwtStrategy } from './strategies';
 
@@ -38,6 +32,7 @@ export class AuthModule {
     } = this.initializeAuthOptions<Entity>(options);
 
     const {
+      beforeChangePasswordCallback,
       resetPasswordCallback,
       changePasswordCallback,
       emailField,
@@ -45,7 +40,14 @@ export class AuthModule {
       changePasswordAbilityPredicate,
     } = resetPassword;
     const resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined = resetPasswordCallback
-      ? { resetPasswordCallback, changePasswordCallback, emailField, expirationInMinutes, changePasswordAbilityPredicate: changePasswordAbilityPredicate }
+      ? {
+        beforeChangePasswordCallback,
+        resetPasswordCallback,
+        changePasswordCallback,
+        emailField,
+        expirationInMinutes,
+        changePasswordAbilityPredicate: changePasswordAbilityPredicate,
+      }
       : undefined;
 
     const AuthController = createAuthController(
@@ -62,6 +64,8 @@ export class AuthModule {
       register.callback,
       resetPasswordOptions,
       updateAccount.callback,
+      register.beforeSaveCallback,
+      updateAccount.beforeSaveCallback,
     );
     const LocalStrategyProvider = createLocalStrategyProvider(
       loginField, passwordField, login.abilityPredicate,

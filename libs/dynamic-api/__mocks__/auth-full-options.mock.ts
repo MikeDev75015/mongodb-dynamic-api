@@ -23,14 +23,17 @@ export const getFullAuthOptionsMock = <Entity extends BaseEntity>(
     additionalFields: [...registerAdditionalFields],
     protected: false,
     abilityPredicate: jest.fn(),
+    beforeSaveCallback: jest.fn(),
     callback: jest.fn(),
   },
   updateAccount: {
     abilityPredicate: jest.fn(),
     callback: jest.fn(),
+    beforeSaveCallback: jest.fn(),
     additionalFieldsToExclude: [...updateAccountAdditionalFieldsToExclude],
   },
   resetPassword: {
+    beforeChangePasswordCallback: jest.fn(),
     resetPasswordCallback: jest.fn(),
     changePasswordCallback: jest.fn(),
     emailField: 'email',
