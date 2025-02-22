@@ -7,7 +7,7 @@ import { DynamicApiGlobalState } from '../interfaces';
 @Injectable()
 export class DynamicApiJwtAuthGuard extends AuthGuard('jwt') {
   constructor(
-    private reflector: Reflector,
+    private readonly reflector: Reflector,
     private readonly state: DynamicApiGlobalState,
   ) {
     super();

@@ -6,9 +6,9 @@ import { BaseEntity } from './base-entity.model';
 export abstract class SoftDeletableEntity extends BaseEntity {
   @Exclude()
   @Prop({ type: Boolean, default: false })
-  isDeleted = false;
+  isDeleted: boolean;
 
   @ApiProperty({ type: Date, nullable: true })
   @Prop({ type: Date, nullable: true, default: null })
-  deletedAt: Date | null = null;
+  deletedAt: Date | null;
 }
