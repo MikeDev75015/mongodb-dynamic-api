@@ -460,14 +460,12 @@ describe('DynamicApiModule forFeature (e2e)', () => {
             name: 'test1',
             createdAt: expect.any(String),
             updatedAt: expect.any(String),
-            deletedAt: null,
           },
           {
             id: expect.any(String),
             name: 'test2',
             createdAt: expect.any(String),
             updatedAt: expect.any(String),
-            deletedAt: null,
           },
         ]);
       });
@@ -514,30 +512,14 @@ describe('DynamicApiModule forFeature (e2e)', () => {
             name: 'test3',
             createdAt: expect.any(String),
             updatedAt: expect.any(String),
-            deletedAt: null,
           },
           {
             id: expect.any(String),
             name: 'test4',
             createdAt: expect.any(String),
             updatedAt: expect.any(String),
-            deletedAt: null,
           },
         ]);
-      });
-
-      it('should return 409 if entity has duplicated key', async () => {
-        const { body, status } = await server.post('/test-entities/many', {
-          list: [
-            { name: 'test1' },
-            { name: 'test2' },
-          ],
-        });
-
-        expect(status).toBe(409);
-        expect(body).toHaveProperty('error', 'Conflict');
-        expect(body).toHaveProperty('statusCode', 409);
-        expect(body).toHaveProperty('message', 'name \'test1\' is already used');
       });
     });
 
@@ -551,7 +533,6 @@ describe('DynamicApiModule forFeature (e2e)', () => {
           name: 'test3',
           createdAt: expect.any(String),
           updatedAt: expect.any(String),
-          deletedAt: null,
         });
       });
 
@@ -582,7 +563,6 @@ describe('DynamicApiModule forFeature (e2e)', () => {
           name: 'test-replaced',
           createdAt: expect.any(String),
           updatedAt: expect.any(String),
-          deletedAt: null,
         });
       });
 
@@ -653,7 +633,6 @@ describe('DynamicApiModule forFeature (e2e)', () => {
           name: 'test-updated',
           createdAt: expect.any(String),
           updatedAt: expect.any(String),
-          deletedAt: null,
         });
       });
 

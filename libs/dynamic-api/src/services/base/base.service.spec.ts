@@ -480,6 +480,24 @@ describe('BaseService', () => {
         name: 'toto',
       });
     });
+
+    it('should build an instance of the entity with deletedAt if isDeleted is true', () => {
+      const document = {
+        _id: 'id',
+        __v: 1,
+        name: 'toto',
+        isDeleted: true,
+        deletedAt: new Date(),
+      } as any;
+
+      const instance = service['buildInstance'](document);
+
+      expect(instance).toEqual({
+        id: 'id',
+        name: 'toto',
+        deletedAt: document.deletedAt,
+      });
+    });
   });
 
   describe('handleDuplicateKeyError', () => {

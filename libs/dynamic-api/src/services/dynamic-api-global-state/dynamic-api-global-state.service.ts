@@ -9,7 +9,7 @@ export class DynamicApiGlobalStateService {
 
   private static connection: Connection | null = null;
 
-  private static _: DynamicApiGlobalState = {} as DynamicApiGlobalState;
+  private static readonly _: DynamicApiGlobalState = {} as DynamicApiGlobalState;
 
   private readonly defaultGlobalState: Partial<DynamicApiGlobalState> = {
     uri: '',

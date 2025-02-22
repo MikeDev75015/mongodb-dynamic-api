@@ -3,7 +3,7 @@ import { plainToInstance } from 'class-transformer';
 import { PipelineStage } from 'mongodb-pipeline-builder';
 import { FilterQuery, Model, PipelineStage as MongoosePipelineStage, Schema, UpdateQuery, UpdateWithAggregationPipeline } from 'mongoose';
 import { AbilityPredicate, AuthAbilityPredicate, DeleteResult, DynamicApiCallbackMethods, UpdateResult } from '../../interfaces';
-import { BaseEntity } from '../../models';
+import { BaseEntity, SoftDeletableEntity } from '../../models';
 import { DynamicApiResetPasswordOptions } from '../../modules';
 import { DynamicApiGlobalStateService } from '../dynamic-api-global-state/dynamic-api-global-state.service';
 
@@ -168,11 +168,19 @@ export abstract class BaseService<Entity extends BaseEntity> {
 
   protected buildInstance(document: Entity) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { _id, id, __v, ...rest } = document;
+    const {
+      _id,
+      id,
+      __v,
+      isDeleted,
+      deletedAt,
+      ...rest
+    } = document as unknown as SoftDeletableEntity;
 
     return plainToInstance(this.entity, {
       ...rest as Partial<Entity>,
       ...(_id || id ? { id: _id?.toString() ?? id } : {}),
+      ...(isDeleted ? { deletedAt } : {}),
     });
   }
 

@@ -20,8 +20,6 @@ describe('EntityPresenterMixin', () => {
     expect(new DeletableEntity()).toEqual({
       additionalKey: 'fake-key',
       unit: 'test',
-      isDeleted: false,
-      deletedAt: null,
     });
 
     body = EntityPresenterMixin(DeletableEntity);
