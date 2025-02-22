@@ -1,5 +1,17 @@
 Changelog
 
+## [2.10.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.9.0...v2.10.0) (2025-02-22)
+
+
+### helper
+
+* **helper:** get repository from entity method ([e02c9b8a](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/e02c9b8a3476958c261b862971db9b3cbb5a5a9c))
+
+
+### auth
+
+* **auth:** add before save callback, improve some behaviors ([20df58a3](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/20df58a35b0ca00376c06e0f4e850e2fd5e81a99))
+
 ## [2.9.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.8.3...v2.9.0) (2025-02-16)
 
 
