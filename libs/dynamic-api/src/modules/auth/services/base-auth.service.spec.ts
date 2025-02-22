@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  ServiceUnavailableException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { BadRequestException, ForbiddenException, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { plainToInstance } from 'class-transformer';
 import { Model, Schema } from 'mongoose';
@@ -59,24 +54,27 @@ describe('BaseAuthService', () => {
   const fakePasswordField = 'pass' as keyof User;
   const fakeEmailField = 'login' as keyof User;
   const fakeExpirationInMinutes = 1;
+  const fakeBeforeRegisterCallback = jest.fn();
   const fakeRegisterCallback = jest.fn();
   const fakeLoginCallback = jest.fn();
   const resetPasswordCallback = jest.fn();
+  const beforeChangePasswordCallback = jest.fn();
   const changePasswordCallback = jest.fn();
+  const fakeBeforeUpdateAccountCallback = jest.fn();
   const updateAccountCallback = jest.fn();
 
   class AuthService extends BaseAuthService<User> {
     protected additionalRequestFields: (keyof User)[] = ['nickname'];
-
-    protected loginCallback = fakeLoginCallback;
-
     protected loginField = fakeLoginField;
-
     protected passwordField = fakePasswordField;
 
+    protected loginCallback = fakeLoginCallback;
+    protected beforeRegisterCallback = fakeBeforeRegisterCallback;
     protected registerCallback = fakeRegisterCallback;
+    protected beforeUpdateAccountCallback = fakeBeforeUpdateAccountCallback;
 
     protected resetPasswordOptions = {
+      beforeChangePasswordCallback: beforeChangePasswordCallback,
       resetPasswordCallback: resetPasswordCallback,
       changePasswordCallback: changePasswordCallback,
       emailField: fakeEmailField,
@@ -183,12 +181,8 @@ describe('BaseAuthService', () => {
     it('should return user if password is valid', async () => {
       exec.mockResolvedValueOnce(fakeUser);
       spyBcryptCompare.mockResolvedValueOnce(true);
-      spyBuildUserFields.mockReturnValueOnce(fakeLoginBuilt);
       const result = await service['validateUser'](fakeLogin, fakePass);
-
-      expect(spyBuildUserFields)
-      .toHaveBeenCalledWith(fakeUser, ['_id', fakeLoginField, ...service['additionalRequestFields']]);
-      expect(result).toEqual(fakeLoginBuilt);
+      expect(result).toEqual({ ...fakeUser, id: fakeUser._id.toString() });
     });
   });
 
@@ -245,6 +239,7 @@ describe('BaseAuthService', () => {
     });
 
     it('should return token and call registerCallback if it is defined', async () => {
+      service['beforeRegisterCallback'] = undefined;
       model.create.mockResolvedValueOnce(fakeUser);
       exec.mockResolvedValueOnce(fakeUser);
       jest.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
@@ -256,16 +251,33 @@ describe('BaseAuthService', () => {
       expect(model.findOne).toHaveBeenCalledWith({ _id: fakeUser._id });
       expect(fakeRegisterCallback).toHaveBeenCalledTimes(1);
       expect(fakeRegisterCallback).toHaveBeenCalledWith(fakeUserInstance, service['callbackMethods']);
+      expect(fakeBeforeRegisterCallback).not.toHaveBeenCalled();
       expect(spyLogin).toHaveBeenCalledWith(fakeUser, true);
       expect(result).toEqual({ accessToken });
     });
 
     it('should return token and not call registerCallback if it is not defined', async () => {
+      service['beforeRegisterCallback'] = undefined;
       service['registerCallback'] = undefined;
       model.create.mockResolvedValueOnce(fakeUser);
       await service['register'](userToCreate);
 
+      expect(fakeBeforeRegisterCallback).not.toHaveBeenCalled();
       expect(fakeRegisterCallback).not.toHaveBeenCalled();
+    });
+
+    it('should return token and call beforeRegisterCallback if it is defined', async () => {
+      model.create.mockResolvedValueOnce(fakeUser);
+      exec.mockResolvedValueOnce(fakeUser);
+      jest.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
+      await service['register'](userToCreate);
+
+      expect(fakeBeforeRegisterCallback).toHaveBeenCalledTimes(1);
+      expect(fakeBeforeRegisterCallback).toHaveBeenCalledWith(
+        { ...userToCreate },
+        { hashedPassword: fakeHash },
+        service['callbackMethods'],
+      );
     });
 
     it('should throw a service unavailable exception if create fails', async () => {
@@ -328,6 +340,7 @@ describe('BaseAuthService', () => {
     });
 
     it('should update user and return getAccount response', async () => {
+      service['beforeUpdateAccountCallback'] = undefined;
       service['updateAccountCallback'] = undefined;
       await service['updateAccount']({ id: fakeUserId } as User, update);
 
@@ -337,6 +350,7 @@ describe('BaseAuthService', () => {
     });
 
     it('should update user and call updateCallback if it is defined', async () => {
+      service['beforeUpdateAccountCallback'] = undefined;
       service['updateAccountCallback'] = updateAccountCallback;
       exec.mockResolvedValueOnce(undefined).mockResolvedValueOnce(fakeUser);
       const result = await service['updateAccount']({ id: fakeUserId } as User, update);
@@ -346,6 +360,20 @@ describe('BaseAuthService', () => {
       expect(updateAccountCallback).toHaveBeenCalledWith(fakeUserInstance, service['callbackMethods']);
       expect(spyGetAccount).toHaveBeenCalledWith({ id: fakeUserId });
       expect(result).toEqual(fakeUser);
+    });
+
+    it('should update user and call beforeUpdateCallback if it is defined', async () => {
+      service['beforeUpdateAccountCallback'] = fakeBeforeUpdateAccountCallback;
+      service['updateAccountCallback'] = undefined;
+      exec.mockResolvedValueOnce(fakeUser).mockResolvedValueOnce(undefined).mockResolvedValueOnce(fakeUser);
+      await service['updateAccount']({ id: fakeUserId } as User, update);
+
+      expect(fakeBeforeUpdateAccountCallback).toHaveBeenCalledTimes(1);
+      expect(fakeBeforeUpdateAccountCallback).toHaveBeenCalledWith(
+        { ...fakeUser, id: fakeUserId },
+        { update },
+        service['callbackMethods'],
+      );
     });
   });
 
@@ -509,13 +537,13 @@ describe('BaseAuthService', () => {
     });
 
     it('should change password and call changePasswordCallback if defined', async () => {
+      service['resetPasswordOptions'].beforeChangePasswordCallback = undefined;
       spyJwtDecode.mockReturnValueOnce(fakeDecodedToken);
       const fakeTimestamp = 500000;
       spyDateNow.mockReturnValueOnce(fakeTimestamp);
       spyFindOneDocumentWithAbilityPredicate.mockResolvedValueOnce(fakeUser);
       exec.mockResolvedValueOnce(fakeUser);
       spyBcriptHashPassword.mockResolvedValueOnce(hashedPassword);
-      const spyBuildInstance = jest.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
       jest.spyOn(bcryptService, 'hashPassword').mockResolvedValueOnce(hashedPassword);
 
       await service['changePassword'](resetPasswordToken, newPassword);
@@ -528,13 +556,17 @@ describe('BaseAuthService', () => {
       );
       expect(spyBcriptHashPassword).toHaveBeenCalledWith(newPassword);
       expect(model.updateOne)
-      .toHaveBeenCalledWith({ _id: fakeUser._id }, { $set: { [fakePasswordField]: hashedPassword } });
-      expect(spyBuildInstance).toHaveBeenCalledWith(fakeUser);
+      .toHaveBeenCalledWith(
+        { _id: fakeUser._id },
+        { $set: { [fakePasswordField]: hashedPassword, resetPasswordToken: null } },
+      );
       expect(changePasswordCallback).toHaveBeenCalledTimes(1);
-      expect(changePasswordCallback).toHaveBeenCalledWith(fakeUserInstance, service['callbackMethods']);
+      expect(changePasswordCallback)
+      .toHaveBeenCalledWith({ ...fakeUser, id: fakeUser._id.toString() }, service['callbackMethods']);
     });
 
     it('should change password and not call changePasswordCallback if not defined', async () => {
+      service['resetPasswordOptions'].beforeChangePasswordCallback = undefined;
       service['resetPasswordOptions'].changePasswordCallback = undefined;
       spyJwtDecode.mockReturnValueOnce(fakeDecodedToken);
       const fakeTimestamp = 500000;
@@ -544,6 +576,25 @@ describe('BaseAuthService', () => {
 
       await service['changePassword'](resetPasswordToken, newPassword);
       expect(changePasswordCallback).not.toHaveBeenCalled();
+    });
+
+    it('should change password and call beforeChangePasswordCallback if defined', async () => {
+      service['resetPasswordOptions'].changePasswordCallback = undefined;
+      spyJwtDecode.mockReturnValueOnce(fakeDecodedToken);
+      const fakeTimestamp = 500000;
+      spyDateNow.mockReturnValueOnce(fakeTimestamp);
+      exec.mockResolvedValueOnce(fakeUser);
+      spyFindOneDocumentWithAbilityPredicate.mockResolvedValueOnce(fakeUser);
+      spyBcriptHashPassword.mockResolvedValueOnce(hashedPassword);
+
+      await service['changePassword'](resetPasswordToken, newPassword);
+      expect(beforeChangePasswordCallback).toHaveBeenCalledTimes(1);
+      expect(beforeChangePasswordCallback)
+      .toHaveBeenCalledWith(
+        { ...fakeUser, id: fakeUser._id.toString() },
+        { resetPasswordToken, newPassword, hashedPassword },
+        service['callbackMethods'],
+      );
     });
   });
 

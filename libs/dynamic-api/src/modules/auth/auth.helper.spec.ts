@@ -144,6 +144,8 @@ describe('AuthHelper', () => {
         undefined,
         undefined,
         undefined,
+        undefined,
+        undefined,
       );
 
       expect(provider).toEqual({
@@ -170,6 +172,8 @@ describe('AuthHelper', () => {
           registerOptions.callback,
           resetPasswordOptions,
           updateAccountOptions.callback,
+          registerOptions.beforeSaveCallback,
+          updateAccountOptions.beforeSaveCallback,
         );
 
         AuthService = provider.useClass;

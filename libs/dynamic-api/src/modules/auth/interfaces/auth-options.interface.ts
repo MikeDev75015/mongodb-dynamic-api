@@ -1,7 +1,7 @@
 import { Type, ValidationPipeOptions } from '@nestjs/common';
 import {
   AuthAbilityPredicate,
-  DynamicApiResetPasswordCallback,
+  DynamicApiResetPasswordCallback, DynamicApiServiceBeforeSaveCallback,
   DynamicApiServiceCallback,
   DynamicApiWebSocketOptions,
 } from '../../../interfaces';
@@ -21,6 +21,7 @@ type DynamicApiLoginOptions<Entity extends BaseEntity = any> = {
 }
 
 type DynamicApiRegisterOptions<Entity extends BaseEntity = any> = {
+  beforeSaveCallback?: DynamicApiServiceBeforeSaveCallback<Entity>;
   callback?: DynamicApiServiceCallback<Entity>;
   protected?: boolean;
   abilityPredicate?: AuthAbilityPredicate;
@@ -28,6 +29,7 @@ type DynamicApiRegisterOptions<Entity extends BaseEntity = any> = {
 };
 
 type DynamicApiUpdateAccountOptions<Entity extends BaseEntity = any> = {
+  beforeSaveCallback?: DynamicApiServiceBeforeSaveCallback<Entity>;
   callback?: DynamicApiServiceCallback<Entity>;
   abilityPredicate?: AuthAbilityPredicate;
   additionalFieldsToExclude?: (keyof Entity)[];
@@ -36,6 +38,7 @@ type DynamicApiUpdateAccountOptions<Entity extends BaseEntity = any> = {
 type DynamicApiResetPasswordOptions<Entity extends BaseEntity = any> = {
   emailField?: keyof Entity | string;
   expirationInMinutes?: number;
+  beforeChangePasswordCallback?: DynamicApiServiceBeforeSaveCallback<Entity>;
   resetPasswordCallback?: DynamicApiResetPasswordCallback<Entity>;
   changePasswordCallback?: DynamicApiServiceCallback<Entity>;
   changePasswordAbilityPredicate?: AuthAbilityPredicate;

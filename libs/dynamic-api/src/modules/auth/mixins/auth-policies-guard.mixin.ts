@@ -14,10 +14,10 @@ function AuthPoliciesGuardMixin<Entity extends BaseEntity>(
     protected abilityPredicate = abilityPredicate;
 
     canActivate(context: ExecutionContext): boolean {
-      const { user } = context.switchToHttp().getRequest();
+      const { user, body } = context.switchToHttp().getRequest();
 
       if (this.abilityPredicate && (
-        !user || !this.abilityPredicate(user)
+        !user || !this.abilityPredicate(user, body)
       )) {
         throw new ForbiddenException('Access denied');
       }

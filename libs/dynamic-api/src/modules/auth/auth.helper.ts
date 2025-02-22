@@ -1,12 +1,4 @@
-import {
-  Controller,
-  ForbiddenException,
-  Inject,
-  Injectable,
-  Type,
-  UnauthorizedException, UseFilters,
-  ValidationPipeOptions,
-} from '@nestjs/common';
+import { Controller, ForbiddenException, Inject, Injectable, Type, UnauthorizedException, UseFilters, ValidationPipeOptions } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { PassportStrategy } from '@nestjs/passport';
@@ -17,23 +9,10 @@ import { Strategy } from 'passport-local';
 import { ValidatorPipe } from '../../decorators';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { DynamicAPIWsExceptionFilter } from '../../filters';
-import {
-  AuthAbilityPredicate,
-  DynamicApiServiceCallback,
-  DynamicAPIServiceProvider,
-  GatewayOptions,
-} from '../../interfaces';
+import { AuthAbilityPredicate, DynamicApiServiceBeforeSaveCallback, DynamicApiServiceCallback, DynamicAPIServiceProvider, GatewayOptions } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BcryptService } from '../../services';
-import {
-  AuthControllerConstructor,
-  AuthGatewayConstructor,
-  AuthService,
-  DynamicApiLoginOptions,
-  DynamicApiRegisterOptions,
-  DynamicApiResetPasswordOptions,
-  DynamicApiUpdateAccountOptions,
-} from './interfaces';
+import { AuthControllerConstructor, AuthGatewayConstructor, AuthService, DynamicApiLoginOptions, DynamicApiRegisterOptions, DynamicApiResetPasswordOptions, DynamicApiUpdateAccountOptions } from './interfaces';
 import { AuthControllerMixin, AuthGatewayMixin } from './mixins';
 import { BaseAuthService } from './services';
 
@@ -86,14 +65,19 @@ function createAuthServiceProvider<Entity extends BaseEntity>(
   registerCallback: DynamicApiServiceCallback<Entity> | undefined,
   resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined,
   updateAccountCallback: DynamicApiServiceCallback<Entity> | undefined,
+  beforeRegisterCallback: DynamicApiServiceBeforeSaveCallback<Entity> | undefined,
+  beforeUpdateAccountCallback: DynamicApiServiceBeforeSaveCallback<Entity> | undefined,
 ): DynamicAPIServiceProvider {
   class AuthService extends BaseAuthService<Entity> {
     protected entity = userEntity;
     protected additionalRequestFields = additionalFields;
     protected loginField = loginField;
     protected passwordField = passwordField;
+
+    protected beforeRegisterCallback = beforeRegisterCallback;
     protected registerCallback = registerCallback;
 
+    protected beforeUpdateAccountCallback = beforeUpdateAccountCallback;
     protected updateAccountCallback = updateAccountCallback;
     protected loginCallback = loginCallback;
     protected resetPasswordOptions = resetPasswordOptions;

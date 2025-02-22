@@ -1,5 +1,5 @@
 import { Body, Get, HttpCode, HttpStatus, Patch, Post, Request, Type, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiProperty, IntersectionType, PartialType, PickType } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiProperty, IntersectionType, PartialType, PickType } from '@nestjs/swagger';
 import { AuthDecoratorsBuilder } from '../../../builders';
 import { ApiEndpointVisibility, Public } from '../../../decorators';
 import { RouteDecoratorsHelper } from '../../../helpers';
@@ -142,7 +142,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
 
     @RouteDecoratorsHelper(authRegisterDecorators)
     @HttpCode(HttpStatus.CREATED)
-    @ApiOkResponse({ type: AuthPresenter })
+    @ApiCreatedResponse({ type: AuthPresenter })
     @Post('register')
     register(@Body() body: AuthRegisterDto) {
       return this.service.register(body);

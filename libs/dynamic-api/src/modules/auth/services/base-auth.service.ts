@@ -1,7 +1,7 @@
 import { BadRequestException, ForbiddenException, Logger, Type, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Model, UpdateQuery, UpdateWithAggregationPipeline } from 'mongoose';
-import { DynamicApiResetPasswordCallbackMethods, DynamicApiServiceCallback } from '../../../interfaces';
+import { DynamicApiResetPasswordCallbackMethods, DynamicApiServiceBeforeSaveCallback, DynamicApiServiceCallback } from '../../../interfaces';
 import { BaseEntity } from '../../../models';
 import { BaseService, BcryptService } from '../../../services';
 import { DynamicApiResetPasswordOptions } from '../interfaces';
@@ -11,7 +11,9 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
   protected loginField = 'email' as keyof Entity;
   protected passwordField = 'password' as keyof Entity;
   protected additionalRequestFields: (keyof Entity)[] = [];
+  protected beforeRegisterCallback: DynamicApiServiceBeforeSaveCallback<Entity>;
   protected registerCallback: DynamicApiServiceCallback<Entity> | undefined;
+  protected beforeUpdateAccountCallback: DynamicApiServiceBeforeSaveCallback<Entity>;
   protected updateAccountCallback: DynamicApiServiceCallback<Entity> | undefined;
   protected loginCallback: DynamicApiServiceCallback<Entity> | undefined;
   protected resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined;
@@ -43,13 +45,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
       return null;
     }
 
-    const fieldsToBuild = [
-      '_id' as keyof Entity,
-      this.loginField,
-      ...this.additionalRequestFields,
-    ];
-
-    return this.buildUserFields(user, fieldsToBuild);
+    return { ...user, id: user._id.toString() } as Entity;
   }
 
   protected async login(user: Entity, fromMember = false) {
@@ -85,6 +81,12 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     try {
       // @ts-ignore
       const hashedPassword = await this.bcryptService.hashPassword(userToCreate[this.passwordField]);
+
+      if (this.beforeRegisterCallback) {
+        userToCreate =
+          await this.beforeRegisterCallback(userToCreate as Entity, { hashedPassword }, this.callbackMethods);
+      }
+
       const created = await this.model.create({ ...userToCreate, [this.passwordField]: hashedPassword });
 
       if (this.registerCallback) {
@@ -118,6 +120,14 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
 
   protected async updateAccount({ id }: Entity, update: Partial<Entity>): Promise<Entity> {
     this.verifyArguments(id, update);
+
+    if (this.beforeUpdateAccountCallback) {
+      const user = (
+        await this.model.findOne({ _id: id }).lean().exec()
+      ) as Entity;
+      update =
+        await this.beforeUpdateAccountCallback({ ...user, id: user._id.toString() }, { update }, this.callbackMethods);
+    }
 
     await this.model.updateOne(
       { _id: id },
@@ -225,16 +235,29 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
 
     const hashedPassword = await this.bcryptService.hashPassword(newPassword);
 
+    if (this.resetPasswordOptions?.beforeChangePasswordCallback) {
+      const user = (
+        await this.model.findOne({ _id: userId }).lean().exec()
+      ) as Entity;
+      await this.resetPasswordOptions.beforeChangePasswordCallback(
+        { ...user, id: user._id.toString() },
+        { resetPasswordToken, newPassword, hashedPassword },
+        this.callbackMethods,
+      );
+    }
+
     await this.model.updateOne(
       { _id: userId },
       // @ts-ignore
-      { $set: { [this.passwordField]: hashedPassword } },
+      { $set: { [this.passwordField]: hashedPassword, resetPasswordToken: null } },
     );
 
     if (this.resetPasswordOptions?.changePasswordCallback) {
       const user = (await this.model.findOne({ _id: userId }).lean().exec()) as Entity;
-      const instance = this.buildInstance(user);
-      await this.resetPasswordOptions.changePasswordCallback(instance, this.callbackMethods);
+      await this.resetPasswordOptions.changePasswordCallback(
+        { ...user, id: user._id.toString() },
+        this.callbackMethods,
+      );
     }
   }
 

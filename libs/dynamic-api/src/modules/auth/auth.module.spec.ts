@@ -180,6 +180,8 @@ describe('AuthModule', () => {
           undefined,
           undefined,
           undefined,
+          undefined,
+          undefined,
         );
 
         expect(spyCreateLocalStrategyProvider).toHaveBeenCalledTimes(1);
@@ -246,6 +248,8 @@ describe('AuthModule', () => {
           fullOptions.register.callback,
           fullOptions.resetPassword,
           fullOptions.updateAccount.callback,
+          fullOptions.register.beforeSaveCallback,
+          fullOptions.updateAccount.beforeSaveCallback,
         );
 
         expect(spyCreateLocalStrategyProvider).toHaveBeenCalledTimes(1);
