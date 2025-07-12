@@ -39,14 +39,14 @@ function AuthSocketPoliciesGuardMixin<Entity extends BaseEntity>(
     protected abilityPredicate = abilityPredicate;
 
     override async canActivate(context: ExecutionContext): Promise<boolean> {
-      const [socket] = context.getArgs();
+      const [socket, data, _, _event] = context.getArgs();
 
       if (this.abilityPredicate) {
         const accessToken = this.getAccessTokenFromSocketQuery(socket);
 
         socket.user = await this.extractUserFromToken(accessToken);
 
-        if (!socket.user || !this.abilityPredicate(socket.user)) {
+        if (!socket.user || !this.abilityPredicate(socket.user, data)) {
           throw new WsException('Access denied');
         }
       }
