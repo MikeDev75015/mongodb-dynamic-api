@@ -1,6 +1,7 @@
 import { Type, UseFilters } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WsException } from '@nestjs/websockets';
+import { plainToInstance } from 'class-transformer';
 import { isEmpty } from 'lodash';
 import { DynamicAPIWsExceptionFilter } from '../../filters';
 import { BaseGateway } from '../../gateways';
@@ -90,7 +91,7 @@ function AggregateGatewayMixin<Entity extends BaseEntity>(
 
       this.addUserToSocket(socket, isPublic);
 
-      const { list, count, totalPage } = await this.service.aggregate(toPipeline(body));
+      const { list, count, totalPage } = await this.service.aggregate(toPipeline(plainToInstance(AggregateData, body)));
 
       const fromAggregate = (
         AggregateResponse as Mappable<Entity>

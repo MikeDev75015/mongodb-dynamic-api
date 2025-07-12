@@ -1,4 +1,5 @@
 import { BadRequestException, Query, Type, UseGuards } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { Aggregatable, DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
@@ -90,7 +91,7 @@ function AggregateControllerMixin<Entity extends BaseEntity>(
         throw new BadRequestException('Query DTO must have toPipeline static method');
       }
 
-      const pipelineBuilt = toPipeline(query);
+      const pipelineBuilt = toPipeline(plainToInstance(AggregateQuery, query));
 
       if (!pipelineBuilt.length) {
         throw new BadRequestException('Invalid pipeline, no stages found');
