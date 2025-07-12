@@ -1,6 +1,6 @@
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { WsException } from '@nestjs/websockets';
-import { ExtendedSocket, PoliciesGuard } from '../../../interfaces';
+import { AuthAbilityPredicate, ExtendedSocket, PoliciesGuard } from '../../../interfaces';
 import { BaseEntity } from '../../../models';
 import { AuthPoliciesGuardMixin, AuthSocketPoliciesGuardMixin } from './auth-policies-guard.mixin';
 
@@ -87,6 +87,10 @@ describe('AuthSocketPoliciesGuardMixin', () => {
   let socket: ExtendedSocket<User>;
   let user: User;
 
+  const fakeData = {
+    isAdmin: true,
+  };
+
   beforeEach(async () => {
     class AuthSocketPoliciesGuard extends AuthSocketPoliciesGuardMixin(User, undefined) {}
 
@@ -96,7 +100,7 @@ describe('AuthSocketPoliciesGuardMixin', () => {
         query: {},
       },
     } as ExtendedSocket<User>;
-    context = { getArgs: jest.fn(() => [socket]) } as unknown as ExecutionContext;
+    context = { getArgs: jest.fn(() => [socket, fakeData]) } as unknown as ExecutionContext;
   });
 
   describe('canActivate', () => {
@@ -107,8 +111,11 @@ describe('AuthSocketPoliciesGuardMixin', () => {
     });
 
     describe('with abilityPredicate', () => {
+      let abilityPredicate: jest.MockedFunction<AuthAbilityPredicate<User>>;
+
       beforeEach(() => {
-        guard['abilityPredicate'] = (user: User) => user.isAdmin;
+        abilityPredicate = jest.fn();
+        guard['abilityPredicate'] = abilityPredicate;
       });
 
       it('should throw a ws exception if accessToken is missing', async () => {
@@ -123,20 +130,24 @@ describe('AuthSocketPoliciesGuardMixin', () => {
       });
 
       it('should throw a ws exception if user exists and abilityPredicate returns false', async () => {
+        abilityPredicate.mockReturnValue(false);
         user = new User(false);
         jest.spyOn<any, any>(guard, 'extractUserFromToken').mockResolvedValueOnce(user);
         jest.spyOn<any, any>(guard, 'getAccessTokenFromSocketQuery').mockReturnValueOnce('token');
 
         await expect(guard.canActivate(context)).rejects.toThrow(new WsException('Access denied'));
+        expect(abilityPredicate).toHaveBeenCalledWith(user, fakeData);
       });
 
       it('should allow access if user exists and abilityPredicate returns true', async () => {
+        abilityPredicate.mockReturnValue(true);
         user = new User(true);
         jest.spyOn<any, any>(guard, 'extractUserFromToken').mockResolvedValueOnce(user);
         jest.spyOn<any, any>(guard, 'getAccessTokenFromSocketQuery').mockReturnValueOnce('token');
 
         await expect(guard.canActivate(context)).resolves.toBe(true);
         expect(socket.user).toBe(user);
+        expect(abilityPredicate).toHaveBeenCalledWith(user, fakeData);
       });
     });
   });
