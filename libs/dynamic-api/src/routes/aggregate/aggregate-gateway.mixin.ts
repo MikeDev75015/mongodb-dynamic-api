@@ -2,7 +2,6 @@ import { Type, UseFilters } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WsException } from '@nestjs/websockets';
 import { plainToInstance } from 'class-transformer';
-import { isEmpty } from 'lodash';
 import { DynamicAPIWsExceptionFilter } from '../../filters';
 import { BaseGateway } from '../../gateways';
 import { addVersionSuffix, getMixinData, provideName } from '../../helpers';
@@ -75,12 +74,8 @@ function AggregateGatewayMixin<Entity extends BaseEntity>(
     @SubscribeMessage(event)
     async aggregate(
       @ConnectedSocket() socket: ExtendedSocket<Entity>,
-      @MessageBody() body: AggregateData,
+      @MessageBody() data: AggregateData,
     ): GatewayResponse<AggregateResponse[]> {
-      if (isEmpty(body)) {
-        throw new WsException('Invalid data');
-      }
-
       const toPipeline = (
         AggregateData as Aggregatable<AggregateData>
       ).toPipeline;
@@ -91,7 +86,7 @@ function AggregateGatewayMixin<Entity extends BaseEntity>(
 
       this.addUserToSocket(socket, isPublic);
 
-      const { list, count, totalPage } = await this.service.aggregate(toPipeline(plainToInstance(AggregateData, body)));
+      const { list, count, totalPage } = await this.service.aggregate(toPipeline(plainToInstance(AggregateData, data)));
 
       const fromAggregate = (
         AggregateResponse as Mappable<Entity>
