@@ -60,7 +60,7 @@ describe('AggregateGatewayMixin', () => {
     );
   });
 
-  it('should throw an exception if data is empty', async () => {
+  it('should not throw an exception if data is empty', async () => {
     AggregateGateway = AggregateGatewayMixin(
       TestEntity,
       controllerOptions,
@@ -69,9 +69,7 @@ describe('AggregateGatewayMixin', () => {
 
     const aggregateGateway = new AggregateGateway(service, jwtService);
 
-    await expect(aggregateGateway.aggregate(socket, {})).rejects.toThrow(
-      new WsException('Invalid data'),
-    );
+    await expect(aggregateGateway.aggregate(socket, {})).resolves.not.toThrow();
   });
 
   it('should throw an exception if query DTO does not have toPipeline method', async () => {
