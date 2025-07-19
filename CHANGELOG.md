@@ -1,5 +1,7 @@
 Changelog
 
+## [2.10.1](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.10.0...v2.10.1) (2025-07-19)
+
 ## [2.10.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.9.0...v2.10.0) (2025-02-22)
 
 
