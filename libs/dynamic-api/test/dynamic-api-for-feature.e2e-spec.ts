@@ -417,7 +417,7 @@ describe('DynamicApiModule forFeature (e2e)', () => {
 
   describe('Entity extends SoftDeletableEntity', () => {
     @DynamicAPISchemaOptions({
-      indexes: [{ fields: { name: 1, deletedAt: 1 }, options: { unique: true } }],
+      indexes: [{ fields: { name: 1 }, options: { unique: true, partialFilterExpression: { deletedAt: { $eq: null } } } }],
     })
     @Schema({ collection: 'test-entities' })
     class TestDeletableEntity extends SoftDeletableEntity {
