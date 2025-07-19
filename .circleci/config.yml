@@ -8,7 +8,7 @@ orbs:
 executors:
   node:
     docker:
-      - image: cimg/node:20.18.1
+      - image: cimg/node:24.4.0
     resource_class: medium
 
 aliases:
@@ -243,7 +243,7 @@ jobs:
 
   e2e-tests-mongodb-job:
     docker:
-      - image: cimg/node:20.18.1
+      - image: cimg/node:24.4.0
       - image: mongo:latest
         command: --auth
         environment:
