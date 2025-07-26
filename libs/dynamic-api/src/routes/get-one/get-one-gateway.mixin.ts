@@ -1,12 +1,13 @@
-import { Type, UseFilters } from '@nestjs/common';
+import { Type, UseFilters, UseGuards } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WsException } from '@nestjs/websockets';
 import { EntityParam } from '../../dtos';
 import { DynamicAPIWsExceptionFilter } from '../../filters';
 import { BaseGateway } from '../../gateways';
+import { JwtSocketGuard } from '../../guards';
 import { addVersionSuffix, getMixinData, provideName } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket, Mappable } from '../../interfaces';
-import { EntityPresenterMixin } from '../../mixins';
+import { EntityPresenterMixin, SocketPoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { GetOneGateway, GetOneGatewayConstructor } from './get-one-gateway.interface';
 import { GetOneService } from './get-one-service.interface';
@@ -22,6 +23,7 @@ function GetOneGatewayMixin<Entity extends BaseEntity>(
     displayedName,
     isPublic,
     event,
+    abilityPredicate,
   } = getMixinData(
     entity,
     controllerOptions,
@@ -40,6 +42,15 @@ function GetOneGatewayMixin<Entity extends BaseEntity>(
     writable: false,
   });
 
+  class GetOnePoliciesGuard extends SocketPoliciesGuardMixin(
+    entity,
+    routeType,
+    event,
+    version,
+    abilityPredicate,
+    isPublic,
+  ) {}
+
   class BaseGetOneGateway extends BaseGateway<Entity> implements GetOneGateway<Entity> {
     protected readonly entity = entity;
 
@@ -51,16 +62,15 @@ function GetOneGatewayMixin<Entity extends BaseEntity>(
     }
 
     @UseFilters(new DynamicAPIWsExceptionFilter())
+    @UseGuards(new JwtSocketGuard(isPublic), GetOnePoliciesGuard)
     @SubscribeMessage(event)
     async getOne(
-      @ConnectedSocket() socket: ExtendedSocket<Entity>,
+      @ConnectedSocket() _socket: ExtendedSocket<Entity>,
       @MessageBody() body: EntityParam,
     ) {
       if (!body?.id) {
         throw new WsException('Invalid request body');
       }
-
-      this.addUserToSocket(socket, isPublic);
 
       const entity = await this.service.getOne(body.id);
 

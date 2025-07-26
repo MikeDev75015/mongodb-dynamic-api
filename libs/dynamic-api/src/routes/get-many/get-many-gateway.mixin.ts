@@ -1,12 +1,13 @@
-import { Type, UseFilters } from '@nestjs/common';
+import { Type, UseFilters, UseGuards } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConnectedSocket, MessageBody, SubscribeMessage } from '@nestjs/websockets';
 import { EntityQuery } from '../../dtos';
 import { DynamicAPIWsExceptionFilter } from '../../filters';
 import { BaseGateway } from '../../gateways';
+import { JwtSocketGuard } from '../../guards';
 import { addVersionSuffix, getMixinData, provideName } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket, Mappable } from '../../interfaces';
-import { EntityPresenterMixin } from '../../mixins';
+import { EntityPresenterMixin, SocketPoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { GetManyGateway, GetManyGatewayConstructor } from './get-many-gateway.interface';
 import { GetManyService } from './get-many-service.interface';
@@ -22,6 +23,7 @@ function GetManyGatewayMixin<Entity extends BaseEntity>(
     displayedName,
     isPublic,
     event,
+    abilityPredicate,
   } = getMixinData(
     entity,
     controllerOptions,
@@ -47,6 +49,15 @@ function GetManyGatewayMixin<Entity extends BaseEntity>(
     writable: false,
   });
 
+  class GetManyPoliciesGuard extends SocketPoliciesGuardMixin(
+    entity,
+    routeType,
+    event,
+    version,
+    abilityPredicate,
+    isPublic,
+  ) {}
+
   class BaseGetManyGateway extends BaseGateway<Entity> implements GetManyGateway<Entity> {
     protected readonly entity = entity;
 
@@ -57,13 +68,12 @@ function GetManyGatewayMixin<Entity extends BaseEntity>(
       super(jwtService);
     }
     @UseFilters(new DynamicAPIWsExceptionFilter())
+    @UseGuards(new JwtSocketGuard(isPublic), GetManyPoliciesGuard)
     @SubscribeMessage(event)
     async getMany(
-      @ConnectedSocket() socket: ExtendedSocket<Entity>,
+      @ConnectedSocket() _socket: ExtendedSocket<Entity>,
       @MessageBody() body: GetManyData,
     ) {
-      this.addUserToSocket(socket, isPublic);
-
       const list = await this.service.getMany(body);
 
       const fromEntities = (

@@ -1,9 +1,10 @@
-import { Type, UseFilters } from '@nestjs/common';
+import { Type, UseFilters, UseGuards } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WsException } from '@nestjs/websockets';
 import { isEmpty } from 'lodash';
 import { DynamicAPIWsExceptionFilter } from '../../filters';
 import { BaseGateway } from '../../gateways';
+import { JwtSocketGuard } from '../../guards';
 import { addVersionSuffix, getMixinData, provideName } from '../../helpers';
 import {
   DynamicApiControllerOptions,
@@ -12,6 +13,7 @@ import {
   GatewayResponse,
   Mappable,
 } from '../../interfaces';
+import { SocketPoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { CreateManyBodyMixin } from './create-many-body.mixin';
 import { CreateManyGateway, CreateManyGatewayConstructor } from './create-many-gateway.interface';
@@ -29,6 +31,7 @@ function CreateManyGatewayMixin<Entity extends BaseEntity>(
     displayedName,
     isPublic,
     event,
+    abilityPredicate,
   } = getMixinData(
     entity,
     controllerOptions,
@@ -52,6 +55,15 @@ function CreateManyGatewayMixin<Entity extends BaseEntity>(
     writable: false,
   });
 
+  class CreateManyPoliciesGuard extends SocketPoliciesGuardMixin(
+    entity,
+    routeType,
+    event,
+    version,
+    abilityPredicate,
+    isPublic,
+  ) {}
+
   class BaseCreateManyGateway extends BaseGateway<Entity> implements CreateManyGateway<Entity> {
     protected readonly entity = entity;
 
@@ -63,9 +75,10 @@ function CreateManyGatewayMixin<Entity extends BaseEntity>(
     }
 
     @UseFilters(new DynamicAPIWsExceptionFilter())
+    @UseGuards(new JwtSocketGuard(isPublic), CreateManyPoliciesGuard)
     @SubscribeMessage(event)
     async createMany(
-      @ConnectedSocket() socket: ExtendedSocket<Entity>,
+      @ConnectedSocket() _socket: ExtendedSocket<Entity>,
       @MessageBody() body: CreateManyData,
     ): GatewayResponse<CreateManyResponse[]> {
       if (!(
@@ -76,8 +89,6 @@ function CreateManyGatewayMixin<Entity extends BaseEntity>(
       )) {
         throw new WsException('Invalid request body');
       }
-
-      this.addUserToSocket(socket, isPublic);
 
       let toCreateList = body.list as Partial<Entity>[];
 

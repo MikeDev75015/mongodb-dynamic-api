@@ -1,14 +1,14 @@
-import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
 import { isEmpty } from 'lodash';
 import { ManyEntityQuery } from '../dtos';
 import { DynamicApiModule } from '../dynamic-api.module';
 import { ExtendedSocket } from '../interfaces';
+import { MongoDBDynamicApiLogger } from '../logger';
 import { BaseEntity } from '../models';
 
 export abstract class BaseGateway<Entity extends BaseEntity> {
-  private readonly logger = new Logger(BaseGateway.name);
+  private readonly logger = new MongoDBDynamicApiLogger(BaseGateway.name);
 
   protected constructor(protected readonly jwtService: JwtService) {}
 

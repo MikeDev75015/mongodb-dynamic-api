@@ -1,9 +1,10 @@
-import { Type, UseFilters } from '@nestjs/common';
+import { Type, UseFilters, UseGuards } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WsException } from '@nestjs/websockets';
 import { plainToInstance } from 'class-transformer';
 import { DynamicAPIWsExceptionFilter } from '../../filters';
 import { BaseGateway } from '../../gateways';
+import { JwtSocketGuard } from '../../guards';
 import { addVersionSuffix, getMixinData, provideName } from '../../helpers';
 import {
   Aggregatable,
@@ -13,6 +14,7 @@ import {
   GatewayResponse,
   Mappable,
 } from '../../interfaces';
+import { SocketPoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { AggregateGateway, AggregateGatewayConstructor } from './aggregate-gateway.interface';
 import { AggregatePresenterMixin } from './aggregate-presenter.mixin';
@@ -29,6 +31,7 @@ function AggregateGatewayMixin<Entity extends BaseEntity>(
     displayedName,
     isPublic,
     event,
+    abilityPredicate,
   } = getMixinData(
     entity,
     controllerOptions,
@@ -56,6 +59,15 @@ function AggregateGatewayMixin<Entity extends BaseEntity>(
     writable: false,
   });
 
+  class AggregatePoliciesGuard extends SocketPoliciesGuardMixin(
+    entity,
+    routeType,
+    event,
+    version,
+    abilityPredicate,
+    isPublic,
+  ) {}
+
   class BaseAggregateGateway extends BaseGateway<Entity> implements AggregateGateway<
     Entity,
     AggregateData,
@@ -71,9 +83,10 @@ function AggregateGatewayMixin<Entity extends BaseEntity>(
     }
 
     @UseFilters(new DynamicAPIWsExceptionFilter())
+    @UseGuards(new JwtSocketGuard(isPublic), AggregatePoliciesGuard)
     @SubscribeMessage(event)
     async aggregate(
-      @ConnectedSocket() socket: ExtendedSocket<Entity>,
+      @ConnectedSocket() _socket: ExtendedSocket<Entity>,
       @MessageBody() data: AggregateData,
     ): GatewayResponse<AggregateResponse[]> {
       const toPipeline = (
@@ -83,8 +96,6 @@ function AggregateGatewayMixin<Entity extends BaseEntity>(
       if (!toPipeline) {
         throw new WsException('Query DTO must have toPipeline static method');
       }
-
-      this.addUserToSocket(socket, isPublic);
 
       const { list, count, totalPage } = await this.service.aggregate(toPipeline(plainToInstance(AggregateData, data)));
 

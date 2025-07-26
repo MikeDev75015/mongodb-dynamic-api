@@ -113,6 +113,8 @@ describe('BaseService', () => {
       } as unknown as Model<any>;
       jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
       const service = new TestService(model);
+      // @ts-ignore
+      service['entity'] = TestEntity;
 
       const result = await service['aggregateDocumentsWithAbilityPredicate']([]);
 
@@ -128,6 +130,8 @@ describe('BaseService', () => {
       jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
 
       const service = new TestService(model);
+      // @ts-ignore
+      service['entity'] = TestEntity;
       service['abilityPredicate'] = jest.fn().mockReturnValue(true);
 
       const result = await service['aggregateDocumentsWithAbilityPredicate']([]);
@@ -144,6 +148,8 @@ describe('BaseService', () => {
       } as unknown as Model<any>;
       jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
       const service = new TestService(model);
+      // @ts-ignore
+      service['entity'] = TestEntity;
       service['abilityPredicate'] = jest.fn().mockReturnValue(false);
 
       await expect(service['aggregateDocumentsWithAbilityPredicate']([])).rejects.toThrow(
@@ -162,6 +168,8 @@ describe('BaseService', () => {
       } as unknown as Model<any>;
       jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
       const service = new TestService(model);
+      // @ts-ignore
+      service['entity'] = TestEntity;
 
       const result = await service['findManyDocumentsWithAbilityPredicate']();
 
@@ -178,6 +186,8 @@ describe('BaseService', () => {
       jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
 
       const service = new TestService(model);
+      // @ts-ignore
+      service['entity'] = TestEntity;
       service['abilityPredicate'] = jest.fn().mockReturnValue(true);
 
       const result = await service['findManyDocumentsWithAbilityPredicate']();
@@ -195,6 +205,8 @@ describe('BaseService', () => {
       } as unknown as Model<any>;
       jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
       const service = new TestService(model);
+      // @ts-ignore
+      service['entity'] = TestEntity;
       service['abilityPredicate'] = jest.fn().mockReturnValue(false);
 
       await expect(service['findManyDocumentsWithAbilityPredicate']()).rejects.toThrow(
@@ -213,6 +225,8 @@ describe('BaseService', () => {
       } as unknown as Model<any>;
       jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
       const service = new TestService(model);
+      // @ts-ignore
+      service['entity'] = TestEntity;
 
       const result = await service['findOneDocumentWithAbilityPredicate']('id', { test: 'unit' });
 
@@ -228,6 +242,8 @@ describe('BaseService', () => {
       } as unknown as Model<any>;
       jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
       const service = new TestService(model);
+      // @ts-ignore
+      service['entity'] = TestEntity;
       service['abilityPredicate'] = jest.fn().mockReturnValue(true);
 
       const result = await service['findOneDocumentWithAbilityPredicate']('id');
@@ -245,6 +261,8 @@ describe('BaseService', () => {
       } as unknown as Model<any>;
       jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
       const service = new TestService(model);
+      // @ts-ignore
+      service['entity'] = TestEntity;
       service['abilityPredicate'] = jest.fn().mockReturnValue(true);
       const authAbilityPredicate = jest.fn().mockReturnValue(true);
 
@@ -263,6 +281,8 @@ describe('BaseService', () => {
       } as unknown as Model<any>;
       jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
       const service = new TestService(model);
+      // @ts-ignore
+      service['entity'] = TestEntity;
       service['abilityPredicate'] = jest.fn().mockReturnValue(false);
 
       await expect(service['findOneDocumentWithAbilityPredicate'](undefined)).rejects.toThrow(
@@ -278,6 +298,8 @@ describe('BaseService', () => {
       } as unknown as Model<any>;
       jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
       const service = new TestService(model);
+      // @ts-ignore
+      service['entity'] = TestEntity;
 
       await expect(service['findOneDocumentWithAbilityPredicate']('id')).rejects.toThrow(
         new NotFoundException('Document not found'),

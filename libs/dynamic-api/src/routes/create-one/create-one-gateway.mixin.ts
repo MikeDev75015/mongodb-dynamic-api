@@ -1,12 +1,13 @@
-import { Type, UseFilters } from '@nestjs/common';
+import { Type, UseFilters, UseGuards } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WsException } from '@nestjs/websockets';
 import { isEmpty } from 'lodash';
 import { DynamicAPIWsExceptionFilter } from '../../filters';
 import { BaseGateway } from '../../gateways';
+import { JwtSocketGuard } from '../../guards';
 import { addVersionSuffix, getMixinData, provideName } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket, Mappable } from '../../interfaces';
-import { EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
+import { EntityBodyMixin, EntityPresenterMixin, SocketPoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { CreateOneGateway, CreateOneGatewayConstructor } from './create-one-gateway.interface';
 import { CreateOneService } from './create-one-service.interface';
@@ -22,6 +23,7 @@ function CreateOneGatewayMixin<Entity extends BaseEntity>(
     displayedName,
     isPublic,
     event,
+    abilityPredicate,
   } = getMixinData(
     entity,
     controllerOptions,
@@ -45,6 +47,15 @@ function CreateOneGatewayMixin<Entity extends BaseEntity>(
     writable: false,
   });
 
+  class CreateOnePoliciesGuard extends SocketPoliciesGuardMixin(
+    entity,
+    routeType,
+    event,
+    version,
+    abilityPredicate,
+    isPublic,
+  ) {}
+
   class BaseCreateOneGateway extends BaseGateway<Entity> implements CreateOneGateway<Entity> {
     protected readonly entity = entity;
 
@@ -56,16 +67,15 @@ function CreateOneGatewayMixin<Entity extends BaseEntity>(
     }
 
     @UseFilters(new DynamicAPIWsExceptionFilter())
+    @UseGuards(new JwtSocketGuard(isPublic), CreateOnePoliciesGuard)
     @SubscribeMessage(event)
     async createOne(
-      @ConnectedSocket() socket: ExtendedSocket<Entity>,
+      @ConnectedSocket() _socket: ExtendedSocket<Entity>,
       @MessageBody() body: CreateOneData,
     ) {
       if (isEmpty(body)) {
         throw new WsException('Invalid request body');
       }
-
-      this.addUserToSocket(socket, isPublic);
 
       const toEntity = (
         CreateOneData as Mappable<Entity>

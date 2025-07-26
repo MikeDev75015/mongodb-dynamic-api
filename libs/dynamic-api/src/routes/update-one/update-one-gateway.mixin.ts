@@ -4,10 +4,10 @@ import { ConnectedSocket, MessageBody, SubscribeMessage, WsException } from '@ne
 import { EntityParam } from '../../dtos';
 import { DynamicAPIWsExceptionFilter } from '../../filters';
 import { BaseGateway } from '../../gateways';
-import { DynamicApiJwtAuthGuard } from '../../guards';
+import { JwtSocketGuard } from '../../guards';
 import { addVersionSuffix, getMixinData, provideName } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket, Mappable } from '../../interfaces';
-import { EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
+import { EntityBodyMixin, EntityPresenterMixin, SocketPoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { UpdateOneGateway, UpdateOneGatewayConstructor } from './update-one-gateway.interface';
 import { UpdateOneService } from './update-one-service.interface';
@@ -23,6 +23,7 @@ function UpdateOneGatewayMixin<Entity extends BaseEntity>(
     displayedName,
     isPublic,
     event,
+    abilityPredicate,
   } = getMixinData(
     entity,
     controllerOptions,
@@ -50,6 +51,15 @@ function UpdateOneGatewayMixin<Entity extends BaseEntity>(
     writable: false,
   });
 
+  class UpdateOnePoliciesGuard extends SocketPoliciesGuardMixin(
+    entity,
+    routeType,
+    event,
+    version,
+    abilityPredicate,
+    isPublic,
+  ) {}
+
   class BaseUpdateOneGateway extends BaseGateway<Entity> implements UpdateOneGateway<Entity> {
     protected readonly entity = entity;
 
@@ -61,17 +71,15 @@ function UpdateOneGatewayMixin<Entity extends BaseEntity>(
     }
 
     @UseFilters(new DynamicAPIWsExceptionFilter())
-    @UseGuards(DynamicApiJwtAuthGuard)
+    @UseGuards(new JwtSocketGuard(isPublic), UpdateOnePoliciesGuard)
     @SubscribeMessage(event)
     async updateOne(
-      @ConnectedSocket() socket: ExtendedSocket<Entity>,
+      @ConnectedSocket() _socket: ExtendedSocket<Entity>,
       @MessageBody() body: EntityParam & UpdateOneData,
     ) {
       if (!body?.id || Object.keys(body).length === 1) {
         throw new WsException('Invalid request body');
       }
-
-      this.addUserToSocket(socket, isPublic);
 
       const { id, ...data } = body;
 

@@ -7,6 +7,7 @@ export * from './guards';
 export * from './helpers';
 export * from './interceptors';
 export * from './interfaces';
+export * from './logger';
 export * from './mixins';
 export * from './models';
 export * from './routes';

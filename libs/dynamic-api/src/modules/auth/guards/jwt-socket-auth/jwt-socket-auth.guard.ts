@@ -1,13 +1,14 @@
-import { CanActivate, ExecutionContext, Injectable, Logger } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
 import { isEmpty } from 'lodash';
 import { DynamicApiModule } from '../../../../dynamic-api.module';
 import { ExtendedSocket } from '../../../../interfaces';
+import { MongoDBDynamicApiLogger } from '../../../../logger';
 
 @Injectable()
 export class JwtSocketAuthGuard implements CanActivate {
-  private readonly logger = new Logger(JwtSocketAuthGuard.name);
+  private readonly logger = new MongoDBDynamicApiLogger(JwtSocketAuthGuard.name);
 
   public async canActivate(context: ExecutionContext): Promise<boolean> {
     const [socket] = context.getArgs();
