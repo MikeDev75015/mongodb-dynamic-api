@@ -1,13 +1,14 @@
-import { Type, UseFilters } from '@nestjs/common';
+import { Type, UseFilters, UseGuards } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WsException } from '@nestjs/websockets';
 import { isEmpty } from 'lodash';
 import { ManyEntityQuery } from '../../dtos';
 import { DynamicAPIWsExceptionFilter } from '../../filters';
 import { BaseGateway } from '../../gateways';
+import { JwtSocketGuard } from '../../guards';
 import { addVersionSuffix, getMixinData, provideName } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket, Mappable } from '../../interfaces';
-import { EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
+import { EntityBodyMixin, EntityPresenterMixin, SocketPoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { UpdateManyGateway, UpdateManyGatewayConstructor } from './update-many-gateway.interface';
 import { UpdateManyService } from './update-many-service.interface';
@@ -23,6 +24,7 @@ function UpdateManyGatewayMixin<Entity extends BaseEntity>(
     displayedName,
     isPublic,
     event,
+    abilityPredicate,
   } = getMixinData(
     entity,
     controllerOptions,
@@ -50,6 +52,15 @@ function UpdateManyGatewayMixin<Entity extends BaseEntity>(
     writable: false,
   });
 
+  class UpdateManyPoliciesGuard extends SocketPoliciesGuardMixin(
+    entity,
+    routeType,
+    event,
+    version,
+    abilityPredicate,
+    isPublic,
+  ) {}
+
   class BaseUpdateManyGateway extends BaseGateway<Entity> implements UpdateManyGateway<Entity> {
     protected readonly entity = entity;
 
@@ -61,16 +72,15 @@ function UpdateManyGatewayMixin<Entity extends BaseEntity>(
     }
 
     @UseFilters(new DynamicAPIWsExceptionFilter())
+    @UseGuards(new JwtSocketGuard(isPublic), UpdateManyPoliciesGuard)
     @SubscribeMessage(event)
     async updateMany(
-      @ConnectedSocket() socket: ExtendedSocket<Entity>,
+      @ConnectedSocket() _socket: ExtendedSocket<Entity>,
       @MessageBody() body: ManyEntityQuery & UpdateManyData,
     ) {
       if (!this.isValidManyBody(body)) {
         throw new WsException('Invalid request body');
       }
-
-      this.addUserToSocket(socket, isPublic);
 
       const { ids, ...data } = body;
 

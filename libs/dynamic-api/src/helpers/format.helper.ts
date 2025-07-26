@@ -3,7 +3,7 @@ import { RouteType } from '../interfaces';
 import { addVersionSuffix } from './versioning-config.helper';
 
 function getNamePrefix(routeType: RouteType, displayedName: string, version: string | undefined): string {
-  return `${routeType}${displayedName}${addVersionSuffix(version)}`;
+  return `${routeType}${displayedName}${version ? addVersionSuffix(version) : ''}`;
 }
 
 function pascalCase(str?: string) {
@@ -22,7 +22,7 @@ function provideName(
   routeType: RouteType,
   displayedName: string,
   version: string | undefined,
-  suffix: 'Service' | 'Controller' | 'PoliciesGuard' | 'Gateway',
+  suffix: 'Service' | 'Controller' | 'PoliciesGuard' | 'Gateway' | 'SocketPoliciesGuard',
 ) {
   return `${getNamePrefix(routeType, displayedName, version)}${suffix}`;
 }

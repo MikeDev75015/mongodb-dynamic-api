@@ -1,11 +1,13 @@
-import { Type, UseFilters } from '@nestjs/common';
+import { Type, UseFilters, UseGuards } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WsException } from '@nestjs/websockets';
 import { DeletePresenter, EntityParam } from '../../dtos';
 import { DynamicAPIWsExceptionFilter } from '../../filters';
 import { BaseGateway } from '../../gateways';
+import { JwtSocketGuard } from '../../guards';
 import { addVersionSuffix, getMixinData, provideName } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket, Mappable } from '../../interfaces';
+import { SocketPoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DeleteOneGateway, DeleteOneGatewayConstructor } from './delete-one-gateway.interface';
 import { DeleteOneService } from './delete-one-service.interface';
@@ -21,6 +23,7 @@ function DeleteOneGatewayMixin<Entity extends BaseEntity>(
     displayedName,
     isPublic,
     event,
+    abilityPredicate,
   } = getMixinData(
     entity,
     controllerOptions,
@@ -39,6 +42,15 @@ function DeleteOneGatewayMixin<Entity extends BaseEntity>(
     writable: false,
   });
 
+  class DeleteOnePoliciesGuard extends SocketPoliciesGuardMixin(
+    entity,
+    routeType,
+    event,
+    version,
+    abilityPredicate,
+    isPublic,
+  ) {}
+
   class BaseDeleteOneGateway extends BaseGateway<Entity> implements DeleteOneGateway<Entity> {
     protected readonly entity = entity;
 
@@ -50,16 +62,15 @@ function DeleteOneGatewayMixin<Entity extends BaseEntity>(
     }
 
     @UseFilters(new DynamicAPIWsExceptionFilter())
+    @UseGuards(new JwtSocketGuard(isPublic), DeleteOnePoliciesGuard)
     @SubscribeMessage(event)
     async deleteOne(
-      @ConnectedSocket() socket: ExtendedSocket<Entity>,
+      @ConnectedSocket() _socket: ExtendedSocket<Entity>,
       @MessageBody() body: EntityParam,
     ) {
       if (!body?.id) {
         throw new WsException('Invalid request body');
       }
-
-      this.addUserToSocket(socket, isPublic);
 
       const deleteResult = await this.service.deleteOne(body.id);
 

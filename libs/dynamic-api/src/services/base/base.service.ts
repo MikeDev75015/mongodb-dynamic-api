@@ -3,6 +3,7 @@ import { plainToInstance } from 'class-transformer';
 import { PipelineStage } from 'mongodb-pipeline-builder';
 import { FilterQuery, Model, PipelineStage as MongoosePipelineStage, Schema, UpdateQuery, UpdateWithAggregationPipeline } from 'mongoose';
 import { AbilityPredicate, AuthAbilityPredicate, DeleteResult, DynamicApiCallbackMethods, UpdateResult } from '../../interfaces';
+import { MongoDBDynamicApiLogger } from '../../logger';
 import { BaseEntity, SoftDeletableEntity } from '../../models';
 import { DynamicApiResetPasswordOptions } from '../../modules';
 import { DynamicApiGlobalStateService } from '../dynamic-api-global-state/dynamic-api-global-state.service';
@@ -19,6 +20,8 @@ export abstract class BaseService<Entity extends BaseEntity> {
   protected readonly resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined;
 
   protected readonly callbackMethods: DynamicApiCallbackMethods;
+
+  private readonly baseServiceLogger = new MongoDBDynamicApiLogger(BaseService.name);
 
   protected constructor(protected readonly model: Model<Entity>) {
     this.callbackMethods = {
@@ -46,6 +49,11 @@ export abstract class BaseService<Entity extends BaseEntity> {
   }
 
   protected async aggregateDocumentsWithAbilityPredicate(pipeline: any[]) {
+    this.baseServiceLogger.debug('aggregateDocumentsWithAbilityPredicate', {
+      pipeline: JSON.stringify(pipeline),
+      entityName: this.entity.name,
+    });
+
     const documents = await this.aggregateDocuments(this.entity, pipeline);
 
     if (this.abilityPredicate) {
@@ -56,6 +64,11 @@ export abstract class BaseService<Entity extends BaseEntity> {
   }
 
   protected async findManyDocumentsWithAbilityPredicate(conditions: FilterQuery<Entity> = {}) {
+    this.baseServiceLogger.debug('findManyDocumentsWithAbilityPredicate', {
+      conditions: JSON.stringify(conditions),
+      entityName: this.entity.name,
+    });
+
     const documents = await this.findManyDocuments(this.entity, conditions);
 
     if (this.abilityPredicate) {
@@ -70,6 +83,13 @@ export abstract class BaseService<Entity extends BaseEntity> {
     conditions: FilterQuery<Entity> = {},
     authAbilityPredicate?: AuthAbilityPredicate<Entity>,
   ) {
+    this.baseServiceLogger.debug('findOneDocumentWithAbilityPredicate', {
+      _id,
+      conditions: JSON.stringify(conditions),
+      entityName: this.entity.name,
+      authAbilityPredicate: !!authAbilityPredicate,
+    });
+
     const document = await this.findOneDocument(this.entity, {
       ...(
         _id ? { _id } : {}
@@ -185,6 +205,13 @@ export abstract class BaseService<Entity extends BaseEntity> {
   }
 
   protected handleAbilityPredicate(document: Entity, authAbilityPredicate?: AuthAbilityPredicate<Entity>) {
+    this.baseServiceLogger.debug('handleAbilityPredicate', {
+      documentId: document?._id?.toString() || document?.id,
+      entityName: this.entity.name,
+      abilityPredicate: !!this.abilityPredicate,
+      authAbilityPredicate: !!authAbilityPredicate,
+    });
+
     const isAllowed = authAbilityPredicate
       ? authAbilityPredicate(this.buildInstance(document))
       : this.abilityPredicate(document, this.user);

@@ -1,7 +1,8 @@
-import { BadRequestException, ForbiddenException, Logger, Type, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Type, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Model, UpdateQuery, UpdateWithAggregationPipeline } from 'mongoose';
 import { DynamicApiResetPasswordCallbackMethods, DynamicApiServiceBeforeSaveCallback, DynamicApiServiceCallback } from '../../../interfaces';
+import { MongoDBDynamicApiLogger } from '../../../logger';
 import { BaseEntity } from '../../../models';
 import { BaseService, BcryptService } from '../../../services';
 import { DynamicApiResetPasswordOptions } from '../interfaces';
@@ -20,7 +21,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
 
   private resetPasswordCallbackMethods: DynamicApiResetPasswordCallbackMethods<Entity> | undefined;
 
-  private readonly logger = new Logger('AuthService');
+  private readonly logger = new MongoDBDynamicApiLogger('AuthService');
 
   protected constructor(
     protected readonly model: Model<Entity>,

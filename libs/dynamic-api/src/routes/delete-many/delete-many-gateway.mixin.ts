@@ -1,11 +1,13 @@
-import { Type, UseFilters } from '@nestjs/common';
+import { Type, UseFilters, UseGuards } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WsException } from '@nestjs/websockets';
 import { DeletePresenter, ManyEntityQuery } from '../../dtos';
 import { DynamicAPIWsExceptionFilter } from '../../filters';
 import { BaseGateway } from '../../gateways';
+import { JwtSocketGuard } from '../../guards';
 import { addVersionSuffix, getMixinData, provideName } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket, Mappable } from '../../interfaces';
+import { SocketPoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DeleteManyGateway, DeleteManyGatewayConstructor } from './delete-many-gateway.interface';
 import { DeleteManyService } from './delete-many-service.interface';
@@ -21,6 +23,7 @@ function DeleteManyGatewayMixin<Entity extends BaseEntity>(
     displayedName,
     isPublic,
     event,
+    abilityPredicate,
   } = getMixinData(
     entity,
     controllerOptions,
@@ -37,6 +40,15 @@ function DeleteManyGatewayMixin<Entity extends BaseEntity>(
     writable: false,
   });
 
+  class DeleteManyPoliciesGuard extends SocketPoliciesGuardMixin(
+    entity,
+    routeType,
+    event,
+    version,
+    abilityPredicate,
+    isPublic,
+  ) {}
+
   class BaseDeleteManyGateway extends BaseGateway<Entity> implements DeleteManyGateway<Entity> {
     protected readonly entity = entity;
 
@@ -48,16 +60,15 @@ function DeleteManyGatewayMixin<Entity extends BaseEntity>(
     }
 
     @UseFilters(new DynamicAPIWsExceptionFilter())
+    @UseGuards(new JwtSocketGuard(isPublic), DeleteManyPoliciesGuard)
     @SubscribeMessage(event)
     async deleteMany(
-      @ConnectedSocket() socket: ExtendedSocket<Entity>,
+      @ConnectedSocket() _socket: ExtendedSocket<Entity>,
       @MessageBody() body: ManyEntityQuery,
     ) {
       if (!this.isValidManyBody(body)) {
         throw new WsException('Invalid request body');
       }
-
-      this.addUserToSocket(socket, isPublic);
 
       const deleteResult = await this.service.deleteMany(body.ids);
 
