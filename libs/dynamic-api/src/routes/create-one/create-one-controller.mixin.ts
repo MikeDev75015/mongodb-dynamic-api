@@ -2,7 +2,7 @@ import { Body, Type, UseGuards } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
-import { CreatePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
+import { RoutePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { CreateOneController, CreateOneControllerConstructor } from './create-one-controller.interface';
 import { CreateOneService } from './create-one-service.interface';
@@ -54,7 +54,7 @@ function CreateOneControllerMixin<Entity extends BaseEntity>(
     },
   );
 
-  class CreateOnePoliciesGuard extends CreatePoliciesGuardMixin(
+  class CreateOnePoliciesGuard extends RoutePoliciesGuardMixin(
     entity,
     routeType,
     displayedName,

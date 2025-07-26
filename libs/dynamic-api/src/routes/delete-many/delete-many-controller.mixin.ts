@@ -3,7 +3,7 @@ import { RouteDecoratorsBuilder } from '../../builders';
 import { ManyEntityQuery, DeletePresenter } from '../../dtos';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
-import { CreatePoliciesGuardMixin } from '../../mixins';
+import { RoutePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DeleteManyController, DeleteManyControllerConstructor } from './delete-many-controller.interface';
 import { DeleteManyService } from './delete-many-service.interface';
@@ -47,7 +47,7 @@ function DeleteManyControllerMixin<Entity extends BaseEntity>(
     },
   );
 
-  class DeleteManyPoliciesGuard extends CreatePoliciesGuardMixin(
+  class DeleteManyPoliciesGuard extends RoutePoliciesGuardMixin(
     entity,
     routeType,
     displayedName,

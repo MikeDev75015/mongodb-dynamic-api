@@ -13,7 +13,7 @@ import {
 } from '../interfaces';
 import { BaseEntity } from '../models';
 
-function CreatePoliciesGuardMixin<Entity extends BaseEntity>(
+function RoutePoliciesGuardMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   routeType: RouteType,
   displayedName: string,
@@ -47,4 +47,4 @@ function CreatePoliciesGuardMixin<Entity extends BaseEntity>(
   return RoutePoliciesGuard;
 }
 
-export { CreatePoliciesGuardMixin };
+export { RoutePoliciesGuardMixin };

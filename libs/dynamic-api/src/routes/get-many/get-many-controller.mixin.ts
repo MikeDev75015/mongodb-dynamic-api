@@ -3,7 +3,7 @@ import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityQuery } from '../../dtos';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
-import { CreatePoliciesGuardMixin, EntityPresenterMixin } from '../../mixins';
+import { RoutePoliciesGuardMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { GetManyController, GetManyControllerConstructor } from './get-many-controller.interface';
 import { GetManyService } from './get-many-service.interface';
@@ -56,7 +56,7 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
     },
   );
 
-  class GetManyPoliciesGuard extends CreatePoliciesGuardMixin(
+  class GetManyPoliciesGuard extends RoutePoliciesGuardMixin(
     entity,
     routeType,
     displayedName,

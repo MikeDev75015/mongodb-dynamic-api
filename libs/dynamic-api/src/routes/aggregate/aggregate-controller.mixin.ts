@@ -3,7 +3,7 @@ import { plainToInstance } from 'class-transformer';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { Aggregatable, DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
-import { CreatePoliciesGuardMixin } from '../../mixins';
+import { RoutePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { AggregateController, AggregateControllerConstructor } from './aggregate-controller.interface';
 import { AggregatePresenterMixin } from './aggregate-presenter.mixin';
@@ -64,7 +64,7 @@ function AggregateControllerMixin<Entity extends BaseEntity>(
     AggregateQuery as Aggregatable<AggregateQuery>
   ).toPipeline;
 
-  class AggregatePoliciesGuard extends CreatePoliciesGuardMixin(
+  class AggregatePoliciesGuard extends RoutePoliciesGuardMixin(
     entity,
     routeType,
     displayedName,

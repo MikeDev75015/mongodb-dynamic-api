@@ -4,7 +4,7 @@ import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityParam } from '../../dtos';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
-import { CreatePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
+import { RoutePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DuplicateOneController, DuplicateOneControllerConstructor } from './duplicate-one-controller.interface';
 import { DuplicateOneService } from './duplicate-one-service.interface';
@@ -61,7 +61,7 @@ function DuplicateOneControllerMixin<Entity extends BaseEntity>(
     },
   );
 
-  class DuplicateOnePoliciesGuard extends CreatePoliciesGuardMixin(
+  class DuplicateOnePoliciesGuard extends RoutePoliciesGuardMixin(
     entity,
     routeType,
     displayedName,
