@@ -3,7 +3,7 @@ import { isEmpty } from 'lodash';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
-import { CreatePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
+import { RoutePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DuplicateManyController, DuplicateManyControllerConstructor } from './duplicate-many-controller.interface';
 import { DuplicateManyService } from './duplicate-many-service.interface';
@@ -59,7 +59,7 @@ function DuplicateManyControllerMixin<Entity extends BaseEntity>(
     },
   );
 
-  class DuplicateManyPoliciesGuard extends CreatePoliciesGuardMixin(
+  class DuplicateManyPoliciesGuard extends RoutePoliciesGuardMixin(
     entity,
     routeType,
     displayedName,

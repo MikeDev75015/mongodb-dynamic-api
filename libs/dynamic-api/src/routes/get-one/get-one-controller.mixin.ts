@@ -3,7 +3,7 @@ import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityParam } from '../../dtos';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
-import { CreatePoliciesGuardMixin, EntityPresenterMixin } from '../../mixins';
+import { RoutePoliciesGuardMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { GetOneController, GetOneControllerConstructor } from './get-one-controller.interface';
 import { GetOneService } from './get-one-service.interface';
@@ -50,7 +50,7 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
     },
   );
 
-  class GetOnePoliciesGuard extends CreatePoliciesGuardMixin(
+  class GetOnePoliciesGuard extends RoutePoliciesGuardMixin(
     entity,
     routeType,
     displayedName,

@@ -3,7 +3,7 @@ import { isEmpty } from 'lodash';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
-import { CreatePoliciesGuardMixin } from '../../mixins';
+import { RoutePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { CreateManyBodyMixin } from './create-many-body.mixin';
 import { CreateManyController, CreateManyControllerConstructor } from './create-many-controller.interface';
@@ -57,7 +57,7 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
     },
   );
 
-  class CreateManyPoliciesGuard extends CreatePoliciesGuardMixin(
+  class CreateManyPoliciesGuard extends RoutePoliciesGuardMixin(
     entity,
     routeType,
     displayedName,

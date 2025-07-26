@@ -4,7 +4,7 @@ import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityParam } from '../../dtos';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
-import { CreatePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
+import { RoutePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { UpdateOneController, UpdateOneControllerConstructor } from './update-one-controller.interface';
 import { UpdateOneService } from './update-one-service.interface';
@@ -61,7 +61,7 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
     },
   );
 
-  class UpdateOnePoliciesGuard extends CreatePoliciesGuardMixin(
+  class UpdateOnePoliciesGuard extends RoutePoliciesGuardMixin(
     entity,
     routeType,
     displayedName,
