@@ -1,5 +1,12 @@
 Changelog
 
+## [2.11.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.10.1...v2.11.0) (2025-07-27)
+
+
+### socket
+
+* **socket:** add policies guard mixin ([bc739b4](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/bc739b4b8ea5e026fc93a5c70e1dfae454323c4f))
+
 ## [2.10.1](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.10.0...v2.10.1) (2025-07-19)
 
 ## [2.10.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.9.0...v2.10.0) (2025-02-22)
