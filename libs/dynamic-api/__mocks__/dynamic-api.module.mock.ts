@@ -1,18 +1,20 @@
-import { Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Schema } from '@nestjs/mongoose';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsInt, IsNotEmpty, IsOptional, IsPositive, IsString } from 'class-validator';
-import {
-  BaseEntity,
-  DynamicApiForFeatureOptions,
-  DynamicAPISchemaOptions,
-  DynamicAPISchemaOptionsInterface,
-  SoftDeletableEntity,
-} from '../src';
+import { BaseEntity, DynamicApiForFeatureOptions, DynamicAPISchemaOptions, DynamicAPISchemaOptionsInterface, SoftDeletableEntity } from '../src';
 
 type DynamicApiForFeatureOptionsMock = DynamicApiForFeatureOptions<any>;
 
 function buildDynamicApiModuleOptionsMock(
-  { entity, controllerOptions, routes }: Partial<DynamicApiForFeatureOptions<any>> = {},
+  {
+    entity,
+    controllerOptions,
+    routes,
+    webSocket,
+    extraImports,
+    extraProviders,
+    extraControllers,
+  }: Partial<DynamicApiForFeatureOptions<any>> = {},
   { indexes, hooks, customInit }: Partial<DynamicAPISchemaOptionsInterface> = {},
   softDeletable = false,
 ): DynamicApiForFeatureOptionsMock {
@@ -51,6 +53,10 @@ function buildDynamicApiModuleOptionsMock(
       ...controllerOptions,
     },
     routes,
+    webSocket,
+    extraImports,
+    extraProviders,
+    extraControllers,
   };
 }
 
