@@ -1,4 +1,4 @@
-import { Type, UseFilters, UseGuards } from '@nestjs/common';
+import { Type, UseFilters, UseGuards, UseInterceptors } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WsException } from '@nestjs/websockets';
 import { EntityParam } from '../../dtos';
@@ -15,7 +15,7 @@ import { ReplaceOneService } from './replace-one-service.interface';
 function ReplaceOneGatewayMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): ReplaceOneGatewayConstructor<Entity> {
   const {
@@ -72,6 +72,7 @@ function ReplaceOneGatewayMixin<Entity extends BaseEntity>(
 
     @UseFilters(new DynamicAPIWsExceptionFilter())
     @UseGuards(new JwtSocketGuard(isPublic), ReplaceOnePoliciesGuard)
+    @UseInterceptors(...useInterceptors)
     @SubscribeMessage(event)
     async replaceOne(
       @ConnectedSocket() _socket: ExtendedSocket<Entity>,

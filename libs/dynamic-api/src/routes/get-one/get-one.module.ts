@@ -1,4 +1,4 @@
-import { DynamicModule, Module, Type, ValidationPipeOptions } from '@nestjs/common';
+import { DynamicModule, Module, ModuleMetadata, Type, ValidationPipeOptions } from '@nestjs/common';
 import { GatewayMetadata } from '@nestjs/websockets';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { getDisplayedName, initializeConfigFromOptions } from '../../helpers';
@@ -19,6 +19,9 @@ export class GetOneModule {
     version?: string,
     validationPipeOptions?: ValidationPipeOptions,
     webSocket?: DynamicApiWebSocketOptions,
+    extraImports?: ModuleMetadata['imports'],
+    extraProviders?: ModuleMetadata['providers'],
+    extraControllers?: ModuleMetadata['controllers'],
   ): DynamicModule {
     const displayedName = getDisplayedName(controllerOptions.apiTag, entity.name, routeConfig.subPath);
 
@@ -38,8 +41,8 @@ export class GetOneModule {
 
     return {
       module: GetOneModule,
-      imports: [databaseModule],
-      controllers: [controller],
+      imports: [databaseModule, ...(extraImports || [])],
+      controllers: [controller, ...(extraControllers || [])],
       providers: [
         ServiceProvider,
         ...(
@@ -55,6 +58,7 @@ export class GetOneModule {
             )
           ] : []
         ),
+        ...(extraProviders || []),
       ],
     };
   }

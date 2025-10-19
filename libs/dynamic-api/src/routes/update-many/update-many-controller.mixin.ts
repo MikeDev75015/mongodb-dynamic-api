@@ -1,4 +1,4 @@
-import { Body, Query, Type, UseGuards } from '@nestjs/common';
+import { Body, Query, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { isEmpty } from 'lodash';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
@@ -11,7 +11,7 @@ import { UpdateManyService } from './update-many-service.interface';
 function UpdateManyControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): UpdateManyControllerConstructor<Entity> {
   const {
@@ -75,6 +75,7 @@ function UpdateManyControllerMixin<Entity extends BaseEntity>(
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(UpdateManyPoliciesGuard)
+    @UseInterceptors(...useInterceptors)
     async updateMany(@Query('ids') ids: string[], @Body() body: UpdateManyBody) {
       if (!ids?.length) {
         throw new Error('Invalid query');

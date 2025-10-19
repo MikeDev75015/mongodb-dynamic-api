@@ -1,4 +1,4 @@
-import { ValidationPipeOptions } from '@nestjs/common';
+import { NestInterceptor, Type, ValidationPipeOptions } from '@nestjs/common';
 import { BaseEntity } from '../models';
 import { ControllerAbilityPredicate } from './dynamic-api-ability.interface';
 import { RoutesConfig } from './dynamic-api-global-state.interface';
@@ -11,6 +11,7 @@ interface DynamicApiControllerOptions<Entity extends BaseEntity> {
   validationPipeOptions?: ValidationPipeOptions;
   abilityPredicates?: ControllerAbilityPredicate<Entity>[];
   routesConfig?: Partial<RoutesConfig>;
+  useInterceptors?: Type<NestInterceptor>[];
 }
 
 export { DynamicApiControllerOptions };

@@ -1,4 +1,4 @@
-import { Type, UseFilters, UseGuards } from '@nestjs/common';
+import { Type, UseFilters, UseGuards, UseInterceptors } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WsException } from '@nestjs/websockets';
 import { isEmpty } from 'lodash';
@@ -15,7 +15,7 @@ import { CreateOneService } from './create-one-service.interface';
 function CreateOneGatewayMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): CreateOneGatewayConstructor<Entity> {
   const {
@@ -68,6 +68,7 @@ function CreateOneGatewayMixin<Entity extends BaseEntity>(
 
     @UseFilters(new DynamicAPIWsExceptionFilter())
     @UseGuards(new JwtSocketGuard(isPublic), CreateOnePoliciesGuard)
+    @UseInterceptors(...useInterceptors)
     @SubscribeMessage(event)
     async createOne(
       @ConnectedSocket() _socket: ExtendedSocket<Entity>,

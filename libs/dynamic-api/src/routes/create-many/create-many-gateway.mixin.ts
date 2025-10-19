@@ -1,4 +1,4 @@
-import { Type, UseFilters, UseGuards } from '@nestjs/common';
+import { Type, UseFilters, UseGuards, UseInterceptors } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WsException } from '@nestjs/websockets';
 import { isEmpty } from 'lodash';
@@ -23,7 +23,7 @@ import { CreateManyService } from './create-many-service.interface';
 function CreateManyGatewayMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): CreateManyGatewayConstructor<Entity> {
   const {
@@ -76,6 +76,7 @@ function CreateManyGatewayMixin<Entity extends BaseEntity>(
 
     @UseFilters(new DynamicAPIWsExceptionFilter())
     @UseGuards(new JwtSocketGuard(isPublic), CreateManyPoliciesGuard)
+    @UseInterceptors(...useInterceptors)
     @SubscribeMessage(event)
     async createMany(
       @ConnectedSocket() _socket: ExtendedSocket<Entity>,

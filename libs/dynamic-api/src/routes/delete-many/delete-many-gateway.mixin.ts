@@ -1,4 +1,4 @@
-import { Type, UseFilters, UseGuards } from '@nestjs/common';
+import { Type, UseFilters, UseGuards, UseInterceptors } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WsException } from '@nestjs/websockets';
 import { DeletePresenter, ManyEntityQuery } from '../../dtos';
@@ -15,7 +15,7 @@ import { DeleteManyService } from './delete-many-service.interface';
 function DeleteManyGatewayMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): DeleteManyGatewayConstructor<Entity> {
   const {
@@ -61,6 +61,7 @@ function DeleteManyGatewayMixin<Entity extends BaseEntity>(
 
     @UseFilters(new DynamicAPIWsExceptionFilter())
     @UseGuards(new JwtSocketGuard(isPublic), DeleteManyPoliciesGuard)
+    @UseInterceptors(...useInterceptors)
     @SubscribeMessage(event)
     async deleteMany(
       @ConnectedSocket() _socket: ExtendedSocket<Entity>,

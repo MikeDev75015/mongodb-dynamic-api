@@ -1,4 +1,4 @@
-import { ValidationPipeOptions } from '@nestjs/common';
+import { NestInterceptor, Type, ValidationPipeOptions } from '@nestjs/common';
 import { BaseEntity } from '../models';
 import { AbilityPredicate } from './dynamic-api-ability.interface';
 import { DTOsBundle } from './dynamic-api-route-dtos-bundle.type';
@@ -21,6 +21,7 @@ interface DynamicAPIRouteConfig<Entity extends BaseEntity> {
   webSocket?: DynamicApiWebSocketOptions;
   eventName?: string;
   isArrayResponse?: boolean;
+  useInterceptors?: Type<NestInterceptor>[];
 }
 
 export { DynamicAPIRouteConfig };

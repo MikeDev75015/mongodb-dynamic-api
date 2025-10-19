@@ -1,4 +1,4 @@
-import { Body, Param, Type, UseGuards } from '@nestjs/common';
+import { Body, Param, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { isEmpty } from 'lodash';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityParam } from '../../dtos';
@@ -12,7 +12,7 @@ import { UpdateOneService } from './update-one-service.interface';
 function UpdateOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): UpdateOneControllerConstructor<Entity> {
   const {
@@ -77,6 +77,7 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(UpdateOnePoliciesGuard)
+    @UseInterceptors(...useInterceptors)
     async updateOne(@Param('id') id: string, @Body() body: UpdateOneBody) {
       if (isEmpty(body)) {
         throw new Error('Invalid request body');

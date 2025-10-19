@@ -1,4 +1,4 @@
-import { Param, Type, UseGuards } from '@nestjs/common';
+import { Param, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { DeletePresenter, EntityParam } from '../../dtos';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
@@ -11,7 +11,7 @@ import { DeleteOneService } from './delete-one-service.interface';
 function DeleteOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): DeleteOneControllerConstructor<Entity> {
   const {
@@ -66,6 +66,7 @@ function DeleteOneControllerMixin<Entity extends BaseEntity>(
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(DeleteOnePoliciesGuard)
+    @UseInterceptors(...useInterceptors)
     async deleteOne(@Param('id') id: string) {
       const deleteResult = await this.service.deleteOne(id);
 

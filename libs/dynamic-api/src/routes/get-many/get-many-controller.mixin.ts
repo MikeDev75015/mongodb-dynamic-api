@@ -1,4 +1,4 @@
-import { Query, Type, UseGuards } from '@nestjs/common';
+import { Query, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityQuery } from '../../dtos';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
@@ -11,7 +11,7 @@ import { GetManyService } from './get-many-service.interface';
 function GetManyControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): GetManyControllerConstructor<Entity> {
   const {
@@ -77,6 +77,7 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(GetManyPoliciesGuard)
+    @UseInterceptors(...useInterceptors)
     async getMany(@Query() query: GetManyQuery) {
       const list = await this.service.getMany(query ?? {});
 

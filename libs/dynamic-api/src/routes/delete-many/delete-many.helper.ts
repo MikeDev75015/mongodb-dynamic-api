@@ -59,7 +59,7 @@ function createDeleteManyServiceProvider<Entity extends BaseEntity>(
 function createDeleteManyController<Entity extends BaseEntity>(
   entity: Type<Entity>,
   displayedName: string,
-  controllerOptions: DynamicApiControllerOptions<Entity>,
+  { useInterceptors = [], ...controllerOptions }: DynamicApiControllerOptions<Entity>,
   routeConfig: DynamicAPIRouteConfig<Entity>,
   version?: string,
   validationPipeOptions?: ValidationPipeOptions,
@@ -69,7 +69,7 @@ function createDeleteManyController<Entity extends BaseEntity>(
   @Controller({ path, version })
   @ApiTags(apiTag || entity.name)
   @ValidatorPipe(validationPipeOptions)
-  @UseInterceptors(ClassSerializerInterceptor)
+  @UseInterceptors(ClassSerializerInterceptor, ...useInterceptors)
   class DeleteManyController extends DeleteManyControllerMixin(
     entity,
     controllerOptions,
@@ -95,7 +95,7 @@ function createDeleteManyController<Entity extends BaseEntity>(
 function createDeleteManyGateway<Entity extends BaseEntity>(
   entity: Type<Entity>,
   displayedName: string,
-  controllerOptions: DynamicApiControllerOptions<Entity>,
+  { useInterceptors = [], ...controllerOptions }: DynamicApiControllerOptions<Entity>,
   routeConfig: DynamicAPIRouteConfig<Entity>,
   version?: string,
   validationPipeOptions?: ValidationPipeOptions,
@@ -103,6 +103,7 @@ function createDeleteManyGateway<Entity extends BaseEntity>(
 ): DeleteManyGatewayConstructor<Entity> {
   @WebSocketGateway(gatewayOptions)
   @ValidatorPipe(validationPipeOptions)
+  @UseInterceptors(ClassSerializerInterceptor, ...useInterceptors)
   class DeleteManyGateway extends DeleteManyGatewayMixin(
     entity,
     controllerOptions,
