@@ -1,5 +1,12 @@
 Changelog
 
+## [2.12.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.11.0...v2.12.0) (2025-10-19)
+
+
+### interceptors
+
+* **interceptors:** add the possibility to use class/method interceptors ([977f3de](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/977f3deccabaf4d5a87f76eca5c9012ab05c3d48))
+
 ## [2.11.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.10.1...v2.11.0) (2025-07-27)
 
 
