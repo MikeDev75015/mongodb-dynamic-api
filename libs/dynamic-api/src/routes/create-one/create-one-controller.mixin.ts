@@ -1,4 +1,4 @@
-import { Body, Type, UseGuards } from '@nestjs/common';
+import { Body, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
@@ -10,7 +10,7 @@ import { CreateOneService } from './create-one-service.interface';
 function CreateOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): CreateOneControllerConstructor<Entity> {
   const {
@@ -70,6 +70,7 @@ function CreateOneControllerMixin<Entity extends BaseEntity>(
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(CreateOnePoliciesGuard)
+    @UseInterceptors(...useInterceptors)
     async createOne(@Body() body: CreateOneBody) {
       const toEntity = (
         CreateOneBody as Mappable<Entity>

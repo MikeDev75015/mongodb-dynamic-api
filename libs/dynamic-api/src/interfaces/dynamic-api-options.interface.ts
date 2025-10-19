@@ -1,4 +1,4 @@
-import { Type } from '@nestjs/common';
+import { ModuleMetadata, Type } from '@nestjs/common';
 import { BaseEntity } from '../models';
 import { DynamicApiAuthOptions } from '../modules';
 import { DynamicApiControllerOptions } from './dynamic-api-controller-options.interface';
@@ -22,6 +22,9 @@ interface DynamicApiForFeatureOptions<Entity extends BaseEntity> {
   controllerOptions: DynamicApiControllerOptions<Entity>;
   routes?: DynamicAPIRouteConfig<Entity>[];
   webSocket?: DynamicApiWebSocketOptions;
+  extraImports?: ModuleMetadata['imports'],
+  extraProviders?: ModuleMetadata['providers'],
+  extraControllers?: ModuleMetadata['controllers'],
 }
 
 export { DynamicApiForFeatureOptions, DynamicApiForRootOptions, DYNAMIC_API_GLOBAL_STATE };

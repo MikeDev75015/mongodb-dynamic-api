@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Type, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { isEmpty } from 'lodash';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
@@ -13,7 +13,7 @@ import { CreateManyService } from './create-many-service.interface';
 function CreateManyControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): CreateManyControllerConstructor<Entity> {
   const {
@@ -74,6 +74,7 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(CreateManyPoliciesGuard)
+    @UseInterceptors(...useInterceptors)
     async createMany(@Body() body: CreateManyBody) {
       if (!(
         'list' in body &&

@@ -63,7 +63,7 @@ function createCreateManyServiceProvider<Entity extends BaseEntity>(
 function createCreateManyController<Entity extends BaseEntity>(
   entity: Type<Entity>,
   displayedName: string,
-  controllerOptions: DynamicApiControllerOptions<Entity>,
+  { useInterceptors = [], ...controllerOptions }: DynamicApiControllerOptions<Entity>,
   routeConfig: DynamicAPIRouteConfig<Entity>,
   version?: string,
   validationPipeOptions?: ValidationPipeOptions,
@@ -73,7 +73,7 @@ function createCreateManyController<Entity extends BaseEntity>(
   @Controller({ path, version })
   @ApiTags(apiTag || entity.name)
   @ValidatorPipe(validationPipeOptions)
-  @UseInterceptors(ClassSerializerInterceptor)
+  @UseInterceptors(ClassSerializerInterceptor, ...useInterceptors)
   class CreateManyController extends CreateManyControllerMixin(
     entity,
     controllerOptions,
@@ -99,7 +99,7 @@ function createCreateManyController<Entity extends BaseEntity>(
 function createCreateManyGateway<Entity extends BaseEntity>(
   entity: Type<Entity>,
   displayedName: string,
-  controllerOptions: DynamicApiControllerOptions<Entity>,
+  { useInterceptors = [], ...controllerOptions }: DynamicApiControllerOptions<Entity>,
   routeConfig: DynamicAPIRouteConfig<Entity>,
   version?: string,
   validationPipeOptions?: ValidationPipeOptions,
@@ -107,6 +107,7 @@ function createCreateManyGateway<Entity extends BaseEntity>(
 ): CreateManyGatewayConstructor<Entity> {
   @WebSocketGateway(gatewayOptions)
   @ValidatorPipe(validationPipeOptions)
+  @UseInterceptors(ClassSerializerInterceptor, ...useInterceptors)
   class CreateManyGateway extends CreateManyGatewayMixin(
     entity,
     controllerOptions,

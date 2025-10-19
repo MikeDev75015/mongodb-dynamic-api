@@ -65,7 +65,7 @@ function createCreateOneServiceProvider<Entity extends BaseEntity>(
 function createCreateOneController<Entity extends BaseEntity>(
   entity: Type<Entity>,
   displayedName: string,
-  controllerOptions: DynamicApiControllerOptions<Entity>,
+  { useInterceptors = [], ...controllerOptions }: DynamicApiControllerOptions<Entity>,
   routeConfig: DynamicAPIRouteConfig<Entity>,
   version?: string,
   validationPipeOptions?: ValidationPipeOptions,
@@ -75,7 +75,7 @@ function createCreateOneController<Entity extends BaseEntity>(
   @Controller({ path, version })
   @ApiTags(apiTag || entity.name)
   @ValidatorPipe(validationPipeOptions)
-  @UseInterceptors(ClassSerializerInterceptor)
+  @UseInterceptors(ClassSerializerInterceptor, ...useInterceptors)
   class CreateOneController extends CreateOneControllerMixin(
     entity,
     controllerOptions,
@@ -101,7 +101,7 @@ function createCreateOneController<Entity extends BaseEntity>(
 function createCreateOneGateway<Entity extends BaseEntity>(
   entity: Type<Entity>,
   displayedName: string,
-  controllerOptions: DynamicApiControllerOptions<Entity>,
+  { useInterceptors = [], ...controllerOptions }: DynamicApiControllerOptions<Entity>,
   routeConfig: DynamicAPIRouteConfig<Entity>,
   version?: string,
   validationPipeOptions?: ValidationPipeOptions,
@@ -109,6 +109,7 @@ function createCreateOneGateway<Entity extends BaseEntity>(
 ): CreateOneGatewayConstructor<Entity> {
   @WebSocketGateway(gatewayOptions)
   @ValidatorPipe(validationPipeOptions)
+  @UseInterceptors(...useInterceptors)
   class CreateOneGateway extends CreateOneGatewayMixin(
     entity,
     controllerOptions,

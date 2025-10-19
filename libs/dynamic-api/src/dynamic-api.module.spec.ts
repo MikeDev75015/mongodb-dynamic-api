@@ -1,8 +1,10 @@
 import { CacheModule } from '@nestjs/cache-manager';
+import { NestInterceptor } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { HttpAdapterHost } from '@nestjs/core/helpers/http-adapter-host';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Schema } from 'mongoose';
+import { of } from 'rxjs';
 import { buildDynamicApiModuleOptionsMock } from '../__mocks__/dynamic-api.module.mock';
 import { DynamicApiModule } from './dynamic-api.module';
 import * as helpers from './helpers';
@@ -284,6 +286,12 @@ describe('DynamicApiModule', () => {
       const httpAdapterHost = {} as HttpAdapterHost;
       const state = { cacheExcludedPaths: [] } as DynamicApiGlobalState;
 
+      class fakeInterceptor implements NestInterceptor {
+        intercept() {
+          return of(null);
+        }
+      }
+
       beforeEach(() => {
         spyCreateManyModule = jest.spyOn(CreateManyModule, 'forFeature');
         spyCreateOneModule = jest.spyOn(CreateOneModule, 'forFeature');
@@ -334,7 +342,7 @@ describe('DynamicApiModule', () => {
         const aggregateRoute: DynamicAPIRouteConfig<any> = { type: 'Aggregate', dTOs: { query: AggregateQuery } };
 
         const options = buildDynamicApiModuleOptionsMock({
-          controllerOptions: { path: 'fake-path', version: '1', validationPipeOptions: { transform: true } },
+          controllerOptions: { path: 'fake-path', version: '1', validationPipeOptions: { transform: true }, useInterceptors: [fakeInterceptor] },
           routes: [
             createManyRoute,
             createOneRoute,
@@ -362,6 +370,9 @@ describe('DynamicApiModule', () => {
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
           undefined,
+          undefined,
+          undefined,
+          undefined,
         );
         expect(spyCreateOneModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
@@ -370,6 +381,9 @@ describe('DynamicApiModule', () => {
           { description: 'fake-description', ...createOneRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
+          undefined,
+          undefined,
+          undefined,
           undefined,
         );
         expect(spyDeleteManyModule).toHaveBeenCalledWith(
@@ -380,6 +394,9 @@ describe('DynamicApiModule', () => {
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
           undefined,
+          undefined,
+          undefined,
+          undefined,
         );
         expect(spyDeleteOneModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
@@ -388,6 +405,9 @@ describe('DynamicApiModule', () => {
           { description: 'fake-description', ...deleteOneRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
+          undefined,
+          undefined,
+          undefined,
           undefined,
         );
         expect(spyDuplicateManyModule).toHaveBeenCalledWith(
@@ -398,6 +418,9 @@ describe('DynamicApiModule', () => {
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
           undefined,
+          undefined,
+          undefined,
+          undefined,
         );
         expect(spyDuplicateOneModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
@@ -406,6 +429,9 @@ describe('DynamicApiModule', () => {
           { description: 'fake-description', ...duplicateOneRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
+          undefined,
+          undefined,
+          undefined,
           undefined,
         );
         expect(spyGetManyModule).toHaveBeenCalledWith(
@@ -416,6 +442,9 @@ describe('DynamicApiModule', () => {
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
           undefined,
+          undefined,
+          undefined,
+          undefined,
         );
         expect(spyGetOneModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
@@ -424,6 +453,9 @@ describe('DynamicApiModule', () => {
           { description: 'fake-description', ...getOneRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
+          undefined,
+          undefined,
+          undefined,
           undefined,
         );
         expect(spyReplaceOneModule).toHaveBeenCalledWith(
@@ -434,6 +466,9 @@ describe('DynamicApiModule', () => {
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
           undefined,
+          undefined,
+          undefined,
+          undefined,
         );
         expect(spyUpdateManyModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
@@ -442,6 +477,9 @@ describe('DynamicApiModule', () => {
           { description: 'fake-description', ...updateManyRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
+          undefined,
+          undefined,
+          undefined,
           undefined,
         );
         expect(spyUpdateOneModule).toHaveBeenCalledWith(
@@ -452,6 +490,9 @@ describe('DynamicApiModule', () => {
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
           undefined,
+          undefined,
+          undefined,
+          undefined,
         );
         expect(spyAggregateModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
@@ -460,6 +501,9 @@ describe('DynamicApiModule', () => {
           { description: 'fake-description', ...aggregateRoute },
           options.controllerOptions.version,
           options.controllerOptions.validationPipeOptions,
+          undefined,
+          undefined,
+          undefined,
           undefined,
         );
       });
@@ -471,6 +515,7 @@ describe('DynamicApiModule', () => {
           dTOs: { body: fakeManyBody, presenter: fakePresenter },
           version: '2',
           validationPipeOptions: { forbidNonWhitelisted: true },
+          useInterceptors: [fakeInterceptor],
         };
         const createOneRoute: DynamicAPIRouteConfig<any> = {
           type: 'CreateOne',
@@ -478,18 +523,21 @@ describe('DynamicApiModule', () => {
           dTOs: { body: fakeBody, presenter: fakePresenter },
           version: '2',
           validationPipeOptions: { forbidNonWhitelisted: true },
+          useInterceptors: [fakeInterceptor],
         };
         const deleteManyRoute: DynamicAPIRouteConfig<any> = {
           type: 'DeleteMany',
           description: 'Delete many item',
           version: '2',
           validationPipeOptions: { forbidNonWhitelisted: true },
+          useInterceptors: [fakeInterceptor],
         };
         const deleteOneRoute: DynamicAPIRouteConfig<any> = {
           type: 'DeleteOne',
           description: 'Delete one item',
           version: '2',
           validationPipeOptions: { forbidNonWhitelisted: true },
+          useInterceptors: [fakeInterceptor],
         };
         const duplicateManyRoute: DynamicAPIRouteConfig<any> = {
           type: 'DuplicateMany',
@@ -497,6 +545,7 @@ describe('DynamicApiModule', () => {
           dTOs: { body: fakeBody, presenter: fakePresenter },
           version: '2',
           validationPipeOptions: { forbidNonWhitelisted: true },
+          useInterceptors: [fakeInterceptor],
         };
         const duplicateOneRoute: DynamicAPIRouteConfig<any> = {
           type: 'DuplicateOne',
@@ -504,6 +553,7 @@ describe('DynamicApiModule', () => {
           dTOs: { body: fakeBody, presenter: fakePresenter },
           version: '2',
           validationPipeOptions: { forbidNonWhitelisted: true },
+          useInterceptors: [fakeInterceptor],
         };
         const getManyRoute: DynamicAPIRouteConfig<any> = {
           type: 'GetMany',
@@ -511,6 +561,7 @@ describe('DynamicApiModule', () => {
           dTOs: { query: fakeQuery, presenter: fakePresenter },
           version: '2',
           validationPipeOptions: { forbidNonWhitelisted: true },
+          useInterceptors: [fakeInterceptor],
         };
         const getOneRoute: DynamicAPIRouteConfig<any> = {
           type: 'GetOne',
@@ -518,6 +569,7 @@ describe('DynamicApiModule', () => {
           dTOs: { param: fakeParam, presenter: fakePresenter },
           version: '2',
           validationPipeOptions: { forbidNonWhitelisted: true },
+          useInterceptors: [fakeInterceptor],
         };
         const replaceOneRoute: DynamicAPIRouteConfig<any> = {
           type: 'ReplaceOne',
@@ -525,6 +577,7 @@ describe('DynamicApiModule', () => {
           dTOs: { body: fakeBody, presenter: fakePresenter },
           version: '2',
           validationPipeOptions: { forbidNonWhitelisted: true },
+          useInterceptors: [fakeInterceptor],
         };
         const updateManyRoute: DynamicAPIRouteConfig<any> = {
           type: 'UpdateMany',
@@ -532,6 +585,7 @@ describe('DynamicApiModule', () => {
           dTOs: { body: fakeBody, presenter: fakePresenter },
           version: '2',
           validationPipeOptions: { forbidNonWhitelisted: true },
+          useInterceptors: [fakeInterceptor],
         };
         const updateOneRoute: DynamicAPIRouteConfig<any> = {
           type: 'UpdateOne',
@@ -539,6 +593,7 @@ describe('DynamicApiModule', () => {
           dTOs: { body: fakeBody, presenter: fakePresenter },
           version: '2',
           validationPipeOptions: { forbidNonWhitelisted: true },
+          useInterceptors: [fakeInterceptor],
         };
         const aggregateRoute: DynamicAPIRouteConfig<any> = {
           type: 'Aggregate',
@@ -546,6 +601,7 @@ describe('DynamicApiModule', () => {
           dTOs: { query: AggregateQuery, presenter: fakePresenter },
           version: '2',
           validationPipeOptions: { forbidNonWhitelisted: true },
+          useInterceptors: [fakeInterceptor],
         };
 
         const options = buildDynamicApiModuleOptionsMock({
@@ -582,6 +638,9 @@ describe('DynamicApiModule', () => {
           createManyRoute.version,
           createManyRoute.validationPipeOptions,
           undefined,
+          undefined,
+          undefined,
+          undefined,
         );
         expect(spyCreateOneModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
@@ -590,6 +649,9 @@ describe('DynamicApiModule', () => {
           createOneRoute,
           createOneRoute.version,
           createOneRoute.validationPipeOptions,
+          undefined,
+          undefined,
+          undefined,
           undefined,
         );
         expect(spyDeleteOneModule).toHaveBeenCalledWith(
@@ -600,6 +662,9 @@ describe('DynamicApiModule', () => {
           deleteOneRoute.version,
           deleteOneRoute.validationPipeOptions,
           undefined,
+          undefined,
+          undefined,
+          undefined,
         );
         expect(spyDeleteManyModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
@@ -608,6 +673,9 @@ describe('DynamicApiModule', () => {
           deleteManyRoute,
           deleteManyRoute.version,
           deleteManyRoute.validationPipeOptions,
+          undefined,
+          undefined,
+          undefined,
           undefined,
         );
         expect(spyDuplicateManyModule).toHaveBeenCalledWith(
@@ -618,6 +686,9 @@ describe('DynamicApiModule', () => {
           duplicateManyRoute.version,
           duplicateManyRoute.validationPipeOptions,
           undefined,
+          undefined,
+          undefined,
+          undefined,
         );
         expect(spyDuplicateOneModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
@@ -626,6 +697,9 @@ describe('DynamicApiModule', () => {
           duplicateOneRoute,
           duplicateOneRoute.version,
           duplicateOneRoute.validationPipeOptions,
+          undefined,
+          undefined,
+          undefined,
           undefined,
         );
         expect(spyGetManyModule).toHaveBeenCalledWith(
@@ -636,6 +710,9 @@ describe('DynamicApiModule', () => {
           getManyRoute.version,
           getManyRoute.validationPipeOptions,
           undefined,
+          undefined,
+          undefined,
+          undefined,
         );
         expect(spyGetOneModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
@@ -644,6 +721,9 @@ describe('DynamicApiModule', () => {
           getOneRoute,
           getOneRoute.version,
           getOneRoute.validationPipeOptions,
+          undefined,
+          undefined,
+          undefined,
           undefined,
         );
         expect(spyReplaceOneModule).toHaveBeenCalledWith(
@@ -654,6 +734,9 @@ describe('DynamicApiModule', () => {
           replaceOneRoute.version,
           replaceOneRoute.validationPipeOptions,
           undefined,
+          undefined,
+          undefined,
+          undefined,
         );
         expect(spyUpdateManyModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
@@ -662,6 +745,9 @@ describe('DynamicApiModule', () => {
           updateManyRoute,
           updateManyRoute.version,
           updateManyRoute.validationPipeOptions,
+          undefined,
+          undefined,
+          undefined,
           undefined,
         );
         expect(spyUpdateOneModule).toHaveBeenCalledWith(
@@ -672,6 +758,9 @@ describe('DynamicApiModule', () => {
           updateOneRoute.version,
           updateOneRoute.validationPipeOptions,
           undefined,
+          undefined,
+          undefined,
+          undefined,
         );
         expect(spyAggregateModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
@@ -681,6 +770,285 @@ describe('DynamicApiModule', () => {
           aggregateRoute.version,
           aggregateRoute.validationPipeOptions,
           undefined,
+          undefined,
+          undefined,
+          undefined,
+        );
+      });
+
+      it('should import route modules with extras', async () => {
+        const createManyRoute: DynamicAPIRouteConfig<any> = {
+          type: 'CreateMany',
+          description: 'Create many items',
+          dTOs: { body: fakeManyBody, presenter: fakePresenter },
+          version: '2',
+          validationPipeOptions: { forbidNonWhitelisted: true },
+          useInterceptors: [fakeInterceptor],
+        };
+        const createOneRoute: DynamicAPIRouteConfig<any> = {
+          type: 'CreateOne',
+          description: 'Create one item',
+          dTOs: { body: fakeBody, presenter: fakePresenter },
+          version: '2',
+          validationPipeOptions: { forbidNonWhitelisted: true },
+          useInterceptors: [fakeInterceptor],
+        };
+        const deleteManyRoute: DynamicAPIRouteConfig<any> = {
+          type: 'DeleteMany',
+          description: 'Delete many item',
+          version: '2',
+          validationPipeOptions: { forbidNonWhitelisted: true },
+          useInterceptors: [fakeInterceptor],
+        };
+        const deleteOneRoute: DynamicAPIRouteConfig<any> = {
+          type: 'DeleteOne',
+          description: 'Delete one item',
+          version: '2',
+          validationPipeOptions: { forbidNonWhitelisted: true },
+          useInterceptors: [fakeInterceptor],
+        };
+        const duplicateManyRoute: DynamicAPIRouteConfig<any> = {
+          type: 'DuplicateMany',
+          description: 'Duplicate many item',
+          dTOs: { body: fakeBody, presenter: fakePresenter },
+          version: '2',
+          validationPipeOptions: { forbidNonWhitelisted: true },
+          useInterceptors: [fakeInterceptor],
+        };
+        const duplicateOneRoute: DynamicAPIRouteConfig<any> = {
+          type: 'DuplicateOne',
+          description: 'Duplicate one item',
+          dTOs: { body: fakeBody, presenter: fakePresenter },
+          version: '2',
+          validationPipeOptions: { forbidNonWhitelisted: true },
+          useInterceptors: [fakeInterceptor],
+        };
+        const getManyRoute: DynamicAPIRouteConfig<any> = {
+          type: 'GetMany',
+          description: 'Get many items',
+          dTOs: { query: fakeQuery, presenter: fakePresenter },
+          version: '2',
+          validationPipeOptions: { forbidNonWhitelisted: true },
+          useInterceptors: [fakeInterceptor],
+        };
+        const getOneRoute: DynamicAPIRouteConfig<any> = {
+          type: 'GetOne',
+          description: 'Get one item',
+          dTOs: { param: fakeParam, presenter: fakePresenter },
+          version: '2',
+          validationPipeOptions: { forbidNonWhitelisted: true },
+          useInterceptors: [fakeInterceptor],
+        };
+        const replaceOneRoute: DynamicAPIRouteConfig<any> = {
+          type: 'ReplaceOne',
+          description: 'Replace one item',
+          dTOs: { body: fakeBody, presenter: fakePresenter },
+          version: '2',
+          validationPipeOptions: { forbidNonWhitelisted: true },
+          useInterceptors: [fakeInterceptor],
+        };
+        const updateManyRoute: DynamicAPIRouteConfig<any> = {
+          type: 'UpdateMany',
+          description: 'Update many item',
+          dTOs: { body: fakeBody, presenter: fakePresenter },
+          version: '2',
+          validationPipeOptions: { forbidNonWhitelisted: true },
+          useInterceptors: [fakeInterceptor],
+        };
+        const updateOneRoute: DynamicAPIRouteConfig<any> = {
+          type: 'UpdateOne',
+          description: 'Update one item',
+          dTOs: { body: fakeBody, presenter: fakePresenter },
+          version: '2',
+          validationPipeOptions: { forbidNonWhitelisted: true },
+          useInterceptors: [fakeInterceptor],
+        };
+        const aggregateRoute: DynamicAPIRouteConfig<any> = {
+          type: 'Aggregate',
+          description: 'Aggregate items',
+          dTOs: { query: AggregateQuery, presenter: fakePresenter },
+          version: '2',
+          validationPipeOptions: { forbidNonWhitelisted: true },
+          useInterceptors: [fakeInterceptor],
+        };
+
+        class fakeExtraModule {}
+        class fakeExtraProvider {}
+        class fakeExtraController {}
+
+        const options = buildDynamicApiModuleOptionsMock({
+          controllerOptions: {
+            path: 'fake-path',
+            apiTag: 'Tag',
+            version: '1',
+            validationPipeOptions: { transform: true },
+          },
+          routes: [
+            createManyRoute,
+            createOneRoute,
+            deleteManyRoute,
+            deleteOneRoute,
+            duplicateManyRoute,
+            duplicateOneRoute,
+            getManyRoute,
+            getOneRoute,
+            replaceOneRoute,
+            updateManyRoute,
+            updateOneRoute,
+            aggregateRoute,
+          ],
+          webSocket: true,
+          extraImports: [fakeExtraModule],
+          extraProviders: [fakeExtraProvider],
+          extraControllers: [fakeExtraController],
+        });
+
+        const module = await DynamicApiModule.forFeature(options);
+
+        expect(module.imports.length).toStrictEqual(12);
+        expect(spyCreateManyModule).toHaveBeenCalledWith(
+          fakeDatabaseModule,
+          options.entity,
+          options.controllerOptions,
+          createManyRoute,
+          createManyRoute.version,
+          createManyRoute.validationPipeOptions,
+          true,
+          [fakeExtraModule],
+          [fakeExtraProvider],
+          [fakeExtraController],
+        );
+        expect(spyCreateOneModule).toHaveBeenCalledWith(
+          fakeDatabaseModule,
+          options.entity,
+          options.controllerOptions,
+          createOneRoute,
+          createOneRoute.version,
+          createOneRoute.validationPipeOptions,
+          true,
+          [fakeExtraModule],
+          [fakeExtraProvider],
+          [fakeExtraController],
+        );
+        expect(spyDeleteOneModule).toHaveBeenCalledWith(
+          fakeDatabaseModule,
+          options.entity,
+          options.controllerOptions,
+          deleteOneRoute,
+          deleteOneRoute.version,
+          deleteOneRoute.validationPipeOptions,
+          true,
+          [fakeExtraModule],
+          [fakeExtraProvider],
+          [fakeExtraController],
+        );
+        expect(spyDeleteManyModule).toHaveBeenCalledWith(
+          fakeDatabaseModule,
+          options.entity,
+          options.controllerOptions,
+          deleteManyRoute,
+          deleteManyRoute.version,
+          deleteManyRoute.validationPipeOptions,
+          true,
+          [fakeExtraModule],
+          [fakeExtraProvider],
+          [fakeExtraController],
+        );
+        expect(spyDuplicateManyModule).toHaveBeenCalledWith(
+          fakeDatabaseModule,
+          options.entity,
+          options.controllerOptions,
+          duplicateManyRoute,
+          duplicateManyRoute.version,
+          duplicateManyRoute.validationPipeOptions,
+          true,
+          [fakeExtraModule],
+          [fakeExtraProvider],
+          [fakeExtraController],
+        );
+        expect(spyDuplicateOneModule).toHaveBeenCalledWith(
+          fakeDatabaseModule,
+          options.entity,
+          options.controllerOptions,
+          duplicateOneRoute,
+          duplicateOneRoute.version,
+          duplicateOneRoute.validationPipeOptions,
+          true,
+          [fakeExtraModule],
+          [fakeExtraProvider],
+          [fakeExtraController],
+        );
+        expect(spyGetManyModule).toHaveBeenCalledWith(
+          fakeDatabaseModule,
+          options.entity,
+          options.controllerOptions,
+          getManyRoute,
+          getManyRoute.version,
+          getManyRoute.validationPipeOptions,
+          true,
+          [fakeExtraModule],
+          [fakeExtraProvider],
+          [fakeExtraController],
+        );
+        expect(spyGetOneModule).toHaveBeenCalledWith(
+          fakeDatabaseModule,
+          options.entity,
+          options.controllerOptions,
+          getOneRoute,
+          getOneRoute.version,
+          getOneRoute.validationPipeOptions,
+          true,
+          [fakeExtraModule],
+          [fakeExtraProvider],
+          [fakeExtraController],
+        );
+        expect(spyReplaceOneModule).toHaveBeenCalledWith(
+          fakeDatabaseModule,
+          options.entity,
+          options.controllerOptions,
+          replaceOneRoute,
+          replaceOneRoute.version,
+          replaceOneRoute.validationPipeOptions,
+          true,
+          [fakeExtraModule],
+          [fakeExtraProvider],
+          [fakeExtraController],
+        );
+        expect(spyUpdateManyModule).toHaveBeenCalledWith(
+          fakeDatabaseModule,
+          options.entity,
+          options.controllerOptions,
+          updateManyRoute,
+          updateManyRoute.version,
+          updateManyRoute.validationPipeOptions,
+          true,
+          [fakeExtraModule],
+          [fakeExtraProvider],
+          [fakeExtraController],
+        );
+        expect(spyUpdateOneModule).toHaveBeenCalledWith(
+          fakeDatabaseModule,
+          options.entity,
+          options.controllerOptions,
+          updateOneRoute,
+          updateOneRoute.version,
+          updateOneRoute.validationPipeOptions,
+          true,
+          [fakeExtraModule],
+          [fakeExtraProvider],
+          [fakeExtraController],
+        );
+        expect(spyAggregateModule).toHaveBeenCalledWith(
+          fakeDatabaseModule,
+          options.entity,
+          options.controllerOptions,
+          aggregateRoute,
+          aggregateRoute.version,
+          aggregateRoute.validationPipeOptions,
+          true,
+          [fakeExtraModule],
+          [fakeExtraProvider],
+          [fakeExtraController],
         );
       });
 

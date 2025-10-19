@@ -1,4 +1,4 @@
-import { Param, Type, UseGuards } from '@nestjs/common';
+import { Param, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityParam } from '../../dtos';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
@@ -11,7 +11,7 @@ import { GetOneService } from './get-one-service.interface';
 function GetOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): GetOneControllerConstructor<Entity> {
   const {
@@ -66,6 +66,7 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(GetOnePoliciesGuard)
+    @UseInterceptors(...useInterceptors)
     async getOne(@Param('id') id: string) {
       const entity = await this.service.getOne(id);
 

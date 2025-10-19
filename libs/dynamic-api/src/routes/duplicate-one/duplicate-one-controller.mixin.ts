@@ -1,4 +1,4 @@
-import { Body, Param, Type, UseGuards } from '@nestjs/common';
+import { Body, Param, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { isEmpty } from 'lodash';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityParam } from '../../dtos';
@@ -12,7 +12,7 @@ import { DuplicateOneService } from './duplicate-one-service.interface';
 function DuplicateOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): DuplicateOneControllerConstructor<Entity> {
   const {
@@ -77,6 +77,7 @@ function DuplicateOneControllerMixin<Entity extends BaseEntity>(
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(DuplicateOnePoliciesGuard)
+    @UseInterceptors(...useInterceptors)
     async duplicateOne(@Param('id') id: string, @Body() body?: DuplicateOneBody) {
       const toEntity = (
         DuplicateOneBody as Mappable<Entity>

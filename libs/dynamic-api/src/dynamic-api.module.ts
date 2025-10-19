@@ -112,6 +112,9 @@ export class DynamicApiModule {
     controllerOptions,
     routes,
     webSocket: featureWebSocket,
+    extraImports,
+    extraProviders,
+    extraControllers,
   }: DynamicApiForFeatureOptions<Entity>): Promise<DynamicModule> {
     const schema = buildSchemaFromEntity(entity);
     const databaseModule = MongooseModule.forFeature(
@@ -203,6 +206,9 @@ export class DynamicApiModule {
                 version,
                 validationPipeOptions ?? { transform: true },
                 routeWebSocket ?? featureWebSocket,
+                extraImports,
+                extraProviders,
+                extraControllers,
               );
             }),
           ],
