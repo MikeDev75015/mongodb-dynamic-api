@@ -1,4 +1,4 @@
-import { Type, UseGuards } from '@nestjs/common';
+import { Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ApiProperty, IntersectionType, PartialType, PickType } from '@nestjs/swagger';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WsException } from '@nestjs/websockets';
@@ -11,14 +11,7 @@ import { BaseEntity } from '../../../models';
 import { ChangePasswordDto } from '../dtos/change-password.dto';
 import { ResetPasswordDto } from '../dtos/reset-password.dto';
 import { JwtSocketAuthGuard, ResetPasswordGuard } from '../guards';
-import {
-  AuthGatewayConstructor,
-  AuthService,
-  DynamicApiLoginOptions,
-  DynamicApiRegisterOptions,
-  DynamicApiResetPasswordOptions,
-  DynamicApiUpdateAccountOptions,
-} from '../interfaces';
+import { AuthGatewayConstructor, AuthService, DynamicApiLoginOptions, DynamicApiRegisterOptions, DynamicApiResetPasswordOptions, DynamicApiUpdateAccountOptions } from '../interfaces';
 import { AuthSocketPoliciesGuardMixin } from './auth-policies-guard.mixin';
 
 function AuthGatewayMixin<Entity extends BaseEntity>(
@@ -27,14 +20,23 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
     loginField,
     passwordField,
     abilityPredicate: loginAbilityPredicate,
+    useInterceptors: loginUseInterceptors = [],
   }: DynamicApiLoginOptions<Entity>,
   {
     additionalFields: additionalSocketRegisterFields,
     protected: registerProtected,
     abilityPredicate: registerAbilityPredicate,
+    useInterceptors: registerUseInterceptors = [],
   }: DynamicApiRegisterOptions<Entity> = {},
-  resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> = {},
-  updateAccountOptions: DynamicApiUpdateAccountOptions<Entity> = {},
+  {
+    resetPasswordUseInterceptors = [],
+    changePasswordUseInterceptors = [],
+    ...resetPasswordOptions
+  }: DynamicApiResetPasswordOptions<Entity> = {},
+  {
+    useInterceptors: updateAccountUseInterceptors = [],
+    ...updateAccountOptions
+  }: DynamicApiUpdateAccountOptions<Entity> = {},
 ): AuthGatewayConstructor<Entity> {
   // @ts-ignore
   class AuthSocketBodyPasswordFieldDto extends PickType(userEntity, [passwordField]) {
@@ -124,6 +126,7 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
     }
 
     @UseGuards(new JwtSocketAuthGuard(), new AuthUpdateAccountPoliciesGuard())
+    @UseInterceptors(...updateAccountUseInterceptors)
     @SubscribeMessage(updateAccountEvent)
     async updateAccount(
       @ConnectedSocket() socket: ExtendedSocket<Entity>,
@@ -135,6 +138,7 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
       };
     }
 
+    @UseInterceptors(...loginUseInterceptors)
     @SubscribeMessage(loginEvent)
     async login(
       @ConnectedSocket() socket: ExtendedSocket<Entity>,
@@ -159,6 +163,7 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
     }
 
     @UseGuards(new AuthRegisterPoliciesGuard())
+    @UseInterceptors(...registerUseInterceptors)
     @SubscribeMessage(registerEvent)
     async register(
       @ConnectedSocket() socket: ExtendedSocket<Entity>,
@@ -173,6 +178,7 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
     }
 
     @UseGuards(new ResetPasswordGuard(isNotEmptyObject(resetPasswordOptions)))
+    @UseInterceptors(...resetPasswordUseInterceptors)
     @SubscribeMessage(resetPasswordEvent)
     async resetPassword(@MessageBody() { email }: ResetPasswordDto) {
       if (isEmpty(resetPasswordOptions)) {
@@ -186,6 +192,7 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
     }
 
     @UseGuards(new ResetPasswordGuard(isNotEmptyObject(resetPasswordOptions)))
+    @UseInterceptors(...changePasswordUseInterceptors)
     @SubscribeMessage(changePasswordEvent)
     async changePassword(@MessageBody() { resetPasswordToken, newPassword }: ChangePasswordDto) {
       if (isEmpty(resetPasswordOptions)) {

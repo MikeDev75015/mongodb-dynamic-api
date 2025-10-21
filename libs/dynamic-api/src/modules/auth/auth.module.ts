@@ -31,23 +31,9 @@ export class AuthModule {
       webSocket,
     } = this.initializeAuthOptions<Entity>(options);
 
-    const {
-      beforeChangePasswordCallback,
-      resetPasswordCallback,
-      changePasswordCallback,
-      emailField,
-      expirationInMinutes,
-      changePasswordAbilityPredicate,
-    } = resetPassword;
+    const { resetPasswordCallback, ...resetPasswordOptionsRest } = resetPassword;
     const resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined = resetPasswordCallback
-      ? {
-        beforeChangePasswordCallback,
-        resetPasswordCallback,
-        changePasswordCallback,
-        emailField,
-        expirationInMinutes,
-        changePasswordAbilityPredicate: changePasswordAbilityPredicate,
-      }
+      ? { resetPasswordCallback, ...resetPasswordOptionsRest }
       : undefined;
 
     const AuthController = createAuthController(
@@ -86,8 +72,7 @@ export class AuthModule {
           {
             loginField,
             passwordField,
-            additionalFields: login.additionalFields,
-            abilityPredicate: login.abilityPredicate,
+            ...login,
           },
           register,
           validationPipeOptions,
