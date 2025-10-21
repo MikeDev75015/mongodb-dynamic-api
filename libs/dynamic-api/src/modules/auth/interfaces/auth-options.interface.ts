@@ -1,4 +1,4 @@
-import { Type, ValidationPipeOptions } from '@nestjs/common';
+import { NestInterceptor, Type, ValidationPipeOptions } from '@nestjs/common';
 import {
   AuthAbilityPredicate,
   DynamicApiResetPasswordCallback, DynamicApiServiceBeforeSaveCallback,
@@ -18,6 +18,7 @@ type DynamicApiLoginOptions<Entity extends BaseEntity = any> = {
   callback?: DynamicApiServiceCallback<Entity>;
   abilityPredicate?: AuthAbilityPredicate;
   additionalFields?: (keyof Entity)[];
+  useInterceptors?: Type<NestInterceptor>[];
 }
 
 type DynamicApiRegisterOptions<Entity extends BaseEntity = any> = {
@@ -26,6 +27,7 @@ type DynamicApiRegisterOptions<Entity extends BaseEntity = any> = {
   protected?: boolean;
   abilityPredicate?: AuthAbilityPredicate;
   additionalFields?: (keyof Entity | { name: keyof Entity; required?: boolean })[];
+  useInterceptors?: Type<NestInterceptor>[];
 };
 
 type DynamicApiUpdateAccountOptions<Entity extends BaseEntity = any> = {
@@ -33,6 +35,7 @@ type DynamicApiUpdateAccountOptions<Entity extends BaseEntity = any> = {
   callback?: DynamicApiServiceCallback<Entity>;
   abilityPredicate?: AuthAbilityPredicate;
   additionalFieldsToExclude?: (keyof Entity)[];
+  useInterceptors?: Type<NestInterceptor>[];
 };
 
 type DynamicApiResetPasswordOptions<Entity extends BaseEntity = any> = {
@@ -40,8 +43,10 @@ type DynamicApiResetPasswordOptions<Entity extends BaseEntity = any> = {
   expirationInMinutes?: number;
   beforeChangePasswordCallback?: DynamicApiServiceBeforeSaveCallback<Entity>;
   resetPasswordCallback?: DynamicApiResetPasswordCallback<Entity>;
+  resetPasswordUseInterceptors?: Type<NestInterceptor>[];
   changePasswordCallback?: DynamicApiServiceCallback<Entity>;
   changePasswordAbilityPredicate?: AuthAbilityPredicate;
+  changePasswordUseInterceptors?: Type<NestInterceptor>[];
 };
 
 type DynamicApiAuthOptions<Entity extends BaseEntity = any> = {

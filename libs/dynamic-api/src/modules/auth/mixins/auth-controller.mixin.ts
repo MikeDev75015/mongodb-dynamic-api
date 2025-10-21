@@ -1,4 +1,4 @@
-import { Body, Get, HttpCode, HttpStatus, Patch, Post, Request, Type, UseGuards } from '@nestjs/common';
+import { Body, Get, HttpCode, HttpStatus, Patch, Post, Request, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiProperty, IntersectionType, PartialType, PickType } from '@nestjs/swagger';
 import { AuthDecoratorsBuilder } from '../../../builders';
 import { ApiEndpointVisibility, Public } from '../../../decorators';
@@ -8,28 +8,32 @@ import { BaseEntity } from '../../../models';
 import { ChangePasswordDto } from '../dtos/change-password.dto';
 import { ResetPasswordDto } from '../dtos/reset-password.dto';
 import { JwtAuthGuard, LocalAuthGuard, ResetPasswordGuard } from '../guards';
-import {
-  AuthController,
-  AuthControllerConstructor,
-  AuthService,
-  DynamicApiRegisterOptions,
-  DynamicApiResetPasswordOptions,
-  DynamicApiUpdateAccountOptions,
-} from '../interfaces';
+import { AuthController, AuthControllerConstructor, AuthService, DynamicApiLoginOptions, DynamicApiRegisterOptions, DynamicApiResetPasswordOptions, DynamicApiUpdateAccountOptions } from '../interfaces';
 import { AuthPoliciesGuardMixin } from './auth-policies-guard.mixin';
 
 function AuthControllerMixin<Entity extends BaseEntity>(
   userEntity: Type<Entity>,
-  loginField: keyof Entity,
-  passwordField: keyof Entity,
-  additionalRequestFields: (keyof Entity)[] = [],
+  {
+    loginField,
+    passwordField,
+    additionalFields: additionalRequestFields = [],
+    useInterceptors: loginUseInterceptors = [],
+  }: DynamicApiLoginOptions<Entity>,
   {
     additionalFields: additionalRegisterFields,
     protected: registerProtected,
     abilityPredicate: registerAbilityPredicate,
+    useInterceptors: registerUseInterceptors = [],
   }: DynamicApiRegisterOptions<Entity> = {},
-  resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> = {},
-  updateAccountOptions: DynamicApiUpdateAccountOptions<Entity> = {},
+  {
+    resetPasswordUseInterceptors = [],
+    changePasswordUseInterceptors = [],
+    ...resetPasswordOptions
+  }: DynamicApiResetPasswordOptions<Entity> = {},
+  {
+    useInterceptors: updateAccountUseInterceptors = [],
+    ...updateAccountOptions
+  }: DynamicApiUpdateAccountOptions<Entity> = {},
 ): AuthControllerConstructor<Entity> {
   if (!loginField || !passwordField) {
     throw new Error('Login and password fields are required');
@@ -120,21 +124,20 @@ function AuthControllerMixin<Entity extends BaseEntity>(
       return this.service.getAccount(req.user);
     }
 
-    @RouteDecoratorsHelper(authUpdateAccountDecorators)
-    @HttpCode(HttpStatus.OK)
-    @ApiOkResponse({ type: AuthUserPresenter })
-    @Patch('account')
-    updateAccount(
-      @Request() req: { user: Entity },
-      @Body() body: AuthUpdateAccountDto,
-    ) {
-      return this.service.updateAccount(req.user, body);
+    @ApiEndpointVisibility(!!resetPasswordOptions, Public())
+    @UseGuards(new ResetPasswordGuard(!!resetPasswordOptions.emailField))
+    @HttpCode(HttpStatus.NO_CONTENT)
+    @UseInterceptors(...changePasswordUseInterceptors)
+    @Patch('change-password')
+    changePassword(@Body() { resetPasswordToken, newPassword }: ChangePasswordDto) {
+      return this.service.changePassword(resetPasswordToken, newPassword);
     }
 
     @Public()
     @UseGuards(LocalAuthGuard)
     @HttpCode(HttpStatus.OK)
     @ApiOkResponse({ type: AuthPresenter })
+    @UseInterceptors(...loginUseInterceptors)
     @Post('login')
     login(@Request() req: { user: Entity }, @Body() _: AuthLoginDto) {
       return this.service.login(req.user);
@@ -143,6 +146,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     @RouteDecoratorsHelper(authRegisterDecorators)
     @HttpCode(HttpStatus.CREATED)
     @ApiCreatedResponse({ type: AuthPresenter })
+    @UseInterceptors(...registerUseInterceptors)
     @Post('register')
     register(@Body() body: AuthRegisterDto) {
       return this.service.register(body);
@@ -151,17 +155,22 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     @ApiEndpointVisibility(!!resetPasswordOptions, Public())
     @UseGuards(new ResetPasswordGuard(!!resetPasswordOptions.emailField))
     @HttpCode(HttpStatus.NO_CONTENT)
+    @UseInterceptors(...resetPasswordUseInterceptors)
     @Post('reset-password')
     resetPassword(@Body() { email }: ResetPasswordDto) {
       return this.service.resetPassword(email);
     }
 
-    @ApiEndpointVisibility(!!resetPasswordOptions, Public())
-    @UseGuards(new ResetPasswordGuard(!!resetPasswordOptions.emailField))
-    @HttpCode(HttpStatus.NO_CONTENT)
-    @Patch('change-password')
-    changePassword(@Body() { resetPasswordToken, newPassword }: ChangePasswordDto) {
-      return this.service.changePassword(resetPasswordToken, newPassword);
+    @RouteDecoratorsHelper(authUpdateAccountDecorators)
+    @HttpCode(HttpStatus.OK)
+    @ApiOkResponse({ type: AuthUserPresenter })
+    @UseInterceptors(...updateAccountUseInterceptors)
+    @Patch('account')
+    updateAccount(
+      @Request() req: { user: Entity },
+      @Body() body: AuthUpdateAccountDto,
+    ) {
+      return this.service.updateAccount(req.user, body);
     }
   }
 

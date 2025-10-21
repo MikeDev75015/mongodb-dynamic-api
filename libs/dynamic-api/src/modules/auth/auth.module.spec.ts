@@ -262,12 +262,7 @@ describe('AuthModule', () => {
         expect(spyCreateAuthGateway).toHaveBeenCalledTimes(1);
         expect(spyCreateAuthGateway).toHaveBeenCalledWith(
           UserEntity,
-          {
-            loginField: fullOptions.login.loginField,
-            passwordField: fullOptions.login.passwordField,
-            additionalFields: fullOptions.login.additionalFields,
-            abilityPredicate: fullOptions.login.abilityPredicate,
-          },
+          fullOptions.login,
           fullOptions.register,
           fullOptions.validationPipeOptions,
           fullOptions.resetPassword,

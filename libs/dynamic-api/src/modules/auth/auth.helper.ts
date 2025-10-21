@@ -103,7 +103,7 @@ function createAuthServiceProvider<Entity extends BaseEntity>(
 
 function createAuthController<Entity extends BaseEntity>(
   userEntity: Type<Entity>,
-  { loginField, passwordField, additionalFields }: DynamicApiLoginOptions<Entity>,
+  loginOptions: DynamicApiLoginOptions<Entity>,
   registerOptions: DynamicApiRegisterOptions<Entity> | undefined,
   validationPipeOptions: ValidationPipeOptions | undefined,
   resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined,
@@ -114,9 +114,7 @@ function createAuthController<Entity extends BaseEntity>(
   @ValidatorPipe(validationPipeOptions)
   class AuthController extends AuthControllerMixin(
     userEntity,
-    loginField,
-    passwordField,
-    additionalFields,
+    loginOptions,
     registerOptions,
     resetPasswordOptions,
     updateAccountOptions,

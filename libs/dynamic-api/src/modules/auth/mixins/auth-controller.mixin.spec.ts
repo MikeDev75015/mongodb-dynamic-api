@@ -21,8 +21,7 @@ describe('AuthControllerMixin', () => {
   it('should throw error when invalid entity is provided', () => {
     expect(() => AuthControllerMixin<TestEntity>(
       null,
-      'loginField',
-      'passwordField',
+      { loginField: 'loginField', passwordField: 'passwordField' },
       undefined,
       undefined,
       undefined,
@@ -33,9 +32,8 @@ describe('AuthControllerMixin', () => {
   it('should throw error when invalid loginField is provided', () => {
     expect(() => AuthControllerMixin(
       TestEntity,
-      null,
-      'passwordField',
-    undefined,
+      { loginField: null, passwordField: 'passwordField' },
+      undefined,
       undefined,
       undefined,
     )).toThrow();
@@ -44,8 +42,7 @@ describe('AuthControllerMixin', () => {
   it('should throw error when invalid passwordField is provided', () => {
     expect(() => AuthControllerMixin(
       TestEntity,
-      'loginField',
-      null,
+      { loginField: 'loginField', passwordField: null },
       undefined,
       undefined,
       undefined,
@@ -55,8 +52,7 @@ describe('AuthControllerMixin', () => {
   it('should create AuthController', () => {
     const AuthController = AuthControllerMixin(
       TestEntity,
-      'loginField',
-      'passwordField',
+      { loginField: 'loginField', passwordField: 'passwordField' },
       undefined,
       undefined,
       undefined,
@@ -75,9 +71,7 @@ describe('AuthControllerMixin', () => {
   it('should create AuthController with additional fields', () => {
     const AuthController = AuthControllerMixin(
       TestEntity,
-      'loginField',
-      'passwordField',
-      ['field1'],
+      { loginField: 'loginField', passwordField: 'passwordField', additionalFields: ['field1'] },
       {
         additionalFields: ['field1', { name: 'field2', required: true }, { name: 'field3', required: false }],
         abilityPredicate: (user: any) => user.isAdmin,
@@ -99,8 +93,7 @@ describe('AuthControllerMixin', () => {
     it('should call service getAccount', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        'loginField',
-        'passwordField',
+        { loginField: 'loginField', passwordField: 'passwordField' },
         undefined,
         undefined,
         undefined,
@@ -118,8 +111,7 @@ describe('AuthControllerMixin', () => {
     it('should call service updateAccount', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        'loginField',
-        'passwordField',
+        { loginField: 'loginField', passwordField: 'passwordField' },
         undefined,
         undefined,
         undefined,
@@ -137,8 +129,7 @@ describe('AuthControllerMixin', () => {
     it('should call service login', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        'loginField',
-        'passwordField',
+        { loginField: 'loginField', passwordField: 'passwordField' },
         undefined,
         undefined,
         undefined,
@@ -156,8 +147,7 @@ describe('AuthControllerMixin', () => {
     it('should call service register', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        'loginField',
-        'passwordField',
+        { loginField: 'loginField', passwordField: 'passwordField' },
         undefined,
         undefined,
         undefined,
@@ -175,8 +165,7 @@ describe('AuthControllerMixin', () => {
     it('should call service resetPassword', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        'loginField',
-        'passwordField',
+        { loginField: 'loginField', passwordField: 'passwordField' },
         undefined,
         undefined,
         undefined,
@@ -193,8 +182,7 @@ describe('AuthControllerMixin', () => {
     it('should call service changePassword', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        'loginField',
-        'passwordField',
+        { loginField: 'loginField', passwordField: 'passwordField' },
         undefined,
         undefined,
         undefined,
