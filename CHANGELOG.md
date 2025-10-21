@@ -1,5 +1,17 @@
 Changelog
 
+## [2.13.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.12.0...v2.13.0) (2025-10-21)
+
+
+### authentication
+
+* **authentication:** add the possibility to use method interceptors ([00797af](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/00797af79fdae84bac665cfe9cd81c316fbf6d55))
+
+
+### aggregate
+
+* **aggregate:** add the possibility to use class/method interceptors ([c0aadf7](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/c0aadf734f4daf43180550663fddb360cc4642b9))
+
 ## [2.12.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.11.0...v2.12.0) (2025-10-19)
 
 
