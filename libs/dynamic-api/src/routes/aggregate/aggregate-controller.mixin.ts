@@ -1,4 +1,4 @@
-import { BadRequestException, Query, Type, UseGuards } from '@nestjs/common';
+import { BadRequestException, Query, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
@@ -12,7 +12,7 @@ import { AggregateService } from './aggregate-service.interface';
 function AggregateControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, isArrayResponse, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], isArrayResponse, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): AggregateControllerConstructor<Entity> {
   const {
@@ -82,6 +82,7 @@ function AggregateControllerMixin<Entity extends BaseEntity>(
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(AggregatePoliciesGuard)
+    @UseInterceptors(...useInterceptors)
     async aggregate(@Query() query: AggregateQuery) {
       const toPipeline = (
         AggregateQuery as Aggregatable<AggregateQuery>
