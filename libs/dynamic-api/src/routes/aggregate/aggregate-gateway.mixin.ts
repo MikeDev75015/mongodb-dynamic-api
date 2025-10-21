@@ -1,4 +1,4 @@
-import { Type, UseFilters, UseGuards } from '@nestjs/common';
+import { Type, UseFilters, UseGuards, UseInterceptors } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WsException } from '@nestjs/websockets';
 import { plainToInstance } from 'class-transformer';
@@ -23,7 +23,7 @@ import { AggregateService } from './aggregate-service.interface';
 function AggregateGatewayMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): AggregateGatewayConstructor<Entity> {
   const {
@@ -84,6 +84,7 @@ function AggregateGatewayMixin<Entity extends BaseEntity>(
 
     @UseFilters(new DynamicAPIWsExceptionFilter())
     @UseGuards(new JwtSocketGuard(isPublic), AggregatePoliciesGuard)
+    @UseInterceptors(...useInterceptors)
     @SubscribeMessage(event)
     async aggregate(
       @ConnectedSocket() _socket: ExtendedSocket<Entity>,
