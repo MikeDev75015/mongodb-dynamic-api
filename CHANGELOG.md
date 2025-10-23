@@ -1,5 +1,12 @@
 Changelog
 
+## [2.14.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.13.0...v2.14.0) (2025-10-23)
+
+
+### authentication
+
+* **authentication:** add the possibility to set extras imports/providers/controllers ([2fe2bb2](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/2fe2bb2c8ae59acb418ca68775fbe4e3cb398df3))
+
 ## [2.13.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.12.0...v2.13.0) (2025-10-21)
 
 
