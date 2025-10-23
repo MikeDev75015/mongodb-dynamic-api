@@ -8,8 +8,8 @@ import { DynamicApiModule } from '../../dynamic-api.module';
 import * as Helpers from '../../helpers';
 import { BaseEntity } from '../../models';
 import { BcryptService, DynamicApiGlobalStateService } from '../../services';
-import { authGatewayProviderName } from './auth.helper';
 import * as AuthHelpers from './auth.helper';
+import { authGatewayProviderName } from './auth.helper';
 import { AuthModule } from './auth.module';
 import { DynamicApiAuthOptions } from './interfaces';
 import { JwtStrategy } from './strategies';
@@ -79,9 +79,25 @@ class UserEntity extends BaseEntity {
 describe('AuthModule', () => {
   let module: DynamicModule;
   let spyInitializeAuthOptions: jest.SpyInstance;
+
   const basicOptions: DynamicApiAuthOptions<UserEntity> = { userEntity: UserEntity };
+
   const fakeGatewayOptions = { namespace: 'namespace' };
-  const fullOptions = getFullAuthOptionsMock(UserEntity, 'email', 'password')
+  const fakeImport = { module: 'fake-import' } as unknown as DynamicModule;
+  const fakeProvider = { provide: 'fake-provider', useValue: {} };
+  const fakeController = jest.fn();
+
+  const fullOptions = getFullAuthOptionsMock(
+    UserEntity,
+    'email',
+    'password',
+    ['name'],
+    ['name', 'email'],
+    ['password'],
+    [fakeImport],
+    [fakeProvider],
+    [fakeController],
+  );
 
   let spyBuildSchemaFromEntity: jest.SpyInstance;
   let spyInitializeConfigFromOptions: jest.SpyInstance;
@@ -145,6 +161,7 @@ describe('AuthModule', () => {
 
       it('should have initialized options', () => {
         expect(spyInitializeAuthOptions).toHaveBeenCalledWith(basicOptions);
+        expect(spyInitializeConfigFromOptions).toHaveBeenCalledWith(fakeConnectionName);
       });
 
       it('should add entity schema', () => {
@@ -218,16 +235,15 @@ describe('AuthModule', () => {
     });
 
     describe('with full options', () => {
-      const fakeImport = { module: 'fake-import' } as unknown as DynamicModule;
-
       beforeEach(() => {
-        module = AuthModule.forRoot(fullOptions, [fakeImport]);
+        module = AuthModule.forRoot(fullOptions);
         spyInitializeConfigFromOptions =
           jest.spyOn(Helpers, 'initializeConfigFromOptions').mockImplementationOnce(() => fakeGatewayOptions);
       });
 
       it('should have initialized options', () => {
         expect(spyInitializeAuthOptions).toHaveBeenCalledWith(fullOptions);
+        expect(spyInitializeConfigFromOptions).toHaveBeenCalledWith(fakeGatewayOptions);
       });
 
       it('should create auth controller, auth service provider and local strategy provider', () => {
@@ -301,11 +317,12 @@ describe('AuthModule', () => {
             provide: authGatewayProviderName,
             useClass: AuthGateway,
           },
+          fakeProvider,
         ]);
       });
 
       it('should have controllers', () => {
-        expect(module.controllers).toEqual([AuthController]);
+        expect(module.controllers).toEqual([AuthController, fakeController]);
       });
     });
   });

@@ -14,7 +14,6 @@ import { JwtStrategy } from './strategies';
 export class AuthModule {
   static forRoot<Entity extends BaseEntity>(
     options: DynamicApiAuthOptions<Entity>,
-    extraImports: any[] = [],
   ) {
     const {
       userEntity,
@@ -29,6 +28,9 @@ export class AuthModule {
       jwt: { secret, expiresIn },
       validationPipeOptions,
       webSocket,
+      extraImports,
+      extraProviders,
+      extraControllers,
     } = this.initializeAuthOptions<Entity>(options);
 
     const { resetPasswordCallback, ...resetPasswordOptionsRest } = resetPassword;
@@ -109,8 +111,9 @@ export class AuthModule {
         JwtStrategy,
         BcryptService,
         ...webSocketsProviders,
+        ...extraProviders,
       ],
-      controllers: [AuthController],
+      controllers: [AuthController, ...extraControllers],
     };
   }
 
@@ -128,6 +131,9 @@ export class AuthModule {
     resetPassword,
     validationPipeOptions,
     webSocket,
+    extraImports = [],
+    extraProviders = [],
+    extraControllers = [],
   }: DynamicApiAuthOptions<Entity>): DynamicApiAuthOptions<Entity> {
     return {
       userEntity: userEntity,
@@ -157,6 +163,9 @@ export class AuthModule {
       },
       validationPipeOptions: validationPipeOptions,
       webSocket,
+      extraImports,
+      extraProviders,
+      extraControllers,
     };
   }
 }

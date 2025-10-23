@@ -1,4 +1,4 @@
-import { Type } from '@nestjs/common';
+import { ModuleMetadata, Type } from '@nestjs/common';
 import { BaseEntity } from '../src';
 import { DynamicApiAuthOptions } from '../src/modules';
 
@@ -9,6 +9,9 @@ export const getFullAuthOptionsMock = <Entity extends BaseEntity>(
   loginAdditionalFields: (keyof Entity)[] = [],
   registerAdditionalFields: (keyof Entity | { name: keyof Entity; required?: boolean })[] = [],
   updateAccountAdditionalFieldsToExclude: (keyof Entity)[] = [],
+  extraImports: ModuleMetadata['imports'] = [],
+  extraProviders: ModuleMetadata['providers'] = [],
+  extraControllers: ModuleMetadata['controllers'] = [],
 ): DynamicApiAuthOptions<Entity> => ({
   userEntity,
   jwt: { secret: 'secret', expiresIn: '1h' },
@@ -47,4 +50,7 @@ export const getFullAuthOptionsMock = <Entity extends BaseEntity>(
   },
   validationPipeOptions: { whitelist: true },
   webSocket: { namespace: 'namespace' },
+  extraImports,
+  extraProviders,
+  extraControllers,
 });

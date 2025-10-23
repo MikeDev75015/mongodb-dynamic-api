@@ -1,4 +1,4 @@
-import { NestInterceptor, Type, ValidationPipeOptions } from '@nestjs/common';
+import { ModuleMetadata, NestInterceptor, Type, ValidationPipeOptions } from '@nestjs/common';
 import {
   AuthAbilityPredicate,
   DynamicApiResetPasswordCallback, DynamicApiServiceBeforeSaveCallback,
@@ -58,6 +58,9 @@ type DynamicApiAuthOptions<Entity extends BaseEntity = any> = {
   resetPassword?: Partial<DynamicApiResetPasswordOptions<Entity>>;
   validationPipeOptions?: ValidationPipeOptions;
   webSocket?: DynamicApiWebSocketOptions;
+  extraImports?: ModuleMetadata['imports'];
+  extraProviders?: ModuleMetadata['providers'];
+  extraControllers?: ModuleMetadata['controllers'];
 };
 
 export type {
