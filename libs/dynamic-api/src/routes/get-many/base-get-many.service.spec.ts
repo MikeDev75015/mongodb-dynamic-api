@@ -15,11 +15,17 @@ describe('BaseGetManyService', () => {
 
   const initService = (exec = jest.fn()) => {
     modelMock = {
-      find: jest.fn(() => ({ lean: jest.fn(() => ({ exec })) })),
+      find: jest.fn(() => (
+        {
+          lean: jest.fn(() => (
+            { exec }
+          )),
+        }
+      )),
     } as any;
 
     return new TestService(modelMock);
-  }
+  };
 
   it('should have getMany method', () => {
     service = initService();
@@ -59,7 +65,7 @@ describe('BaseGetManyService', () => {
       service.callback = callback;
       await service.getMany();
 
-      expect(callback).toHaveBeenCalledWith(response[0], service.callbackMethods);
+      expect(callback).toHaveBeenCalledWith({ ...response[0], id: response[0]._id }, service.callbackMethods);
     });
   });
 });

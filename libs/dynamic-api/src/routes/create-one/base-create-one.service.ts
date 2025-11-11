@@ -39,7 +39,7 @@ export abstract class BaseCreateOneService<Entity extends BaseEntity>
       const document = await this.model.findOne({ _id }).lean().exec() as Entity;
 
       if (this.callback) {
-        await this.callback(document, this.callbackMethods);
+        await this.callback(this.addDocumentId(document), this.callbackMethods);
       }
 
       return this.buildInstance(document);

@@ -21,12 +21,18 @@ describe('BaseDuplicateOneService', () => {
 
   const initService = (exec = jest.fn(), document: any = undefined) => {
     modelMock = {
-      findOne: jest.fn(() => ({ lean: jest.fn(() => ({ exec })) })),
+      findOne: jest.fn(() => (
+        {
+          lean: jest.fn(() => (
+            { exec }
+          )),
+        }
+      )),
       create: jest.fn(() => Promise.resolve(document)),
     } as any;
 
     return new TestService(modelMock);
-  }
+  };
 
   it('should have duplicateOne method', () => {
     service = initService();
@@ -73,7 +79,8 @@ describe('BaseDuplicateOneService', () => {
       service.callback = callback;
       await service.duplicateOne(document._id);
 
-      expect(callback).toHaveBeenCalledWith(duplicatedDocument, service.callbackMethods);
+      expect(callback)
+      .toHaveBeenCalledWith({ ...duplicatedDocument, id: duplicatedDocument._id }, service.callbackMethods);
     });
   });
 });

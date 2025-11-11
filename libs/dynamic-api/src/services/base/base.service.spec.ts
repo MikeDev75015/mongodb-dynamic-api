@@ -661,4 +661,15 @@ describe('BaseService', () => {
       );
     });
   });
+
+  describe('addDocumentId', () => {
+    it('should add the document id to the data and return the data', () => {
+      const service = new TestService({} as any);
+      const data = { _id: fakeId, name: 'toto' } as unknown as TestEntity;
+
+      const result = service['addDocumentId'](data);
+
+      expect(result).toEqual({ id: fakeId, ...data });
+    });
+  });
 });

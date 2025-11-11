@@ -269,4 +269,8 @@ export abstract class BaseService<Entity extends BaseEntity> {
   protected handleDocumentNotFound() {
     throw new NotFoundException('Document not found');
   }
+
+  protected addDocumentId(document: Entity): Entity {
+    return { ...document, id: document._id.toString() } as Entity;
+  }
 }

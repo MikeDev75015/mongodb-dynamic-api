@@ -11,6 +11,7 @@ export abstract class BaseDuplicateManyService<Entity extends BaseEntity>
   extends BaseService<Entity>
   implements DuplicateManyService<Entity> {
   protected readonly entity: Type<Entity>;
+
   protected readonly callback: DynamicApiServiceCallback<Entity> | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
@@ -46,7 +47,7 @@ export abstract class BaseDuplicateManyService<Entity extends BaseEntity>
             return { ...acc, [key]: value };
           }, {}),
           ...partial ?? {},
-        }
+        },
       )));
       const documents = await this.model.find({ _id: { $in: duplicatedList.map(({ _id }) => _id.toString()) } })
       .lean()
@@ -55,7 +56,7 @@ export abstract class BaseDuplicateManyService<Entity extends BaseEntity>
       if (this.callback && documents.length) {
         await Promise.all(
           documents.map(
-            (document) => this.callback(document as Entity, this.callbackMethods),
+            (document) => this.callback(this.addDocumentId(document as Entity), this.callbackMethods),
           ),
         );
       }

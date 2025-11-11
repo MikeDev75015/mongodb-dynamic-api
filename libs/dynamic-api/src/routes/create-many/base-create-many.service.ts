@@ -8,9 +8,9 @@ import { CreateManyService } from './create-many-service.interface';
 
 export abstract class BaseCreateManyService<Entity extends BaseEntity>
   extends BaseService<Entity>
-  implements CreateManyService<Entity>
-{
+  implements CreateManyService<Entity> {
   protected readonly entity: Type<Entity>;
+
   protected readonly callback: DynamicApiServiceCallback<Entity> | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
@@ -30,7 +30,7 @@ export abstract class BaseCreateManyService<Entity extends BaseEntity>
       if (this.callback && documents.length) {
         await Promise.all(
           documents.map(
-            (document) => this.callback(document as Entity, this.callbackMethods),
+            (document) => this.callback(this.addDocumentId(document as Entity), this.callbackMethods),
           ),
         );
       }

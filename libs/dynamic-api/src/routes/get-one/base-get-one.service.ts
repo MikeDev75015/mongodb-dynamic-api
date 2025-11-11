@@ -6,8 +6,7 @@ import { GetOneService } from './get-one-service.interface';
 
 export abstract class BaseGetOneService<Entity extends BaseEntity>
   extends BaseService<Entity>
-  implements GetOneService<Entity>
-{
+  implements GetOneService<Entity> {
   protected readonly callback: DynamicApiServiceCallback<Entity> | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
@@ -19,7 +18,9 @@ export abstract class BaseGetOneService<Entity extends BaseEntity>
       const document = await this.model
       .findOne({
         _id: id,
-        ...(this.isSoftDeletable ? { isDeleted: false } : undefined),
+        ...(
+          this.isSoftDeletable ? { isDeleted: false } : undefined
+        ),
       })
       .lean()
       .exec();
@@ -29,7 +30,7 @@ export abstract class BaseGetOneService<Entity extends BaseEntity>
       }
 
       if (this.callback) {
-        await this.callback(document as Entity, this.callbackMethods);
+        await this.callback(this.addDocumentId(document as Entity), this.callbackMethods);
       }
 
       return this.buildInstance(document as Entity);
