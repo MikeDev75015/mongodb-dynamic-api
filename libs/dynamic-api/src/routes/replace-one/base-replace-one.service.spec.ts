@@ -21,11 +21,17 @@ describe('BaseReplaceOneService', () => {
 
   const initService = (exec = jest.fn()) => {
     modelMock = {
-      findOneAndReplace: jest.fn(() => ({ lean: jest.fn(() => ({ exec })) })),
+      findOneAndReplace: jest.fn(() => (
+        {
+          lean: jest.fn(() => (
+            { exec }
+          )),
+        }
+      )),
     } as any;
 
     return new TestService(modelMock);
-  }
+  };
 
   it('should have replaceOne method', () => {
     service = initService();
@@ -73,7 +79,7 @@ describe('BaseReplaceOneService', () => {
       service.callback = callback;
       await service.replaceOne(document._id, { name: replacedDocument.name });
 
-      expect(callback).toHaveBeenCalledWith(replacedDocument, service.callbackMethods);
+      expect(callback).toHaveBeenCalledWith({ ...replacedDocument, id: replacedDocument._id }, service.callbackMethods);
     });
   });
 });

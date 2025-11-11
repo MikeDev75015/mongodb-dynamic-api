@@ -7,12 +7,12 @@ import { UpdateOneService } from './update-one-service.interface';
 
 export abstract class BaseUpdateOneService<Entity extends BaseEntity>
   extends BaseService<Entity>
-  implements UpdateOneService<Entity>
-{
+  implements UpdateOneService<Entity> {
   protected readonly beforeSaveCallback: DynamicApiServiceBeforeSaveCallback<
     Entity,
     DynamicApiServiceBeforeSaveUpdateContext<Entity>
   > | undefined;
+
   protected readonly callback: DynamicApiServiceCallback<Entity> | undefined;
 
   protected constructor(
@@ -26,7 +26,9 @@ export abstract class BaseUpdateOneService<Entity extends BaseEntity>
       const document = await this.model
       .findOne({
         _id: id,
-        ...(this.isSoftDeletable ? { isDeleted: false } : undefined),
+        ...(
+          this.isSoftDeletable ? { isDeleted: false } : undefined
+        ),
       })
       .lean()
       .exec() as Entity;
@@ -37,7 +39,7 @@ export abstract class BaseUpdateOneService<Entity extends BaseEntity>
 
       const update = this.beforeSaveCallback
         ? await this.beforeSaveCallback(
-          document,
+          this.addDocumentId(document),
           { id, update: cloneDeep(partial) },
           this.callbackMethods,
         )
@@ -53,7 +55,7 @@ export abstract class BaseUpdateOneService<Entity extends BaseEntity>
       .exec() as Entity;
 
       if (this.callback) {
-        await this.callback(updatedDocument, this.callbackMethods);
+        await this.callback(this.addDocumentId(updatedDocument), this.callbackMethods);
       }
 
       return this.buildInstance(updatedDocument);

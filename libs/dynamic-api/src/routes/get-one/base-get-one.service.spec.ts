@@ -16,7 +16,13 @@ describe('BaseGetOneService', () => {
 
   const initService = (exec = jest.fn()) => {
     modelMock = {
-      findOne: jest.fn(() => ({ lean: jest.fn(() => ({ exec })) })),
+      findOne: jest.fn(() => (
+        {
+          lean: jest.fn(() => (
+            { exec }
+          )),
+        }
+      )),
     } as any;
 
     return new TestService(modelMock);
@@ -62,7 +68,7 @@ describe('BaseGetOneService', () => {
       service.callback = callback;
       await service.getOne('ObjectId');
 
-      expect(callback).toHaveBeenCalledWith(response, service.callbackMethods);
+      expect(callback).toHaveBeenCalledWith({ ...response, id: response._id }, service.callbackMethods);
     });
 
     it('should throw error if document not found', async () => {

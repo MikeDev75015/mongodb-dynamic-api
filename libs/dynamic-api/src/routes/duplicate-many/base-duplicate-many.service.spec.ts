@@ -30,12 +30,18 @@ describe('BaseDuplicateManyService', () => {
 
   const initService = (exec = jest.fn(), documents: any[] = []) => {
     modelMock = {
-      find: jest.fn(() => ({ lean: jest.fn(() => ({ exec })) })),
+      find: jest.fn(() => (
+        {
+          lean: jest.fn(() => (
+            { exec }
+          )),
+        }
+      )),
       create: jest.fn(() => Promise.resolve(documents)),
     } as any;
 
     return new TestService(modelMock);
-  }
+  };
 
   it('should have duplicateMany method', () => {
     service = initService();
@@ -81,8 +87,18 @@ describe('BaseDuplicateManyService', () => {
 
       await service.duplicateMany(ids);
 
-      expect(callback).toHaveBeenNthCalledWith(1, duplicatedDocuments[0], service.callbackMethods);
-      expect(callback).toHaveBeenNthCalledWith(2, duplicatedDocuments[1], service.callbackMethods);
+      expect(callback)
+      .toHaveBeenNthCalledWith(
+        1,
+        { ...duplicatedDocuments[0], id: duplicatedDocuments[0]._id },
+        service.callbackMethods,
+      );
+      expect(callback)
+      .toHaveBeenNthCalledWith(
+        2,
+        { ...duplicatedDocuments[1], id: duplicatedDocuments[1]._id },
+        service.callbackMethods,
+      );
     });
   });
 });

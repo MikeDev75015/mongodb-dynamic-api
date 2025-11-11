@@ -80,7 +80,7 @@ describe('BaseAggregateService', () => {
       service['callback'] = callback;
       await service.aggregate(pipelineStages);
 
-      expect(callback).toHaveBeenCalledWith(aggregated, service['callbackMethods']);
+      expect(callback).toHaveBeenCalledWith({ ...aggregated, id: aggregated._id }, service['callbackMethods']);
     });
 
     it('should throw an error if the create query fails', async () => {

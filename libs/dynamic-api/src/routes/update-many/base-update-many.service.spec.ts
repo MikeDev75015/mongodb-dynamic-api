@@ -30,16 +30,26 @@ describe('BaseUpdateManyService', () => {
 
   const initService = (exec = jest.fn(), documents: any[] = []) => {
     modelMock = {
-      find: jest.fn(() => ({ lean: jest.fn(() => ({ exec })) })),
-      updateMany: jest.fn(() => ({
-        lean: jest.fn(() => ({
-          exec: jest.fn().mockResolvedValueOnce(documents),
-        })),
-      })),
+      find: jest.fn(() => (
+        {
+          lean: jest.fn(() => (
+            { exec }
+          )),
+        }
+      )),
+      updateMany: jest.fn(() => (
+        {
+          lean: jest.fn(() => (
+            {
+              exec: jest.fn().mockResolvedValueOnce(documents),
+            }
+          )),
+        }
+      )),
     } as any;
 
     return new TestService(modelMock);
-  }
+  };
 
   it('should have updateMany method', () => {
     service = initService();
@@ -64,10 +74,14 @@ describe('BaseUpdateManyService', () => {
 
       await expect(
         service.updateMany(ids, { name: 'updated' }),
-      ).resolves.toStrictEqual(updatedDocuments.map(({ _id, name }) => ({
-        name,
-        id: _id,
-      })));
+      )
+      .resolves
+      .toStrictEqual(updatedDocuments.map(({ _id, name }) => (
+        {
+          name,
+          id: _id,
+        }
+      )));
 
       expect(modelMock.find).toHaveBeenNthCalledWith(1, { _id: { $in: ids } });
 
@@ -106,8 +120,10 @@ describe('BaseUpdateManyService', () => {
       service.callback = callback;
       await service.updateMany(ids, { name: 'updated' });
 
-      expect(callback).toHaveBeenNthCalledWith(1, updatedDocuments[0], service.callbackMethods);
-      expect(callback).toHaveBeenNthCalledWith(2, updatedDocuments[1], service.callbackMethods);
+      expect(callback)
+      .toHaveBeenNthCalledWith(1, { ...updatedDocuments[0], id: updatedDocuments[0]._id }, service.callbackMethods);
+      expect(callback)
+      .toHaveBeenNthCalledWith(2, { ...updatedDocuments[1], id: updatedDocuments[1]._id }, service.callbackMethods);
     });
   });
 });

@@ -8,9 +8,9 @@ import { ReplaceOneService } from './replace-one-service.interface';
 
 export abstract class BaseReplaceOneService<Entity extends BaseEntity>
   extends BaseService<Entity>
-  implements ReplaceOneService<Entity>
-{
+  implements ReplaceOneService<Entity> {
   protected readonly entity: Type<Entity>;
+
   protected readonly callback: DynamicApiServiceCallback<Entity> | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
@@ -20,26 +20,28 @@ export abstract class BaseReplaceOneService<Entity extends BaseEntity>
   async replaceOne(id: string, partial: Partial<Entity>): Promise<Entity> {
     try {
       const document = await this.model
-        .findOneAndReplace(
-          {
-            _id: id,
-            ...(this.isSoftDeletable ? { isDeleted: false } : undefined),
-          },
-          plainToInstance(this.entity, partial),
-          {
-            new: true,
-            setDefaultsOnInsert: true,
-          },
-        )
-        .lean()
-        .exec();
+      .findOneAndReplace(
+        {
+          _id: id,
+          ...(
+            this.isSoftDeletable ? { isDeleted: false } : undefined
+          ),
+        },
+        plainToInstance(this.entity, partial),
+        {
+          new: true,
+          setDefaultsOnInsert: true,
+        },
+      )
+      .lean()
+      .exec();
 
       if (!document) {
         this.handleDocumentNotFound();
       }
 
       if (this.callback) {
-        await this.callback(document as Entity, this.callbackMethods);
+        await this.callback(this.addDocumentId(document as Entity), this.callbackMethods);
       }
 
       return this.buildInstance(document as Entity);

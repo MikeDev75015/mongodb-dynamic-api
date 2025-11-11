@@ -48,7 +48,7 @@ describe('BaseCreateManyService', () => {
       service.callback = callback;
       await service.createMany([toCreate]);
 
-      expect(callback).toHaveBeenCalledWith(created, service.callbackMethods);
+      expect(callback).toHaveBeenCalledWith({ ...created, id: created._id }, service.callbackMethods);
     });
 
     it('should throw an error if the document already exists', async () => {

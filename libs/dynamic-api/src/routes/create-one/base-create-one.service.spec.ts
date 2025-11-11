@@ -49,7 +49,7 @@ describe('BaseCreateOneService', () => {
       await service.createOne(toCreate);
 
       expect(callback).toHaveBeenCalledTimes(1);
-      expect(callback).toHaveBeenCalledWith(created, service.callbackMethods);
+      expect(callback).toHaveBeenCalledWith({ ...created, id: created._id }, service.callbackMethods);
     });
 
     it('should throw an error if the document already exists', async () => {

@@ -6,8 +6,7 @@ import { UpdateManyService } from './update-many-service.interface';
 
 export abstract class BaseUpdateManyService<Entity extends BaseEntity>
   extends BaseService<Entity>
-  implements UpdateManyService<Entity>
-{
+  implements UpdateManyService<Entity> {
   protected readonly callback: DynamicApiServiceCallback<Entity> | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
@@ -22,22 +21,24 @@ export abstract class BaseUpdateManyService<Entity extends BaseEntity>
       }
 
       await this.model
-        .updateMany(
-          {
-            _id: { $in: ids },
-            ...(this.isSoftDeletable ? { isDeleted: false } : undefined),
-          },
-          partial,
-        )
-        .lean()
-        .exec();
+      .updateMany(
+        {
+          _id: { $in: ids },
+          ...(
+            this.isSoftDeletable ? { isDeleted: false } : undefined
+          ),
+        },
+        partial,
+      )
+      .lean()
+      .exec();
 
       const documents = await this.model.find({ _id: { $in: ids } }).lean().exec();
 
       if (this.callback && documents.length) {
         await Promise.all(
           documents.map(
-            (document) => this.callback(document as Entity, this.callbackMethods),
+            (document) => this.callback(this.addDocumentId(document as Entity), this.callbackMethods),
           ),
         );
       }

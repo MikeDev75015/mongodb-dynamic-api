@@ -45,7 +45,7 @@ export abstract class BaseDuplicateOneService<Entity extends BaseEntity>
       const document = await this.model.findOne({ _id }).lean().exec();
 
       if (this.callback) {
-        await this.callback(document as Entity, this.callbackMethods);
+        await this.callback(this.addDocumentId(document as Entity), this.callbackMethods);
       }
 
       return this.buildInstance(document as Entity);

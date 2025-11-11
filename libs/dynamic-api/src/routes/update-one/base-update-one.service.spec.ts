@@ -81,7 +81,7 @@ describe('BaseUpdateOneService', () => {
       service.callback = callback;
       await service.updateOne(document._id, { name: updatedDocument.name });
 
-      expect(callback).toHaveBeenCalledWith(updatedDocument, service.callbackMethods);
+      expect(callback).toHaveBeenCalledWith({ ...updatedDocument, id: updatedDocument._id }, service.callbackMethods);
     });
 
     it('should call beforeSaveCallback if it is defined', async () => {
@@ -94,7 +94,7 @@ describe('BaseUpdateOneService', () => {
 
       expect(beforeSaveCallback)
       .toHaveBeenCalledWith(
-        document,
+        { ...document, id: document._id },
         { id: document._id, update: { name: updatedDocument.name } },
         service.callbackMethods,
       );
