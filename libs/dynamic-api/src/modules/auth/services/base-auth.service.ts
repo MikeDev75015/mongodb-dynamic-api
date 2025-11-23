@@ -32,6 +32,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
   }
 
   protected async validateUser(login: string, pass: string): Promise<Entity> {
+    this.logger.debug('Validating user', { login, pass: !!pass });
     this.verifyArguments(login, pass);
 
     const user = (
@@ -50,6 +51,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
   }
 
   protected async login(user: Entity, fromMember = false) {
+    this.logger.debug('Logging in user', { userId: user?.id, fromMember });
     this.verifyArguments(user);
 
     if (!fromMember && !!this.loginCallback) {
@@ -76,6 +78,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
   }
 
   protected async register(userToCreate: Partial<Entity>) {
+    this.logger.debug('Registering user', { userToCreate });
     this.verifyArguments(userToCreate);
     this.checkFieldsValidity(userToCreate);
 
@@ -106,6 +109,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
   }
 
   protected async getAccount({ id }: Entity): Promise<Entity> {
+    this.logger.debug('Getting account', { userId: id });
     this.verifyArguments(id);
 
     const user = (await this.model.findOne({ _id: id }).lean().exec()) as Entity;
@@ -120,6 +124,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
   }
 
   protected async updateAccount({ id }: Entity, update: Partial<Entity>): Promise<Entity> {
+    this.logger.debug('Updating account', { userId: id, update });
     this.verifyArguments(id, update);
 
     if (this.beforeUpdateAccountCallback) {
@@ -146,6 +151,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
   }
 
   protected async resetPassword(email: string) {
+    this.logger.debug('Resetting password', { email });
     this.verifyArguments(email);
 
     if (!this.resetPasswordOptions) {
@@ -192,6 +198,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
   }
 
   protected async changePassword(resetPasswordToken: string, newPassword: string) {
+    this.logger.debug('Changing password', { resetPasswordToken: !!resetPasswordToken, newPassword: !!newPassword });
     this.verifyArguments(resetPasswordToken, newPassword);
 
     let email: string;

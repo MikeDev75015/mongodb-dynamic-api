@@ -90,7 +90,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
       authAbilityPredicate: !!authAbilityPredicate,
     });
 
-    const document = await this.findOneDocument(this.entity, {
+    let document = await this.findOneDocument(this.entity, {
       ...(
         _id ? { _id } : {}
       ),
@@ -108,34 +108,45 @@ export abstract class BaseService<Entity extends BaseEntity> {
     return document;
   }
 
-  protected async aggregateDocuments<T>(entity: Type<T>, pipeline: PipelineStage[]): Promise<T[]> {
+  protected async aggregateDocuments<T extends BaseEntity>(entity: Type<T>, pipeline: PipelineStage[]): Promise<T[]> {
     const model = await DynamicApiGlobalStateService.getEntityModel(entity);
-    return model.aggregate(pipeline as MongoosePipelineStage[]).exec() as Promise<T[]>;
+    const documents = await model.aggregate(pipeline as MongoosePipelineStage[]).exec() as T[];
+
+    return documents.map((d) => this.addDocumentId(d));
   }
 
-  protected async findManyDocuments<T>(entity: Type<T>, query: FilterQuery<T>): Promise<T[]> {
+  protected async findManyDocuments<T extends BaseEntity>(entity: Type<T>, query: FilterQuery<T>): Promise<T[]> {
     const model = await DynamicApiGlobalStateService.getEntityModel(entity);
-    // noinspection ES6MissingAwait
-    return model.find(query).lean().exec() as Promise<T[]>;
+    const documents = await model.find(query).lean().exec() as T[];
+
+    return documents.map((d) => this.addDocumentId(d));
   }
 
-  protected async findOneDocument<T>(entity: Type<T>, query: FilterQuery<T>): Promise<T | undefined> {
+  protected async findOneDocument<T extends BaseEntity>(
+    entity: Type<T>,
+    query: FilterQuery<T>,
+  ): Promise<T | undefined> {
     const model = await DynamicApiGlobalStateService.getEntityModel(entity);
-    // noinspection ES6MissingAwait
-    return model.findOne(query).lean().exec() as Promise<T | undefined>;
+    const document = await model.findOne(query).lean().exec() as T | undefined;
+
+    return document ? this.addDocumentId(document) : undefined;
   }
 
-  protected async createManyDocuments<T>(entity: Type<T>, data: Partial<T>[]): Promise<T[]> {
+  protected async createManyDocuments<T extends BaseEntity>(entity: Type<T>, data: Partial<T>[]): Promise<T[]> {
     const model = await DynamicApiGlobalStateService.getEntityModel(entity);
-    return model.create(data) as Promise<T[]>;
+    const documents = await model.create(data) as T[];
+
+    return documents.map((d) => this.addDocumentId(d));
   }
 
-  protected async createOneDocument<T>(entity: Type<T>, data: Partial<T>): Promise<T> {
+  protected async createOneDocument<T extends BaseEntity>(entity: Type<T>, data: Partial<T>): Promise<T> {
     const model = await DynamicApiGlobalStateService.getEntityModel(entity);
-    return model.create(data) as Promise<T>;
+    const document = await model.create(data) as T;
+
+    return this.addDocumentId(document);
   }
 
-  protected async updateManyDocuments<T>(
+  protected async updateManyDocuments<T extends BaseEntity>(
     entity: Type<T>,
     query: FilterQuery<T>,
     update: UpdateQuery<T> | UpdateWithAggregationPipeline,
@@ -144,7 +155,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
     return model.updateMany(query, update).exec();
   }
 
-  protected async updateOneDocument<T>(
+  protected async updateOneDocument<T extends BaseEntity>(
     entity: Type<T>, query: FilterQuery<T>,
     update: UpdateQuery<T> | UpdateWithAggregationPipeline,
   ): Promise<UpdateResult> {
@@ -152,7 +163,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
     return model.updateOne(query, update).exec();
   }
 
-  protected async deleteManyDocuments<T>(entity: Type<T>, ids: string[]): Promise<DeleteResult> {
+  protected async deleteManyDocuments<T extends BaseEntity>(entity: Type<T>, ids: string[]): Promise<DeleteResult> {
     const model = await DynamicApiGlobalStateService.getEntityModel(entity);
 
     const paths = Object.getOwnPropertyNames(model.schema.paths);
@@ -169,7 +180,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
     return model.deleteMany({ _id: { $in: ids } }).exec();
   }
 
-  protected async deleteOneDocument<T>(entity: Type<T>, id: string): Promise<DeleteResult> {
+  protected async deleteOneDocument<T extends BaseEntity>(entity: Type<T>, id: string): Promise<DeleteResult> {
     const model = await DynamicApiGlobalStateService.getEntityModel(entity);
 
     const paths = Object.getOwnPropertyNames(model.schema.paths);
@@ -199,14 +210,19 @@ export abstract class BaseService<Entity extends BaseEntity> {
 
     return plainToInstance(this.entity, {
       ...rest as Partial<Entity>,
-      ...(_id || id ? { id: _id?.toString() ?? id } : {}),
-      ...(isDeleted ? { deletedAt } : {}),
+      ...(
+        _id && !id ? { id: _id?.toString() } : {}
+      ),
+      ...(id ? { id } : {}),
+      ...(
+        isDeleted ? { deletedAt } : {}
+      ),
     });
   }
 
   protected handleAbilityPredicate(document: Entity, authAbilityPredicate?: AuthAbilityPredicate<Entity>) {
     this.baseServiceLogger.debug('handleAbilityPredicate', {
-      documentId: document?._id?.toString() || document?.id,
+      documentId: document?._id?.toString(),
       entityName: this.entity.name,
       abilityPredicate: !!this.abilityPredicate,
       authAbilityPredicate: !!authAbilityPredicate,
@@ -224,8 +240,8 @@ export abstract class BaseService<Entity extends BaseEntity> {
   protected handleDuplicateKeyError(error: any, reThrow = true) {
     if (error.code === 11000) {
       const properties = Object.entries(error.keyValue)
-        .filter(([key]) => key !== 'deletedAt')
-        .map(([key, value]) => `${key} '${value}'`);
+      .filter(([key]) => key !== 'deletedAt')
+      .map(([key, value]) => `${key} '${value}'`);
 
       throw new ConflictException(
         properties.length === 1
@@ -270,7 +286,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
     throw new NotFoundException('Document not found');
   }
 
-  protected addDocumentId(document: Entity): Entity {
-    return { ...document, id: document._id.toString() } as Entity;
+  protected addDocumentId<T extends BaseEntity>(document: T): T {
+    return { ...document, id: document._id.toString() } as T;
   }
 }

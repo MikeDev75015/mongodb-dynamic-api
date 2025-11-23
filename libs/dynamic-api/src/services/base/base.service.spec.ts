@@ -1,10 +1,5 @@
-import {
-  BadRequestException, ConflictException,
-  ForbiddenException,
-  NotFoundException,
-  ServiceUnavailableException,
-} from '@nestjs/common';
-import { Model, Schema } from 'mongoose';
+import { BadRequestException, ConflictException, ForbiddenException, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import { Model, Schema, ObjectId } from 'mongoose';
 import { AbilityPredicate, DeleteResult, UpdateResult } from '../../interfaces';
 import { BaseEntity, SoftDeletableEntity } from '../../models';
 import { DynamicApiGlobalStateService } from '../dynamic-api-global-state/dynamic-api-global-state.service';
@@ -12,6 +7,7 @@ import { BaseService } from './base.service';
 
 class TestEntity extends BaseEntity {
   name: string;
+
   password?: string;
 }
 
@@ -21,6 +17,7 @@ class TestSoftEntity extends SoftDeletableEntity {
 
 class TestService extends BaseService<TestEntity> {
   protected abilityPredicate: AbilityPredicate<TestEntity> | undefined;
+
   constructor(protected readonly model: any) {
     super(model);
   }
@@ -29,28 +26,52 @@ class TestService extends BaseService<TestEntity> {
 describe('BaseService', () => {
   let service: TestService;
   let fakeModel: any;
+  let model: Model<any>;
 
   const fakeId = 'fake-id';
-  const fakeEntity = { id: fakeId, name: 'toto' } as TestEntity;
-  const fakeQuery = { _id: 'fake-id' };
+  const fakeEntity = { _id: fakeId as unknown as ObjectId, name: 'toto' } as TestEntity;
+  const expectedEntity = { _id: fakeId as unknown as ObjectId, id: fakeId, name: 'toto' } as TestEntity;
+  const fakeQuery = { _id: fakeId };
   const fakeUpdateResult = { modifiedCount: 1 } as UpdateResult;
   const fakeDeleteResult = { deletedCount: 1 } as DeleteResult;
   const exec = jest.fn();
 
+  const documents = [{ _id: '_id1', name: 'toto' }, { _id: '_id2', name: 'unit' }];
+  const expectedDocuments = [{ _id: '_id1', id: '_id1', name: 'toto' }, { _id: '_id2', id: '_id2', name: 'unit' }];
+
+  const document = documents[0];
+  const expectedDocument = expectedDocuments[0];
+
   beforeEach(() => {
-    const lean = jest.fn(() => ({ exec }));
+    const lean = jest.fn(() => (
+      { exec }
+    ));
     fakeModel = {
-      aggregate: jest.fn(() => ({ exec })),
-      find: jest.fn(() => ({ lean })),
-      findOne: jest.fn(() => ({ lean })),
+      aggregate: jest.fn(() => (
+        { exec }
+      )),
+      find: jest.fn(() => (
+        { lean }
+      )),
+      findOne: jest.fn(() => (
+        { lean }
+      )),
       create: jest.fn(),
-      updateOne: jest.fn(() => ({ exec })),
-      updateMany: jest.fn(() => ({ exec })),
-      deleteOne: jest.fn(() => ({ exec })),
-      deleteMany: jest.fn(() => ({ exec })),
+      updateOne: jest.fn(() => (
+        { exec }
+      )),
+      updateMany: jest.fn(() => (
+        { exec }
+      )),
+      deleteOne: jest.fn(() => (
+        { exec }
+      )),
+      deleteMany: jest.fn(() => (
+        { exec }
+      )),
       schema: {
         paths: {},
-      } as Schema<any>
+      } as Schema<any>,
     };
 
     service = new TestService(fakeModel);
@@ -105,30 +126,25 @@ describe('BaseService', () => {
   });
 
   describe('aggregateDocumentsWithAbilityPredicate', () => {
-    it('should not call handleAbilityPredicate return an array of documents', async () => {
-      const documents = [{ name: 'toto' }, { name: 'unit' }];
-      const model = {
+    beforeEach(() => {
+      model = {
         aggregate: jest.fn().mockReturnThis(),
         exec: jest.fn().mockResolvedValue(documents),
       } as unknown as Model<any>;
       jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
+    });
+
+    it('should not call handleAbilityPredicate return an array of documents', async () => {
       const service = new TestService(model);
       // @ts-ignore
       service['entity'] = TestEntity;
 
       const result = await service['aggregateDocumentsWithAbilityPredicate']([]);
 
-      expect(result).toEqual(documents);
+      expect(result).toEqual(expectedDocuments);
     });
 
     it('should call handleAbilityPredicate for each document and return an array of documents', async () => {
-      const documents = [{ name: 'toto' }, { name: 'unit' }];
-      const model = {
-        aggregate: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue(documents),
-      } as unknown as Model<any>;
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
-
       const service = new TestService(model);
       // @ts-ignore
       service['entity'] = TestEntity;
@@ -136,17 +152,11 @@ describe('BaseService', () => {
 
       const result = await service['aggregateDocumentsWithAbilityPredicate']([]);
 
-      expect(result).toEqual(documents);
+      expect(result).toEqual(expectedDocuments);
       expect(service['abilityPredicate']).toHaveBeenCalledTimes(documents.length);
     });
 
     it('should throw a ForbiddenException if the abilityPredicate returns false', async () => {
-      const documents = [{ name: 'toto' }, { name: 'unit' }];
-      const model = {
-        aggregate: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue(documents),
-      } as unknown as Model<any>;
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
       const service = new TestService(model);
       // @ts-ignore
       service['entity'] = TestEntity;
@@ -159,32 +169,26 @@ describe('BaseService', () => {
   });
 
   describe('findManyDocumentsWithAbilityPredicate', () => {
-    it('should not call handleAbilityPredicate return an array of documents', async () => {
-      const documents = [{ name: 'toto' }, { name: 'unit' }];
-      const model = {
+    beforeEach(() => {
+      model = {
         find: jest.fn().mockReturnThis(),
         lean: jest.fn().mockReturnThis(),
         exec: jest.fn().mockResolvedValue(documents),
       } as unknown as Model<any>;
       jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
+    });
+
+    it('should not call handleAbilityPredicate return an array of documents', async () => {
       const service = new TestService(model);
       // @ts-ignore
       service['entity'] = TestEntity;
 
       const result = await service['findManyDocumentsWithAbilityPredicate']();
 
-      expect(result).toEqual(documents);
+      expect(result).toEqual(expectedDocuments);
     });
 
     it('should call handleAbilityPredicate for each document and return an array of documents', async () => {
-      const documents = [{ name: 'toto' }, { name: 'unit' }];
-      const model = {
-        find: jest.fn().mockReturnThis(),
-        lean: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue(documents),
-      } as unknown as Model<any>;
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
-
       const service = new TestService(model);
       // @ts-ignore
       service['entity'] = TestEntity;
@@ -192,18 +196,11 @@ describe('BaseService', () => {
 
       const result = await service['findManyDocumentsWithAbilityPredicate']();
 
-      expect(result).toEqual(documents);
+      expect(result).toEqual(expectedDocuments);
       expect(service['abilityPredicate']).toHaveBeenCalledTimes(documents.length);
     });
 
     it('should throw a ForbiddenException if the abilityPredicate returns false', async () => {
-      const documents = [{ name: 'toto' }, { name: 'unit' }];
-      const model = {
-        find: jest.fn().mockReturnThis(),
-        lean: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue(documents),
-      } as unknown as Model<any>;
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
       const service = new TestService(model);
       // @ts-ignore
       service['entity'] = TestEntity;
@@ -216,31 +213,26 @@ describe('BaseService', () => {
   });
 
   describe('findOneDocumentWithAbilityPredicate', () => {
-    it('should not call handleAbilityPredicate return the document', async () => {
-      const document = { name: 'toto' };
-      const model = {
+    beforeEach(() => {
+      model = {
         findOne: jest.fn().mockReturnThis(),
         lean: jest.fn().mockReturnThis(),
         exec: jest.fn().mockResolvedValue(document),
       } as unknown as Model<any>;
       jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
+    });
+
+    it('should not call handleAbilityPredicate return the document', async () => {
       const service = new TestService(model);
       // @ts-ignore
       service['entity'] = TestEntity;
 
       const result = await service['findOneDocumentWithAbilityPredicate']('id', { test: 'unit' });
 
-      expect(result).toEqual(document);
+      expect(result).toEqual(expectedDocument);
     });
 
     it('should call handleAbilityPredicate for the document and return the document', async () => {
-      const document = { name: 'toto' };
-      const model = {
-        findOne: jest.fn().mockReturnThis(),
-        lean: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue(document),
-      } as unknown as Model<any>;
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
       const service = new TestService(model);
       // @ts-ignore
       service['entity'] = TestEntity;
@@ -248,18 +240,11 @@ describe('BaseService', () => {
 
       const result = await service['findOneDocumentWithAbilityPredicate']('id');
 
-      expect(result).toEqual(document);
+      expect(result).toEqual(expectedDocument);
       expect(service['abilityPredicate']).toHaveBeenCalledTimes(1);
     });
 
     it('should call handleAbilityPredicate with auth ability predicate', async () => {
-      const document = { name: 'toto' };
-      const model = {
-        findOne: jest.fn().mockReturnThis(),
-        lean: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue(document),
-      } as unknown as Model<any>;
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
       const service = new TestService(model);
       // @ts-ignore
       service['entity'] = TestEntity;
@@ -268,18 +253,11 @@ describe('BaseService', () => {
 
       const result = await service['findOneDocumentWithAbilityPredicate']('id', undefined, authAbilityPredicate);
 
-      expect(result).toEqual(document);
+      expect(result).toEqual(expectedDocument);
       expect(authAbilityPredicate).toHaveBeenCalledTimes(1);
     });
 
     it('should throw a ForbiddenException if the abilityPredicate returns false', async () => {
-      const document = { name: 'toto' };
-      const model = {
-        findOne: jest.fn().mockReturnThis(),
-        lean: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue(document),
-      } as unknown as Model<any>;
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
       const service = new TestService(model);
       // @ts-ignore
       service['entity'] = TestEntity;
@@ -309,28 +287,26 @@ describe('BaseService', () => {
 
   describe('aggregateDocuments', () => {
     it('should call the model aggregate method with the pipeline and return the documents', async () => {
-      const documents = [{ name: 'toto' }, { name: 'unit' }];
       exec.mockResolvedValue(documents);
       jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel);
       const service = new TestService(fakeModel);
 
       const result = await service['callbackMethods'].aggregateDocuments(TestEntity, []);
 
-      expect(result).toEqual(documents);
+      expect(result).toEqual(expectedDocuments);
       expect(fakeModel.aggregate).toHaveBeenCalledWith([]);
     });
   });
 
   describe('findManyDocuments', () => {
     it('should call the model find method with the query and return the documents', async () => {
-      const documents = [{ name: 'toto' }, { name: 'unit' }];
       exec.mockResolvedValue(documents);
       jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel);
       const service = new TestService(fakeModel);
 
       const result = await service['callbackMethods'].findManyDocuments(TestEntity, fakeQuery);
 
-      expect(result).toEqual(documents);
+      expect(result).toEqual(expectedDocuments);
       expect(fakeModel.find).toHaveBeenCalledWith(fakeQuery);
     });
   });
@@ -343,7 +319,7 @@ describe('BaseService', () => {
 
       const result = await service['callbackMethods'].findOneDocument(TestEntity, fakeQuery);
 
-      expect(result).toEqual(fakeEntity);
+      expect(result).toEqual(expectedEntity);
       expect(fakeModel.findOne).toHaveBeenCalledWith(fakeQuery);
     });
   });
@@ -351,13 +327,13 @@ describe('BaseService', () => {
   describe('createManyDocuments', () => {
     it('should call the model create method with the data and return the documents', async () => {
       const data = [{ name: 'toto' }, { name: 'unit' }];
-      fakeModel.create.mockResolvedValue(data);
+      fakeModel.create.mockResolvedValue(documents);
       jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel);
       const service = new TestService(fakeModel);
 
       const result = await service['callbackMethods'].createManyDocuments(TestEntity, data);
 
-      expect(result).toEqual(data);
+      expect(result).toEqual(expectedDocuments);
       expect(fakeModel.create).toHaveBeenCalledWith(data);
     });
   });
@@ -370,7 +346,7 @@ describe('BaseService', () => {
 
       const result = await service['callbackMethods'].createOneDocument(TestEntity, fakeEntity);
 
-      expect(result).toEqual(fakeEntity);
+      expect(result).toEqual(expectedEntity);
       expect(fakeModel.create).toHaveBeenCalledWith(fakeEntity);
     });
   });
@@ -487,22 +463,6 @@ describe('BaseService', () => {
       });
     });
 
-    it('should build an instance of the entity with id if _id is not defined', () => {
-      const document = {
-        _id: undefined,
-        id: 'fake-id',
-        __v: 1,
-        name: 'toto',
-      } as any;
-
-      const instance = service['buildInstance'](document);
-
-      expect(instance).toEqual({
-        id: 'fake-id',
-        name: 'toto',
-      });
-    });
-
     it('should build an instance of the entity with deletedAt if isDeleted is true', () => {
       const document = {
         _id: 'id',
@@ -523,36 +483,42 @@ describe('BaseService', () => {
   });
 
   describe('handleDuplicateKeyError', () => {
-    it('should throw a ConflictException with the property that caused the error if error code is mongo duplicated error code', () => {
-      const service = new TestService({} as any);
-      const error = {
-        code: 11000,
-        keyValue: {
-          name: 'toto',
-        },
-      };
+    it(
+      'should throw a ConflictException with the property that caused the error if error code is mongo duplicated error code',
+      () => {
+        const service = new TestService({} as any);
+        const error = {
+          code: 11000,
+          keyValue: {
+            name: 'toto',
+          },
+        };
 
-      expect(() => service['handleDuplicateKeyError'](error)).toThrow(
-        new ConflictException(`name 'toto' is already used`),
-      );
-    });
+        expect(() => service['handleDuplicateKeyError'](error)).toThrow(
+          new ConflictException(`name 'toto' is already used`),
+        );
+      },
+    );
 
-    it('should throw a ConflictException with the combination that caused the error if error code is mongo duplicated error code', () => {
-      const service = new TestService({} as any);
-      const error = {
-        code: 11000,
-        keyValue: {
-          name: 'toto',
-          test: 'unit',
-        },
-      };
+    it(
+      'should throw a ConflictException with the combination that caused the error if error code is mongo duplicated error code',
+      () => {
+        const service = new TestService({} as any);
+        const error = {
+          code: 11000,
+          keyValue: {
+            name: 'toto',
+            test: 'unit',
+          },
+        };
 
-      expect(() => service['handleDuplicateKeyError'](error)).toThrow(
-        new ConflictException(
-          `The combination of name 'toto', test 'unit' already exists`,
-        ),
-      );
-    });
+        expect(() => service['handleDuplicateKeyError'](error)).toThrow(
+          new ConflictException(
+            `The combination of name 'toto', test 'unit' already exists`,
+          ),
+        );
+      },
+    );
 
     it('should throw a ServiceUnavailableException if the error code is not mongo duplicated error code', () => {
       const service = new TestService({} as any);
@@ -575,19 +541,29 @@ describe('BaseService', () => {
 
       expect(() => service['handleDuplicateKeyError'](error, false)).not.toThrow();
     });
+
+    it('should throw original error if is instance of HttpException', () => {
+      const service = new TestService({} as any);
+      const error = new NotFoundException('Original not found error');
+
+      expect(() => service['handleDuplicateKeyError'](error)).toThrow(error);
+    });
   });
 
   describe('handleMongoErrors', () => {
-    it('should throw a NotFoundException with the message "Document not found" if the error name is "CastError"', () => {
-      const service = new TestService({} as any);
-      const error = {
-        name: 'CastError',
-      };
+    it(
+      'should throw a NotFoundException with the message "Document not found" if the error name is "CastError"',
+      () => {
+        const service = new TestService({} as any);
+        const error = {
+          name: 'CastError',
+        };
 
-      expect(() => service['handleMongoErrors'](error)).toThrow(
-        new NotFoundException('Document not found'),
-      );
-    });
+        expect(() => service['handleMongoErrors'](error)).toThrow(
+          new NotFoundException('Document not found'),
+        );
+      },
+    );
 
     it('should throw a BadRequestException with the error message if the error name is "ValidationError"', () => {
       const service = new TestService({} as any);
@@ -607,17 +583,20 @@ describe('BaseService', () => {
       );
     });
 
-    it('should throw a BadRequestException with the message "Invalid payload" if the error name is "ValidationError" and there is no error message', () => {
-      const service = new TestService({} as any);
-      const error = {
-        name: 'ValidationError',
-        errors: {},
-      };
+    it(
+      'should throw a BadRequestException with the message "Invalid payload" if the error name is "ValidationError" and there is no error message',
+      () => {
+        const service = new TestService({} as any);
+        const error = {
+          name: 'ValidationError',
+          errors: {},
+        };
 
-      expect(() => service['handleMongoErrors'](error)).toThrow(
-        new BadRequestException(['Invalid payload']),
-      );
-    });
+        expect(() => service['handleMongoErrors'](error)).toThrow(
+          new BadRequestException(['Invalid payload']),
+        );
+      },
+    );
 
     it('should throw a ServiceUnavailableException if the error name is not "CastError" or "ValidationError"', () => {
       const service = new TestService({} as any);
@@ -639,6 +618,13 @@ describe('BaseService', () => {
       };
 
       expect(() => service['handleMongoErrors'](error, false)).not.toThrow();
+    });
+
+    it('should throw original error if is instance of HttpException', () => {
+      const service = new TestService({} as any);
+      const error = new NotFoundException('Original not found error');
+
+      expect(() => service['handleMongoErrors'](error)).toThrow(error);
     });
   });
 
