@@ -15,7 +15,7 @@ aliases:
   - &install-deps
     run:
       name: Install dependencies
-      command: npm ci
+      command: npm ci --legacy-peer-deps
   - &restore-cache
     restore_cache:
       key: dependency-cache-{{ checksum "package.json" }}

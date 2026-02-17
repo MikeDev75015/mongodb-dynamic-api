@@ -1,4 +1,4 @@
-import { CacheStore, CacheStoreFactory } from '@nestjs/cache-manager/dist/interfaces/cache-manager.interface';
+import type Keyv from 'keyv';
 
 interface DynamicApiCacheOptions {
   /**
@@ -16,7 +16,7 @@ interface DynamicApiCacheOptions {
    * [Different stores](https://docs.nestjs.com/techniques/caching#different-stores)
    * for more info.
    */
-  store?: string | CacheStoreFactory | CacheStore;
+  store?: string | Keyv | Keyv[];
 
   isCacheableValue?: (value: any) => boolean;
 

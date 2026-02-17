@@ -5,7 +5,8 @@ function ApiEndpointVisibility(
   condition: boolean,
   decorator?: MethodDecorator | CustomDecorator,
 ): MethodDecorator | CustomDecorator {
-  const decoratorToApply = decorator ?? ((_?: any) => undefined)()
+  const noopDecorator: MethodDecorator = () => {};
+  const decoratorToApply = decorator ?? noopDecorator;
   return applyDecorators(!condition ? ApiExcludeEndpoint() : decoratorToApply);
 }
 
