@@ -63,7 +63,7 @@ npm install --save mongodb-dynamic-api
 
 <p style="text-align: justify; width: 100%;font-size: 15px;">
 
-In summary, DynamicApiModule is a flexible and configurable module using NestJS 10 that provides dynamic API functionality for your contents.
+In summary, DynamicApiModule is a flexible and configurable module using NestJS 11 that provides dynamic API functionality for your contents.
 <br>It must be set up at the root level with global settings and then configured for individual features.
 <br>It has several optional features such as
 [Swagger UI](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/swagger-ui.md),
