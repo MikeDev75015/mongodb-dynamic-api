@@ -19,6 +19,7 @@ describe('RepositoryHelper', () => {
   beforeEach(async () => {
     model = createMock<Model<TestEntity>>();
     dynamicApiGlobalStateServiceGetEntityModelSpy =
+      // @ts-ignore
       jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
     repository = await RepositoryHelper.getRepository(TestEntity);
   });
