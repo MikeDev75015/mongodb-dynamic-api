@@ -15,7 +15,7 @@ import { DeleteOneService } from './delete-one-service.interface';
 function DeleteOneGatewayMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): DeleteOneGatewayConstructor<Entity> {
   const {
@@ -66,7 +66,7 @@ function DeleteOneGatewayMixin<Entity extends BaseEntity>(
     @UseInterceptors(...useInterceptors)
     @SubscribeMessage(event)
     async deleteOne(
-      @ConnectedSocket() _socket: ExtendedSocket<Entity>,
+      @ConnectedSocket() socket: ExtendedSocket<Entity>,
       @MessageBody() body: EntityParam,
     ) {
       if (!body?.id) {
@@ -79,9 +79,13 @@ function DeleteOneGatewayMixin<Entity extends BaseEntity>(
         DeleteOneResponse as Mappable<Entity>
       ).fromDeleteResult;
 
+      const responseData = fromDeleteResult ? fromDeleteResult<DeleteOneResponse>(deleteResult) : deleteResult;
+
+      this.broadcastIfNeeded(socket, event, [{ id: body.id } as object], broadcastConfig);
+
       return {
         event,
-        data: fromDeleteResult ? fromDeleteResult<DeleteOneResponse>(deleteResult) : deleteResult,
+        data: responseData,
       };
     }
   }
