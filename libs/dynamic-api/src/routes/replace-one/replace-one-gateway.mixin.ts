@@ -15,7 +15,7 @@ import { ReplaceOneService } from './replace-one-service.interface';
 function ReplaceOneGatewayMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): ReplaceOneGatewayConstructor<Entity> {
   const {
@@ -75,7 +75,7 @@ function ReplaceOneGatewayMixin<Entity extends BaseEntity>(
     @UseInterceptors(...useInterceptors)
     @SubscribeMessage(event)
     async replaceOne(
-      @ConnectedSocket() _socket: ExtendedSocket<Entity>,
+      @ConnectedSocket() socket: ExtendedSocket<Entity>,
       @MessageBody() body: EntityParam & ReplaceOneData,
     ) {
       if (!body?.id || Object.keys(body).length === 1) {
@@ -94,9 +94,13 @@ function ReplaceOneGatewayMixin<Entity extends BaseEntity>(
         ReplaceOneResponse as Mappable<Entity>
       ).fromEntity;
 
+      const responseData = fromEntity ? fromEntity<ReplaceOneResponse>(entity) : entity;
+
+      this.broadcastIfNeeded(socket, event, [responseData], broadcastConfig);
+
       return {
         event,
-        data: fromEntity ? fromEntity<ReplaceOneResponse>(entity) : entity,
+        data: responseData,
       };
     }
   }
