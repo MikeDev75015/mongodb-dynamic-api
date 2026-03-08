@@ -16,7 +16,7 @@ import { DuplicateOneService } from './duplicate-one-service.interface';
 function DuplicateOneGatewayMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): DuplicateOneGatewayConstructor<Entity> {
   const {
@@ -76,7 +76,7 @@ function DuplicateOneGatewayMixin<Entity extends BaseEntity>(
     @UseInterceptors(...useInterceptors)
     @SubscribeMessage(event)
     async duplicateOne(
-      @ConnectedSocket() _socket: ExtendedSocket<Entity>,
+      @ConnectedSocket() socket: ExtendedSocket<Entity>,
       @MessageBody() body: EntityParam & DuplicateOneData,
     ) {
       if (!body?.id) {
@@ -98,9 +98,13 @@ function DuplicateOneGatewayMixin<Entity extends BaseEntity>(
         DuplicateOneResponse as Mappable<Entity>
       ).fromEntity;
 
+      const responseData = fromEntity ? fromEntity<DuplicateOneResponse>(entity) : entity;
+
+      this.broadcastIfNeeded(socket, event, [responseData], broadcastConfig);
+
       return {
         event,
-        data: fromEntity ? fromEntity<DuplicateOneResponse>(entity) : entity,
+        data: responseData,
       };
     }
   }
