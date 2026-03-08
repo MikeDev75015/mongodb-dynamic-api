@@ -23,7 +23,7 @@ import { CreateManyService } from './create-many-service.interface';
 function CreateManyGatewayMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): CreateManyGatewayConstructor<Entity> {
   const {
@@ -79,7 +79,7 @@ function CreateManyGatewayMixin<Entity extends BaseEntity>(
     @UseInterceptors(...useInterceptors)
     @SubscribeMessage(event)
     async createMany(
-      @ConnectedSocket() _socket: ExtendedSocket<Entity>,
+      @ConnectedSocket() socket: ExtendedSocket<Entity>,
       @MessageBody() body: CreateManyData,
     ): GatewayResponse<CreateManyResponse[]> {
       if (!(
@@ -103,9 +103,13 @@ function CreateManyGatewayMixin<Entity extends BaseEntity>(
         CreateManyResponse as Mappable<Entity>
       ).fromEntities;
 
+      const responseData = fromEntities ? fromEntities(list) : list;
+
+      this.broadcastIfNeeded(socket, event, responseData, broadcastConfig);
+
       return {
         event,
-        data: fromEntities ? fromEntities(list) : list,
+        data: responseData,
       };
     }
   }

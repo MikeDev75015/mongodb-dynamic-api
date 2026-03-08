@@ -16,7 +16,7 @@ import { UpdateManyService } from './update-many-service.interface';
 function UpdateManyGatewayMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): UpdateManyGatewayConstructor<Entity> {
   const {
@@ -76,7 +76,7 @@ function UpdateManyGatewayMixin<Entity extends BaseEntity>(
     @UseInterceptors(...useInterceptors)
     @SubscribeMessage(event)
     async updateMany(
-      @ConnectedSocket() _socket: ExtendedSocket<Entity>,
+      @ConnectedSocket() socket: ExtendedSocket<Entity>,
       @MessageBody() body: ManyEntityQuery & UpdateManyData,
     ) {
       if (!this.isValidManyBody(body)) {
@@ -99,9 +99,13 @@ function UpdateManyGatewayMixin<Entity extends BaseEntity>(
         UpdateManyResponse as Mappable<Entity>
       ).fromEntities;
 
+      const responseData = fromEntities ? fromEntities<UpdateManyResponse>(list) : list;
+
+      this.broadcastIfNeeded(socket, event, responseData, broadcastConfig);
+
       return {
         event,
-        data: fromEntities ? fromEntities<UpdateManyResponse>(list) : list,
+        data: responseData,
       };
     }
   }
