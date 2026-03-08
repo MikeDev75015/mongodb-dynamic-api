@@ -14,6 +14,7 @@ Add WebSocket support to your API to make your routes accessible via Socket.IO i
   - [Module-Level Configuration](#module-level-configuration)
   - [Route-Level Configuration](#route-level-configuration)
   - [Custom Event Names](#custom-event-names)
+  - [Broadcasting Events](#broadcasting-events)
 - [Available Events](#available-events)
   - [Authentication Events](#authentication-events-1)
 - [Authentication with WebSockets](#authentication-with-websockets)
@@ -128,7 +129,7 @@ DynamicApiModule.forFeature({
 
 ### Custom Event Names
 
-By default, events follow the pattern `{route-type}-{entity-name}` in kebab-case (e.g., `create-one-products`, `get-many-users`). The entity name comes from the `apiTag` if provided, otherwise from the entity class name. You can customize the event name using the `eventName` parameter:
+By default, events follow the pattern `{route-type}-{displayed-name}` in kebab-case (e.g., `create-one-products`, `get-many-users`). The `displayed-name` is determined by `apiTag` if provided, otherwise falls back to the entity class name. You can customize the event name using the `eventName` parameter:
 
 ```typescript
 DynamicApiModule.forFeature({
@@ -167,6 +168,224 @@ socket.emit('list-products', { page: 1, limit: 10 }, (response) => {
 - Avoiding naming conflicts
 - Simplifying event names for easier maintenance
 
+### Broadcasting Events
+
+You can automatically broadcast event responses to all connected clients (except the sender) using the `broadcast` option. This is useful for real-time synchronization across multiple clients.
+
+**⚠️ Important: Broadcasting is only available for routes that modify data.**
+
+**Supported Routes:**
+- ✅ `CreateOne` - Broadcasts the created entity
+- ✅ `CreateMany` - Broadcasts the list of created entities
+- ✅ `UpdateOne` - Broadcasts the updated entity
+- ✅ `UpdateMany` - Broadcasts the list of updated entities
+- ✅ `ReplaceOne` - Broadcasts the replaced entity
+- ✅ `DuplicateOne` - Broadcasts the duplicated entity
+- ✅ `DuplicateMany` - Broadcasts the list of duplicated entities
+- ✅ `DeleteOne` - Broadcasts a minimal object with the deleted entity's `id`
+- ✅ `DeleteMany` - Broadcasts a list of minimal objects with the deleted entities' `ids`
+
+**Not Supported (Read-only routes):**
+- ❌ `GetOne` - No broadcast (read operation)
+- ❌ `GetMany` - No broadcast (read operation)
+- ❌ `Aggregate` - No broadcast (read operation)
+
+```typescript
+DynamicApiModule.forFeature({
+  entity: Product,
+  controllerOptions: {
+    path: 'products',
+  },
+  routes: [
+    {
+      type: 'CreateOne',
+      webSocket: true,
+      broadcast: {
+        enabled: true, // Always broadcasts using the same event name
+      },
+    },
+    {
+      type: 'UpdateOne',
+      webSocket: true,
+      broadcast: {
+        enabled: true,
+        eventName: 'product-updated', // Broadcasts using a custom event name
+      },
+    },
+    {
+      type: 'DeleteOne',
+      webSocket: true,
+      broadcast: {
+        // For delete routes, data only contains { id: string }
+        // BroadcastAbilityPredicate can check user permissions but not entity properties
+        enabled: (data, user) => user?.role === 'admin',
+      },
+    },
+    {
+      type: 'UpdateMany',
+      webSocket: true,
+      broadcast: {
+        // enabled is called ONCE PER UPDATED ENTITY
+        // Only entities where status === 'published' are broadcasted
+        enabled: (data, user) => data.status === 'published',
+        eventName: 'products-published', // Conditional with custom event name
+      },
+    },
+  ],
+})
+```
+
+**Broadcast Configuration Options:**
+
+The `broadcast` option accepts an object with the following properties:
+
+- `enabled` (required): Can be:
+  - `true` - Always broadcasts to all clients
+  - `false` - Never broadcasts (same as omitting the option)
+  - `BroadcastAbilityPredicate<ResponseData>` - Function with signature `(data: ResponseData, user: User) => boolean` that determines whether to broadcast a specific entity. **This predicate is evaluated per entity**: for routes that return multiple entities (e.g., `CreateMany`, `UpdateMany`, `DuplicateMany`, `DeleteMany`), the function is called once for each entity in the response, and only entities that pass the test are broadcasted.
+
+- `eventName` (optional): Custom event name for the broadcast. If not specified, uses the same event name as the request.
+
+**Special Note for Delete Routes:**
+
+For `DeleteOne` and `DeleteMany` routes, the broadcasted data contains only the `id` of the deleted entity/entities, not the full entity data (since the entity has been deleted). The `BroadcastAbilityPredicate` receives a minimal object: `{ id: string }`.
+
+**Important**: Even for `DeleteMany`, the predicate is called **once per deleted entity** with a single `{ id: string }` object, not with an array.
+
+```typescript
+// DeleteOne example
+{
+  type: 'DeleteOne',
+  webSocket: true,
+  broadcast: {
+    // data parameter is a single object: { id: string }
+    // user parameter allows permission checks
+    enabled: (data, user) => user?.role === 'admin',
+    eventName: 'product-deleted',
+  },
+}
+
+// DeleteMany example
+{
+  type: 'DeleteMany',
+  webSocket: true,
+  broadcast: {
+    // enabled is called ONCE PER ENTITY with { id: string }
+    // Only entities that pass the test are broadcasted
+    enabled: (data, user) => {
+      // data is { id: string }, NOT an array
+      // This will be called for each deleted item
+      return user?.role === 'moderator' || user?.role === 'admin';
+    },
+    eventName: 'products-deleted',
+  },
+}
+```
+
+**Client Example with Broadcasting:**
+
+```typescript
+// Client 1: Creates a product
+socket.emit('create-one-product', { name: 'Laptop', price: 999 }, (response) => {
+  console.log('Client 1 - Created:', response.data);
+});
+
+// Client 2: Listens for broadcasts (same event name)
+socket.on('create-one-product', (data) => {
+  console.log('Client 2 - New product created:', data);
+  // data contains the full product object
+  // Update UI with the new product
+});
+
+// Client 3: Listens for custom broadcast events
+socket.on('product-updated', (data) => {
+  console.log('Client 3 - Product updated:', data);
+  // data contains the full updated product object
+  // Update UI with the modified product
+});
+
+// All clients: Listen for conditional broadcasts
+socket.on('products-published', (data) => {
+  console.log('Published products received:', data);
+  // data is an array containing only the products that passed the enabled check
+  // (i.e., products where status === 'published')
+  // Update UI with newly published products
+});
+
+// Client 4: Listens for delete broadcasts
+socket.on('product-deleted', (data) => {
+  console.log('Product deleted:', data);
+  // For delete routes, data contains only: [{ id: '...' }]
+  // Use the id to remove the item from your UI
+  const deletedIds = data.map(item => item.id);
+  // Remove from local state
+});
+
+// Client 5: Listens for CreateMany broadcasts with filtering
+socket.on('expensive-products-created', (data) => {
+  console.log('Expensive products created:', data);
+  // data is an array containing only products where price > 100
+  // Each product in the array passed the enabled check
+  // Update UI with the new expensive products
+  data.forEach(product => {
+    console.log(`New expensive product: ${product.name} - $${product.price}`);
+  });
+});
+
+// Example: Multiple clients handling product deletion
+// Client 1: Deletes a product
+socket.emit('delete-one-product', { id: '507f1f77bcf86cd799439011' }, (response) => {
+  console.log('Client 1 - Deleted:', response.data);
+  // Response contains delete result
+});
+
+// Client 2: Receives the broadcast (if enabled)
+socket.on('product-deleted', (data) => {
+  console.log('Client 2 - Product deleted by another user:', data);
+  // data = [{ id: '507f1f77bcf86cd799439011' }]
+  // Remove the product from the UI
+  removeProductFromUI(data[0].id);
+});
+
+// Example: CreateMany with filtering
+// Client 1: Creates multiple products
+socket.emit('create-many-product', {
+  list: [
+    { name: 'Cheap Item', price: 10 },
+    { name: 'Expensive Item', price: 500 },
+    { name: 'Medium Item', price: 50 },
+    { name: 'Luxury Item', price: 1000 },
+  ]
+}, (response) => {
+  console.log('Client 1 - Created products:', response.data);
+  // Response contains all 4 created products
+});
+
+// Client 2: Receives only filtered products via broadcast
+socket.on('expensive-products-created', (data) => {
+  console.log('Client 2 - Expensive products created:', data);
+  // data = [
+  //   { name: 'Expensive Item', price: 500, ... },
+  //   { name: 'Luxury Item', price: 1000, ... }
+  // ]
+  // Only products with price > 100 are received
+  // Cheap Item (10) and Medium Item (50) are NOT in this broadcast
+});
+```
+
+**When to use broadcasting:**
+- Real-time collaboration features
+- Live dashboards that need to stay synchronized
+- Chat applications
+- Notification systems
+- Multi-user editing interfaces
+
+**When to use conditional broadcasting (BroadcastAbilityPredicate):**
+- Only broadcast changes made by specific user roles (e.g., only admin actions)
+- Broadcast only when certain conditions are met (e.g., entity status changes)
+- Implement privacy controls (e.g., only broadcast public items)
+- Optimize performance by avoiding unnecessary broadcasts
+
 
 ---
 
@@ -176,13 +395,14 @@ When WebSocket is enabled for a route, clients can call that route using Socket.
 
 ### Event Naming Convention
 
-By default, events follow the pattern: `{route-type}-{entity-name}` in kebab-case.
+By default, events follow the pattern: `{route-type}-{displayed-name}` in kebab-case.
 
-- **Entity name** comes from `apiTag` if provided, otherwise from the entity class name
+- **Displayed name** is determined by `apiTag` if provided, otherwise falls back to the entity class name
 - **Format**: `kebabCase(routeType + '/' + displayedName)` where `displayedName = pascalCase((subPath ? subPath + '-' : '') + (apiTag ?? entityName))`
+- **Priority**: `apiTag` takes precedence over `entityName`
 - **Examples**: 
-  - `User` entity → `get-many-user`, `create-one-user`, `update-one-user`
-  - `Product` entity with `apiTag: 'Items'` → `get-many-items`, `create-one-items`
+  - `User` entity (no apiTag) → `get-many-user`, `create-one-user`, `update-one-user`
+  - `Product` entity with `apiTag: 'Items'` → `get-many-items`, `create-one-items` (apiTag is used instead)
   - `User` entity with `subPath: 'admin'` → `get-many-admin-user`, `create-one-admin-user`
   - `Product` entity with `apiTag: 'Items'` and `subPath: 'shop'` → `get-many-shop-items`, `create-one-shop-items`
 
@@ -198,19 +418,19 @@ You can customize event names using the `eventName` parameter in route configura
 
 ### CRUD Route Events
 
-| Route Type | Default Event Pattern | Example (User entity) | Example (apiTag: 'Items') | Example (subPath: 'admin') |
-|------------|----------------------|----------------------|---------------------------|---------------------------|
-| GetMany | `get-many-{entity}` | `get-many-user` | `get-many-items` | `get-many-admin-user` |
-| GetOne | `get-one-{entity}` | `get-one-user` | `get-one-items` | `get-one-admin-user` |
-| CreateOne | `create-one-{entity}` | `create-one-user` | `create-one-items` | `create-one-admin-user` |
-| CreateMany | `create-many-{entity}` | `create-many-user` | `create-many-items` | `create-many-admin-user` |
-| UpdateOne | `update-one-{entity}` | `update-one-user` | `update-one-items` | `update-one-admin-user` |
-| UpdateMany | `update-many-{entity}` | `update-many-user` | `update-many-items` | `update-many-admin-user` |
-| ReplaceOne | `replace-one-{entity}` | `replace-one-user` | `replace-one-items` | `replace-one-admin-user` |
-| DeleteOne | `delete-one-{entity}` | `delete-one-user` | `delete-one-items` | `delete-one-admin-user` |
-| DeleteMany | `delete-many-{entity}` | `delete-many-user` | `delete-many-items` | `delete-many-admin-user` |
-| DuplicateOne | `duplicate-one-{entity}` | `duplicate-one-user` | `duplicate-one-items` | `duplicate-one-admin-user` |
-| DuplicateMany | `duplicate-many-{entity}` | `duplicate-many-user` | `duplicate-many-items` | `duplicate-many-admin-user` |
+| Route Type | Default Event Pattern | Example (User entity, no apiTag) | Example (Product entity, apiTag: 'Items') | Example (User entity, subPath: 'admin') |
+|------------|----------------------|----------------------------------|-------------------------------------------|----------------------------------------|
+| GetMany | `get-many-{displayed-name}` | `get-many-user` | `get-many-items` | `get-many-admin-user` |
+| GetOne | `get-one-{displayed-name}` | `get-one-user` | `get-one-items` | `get-one-admin-user` |
+| CreateOne | `create-one-{displayed-name}` | `create-one-user` | `create-one-items` | `create-one-admin-user` |
+| CreateMany | `create-many-{displayed-name}` | `create-many-user` | `create-many-items` | `create-many-admin-user` |
+| UpdateOne | `update-one-{displayed-name}` | `update-one-user` | `update-one-items` | `update-one-admin-user` |
+| UpdateMany | `update-many-{displayed-name}` | `update-many-user` | `update-many-items` | `update-many-admin-user` |
+| ReplaceOne | `replace-one-{displayed-name}` | `replace-one-user` | `replace-one-items` | `replace-one-admin-user` |
+| DeleteOne | `delete-one-{displayed-name}` | `delete-one-user` | `delete-one-items` | `delete-one-admin-user` |
+| DeleteMany | `delete-many-{displayed-name}` | `delete-many-user` | `delete-many-items` | `delete-many-admin-user` |
+| DuplicateOne | `duplicate-one-{displayed-name}` | `duplicate-one-user` | `duplicate-one-items` | `duplicate-one-admin-user` |
+| DuplicateMany | `duplicate-many-{displayed-name}` | `duplicate-many-user` | `duplicate-many-items` | `duplicate-many-admin-user` |
 
 ### Authentication Events
 
@@ -247,7 +467,7 @@ Content-Type: application/json
 
 **WebSocket Way:**
 ```typescript
-// With User entity (entity class name is used)
+// With User entity (no apiTag, so entity class name is used as fallback)
 socket.emit('create-one-user', {
   name: 'John Doe',
   email: 'john@example.com'
@@ -255,7 +475,7 @@ socket.emit('create-one-user', {
   console.log('Created user:', response.data);
 });
 
-// With apiTag: 'Users' (apiTag is used instead of entity name)
+// With apiTag: 'Users' (apiTag takes priority over entity name)
 socket.emit('create-one-users', {
   name: 'John Doe',
   email: 'john@example.com'
@@ -264,7 +484,7 @@ socket.emit('create-one-users', {
 });
 ```
 
-**Note:** The event name is generated from `apiTag` if provided, otherwise from the entity class name, converted to kebab-case. If your entity class is `User`, the event will be `create-one-user`. If you set `apiTag: 'Users'`, it will be `create-one-users`.
+**Note:** The event name is generated from `apiTag` if provided, otherwise falls back to the entity class name, converted to kebab-case. If your entity class is `User` and no `apiTag` is set, the event will be `create-one-user`. If you set `apiTag: 'Users'`, it will be `create-one-users`.
 
 ---
 
@@ -333,7 +553,7 @@ Unlike CRUD route events which are generated from entity names, **authentication
    })
    ```
 
-3. **Entity Name in CRUD vs Auth**:
+3. **Displayed Name in CRUD vs Auth**:
    ```typescript
    // If User is your auth entity in forRoot()
    DynamicApiModule.forRoot('mongodb-uri', {
@@ -348,7 +568,7 @@ Unlike CRUD route events which are generated from entity names, **authentication
      entity: User,
      controllerOptions: {
        path: 'users',
-       apiTag: 'Users', // Optional: customize event names
+       apiTag: 'Users', // Optional: customize displayed name in event names
      },
      webSocket: true,
    })
@@ -356,7 +576,7 @@ Unlike CRUD route events which are generated from entity names, **authentication
    // Result:
    // - Auth events: auth-login, auth-register, etc. (fixed names)
    // - CRUD events: create-one-users, get-many-users, etc. (based on apiTag)
-   // - If no apiTag: create-one-user, get-many-user (based on entity name)
+   // - If no apiTag: create-one-user, get-many-user (falls back to entity name)
    ```
 
 ### Example: Complete Auth WebSocket Setup
@@ -479,7 +699,7 @@ const socket = io('http://localhost:3000');
 
 // Call API routes via WebSocket instead of HTTP
 
-// Get all users (assuming entity is named 'User')
+// Get all users (entity 'User', no apiTag set, so 'user' is used)
 socket.emit('get-many-user', { page: 1, limit: 10 }, (response) => {
   console.log('Users:', response.data);
 });
@@ -643,7 +863,7 @@ export function UserList() {
   useEffect(() => {
     if (isConnected) {
       // Fetch users via WebSocket instead of HTTP
-      // Assuming entity is named 'User' (singular)
+      // Entity 'User', no apiTag, so entity name 'user' is used
       callRoute<User[]>('get-many-user', { page: 1, limit: 10 })
         .then(data => setUsers(data))
         .catch(error => console.error('Error:', error));
