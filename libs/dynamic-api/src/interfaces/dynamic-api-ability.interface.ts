@@ -5,6 +5,8 @@ type AbilityPredicate<Entity extends BaseEntity, User = any> = (entity: Entity, 
 
 type AuthAbilityPredicate<User = any, Body = unknown> = (user: User, body?: Body) => boolean;
 
+type BroadcastAbilityPredicate<ResponseData extends object, User = any> = (data: ResponseData, user: User) => boolean;
+
 type ControllerAbilityPredicate<Entity extends BaseEntity> = {
   targets: RouteType[];
   predicate: AbilityPredicate<Entity>;
@@ -14,4 +16,5 @@ export {
   ControllerAbilityPredicate,
   AuthAbilityPredicate,
   AbilityPredicate,
+  BroadcastAbilityPredicate,
 };
