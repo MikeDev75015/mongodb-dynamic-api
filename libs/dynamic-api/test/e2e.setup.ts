@@ -3,7 +3,10 @@ import { TestingModule } from '@nestjs/testing';
 import { MessageBody, SubscribeMessage, WebSocketGateway } from '@nestjs/websockets';
 import mongoose from 'mongoose';
 import * as supertest from 'supertest';
-import { io } from 'socket.io-client';
+import { io, Socket } from 'socket.io-client';
+import { TestSocketAdapter } from './test-socket-adapter';
+
+export { TestSocketAdapter };
 
 type RequestOptions<Query extends object = any> = {
   query?: Query;
@@ -14,6 +17,47 @@ type RequestOptions<Query extends object = any> = {
 type SocketOptions = {
   accessToken?: string;
   namespace?: string;
+  broadcastEvent?: string;
+  expectBroadcast?: boolean;
+  timeoutMs?: number;
+  connectTimeoutMs?: number;
+};
+
+const DEFAULT_SOCKET_TIMEOUT_MS = 5000;
+const DEFAULT_SOCKET_CONNECT_TIMEOUT_MS = 5000;
+
+const toError = (error: unknown, fallbackMessage: string): Error => {
+  return error instanceof Error ? error : new Error(fallbackMessage);
+};
+
+const waitForSocketConnect = async (socket: Socket, socketName: string, connectTimeoutMs: number): Promise<void> => {
+  if (socket.connected) {
+    return;
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    let lastConnectError: Error | undefined;
+
+    const onConnect = () => {
+      clearTimeout(timeoutRef);
+      socket.off('connect_error', onConnectError);
+      resolve();
+    };
+
+    const onConnectError = (error: unknown) => {
+      // `connect_error` peut être transitoire (polling -> websocket), on garde la dernière erreur.
+      lastConnectError = toError(error, `${socketName} socket failed to connect`);
+    };
+
+    const timeoutRef = setTimeout(() => {
+      socket.off('connect', onConnect);
+      socket.off('connect_error', onConnectError);
+      reject(lastConnectError ?? new Error(`${socketName} socket connection timed out after ${connectTimeoutMs}ms`));
+    }, connectTimeoutMs);
+
+    socket.on('connect_error', onConnectError);
+    socket.once('connect', onConnect);
+  });
 };
 
 const truncateMongoDb = async (): Promise<void> => {
@@ -48,6 +92,9 @@ export async function createTestingApp(
 
   await global.app.init();
 
+  // Démarrer le serveur immédiatement pour les tests WebSocket
+  await global.app.listen(8080);
+
   await truncateMongoDb();
 
   if (initFixtures) {
@@ -74,6 +121,8 @@ export async function closeTestingApp(connections: mongoose.Connection[]): Promi
 export const handleSocketException = jest.fn();
 
 export const handleSocketResponse = jest.fn();
+
+export const handleSocketBroadcast = jest.fn();
 
 export const server = {
   get: async <Query extends object = any, Response = any>(path: string, { authToken, query, headers = {} }: RequestOptions<Query> = {}): Promise<Response> => {
@@ -134,31 +183,92 @@ export const server = {
       ...headers,
     }) as unknown as Promise<Response>;
   },
-  emit: async <Data, Response = any>(event: string, data?: Data, { accessToken, namespace }: SocketOptions = {}): Promise<Response> => {
+  emit: async <Data, Response = any>(event: string, data?: Data, { accessToken, namespace, broadcastEvent, expectBroadcast = false, timeoutMs = DEFAULT_SOCKET_TIMEOUT_MS, connectTimeoutMs = DEFAULT_SOCKET_CONNECT_TIMEOUT_MS }: SocketOptions = {}): Promise<Response> => {
     verifyApp();
 
-    try {
-      await global.app.getUrl();
-    } catch {
-      await global.app.listen(8080);
-    }
+    return new Promise<Response>((resolve, reject) => {
+      const emitter = io('http://localhost:8080', { query: { accessToken }, path: namespace });
+      const receiver = io('http://localhost:8080', { path: namespace });
+      const receiverEvent = broadcastEvent || event;
+      let settled = false;
+      let responseReceived = false;
+      let broadcastReceived = !expectBroadcast;
+      let responseValue: Response;
+      let timeoutRef: NodeJS.Timeout | undefined;
 
-    return new Promise<Response>((resolve) => {
-      const ws = io('http://localhost:8080', { query: { accessToken }, path: namespace });
+      const cleanup = () => {
+        emitter.removeAllListeners();
+        emitter.disconnect();
+        emitter.close();
+        receiver.removeAllListeners();
+        receiver.disconnect();
+        receiver.close();
+      };
 
-      ws.on('exception', (exception) => {
+      const finalize = (result?: Response, error?: Error) => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+
+        if (timeoutRef) {
+          clearTimeout(timeoutRef);
+        }
+
+        cleanup();
+
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve(result as Response);
+      };
+
+      const tryFinalize = () => {
+        if (responseReceived && broadcastReceived) {
+          finalize(responseValue);
+        }
+      };
+
+      receiver.on(receiverEvent, (receivedData) => {
+        handleSocketBroadcast({ event: receiverEvent, data: receivedData });
+        broadcastReceived = true;
+        tryFinalize();
+      });
+
+      emitter.on('exception', (exception) => {
         handleSocketException(exception);
-        ws.close();
-        resolve(exception);
+        responseValue = exception as Response;
+        responseReceived = true;
+        tryFinalize();
       });
 
-      ws.on(event, (data) => {
-        handleSocketResponse(data);
-        ws.close();
-        resolve(data);
+      emitter.on(event, (receivedData) => {
+        handleSocketResponse(receivedData);
+        responseValue = receivedData as Response;
+        responseReceived = true;
+        tryFinalize();
       });
 
-      ws.emit(event, data);
+      timeoutRef = setTimeout(() => {
+        finalize(
+          undefined,
+          new Error(`Socket event timeout after ${timeoutMs}ms (responseReceived=${responseReceived}, broadcastReceived=${broadcastReceived}, expectBroadcast=${expectBroadcast}, event=${event}, broadcastEvent=${receiverEvent})`),
+        );
+      }, timeoutMs);
+
+      Promise.all([
+        waitForSocketConnect(emitter, 'Emitter', connectTimeoutMs),
+        waitForSocketConnect(receiver, 'Receiver', connectTimeoutMs),
+      ])
+        .then(() => {
+          emitter.emit(event, data);
+        })
+        .catch((error) => {
+          finalize(undefined, toError(error, 'Socket connection failed'));
+        });
     });
   },
 };
