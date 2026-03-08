@@ -3,7 +3,7 @@ import { WsException } from '@nestjs/websockets';
 import { isEmpty } from 'lodash';
 import { ManyEntityQuery } from '../dtos';
 import { DynamicApiModule } from '../dynamic-api.module';
-import { ExtendedSocket } from '../interfaces';
+import { DynamicApiBroadcastConfig, ExtendedSocket } from '../interfaces';
 import { MongoDBDynamicApiLogger } from '../logger';
 import { BaseEntity } from '../models';
 
@@ -53,5 +53,34 @@ export abstract class BaseGateway<Entity extends BaseEntity> {
       (
         body as ManyEntityQuery
       ).ids.length);
+  }
+
+  protected broadcastIfNeeded<ResponseData extends object>(
+    socket: ExtendedSocket,
+    event: string,
+    data: ResponseData[],
+    broadcastConfig?: DynamicApiBroadcastConfig<ResponseData>,
+  ): void {
+    if (!broadcastConfig) {
+      return;
+    }
+
+    const { enabled, eventName } = broadcastConfig;
+
+    if (typeof enabled === 'boolean' && !enabled) {
+      return;
+    }
+
+    const broadcastData = typeof enabled === 'function'
+      ? data.filter((item) => enabled(item, socket.user))
+      : data;
+
+    if (!broadcastData.length) {
+      return;
+    }
+
+    const broadcastEvent = eventName || event;
+
+    socket.broadcast.emit(broadcastEvent, broadcastData);
   }
 }
