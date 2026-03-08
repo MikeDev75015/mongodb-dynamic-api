@@ -15,7 +15,7 @@ import { UpdateOneService } from './update-one-service.interface';
 function UpdateOneGatewayMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): UpdateOneGatewayConstructor<Entity> {
   const {
@@ -75,7 +75,7 @@ function UpdateOneGatewayMixin<Entity extends BaseEntity>(
     @UseInterceptors(...useInterceptors)
     @SubscribeMessage(event)
     async updateOne(
-      @ConnectedSocket() _socket: ExtendedSocket<Entity>,
+      @ConnectedSocket() socket: ExtendedSocket<Entity>,
       @MessageBody() body: EntityParam & UpdateOneData,
     ) {
       if (!body?.id || Object.keys(body).length === 1) {
@@ -94,9 +94,13 @@ function UpdateOneGatewayMixin<Entity extends BaseEntity>(
         UpdateOneResponse as Mappable<Entity>
       ).fromEntity;
 
+      const responseData = fromEntity ? fromEntity<UpdateOneResponse>(entity) : entity;
+
+      this.broadcastIfNeeded(socket, event, [responseData], broadcastConfig);
+
       return {
         event,
-        data: fromEntity ? fromEntity<UpdateOneResponse>(entity) : entity,
+        data: responseData,
       };
     }
   }
