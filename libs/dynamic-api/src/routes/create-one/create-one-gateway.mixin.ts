@@ -15,7 +15,7 @@ import { CreateOneService } from './create-one-service.interface';
 function CreateOneGatewayMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): CreateOneGatewayConstructor<Entity> {
   const {
@@ -71,7 +71,7 @@ function CreateOneGatewayMixin<Entity extends BaseEntity>(
     @UseInterceptors(...useInterceptors)
     @SubscribeMessage(event)
     async createOne(
-      @ConnectedSocket() _socket: ExtendedSocket<Entity>,
+      @ConnectedSocket() socket: ExtendedSocket<Entity>,
       @MessageBody() body: CreateOneData,
     ) {
       if (isEmpty(body)) {
@@ -88,9 +88,13 @@ function CreateOneGatewayMixin<Entity extends BaseEntity>(
         CreateOneResponse as Mappable<Entity>
       ).fromEntity;
 
+      const responseData = fromEntity ? fromEntity<CreateOneResponse>(entity) : entity;
+
+      this.broadcastIfNeeded(socket, event, [entity], broadcastConfig);
+
       return {
         event,
-        data: fromEntity ? fromEntity<CreateOneResponse>(entity) : entity,
+        data: responseData,
       };
     }
   }
