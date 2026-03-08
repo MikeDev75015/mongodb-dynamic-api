@@ -16,7 +16,7 @@ import { DuplicateManyService } from './duplicate-many-service.interface';
 function DuplicateManyGatewayMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): DuplicateManyGatewayConstructor<Entity> {
   const {
@@ -76,7 +76,7 @@ function DuplicateManyGatewayMixin<Entity extends BaseEntity>(
     @UseInterceptors(...useInterceptors)
     @SubscribeMessage(event)
     async duplicateMany(
-      @ConnectedSocket() _socket: ExtendedSocket<Entity>,
+      @ConnectedSocket() socket: ExtendedSocket<Entity>,
       @MessageBody() body: ManyEntityQuery & DuplicateManyData,
     ) {
       if (!this.isValidManyBody(body)) {
@@ -98,9 +98,13 @@ function DuplicateManyGatewayMixin<Entity extends BaseEntity>(
         DuplicateManyResponse as Mappable<Entity>
       ).fromEntities;
 
+      const responseData = fromEntities ? fromEntities<DuplicateManyResponse>(list) : list;
+
+      this.broadcastIfNeeded(socket, event, responseData, broadcastConfig);
+
       return {
         event,
-        data: fromEntities ? fromEntities<DuplicateManyResponse>(list) : list,
+        data: responseData,
       };
     }
   }
