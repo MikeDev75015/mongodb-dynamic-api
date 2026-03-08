@@ -14,6 +14,7 @@ Add WebSocket support to your API to make your routes accessible via Socket.IO i
   - [Module-Level Configuration](#module-level-configuration)
   - [Route-Level Configuration](#route-level-configuration)
   - [Custom Event Names](#custom-event-names)
+  - [Broadcasting Events](#broadcasting-events)
 - [Available Events](#available-events)
   - [Authentication Events](#authentication-events-1)
 - [Authentication with WebSockets](#authentication-with-websockets)
@@ -166,6 +167,179 @@ socket.emit('list-products', { page: 1, limit: 10 }, (response) => {
 - Following a specific naming convention
 - Avoiding naming conflicts
 - Simplifying event names for easier maintenance
+
+### Broadcasting Events
+
+You can automatically broadcast event responses to all connected clients (except the sender) using the `broadcast` option. This is useful for real-time synchronization across multiple clients.
+
+**⚠️ Important: Broadcasting is only available for routes that modify data.**
+
+**Supported Routes:**
+- ✅ `CreateOne` - Broadcasts the created entity
+- ✅ `CreateMany` - Broadcasts the list of created entities
+- ✅ `UpdateOne` - Broadcasts the updated entity
+- ✅ `UpdateMany` - Broadcasts the list of updated entities
+- ✅ `ReplaceOne` - Broadcasts the replaced entity
+- ✅ `DuplicateOne` - Broadcasts the duplicated entity
+- ✅ `DuplicateMany` - Broadcasts the list of duplicated entities
+- ✅ `DeleteOne` - Broadcasts a minimal object with the deleted entity's `id`
+- ✅ `DeleteMany` - Broadcasts a list of minimal objects with the deleted entities' `ids`
+
+**Not Supported (Read-only routes):**
+- ❌ `GetOne` - No broadcast (read operation)
+- ❌ `GetMany` - No broadcast (read operation)
+- ❌ `Aggregate` - No broadcast (read operation)
+
+```typescript
+DynamicApiModule.forFeature({
+  entity: Product,
+  controllerOptions: {
+    path: 'products',
+  },
+  routes: [
+    {
+      type: 'CreateOne',
+      webSocket: true,
+      broadcast: {
+        enabled: true, // Always broadcasts using the same event name
+      },
+    },
+    {
+      type: 'UpdateOne',
+      webSocket: true,
+      broadcast: {
+        enabled: true,
+        eventName: 'product-updated', // Broadcasts using a custom event name
+      },
+    },
+    {
+      type: 'DeleteOne',
+      webSocket: true,
+      broadcast: {
+        // For delete routes, entity only contains { id: string }
+        // AbilityPredicate can check user permissions but not entity properties
+        enabled: (entity, user) => user?.role === 'admin',
+      },
+    },
+    {
+      type: 'UpdateMany',
+      webSocket: true,
+      broadcast: {
+        enabled: (entities, user) => entities.some(e => e.status === 'published'),
+        eventName: 'products-published', // Conditional with custom event name
+      },
+    },
+  ],
+})
+```
+
+**Broadcast Configuration Options:**
+
+The `broadcast` option accepts an object with the following properties:
+
+- `enabled` (required): Can be:
+  - `true` - Always broadcasts to all clients
+  - `false` - Never broadcasts (same as omitting the option)
+  - `AbilityPredicate<Entity>` - Function `(entity, user) => boolean` that determines whether to broadcast based on the entity data and the current user
+
+- `eventName` (optional): Custom event name for the broadcast. If not specified, uses the same event name as the request.
+
+**Special Note for Delete Routes:**
+
+For `DeleteOne` and `DeleteMany` routes, the broadcasted data contains only the `id` of the deleted entity/entities, not the full entity data (since the entity has been deleted). The AbilityPredicate receives a minimal object: `{ id: string }`.
+
+```typescript
+// DeleteOne example
+{
+  type: 'DeleteOne',
+  webSocket: true,
+  broadcast: {
+    // entity parameter only contains { id: string }
+    // Use user parameter for permission checks
+    enabled: (entity, user) => user?.role === 'admin',
+    eventName: 'product-deleted',
+  },
+}
+
+// DeleteMany example
+{
+  type: 'DeleteMany',
+  webSocket: true,
+  broadcast: {
+    // entities parameter is an array of { id: string }
+    // Use user parameter for permission checks
+    enabled: (entities, user) => user?.role === 'moderator' || user?.role === 'admin',
+    eventName: 'products-deleted',
+  },
+}
+```
+
+**Client Example with Broadcasting:**
+
+```typescript
+// Client 1: Creates a product
+socket.emit('create-one-product', { name: 'Laptop', price: 999 }, (response) => {
+  console.log('Client 1 - Created:', response.data);
+});
+
+// Client 2: Listens for broadcasts (same event name)
+socket.on('create-one-product', (data) => {
+  console.log('Client 2 - New product created:', data);
+  // data contains the full product object
+  // Update UI with the new product
+});
+
+// Client 3: Listens for custom broadcast events
+socket.on('product-updated', (data) => {
+  console.log('Client 3 - Product updated:', data);
+  // data contains the full updated product object
+  // Update UI with the modified product
+});
+
+// All clients: Listen for conditional broadcasts
+socket.on('products-published', (data) => {
+  console.log('Published products received:', data);
+  // data contains array of published products
+  // Update UI with newly published products
+});
+
+// Client 4: Listens for delete broadcasts
+socket.on('product-deleted', (data) => {
+  console.log('Product deleted:', data);
+  // For delete routes, data contains only: [{ id: '...' }]
+  // Use the id to remove the item from your UI
+  const deletedIds = data.map(item => item.id);
+  // Remove from local state
+});
+
+// Example: Multiple clients handling product deletion
+// Client 1: Deletes a product
+socket.emit('delete-one-product', { id: '507f1f77bcf86cd799439011' }, (response) => {
+  console.log('Client 1 - Deleted:', response.data);
+  // Response contains delete result
+});
+
+// Client 2: Receives the broadcast (if enabled)
+socket.on('product-deleted', (data) => {
+  console.log('Client 2 - Product deleted by another user:', data);
+  // data = [{ id: '507f1f77bcf86cd799439011' }]
+  // Remove the product from the UI
+  removeProductFromUI(data[0].id);
+});
+```
+
+**When to use broadcasting:**
+- Real-time collaboration features
+- Live dashboards that need to stay synchronized
+- Chat applications
+- Notification systems
+- Multi-user editing interfaces
+
+**When to use conditional broadcasting (AbilityPredicate):**
+- Only broadcast changes made by specific user roles (e.g., only admin actions)
+- Broadcast only when certain conditions are met (e.g., entity status changes)
+- Implement privacy controls (e.g., only broadcast public items)
+- Optimize performance by avoiding unnecessary broadcasts
 
 
 ---
