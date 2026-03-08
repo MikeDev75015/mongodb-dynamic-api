@@ -1,3 +1,4 @@
+import { INestApplication } from '@nestjs/common';
 import { Prop, Schema } from '@nestjs/mongoose';
 import { Test } from '@nestjs/testing';
 import mongoose, { Connection } from 'mongoose';
@@ -9,24 +10,26 @@ import {
   DynamicAPISchemaOptions,
   SoftDeletableEntity,
 } from '../src';
-import { closeTestingApp, createTestingApp, server } from './e2e.setup';
+import { closeTestingApp, createTestingApp, handleSocketBroadcast, server, TestGateway, TestSocketAdapter } from './e2e.setup';
 import 'dotenv/config';
 import { getModelFromEntity } from './utils';
 
 describe('DynamicApiModule forFeature (e2e)', () => {
   const uri = process.env.MONGO_DB_URL;
 
-  const initApp = async <Entity extends BaseEntity>(
+  const initApp = async <Entity extends BaseEntity, UserEntity extends BaseEntity>(
     forFeatureOptions: DynamicApiForFeatureOptions<Entity>,
-    forRootOptions: DynamicApiForRootOptions<Entity> = {},
+    forRootOptions: DynamicApiForRootOptions<UserEntity> = {},
     initFixtures?: (connection: Connection) => Promise<void>,
     initMainCb?: (app: any) => Promise<void>,
+    testGateway?: boolean,
   ) => {
     const moduleRef = await Test.createTestingModule({
       imports: [
         DynamicApiModule.forRoot(uri, forRootOptions),
         DynamicApiModule.forFeature(forFeatureOptions),
       ],
+      providers: testGateway ? [TestGateway] : [],
     }).compile();
 
     await createTestingApp(moduleRef, initFixtures, initMainCb);
@@ -791,6 +794,220 @@ describe('DynamicApiModule forFeature (e2e)', () => {
         expect(body).toHaveProperty('error', 'Not Found');
         expect(body).toHaveProperty('statusCode', 404);
         expect(body).toHaveProperty('message', 'TestDeletableEntity not found');
+      });
+    });
+  });
+
+  describe('Websockets', () => {
+    @Schema({ collection: 'users' })
+    class UserEntity extends BaseEntity {
+      @Prop({ type: String, required: true })
+      email: string;
+
+      @Prop({ type: String, required: true })
+      password: string;
+
+      @Prop({ type: Boolean, default: false })
+      isAdmin?: boolean;
+    }
+
+    @DynamicAPISchemaOptions({
+      indexes: [{ fields: { name: 1 }, options: { unique: true } }],
+    })
+    @Schema({ collection: 'products' })
+    class ProductEntity extends BaseEntity {
+      @Prop({ type: String, required: true })
+      name: string;
+
+      @Prop({ type: Boolean, default: false })
+      inStock: boolean;
+
+      @Prop({ type: String })
+      status?: string;
+    }
+
+    const customEvent = 'product-custom-event';
+    let adminAccessToken: string;
+    let userAccessToken: string;
+    let firstProduct: ProductEntity;
+
+    beforeEach(async () => {
+      const fixtures = async (_: Connection) => {
+        const model = await getModelFromEntity(ProductEntity);
+        await model.insertMany([
+          { name: 'mayo', inStock: true },
+          { name: 'ketchup' },
+        ]).then(([mayoProduct]) => {
+          firstProduct = mayoProduct as unknown as ProductEntity;
+        });
+      };
+
+      await initApp(
+        {
+          entity: ProductEntity,
+          controllerOptions: {
+            apiTag: 'Product',
+            path: 'products',
+          },
+          routes: [
+            { type: 'GetMany', isPublic: true },
+            {
+              type: 'CreateMany',
+              webSocket: true,
+              broadcast: {
+                enabled: (_, user) => user.isAdmin,
+              },
+            },
+            {
+              type: 'CreateOne',
+              webSocket: true,
+              broadcast: { enabled: true },
+            },
+            {
+              type: 'UpdateMany',
+              webSocket: true,
+              broadcast: {
+                enabled: false,
+                eventName: customEvent,
+              },
+            },
+            {
+              type: 'UpdateOne',
+              webSocket: true,
+              broadcast: {
+                enabled: true,
+                eventName: customEvent,
+              },
+            },
+            {
+              type: 'DeleteOne',
+              webSocket: true,
+              broadcast: {
+                enabled: true,
+              },
+            },
+          ],
+        },
+        {
+          useAuth: {
+            userEntity: UserEntity,
+            login: {
+              additionalFields: ['isAdmin'],
+            },
+            webSocket: true,
+          },
+        },
+        fixtures,
+        async (app: INestApplication) => {
+          app.useWebSocketAdapter(new TestSocketAdapter(app));
+        },
+        true,
+      );
+
+      adminAccessToken = (await server.emit(
+        'auth-register',
+        { email: 'unit@test.co', password: 'test', isAdmin: true },
+      )).accessToken;
+      userAccessToken = (await server.emit(
+        'auth-register',
+        { email: 'toto@test.co', password: 'test' },
+      )).accessToken;
+    });
+
+    it('[CreateOne] should broadcast created product to all clients', async () => {
+      await server.emit('create-one-product', { name: 'mustard', inStock: true }, { accessToken: adminAccessToken, expectBroadcast: true });
+
+      expect(handleSocketBroadcast).toHaveBeenCalledTimes(1);
+      expect(handleSocketBroadcast).toHaveBeenCalledWith({
+        event: 'create-one-product',
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            name: 'mustard',
+            inStock: true,
+          }),
+        ]),
+      });
+    });
+
+    it('[CreateMany] should broadcast created products to all clients when admin', async () => {
+      await server.emit('create-many-product', {
+        list: [
+          { name: 'mustard', inStock: true },
+          { name: 'relish', inStock: false },
+        ],
+      }, { accessToken: adminAccessToken, expectBroadcast: true });
+
+      expect(handleSocketBroadcast).toHaveBeenCalledTimes(1);
+      expect(handleSocketBroadcast).toHaveBeenCalledWith({
+        event: 'create-many-product',
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            name: 'mustard',
+            inStock: true,
+          }),
+          expect.objectContaining({
+            name: 'relish',
+            inStock: false,
+          }),
+        ]),
+      });
+    });
+
+    it('[CreateMany] should NOT broadcast created products when user is not admin', async () => {
+      await server.emit('create-many-product', {
+        list: [
+          { name: 'pickles', inStock: true },
+          { name: 'onions', inStock: false },
+        ],
+      }, { accessToken: userAccessToken });
+
+      expect(handleSocketBroadcast).not.toHaveBeenCalled();
+    });
+
+    it('[UpdateOne] should broadcast updated product to all clients with custom event name', async () => {
+      await server.emit('update-one-product', {
+        id: firstProduct.id,
+        name: 'updated mayo',
+        inStock: false,
+      }, { accessToken: adminAccessToken, broadcastEvent: customEvent, expectBroadcast: true });
+
+      expect(handleSocketBroadcast).toHaveBeenCalledTimes(1);
+      expect(handleSocketBroadcast).toHaveBeenCalledWith({
+        event: customEvent,
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            id: firstProduct.id,
+            name: 'updated mayo',
+            inStock: false,
+          }),
+        ]),
+      });
+    });
+
+    it('[UpdateMany] should NOT broadcast updated products when broadcast is disabled', async () => {
+      const { body: products } = await server.get('/products');
+
+      await server.emit('update-many-product', {
+        ids: products.map(p => p.id),
+        status: 'updated',
+      }, { accessToken: adminAccessToken });
+
+      expect(handleSocketBroadcast).not.toHaveBeenCalled();
+    });
+
+    it('[DeleteOne] should broadcast deleted product id to all clients', async () => {
+      await server.emit('delete-one-product', {
+        id: firstProduct.id,
+      }, { accessToken: adminAccessToken, expectBroadcast: true });
+
+      expect(handleSocketBroadcast).toHaveBeenCalledTimes(1);
+      expect(handleSocketBroadcast).toHaveBeenCalledWith({
+        event: 'delete-one-product',
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            id: firstProduct.id,
+          }),
+        ]),
       });
     });
   });
