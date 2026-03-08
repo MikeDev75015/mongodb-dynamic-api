@@ -15,7 +15,7 @@ import { DeleteManyService } from './delete-many-service.interface';
 function DeleteManyGatewayMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): DeleteManyGatewayConstructor<Entity> {
   const {
@@ -64,7 +64,7 @@ function DeleteManyGatewayMixin<Entity extends BaseEntity>(
     @UseInterceptors(...useInterceptors)
     @SubscribeMessage(event)
     async deleteMany(
-      @ConnectedSocket() _socket: ExtendedSocket<Entity>,
+      @ConnectedSocket() socket: ExtendedSocket<Entity>,
       @MessageBody() body: ManyEntityQuery,
     ) {
       if (!this.isValidManyBody(body)) {
@@ -77,9 +77,13 @@ function DeleteManyGatewayMixin<Entity extends BaseEntity>(
         DeleteManyResponse as Mappable<Entity>
       ).fromDeleteResult;
 
+      const responseData = fromDeleteResult ? fromDeleteResult<DeleteManyResponse>(deleteResult) : deleteResult;
+
+      this.broadcastIfNeeded(socket, event, body.ids.map(id => ({ id } as Entity)), broadcastConfig);
+
       return {
         event,
-        data: fromDeleteResult ? fromDeleteResult<DeleteManyResponse>(deleteResult) : deleteResult,
+        data: responseData,
       };
     }
   }
