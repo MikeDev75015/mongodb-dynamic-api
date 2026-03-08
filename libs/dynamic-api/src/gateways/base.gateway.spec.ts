@@ -117,4 +117,145 @@ describe('BaseGateway', () => {
       expect(gateway['isValidManyBody'](body)).toBe(false);
     });
   });
+
+  describe('broadcastIfNeeded', () => {
+    let mockSocket: ExtendedSocket<Entity>;
+    const event = 'test-event';
+
+    beforeEach(() => {
+      mockSocket = {
+        user: { id: '123', name: 'Test User' } as Entity,
+        broadcast: {
+          emit: jest.fn(),
+        },
+      } as any;
+    });
+
+    it('should not broadcast if broadcastConfig is undefined', () => {
+      const data = [{ id: '1', name: 'Entity 1' } as Entity];
+
+      gateway['broadcastIfNeeded'](mockSocket, event, data, undefined);
+
+      expect(mockSocket.broadcast.emit).not.toHaveBeenCalled();
+    });
+
+    it('should not broadcast if enabled is false', () => {
+      const data = [{ id: '1', name: 'Entity 1' } as Entity];
+      const broadcastConfig = {
+        enabled: false,
+      };
+
+      gateway['broadcastIfNeeded'](mockSocket, event, data, broadcastConfig);
+
+      expect(mockSocket.broadcast.emit).not.toHaveBeenCalled();
+    });
+
+    it('should broadcast all data if enabled is true', () => {
+      const data = [
+        { id: '1', name: 'Entity 1' } as Entity,
+        { id: '2', name: 'Entity 2' } as Entity,
+      ];
+      const broadcastConfig = {
+        enabled: true,
+      };
+
+      gateway['broadcastIfNeeded'](mockSocket, event, data, broadcastConfig);
+
+      expect(mockSocket.broadcast.emit).toHaveBeenCalledTimes(1);
+      expect(mockSocket.broadcast.emit).toHaveBeenCalledWith(event, data);
+    });
+
+    it('should broadcast with custom eventName if provided', () => {
+      const data = [{ id: '1', name: 'Entity 1' } as Entity];
+      const customEvent = 'custom-event';
+      const broadcastConfig = {
+        enabled: true,
+        eventName: customEvent,
+      };
+
+      gateway['broadcastIfNeeded'](mockSocket, event, data, broadcastConfig);
+
+      expect(mockSocket.broadcast.emit).toHaveBeenCalledTimes(1);
+      expect(mockSocket.broadcast.emit).toHaveBeenCalledWith(customEvent, data);
+    });
+
+    it('should filter data using AbilityPredicate when enabled is a function', () => {
+      const data = [
+        { id: '1', name: 'Entity 1', status: 'published' } as Entity & { status: string },
+        { id: '2', name: 'Entity 2', status: 'draft' } as Entity & { status: string },
+        { id: '3', name: 'Entity 3', status: 'published' } as Entity & { status: string },
+      ];
+      const broadcastConfig = {
+        enabled: (entity: Entity & { status: string }) => entity.status === 'published',
+      };
+
+      gateway['broadcastIfNeeded'](mockSocket, event, data, broadcastConfig);
+
+      expect(mockSocket.broadcast.emit).toHaveBeenCalledTimes(1);
+      expect(mockSocket.broadcast.emit).toHaveBeenCalledWith(event, [
+        data[0],
+        data[2],
+      ]);
+    });
+
+    it('should not broadcast if AbilityPredicate filters out all entities', () => {
+      const data = [
+        { id: '1', name: 'Entity 1', status: 'draft' } as Entity & { status: string },
+        { id: '2', name: 'Entity 2', status: 'draft' } as Entity & { status: string },
+      ];
+      const broadcastConfig = {
+        enabled: (entity: Entity & { status: string }) => entity.status === 'published',
+      };
+
+      gateway['broadcastIfNeeded'](mockSocket, event, data, broadcastConfig);
+
+      expect(mockSocket.broadcast.emit).not.toHaveBeenCalled();
+    });
+
+    it('should pass user to AbilityPredicate for permission checks', () => {
+      const data = [{ id: '1', name: 'Entity 1' } as Entity];
+      const abilityPredicate = jest.fn().mockReturnValue(true);
+      const broadcastConfig = {
+        enabled: abilityPredicate,
+      };
+
+      gateway['broadcastIfNeeded'](mockSocket, event, data, broadcastConfig);
+
+      expect(abilityPredicate).toHaveBeenCalledTimes(1);
+      expect(abilityPredicate).toHaveBeenCalledWith(data[0], mockSocket.user);
+      expect(mockSocket.broadcast.emit).toHaveBeenCalledWith(event, data);
+    });
+
+    it('should not broadcast when data is empty', () => {
+      const data: Entity[] = [];
+      const broadcastConfig = {
+        enabled: true,
+      };
+
+      gateway['broadcastIfNeeded'](mockSocket, event, data, broadcastConfig);
+
+      expect(mockSocket.broadcast.emit).not.toHaveBeenCalled();
+    });
+
+    it('should combine custom eventName with AbilityPredicate filtering', () => {
+      const data = [
+        { id: '1', name: 'Entity 1', isPublic: true } as Entity & { isPublic: boolean },
+        { id: '2', name: 'Entity 2', isPublic: false } as Entity & { isPublic: boolean },
+        { id: '3', name: 'Entity 3', isPublic: true } as Entity & { isPublic: boolean },
+      ];
+      const customEvent = 'public-entities-updated';
+      const broadcastConfig = {
+        enabled: (entity: Entity & { isPublic: boolean }) => entity.isPublic,
+        eventName: customEvent,
+      };
+
+      gateway['broadcastIfNeeded'](mockSocket, event, data, broadcastConfig);
+
+      expect(mockSocket.broadcast.emit).toHaveBeenCalledTimes(1);
+      expect(mockSocket.broadcast.emit).toHaveBeenCalledWith(customEvent, [
+        data[0],
+        data[2],
+      ]);
+    });
+  });
 });
