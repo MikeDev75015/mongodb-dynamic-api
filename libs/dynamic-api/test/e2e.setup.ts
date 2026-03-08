@@ -4,6 +4,9 @@ import { MessageBody, SubscribeMessage, WebSocketGateway } from '@nestjs/websock
 import mongoose from 'mongoose';
 import * as supertest from 'supertest';
 import { io } from 'socket.io-client';
+import { TestSocketAdapter } from './test-socket-adapter';
+
+export { TestSocketAdapter };
 
 type RequestOptions<Query extends object = any> = {
   query?: Query;
@@ -14,6 +17,7 @@ type RequestOptions<Query extends object = any> = {
 type SocketOptions = {
   accessToken?: string;
   namespace?: string;
+  broadcastEvent?: string;
 };
 
 const truncateMongoDb = async (): Promise<void> => {
@@ -48,6 +52,9 @@ export async function createTestingApp(
 
   await global.app.init();
 
+  // Démarrer le serveur immédiatement pour les tests WebSocket
+  await global.app.listen(8080);
+
   await truncateMongoDb();
 
   if (initFixtures) {
@@ -74,6 +81,8 @@ export async function closeTestingApp(connections: mongoose.Connection[]): Promi
 export const handleSocketException = jest.fn();
 
 export const handleSocketResponse = jest.fn();
+
+export const handleSocketBroadcast = jest.fn();
 
 export const server = {
   get: async <Query extends object = any, Response = any>(path: string, { authToken, query, headers = {} }: RequestOptions<Query> = {}): Promise<Response> => {
@@ -134,31 +143,50 @@ export const server = {
       ...headers,
     }) as unknown as Promise<Response>;
   },
-  emit: async <Data, Response = any>(event: string, data?: Data, { accessToken, namespace }: SocketOptions = {}): Promise<Response> => {
+  emit: async <Data, Response = any>(event: string, data?: Data, { accessToken, namespace, broadcastEvent }: SocketOptions = {}): Promise<Response> => {
     verifyApp();
 
-    try {
-      await global.app.getUrl();
-    } catch {
-      await global.app.listen(8080);
-    }
-
     return new Promise<Response>((resolve) => {
-      const ws = io('http://localhost:8080', { query: { accessToken }, path: namespace });
+      const emitter = io('http://localhost:8080', { query: { accessToken }, path: namespace });
+      const receiver = io('http://localhost:8080', { path: namespace });
+      const receiverEvent = broadcastEvent || event;
+      let resolved = false;
 
-      ws.on('exception', (exception) => {
+      const cleanup = () => {
+        if (!resolved) {
+          resolved = true;
+          emitter.removeAllListeners();
+          emitter.disconnect();
+          emitter.close();
+          receiver.removeAllListeners();
+          receiver.disconnect();
+          receiver.close();
+        }
+      };
+
+      receiver.on(receiverEvent, (data) => {
+        handleSocketBroadcast({ event: receiverEvent, data });
+      });
+
+      emitter.on('exception', (exception) => {
         handleSocketException(exception);
-        ws.close();
-        resolve(exception);
+
+        setTimeout(() => {
+          cleanup();
+          resolve(exception);
+        }, 200);
       });
 
-      ws.on(event, (data) => {
+      emitter.on(event, (data) => {
         handleSocketResponse(data);
-        ws.close();
-        resolve(data);
+
+        setTimeout(() => {
+          cleanup();
+          resolve(data);
+        }, 200);
       });
 
-      ws.emit(event, data);
+      emitter.emit(event, data);
     });
   },
 };
