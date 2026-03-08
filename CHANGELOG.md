@@ -1,5 +1,15 @@
 Changelog
 
+## [3.1.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v3.0.1...v3.1.0) (2026-03-08)
+
+
+### websocket
+
+* **websocket:** add broadcast configuration interface ([fb3920e](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/fb3920eb371e275590d5dede92879d741716f719))
+* **websocket:** implement broadcast functionality in base gateway ([08a4b8d](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/08a4b8d9fd93f0b3aa27983de4af8a78a82ed99d))
+* **websocket:** integrate broadcast in CRUD gateways ([794f4b6](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/794f4b6df4fd14c87fe59681049cfbef5e578ee8))
+* **websocket:** integrate broadcast in delete and duplicate gateways ([7363580](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/736358041ae5da1f4fdaea01b6044c51cde2db45))
+
 ## [3.0.1](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v3.0.0...v3.0.1) (2026-02-21)
 
 ## [3.0.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v2.14.2...v3.0.0) (2026-02-19)
