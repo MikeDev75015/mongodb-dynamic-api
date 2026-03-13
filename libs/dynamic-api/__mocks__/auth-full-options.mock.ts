@@ -23,6 +23,10 @@ export const getFullAuthOptionsMock = <Entity extends BaseEntity>(
     callback: jest.fn(),
     useInterceptors: [],
   },
+  getAccount: {
+    callback: jest.fn(),
+    useInterceptors: [],
+  },
   register: {
     additionalFields: [...registerAdditionalFields],
     protected: false,

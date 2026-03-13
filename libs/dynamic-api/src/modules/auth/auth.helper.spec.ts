@@ -11,6 +11,7 @@ import {
 } from './auth.helper';
 import {
   AuthService,
+  DynamicApiGetAccountOptions,
   DynamicApiRegisterOptions,
   DynamicApiResetPasswordOptions,
   DynamicApiUpdateAccountOptions,
@@ -33,6 +34,10 @@ describe('AuthHelper', () => {
     callback: jest.fn(),
     additionalFields: ['nickname'],
     protected: false,
+  };
+  const getAccountOptions: DynamicApiGetAccountOptions<UserEntity> = {
+    callback: jest.fn(),
+    useInterceptors: [],
   };
   const resetPasswordOptions: DynamicApiResetPasswordOptions = {
     resetPasswordCallback: jest.fn(),
@@ -146,6 +151,7 @@ describe('AuthHelper', () => {
         undefined,
         undefined,
         undefined,
+        undefined,
       );
 
       expect(provider).toEqual({
@@ -169,6 +175,7 @@ describe('AuthHelper', () => {
             callback: loginCallback,
             additionalFields: additionalRequestFields,
           },
+          getAccountOptions.callback,
           registerOptions.callback,
           resetPasswordOptions,
           updateAccountOptions.callback,
@@ -219,6 +226,7 @@ describe('AuthHelper', () => {
       AuthController = createAuthController(
         UserEntity,
         { loginField, passwordField, additionalFields: additionalRequestFields },
+        getAccountOptions,
         registerOptions,
         validationPipeOptions,
         resetPasswordOptions,
@@ -233,6 +241,7 @@ describe('AuthHelper', () => {
       AuthController = createAuthController(
         UserEntity,
         { loginField, passwordField, additionalFields: undefined },
+        undefined,
         undefined,
         undefined,
         undefined,
@@ -253,6 +262,7 @@ describe('AuthHelper', () => {
       Gateway = createAuthGateway(
         UserEntity,
         { loginField, passwordField, additionalFields: additionalRequestFields },
+        getAccountOptions,
         registerOptions,
         validationPipeOptions,
         resetPasswordOptions,
@@ -268,6 +278,7 @@ describe('AuthHelper', () => {
       Gateway = createAuthGateway(
         UserEntity,
         { loginField, passwordField },
+        undefined,
         undefined,
         undefined,
         undefined,

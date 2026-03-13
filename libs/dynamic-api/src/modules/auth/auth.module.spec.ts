@@ -177,6 +177,7 @@ describe('AuthModule', () => {
             passwordField: 'password',
             additionalFields: [],
           },
+          { useInterceptors: [] },
           {
             additionalFields: [],
             protected: false,
@@ -194,6 +195,7 @@ describe('AuthModule', () => {
             passwordField: 'password',
             additionalFields: [],
           },
+          undefined,
           undefined,
           undefined,
           undefined,
@@ -251,6 +253,7 @@ describe('AuthModule', () => {
         expect(spyCreateAuthController).toHaveBeenCalledWith(
           UserEntity,
           fullOptions.login,
+          fullOptions.getAccount,
           fullOptions.register,
           fullOptions.validationPipeOptions,
           fullOptions.resetPassword,
@@ -261,6 +264,7 @@ describe('AuthModule', () => {
         expect(spyCreateAuthServiceProvider).toHaveBeenCalledWith(
           UserEntity,
           fullOptions.login,
+          fullOptions.getAccount.callback,
           fullOptions.register.callback,
           fullOptions.resetPassword,
           fullOptions.updateAccount.callback,
@@ -279,6 +283,7 @@ describe('AuthModule', () => {
         expect(spyCreateAuthGateway).toHaveBeenCalledWith(
           UserEntity,
           fullOptions.login,
+          fullOptions.getAccount,
           fullOptions.register,
           fullOptions.validationPipeOptions,
           fullOptions.resetPassword,
