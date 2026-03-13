@@ -21,6 +21,11 @@ type DynamicApiLoginOptions<Entity extends BaseEntity = any> = {
   useInterceptors?: Type<NestInterceptor>[];
 }
 
+type DynamicApiGetAccountOptions<Entity extends BaseEntity = any> = {
+  callback?: DynamicApiServiceCallback<Entity>;
+  useInterceptors?: Type<NestInterceptor>[];
+};
+
 type DynamicApiRegisterOptions<Entity extends BaseEntity = any> = {
   beforeSaveCallback?: DynamicApiServiceBeforeSaveCallback<Entity>;
   callback?: DynamicApiServiceCallback<Entity>;
@@ -53,6 +58,7 @@ type DynamicApiAuthOptions<Entity extends BaseEntity = any> = {
   userEntity: Type<Entity>;
   jwt?: DynamicApiJWTOptions;
   login?: DynamicApiLoginOptions<Entity>;
+  getAccount?: DynamicApiGetAccountOptions<Entity>;
   register?: DynamicApiRegisterOptions<Entity>;
   updateAccount?: DynamicApiUpdateAccountOptions<Entity>;
   resetPassword?: Partial<DynamicApiResetPasswordOptions<Entity>>;
@@ -67,6 +73,7 @@ export type {
   DynamicApiAuthOptions,
   DynamicApiRegisterOptions,
   DynamicApiUpdateAccountOptions,
+  DynamicApiGetAccountOptions,
   DynamicApiJWTOptions,
   DynamicApiLoginOptions,
   DynamicApiResetPasswordOptions,
