@@ -8,7 +8,7 @@ import { BaseEntity } from '../../../models';
 import { ChangePasswordDto } from '../dtos/change-password.dto';
 import { ResetPasswordDto } from '../dtos/reset-password.dto';
 import { JwtAuthGuard, LocalAuthGuard, ResetPasswordGuard } from '../guards';
-import { AuthController, AuthControllerConstructor, AuthService, DynamicApiLoginOptions, DynamicApiRegisterOptions, DynamicApiResetPasswordOptions, DynamicApiUpdateAccountOptions } from '../interfaces';
+import { AuthController, AuthControllerConstructor, AuthService, DynamicApiGetAccountOptions, DynamicApiLoginOptions, DynamicApiRegisterOptions, DynamicApiResetPasswordOptions, DynamicApiUpdateAccountOptions } from '../interfaces';
 import { AuthPoliciesGuardMixin } from './auth-policies-guard.mixin';
 
 function AuthControllerMixin<Entity extends BaseEntity>(
@@ -34,6 +34,9 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     useInterceptors: updateAccountUseInterceptors = [],
     ...updateAccountOptions
   }: DynamicApiUpdateAccountOptions<Entity> = {},
+  {
+    useInterceptors: getAccountUseInterceptors = [],
+  }: DynamicApiGetAccountOptions<Entity> = {}
 ): AuthControllerConstructor<Entity> {
   if (!loginField || !passwordField) {
     throw new Error('Login and password fields are required');
@@ -119,6 +122,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     @UseGuards(JwtAuthGuard)
     @HttpCode(HttpStatus.OK)
     @ApiOkResponse({ type: AuthUserPresenter })
+    @UseInterceptors(...getAccountUseInterceptors)
     @Get('account')
     getAccount(@Request() req: { user: Entity }) {
       return this.service.getAccount(req.user);
