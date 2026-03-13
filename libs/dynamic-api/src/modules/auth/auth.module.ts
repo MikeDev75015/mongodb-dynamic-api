@@ -22,6 +22,7 @@ export class AuthModule {
         passwordField,
         ...login
       },
+      getAccount,
       register,
       updateAccount,
       resetPassword,
@@ -41,6 +42,7 @@ export class AuthModule {
     const AuthController = createAuthController(
       userEntity,
       { loginField, passwordField, ...login },
+      getAccount,
       register,
       validationPipeOptions,
       resetPasswordOptions,
@@ -49,6 +51,7 @@ export class AuthModule {
     const AuthServiceProvider = createAuthServiceProvider(
       userEntity,
       { loginField, passwordField, ...login },
+      getAccount?.callback,
       register.callback,
       resetPasswordOptions,
       updateAccount.callback,
@@ -76,6 +79,7 @@ export class AuthModule {
             passwordField,
             ...login,
           },
+          getAccount,
           register,
           validationPipeOptions,
           resetPasswordOptions,
@@ -128,6 +132,7 @@ export class AuthModule {
     login,
     register,
     updateAccount,
+    getAccount,
     resetPassword,
     validationPipeOptions,
     webSocket,
@@ -146,6 +151,10 @@ export class AuthModule {
         loginField: (login?.loginField ?? 'email') as keyof Entity,
         passwordField: (login?.passwordField ?? 'password') as keyof Entity,
         additionalFields: login?.additionalFields ?? [],
+      },
+      getAccount: {
+        ...getAccount,
+        useInterceptors: getAccount?.useInterceptors ?? [],
       },
       register: {
         ...register,
