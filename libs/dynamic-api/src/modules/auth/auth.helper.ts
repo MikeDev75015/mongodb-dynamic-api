@@ -12,7 +12,7 @@ import { DynamicAPIWsExceptionFilter } from '../../filters';
 import { AuthAbilityPredicate, DynamicApiServiceBeforeSaveCallback, DynamicApiServiceCallback, DynamicAPIServiceProvider, GatewayOptions } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BcryptService } from '../../services';
-import { AuthControllerConstructor, AuthGatewayConstructor, AuthService, DynamicApiLoginOptions, DynamicApiRegisterOptions, DynamicApiResetPasswordOptions, DynamicApiUpdateAccountOptions } from './interfaces';
+import { AuthControllerConstructor, AuthGatewayConstructor, AuthService, DynamicApiGetAccountOptions, DynamicApiLoginOptions, DynamicApiRegisterOptions, DynamicApiResetPasswordOptions, DynamicApiUpdateAccountOptions } from './interfaces';
 import { AuthControllerMixin, AuthGatewayMixin } from './mixins';
 import { BaseAuthService } from './services';
 
@@ -62,11 +62,12 @@ function createLocalStrategyProvider<Entity extends BaseEntity>(
 function createAuthServiceProvider<Entity extends BaseEntity>(
   userEntity: Type<Entity>,
   { loginField, passwordField, additionalFields = [], callback: loginCallback }: DynamicApiLoginOptions<Entity>,
+  getAccountCallback: DynamicApiServiceCallback<Entity> | undefined,
   registerCallback: DynamicApiServiceCallback<Entity> | undefined,
   resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined,
   updateAccountCallback: DynamicApiServiceCallback<Entity> | undefined,
   beforeRegisterCallback: DynamicApiServiceBeforeSaveCallback<Entity> | undefined,
-  beforeUpdateAccountCallback: DynamicApiServiceBeforeSaveCallback<Entity> | undefined,
+  beforeUpdateAccountCallback: DynamicApiServiceBeforeSaveCallback<Entity> | undefined
 ): DynamicAPIServiceProvider {
   class AuthService extends BaseAuthService<Entity> {
     protected entity = userEntity;
@@ -80,6 +81,7 @@ function createAuthServiceProvider<Entity extends BaseEntity>(
     protected beforeUpdateAccountCallback = beforeUpdateAccountCallback;
     protected updateAccountCallback = updateAccountCallback;
     protected loginCallback = loginCallback;
+    protected getAccountCallback = getAccountCallback;
     protected resetPasswordOptions = resetPasswordOptions;
 
     constructor(
@@ -104,10 +106,11 @@ function createAuthServiceProvider<Entity extends BaseEntity>(
 function createAuthController<Entity extends BaseEntity>(
   userEntity: Type<Entity>,
   loginOptions: DynamicApiLoginOptions<Entity>,
+  getAccountOptions: DynamicApiGetAccountOptions<Entity> | undefined,
   registerOptions: DynamicApiRegisterOptions<Entity> | undefined,
   validationPipeOptions: ValidationPipeOptions | undefined,
   resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined,
-  updateAccountOptions: DynamicApiUpdateAccountOptions<Entity> | undefined,
+  updateAccountOptions: DynamicApiUpdateAccountOptions<Entity> | undefined
 ): AuthControllerConstructor<Entity> {
   @Controller('auth')
   @ApiTags('Auth')
@@ -118,6 +121,7 @@ function createAuthController<Entity extends BaseEntity>(
     registerOptions,
     resetPasswordOptions,
     updateAccountOptions,
+    getAccountOptions,
   ) {
     constructor(
       @Inject(authServiceProviderName)
@@ -133,6 +137,7 @@ function createAuthController<Entity extends BaseEntity>(
 function createAuthGateway<Entity extends BaseEntity>(
   userEntity: Type<Entity>,
   loginOptions: DynamicApiLoginOptions<Entity>,
+  getAccountOptions: DynamicApiGetAccountOptions<Entity> | undefined,
   registerOptions: DynamicApiRegisterOptions<Entity> | undefined,
   validationPipeOptions: ValidationPipeOptions | undefined,
   resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined,
@@ -148,6 +153,7 @@ function createAuthGateway<Entity extends BaseEntity>(
     registerOptions ?? {},
     resetPasswordOptions,
     updateAccountOptions,
+    getAccountOptions,
   ) {
     constructor(
       @Inject(authServiceProviderName)

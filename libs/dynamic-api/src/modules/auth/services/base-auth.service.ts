@@ -17,6 +17,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
   protected beforeUpdateAccountCallback: DynamicApiServiceBeforeSaveCallback<Entity>;
   protected updateAccountCallback: DynamicApiServiceCallback<Entity> | undefined;
   protected loginCallback: DynamicApiServiceCallback<Entity> | undefined;
+  protected getAccountCallback: DynamicApiServiceCallback<Entity> | undefined;
   protected resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined;
 
   private resetPasswordCallbackMethods: DynamicApiResetPasswordCallbackMethods<Entity> | undefined;
@@ -113,6 +114,11 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     this.verifyArguments(id);
 
     const user = (await this.model.findOne({ _id: id }).lean().exec()) as Entity;
+
+    if (this.getAccountCallback) {
+      const instance = this.buildInstance(user);
+      await this.getAccountCallback(instance, this.callbackMethods);
+    }
 
     const fieldsToBuild = [
       '_id' as keyof Entity,
