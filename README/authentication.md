@@ -114,6 +114,12 @@ DynamicApiModule.forRoot('mongodb-uri', {
       additionalFields?: (keyof Entity)[];    // JWT payload fields
       useInterceptors?: Type<NestInterceptor>[];
     },
+
+    // Get Account Configuration
+    getAccount: {
+      callback?: (user: Entity) => void;      // Before get account response formatting
+      useInterceptors?: Type<NestInterceptor>[];
+    },
     
     // Register Configuration
     register: {
@@ -703,6 +709,9 @@ DynamicApiModule.forRoot('mongodb-uri', {
   useAuth: {
     userEntity: User,
     login: {
+      useInterceptors: [LoggingInterceptor],
+    },
+    getAccount: {
       useInterceptors: [LoggingInterceptor],
     },
     register: {
