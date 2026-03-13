@@ -11,7 +11,7 @@ import { BaseEntity } from '../../../models';
 import { ChangePasswordDto } from '../dtos/change-password.dto';
 import { ResetPasswordDto } from '../dtos/reset-password.dto';
 import { JwtSocketAuthGuard, ResetPasswordGuard } from '../guards';
-import { AuthGatewayConstructor, AuthService, DynamicApiLoginOptions, DynamicApiRegisterOptions, DynamicApiResetPasswordOptions, DynamicApiUpdateAccountOptions } from '../interfaces';
+import { AuthGatewayConstructor, AuthService, DynamicApiGetAccountOptions, DynamicApiLoginOptions, DynamicApiRegisterOptions, DynamicApiResetPasswordOptions, DynamicApiUpdateAccountOptions } from '../interfaces';
 import { AuthSocketPoliciesGuardMixin } from './auth-policies-guard.mixin';
 
 function AuthGatewayMixin<Entity extends BaseEntity>(
@@ -37,6 +37,9 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
     useInterceptors: updateAccountUseInterceptors = [],
     ...updateAccountOptions
   }: DynamicApiUpdateAccountOptions<Entity> = {},
+  {
+    useInterceptors: getAccountUseInterceptors = [],
+  }: DynamicApiGetAccountOptions<Entity> = {}
 ): AuthGatewayConstructor<Entity> {
   // @ts-ignore
   class AuthSocketBodyPasswordFieldDto extends PickType(userEntity, [passwordField]) {
@@ -117,6 +120,7 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
     }
 
     @UseGuards(new JwtSocketAuthGuard())
+    @UseInterceptors(...getAccountUseInterceptors)
     @SubscribeMessage(getAccountEvent)
     async getAccount(@ConnectedSocket() socket: ExtendedSocket<Entity>) {
       return {
