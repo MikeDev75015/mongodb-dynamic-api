@@ -57,6 +57,7 @@ describe('BaseAuthService', () => {
   const fakeBeforeRegisterCallback = jest.fn();
   const fakeRegisterCallback = jest.fn();
   const fakeLoginCallback = jest.fn();
+  const fakeGetAccountCallback = jest.fn();
   const resetPasswordCallback = jest.fn();
   const beforeChangePasswordCallback = jest.fn();
   const changePasswordCallback = jest.fn();
@@ -69,6 +70,7 @@ describe('BaseAuthService', () => {
     protected passwordField = fakePasswordField;
 
     protected loginCallback = fakeLoginCallback;
+    protected getAccountCallback = fakeGetAccountCallback;
     protected beforeRegisterCallback = fakeBeforeRegisterCallback;
     protected registerCallback = fakeRegisterCallback;
     protected beforeUpdateAccountCallback = fakeBeforeUpdateAccountCallback;
@@ -92,6 +94,7 @@ describe('BaseAuthService', () => {
 
 
   beforeEach(async () => {
+    fakeGetAccountCallback.mockClear();
     exec = jest.fn();
     const lean = jest.fn(() => ({ exec }));
     model = {
@@ -324,6 +327,24 @@ describe('BaseAuthService', () => {
         ['_id', fakeLoginField, ...service['additionalRequestFields']],
       );
       expect(result).toEqual(fakeLoginBuilt);
+    });
+
+    it('should call getAccountCallback before building response fields', async () => {
+      const spyBuildInstance = jest.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
+      await service['getAccount']({ id: fakeUserId } as User);
+
+      expect(spyBuildInstance).toHaveBeenCalledWith({ ...fakeUser, id: fakeUserId });
+      expect(fakeGetAccountCallback).toHaveBeenCalledTimes(1);
+      expect(fakeGetAccountCallback).toHaveBeenCalledWith(fakeUserInstance, service['callbackMethods']);
+      expect(spyBuildUserFields).toHaveBeenCalledTimes(1);
+      expect(spyBuildInstance.mock.invocationCallOrder[0]).toBeLessThan(spyBuildUserFields.mock.invocationCallOrder[0]);
+    });
+
+    it('should not call getAccountCallback when it is undefined', async () => {
+      service['getAccountCallback'] = undefined;
+      await service['getAccount']({ id: fakeUserId } as User);
+
+      expect(fakeGetAccountCallback).not.toHaveBeenCalled();
     });
   });
 
