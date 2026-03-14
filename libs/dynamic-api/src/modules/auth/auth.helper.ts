@@ -1,4 +1,4 @@
-import { Controller, ForbiddenException, Inject, Injectable, Type, UnauthorizedException, UseFilters, ValidationPipeOptions } from '@nestjs/common';
+import { Controller, ForbiddenException, Inject, Injectable, Optional, Type, UnauthorizedException, UseFilters, ValidationPipeOptions } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { PassportStrategy } from '@nestjs/passport';
@@ -11,7 +11,7 @@ import { DynamicApiModule } from '../../dynamic-api.module';
 import { DynamicAPIWsExceptionFilter } from '../../filters';
 import { AuthAbilityPredicate, DynamicApiServiceCallback, DynamicAPIServiceProvider, GatewayOptions } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import { BcryptService } from '../../services';
+import { BcryptService, DynamicApiBroadcastService } from '../../services';
 import { AuthControllerConstructor, AuthGatewayConstructor, AuthService, DynamicApiGetAccountOptions, DynamicApiLoginOptions, DynamicApiRegisterOptions, DynamicApiResetPasswordOptions, DynamicApiUpdateAccountOptions } from './interfaces';
 import { AuthControllerMixin, AuthGatewayMixin } from './mixins';
 import { BaseAuthService } from './services';
@@ -124,8 +124,12 @@ function createAuthController<Entity extends BaseEntity>(
     constructor(
       @Inject(authServiceProviderName)
       protected readonly service: AuthService<Entity>,
+      @Optional() @Inject(DynamicApiBroadcastService)
+      protected readonly broadcastService: DynamicApiBroadcastService,
+      @Inject(JwtService)
+      protected readonly jwtService: JwtService,
     ) {
-      super(service);
+      super(service, broadcastService, jwtService);
     }
   }
 

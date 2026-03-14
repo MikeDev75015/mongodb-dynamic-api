@@ -8,6 +8,19 @@ import { isNotEmptyObject } from '../../../helpers';
 import { ExtendedSocket } from '../../../interfaces';
 import { EntityBodyMixin } from '../../../mixins';
 import { BaseEntity } from '../../../models';
+import { buildAuthBroadcastData } from '../auth-broadcast.helper';
+import {
+  AUTH_CHANGE_PASSWORD_EVENT,
+  AUTH_GET_ACCOUNT_BROADCAST_EVENT,
+  AUTH_GET_ACCOUNT_EVENT,
+  AUTH_LOGIN_BROADCAST_EVENT,
+  AUTH_LOGIN_EVENT,
+  AUTH_REGISTER_BROADCAST_EVENT,
+  AUTH_REGISTER_EVENT,
+  AUTH_RESET_PASSWORD_EVENT,
+  AUTH_UPDATE_ACCOUNT_BROADCAST_EVENT,
+  AUTH_UPDATE_ACCOUNT_EVENT,
+} from '../auth-events.constants';
 import { ChangePasswordDto } from '../dtos/change-password.dto';
 import { ResetPasswordDto } from '../dtos/reset-password.dto';
 import { JwtSocketAuthGuard, ResetPasswordGuard } from '../guards';
@@ -21,12 +34,14 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
     passwordField,
     abilityPredicate: loginAbilityPredicate,
     useInterceptors: loginUseInterceptors = [],
+    broadcast: loginBroadcastConfig,
   }: DynamicApiLoginOptions<Entity>,
   {
     additionalFields: additionalSocketRegisterFields,
     protected: registerProtected,
     abilityPredicate: registerAbilityPredicate,
     useInterceptors: registerUseInterceptors = [],
+    broadcast: registerBroadcastConfig,
   }: DynamicApiRegisterOptions<Entity> = {},
   {
     resetPasswordUseInterceptors = [],
@@ -35,10 +50,12 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
   }: DynamicApiResetPasswordOptions<Entity> = {},
   {
     useInterceptors: updateAccountUseInterceptors = [],
+    broadcast: updateAccountBroadcastConfig,
     ...updateAccountOptions
   }: DynamicApiUpdateAccountOptions<Entity> = {},
   {
     useInterceptors: getAccountUseInterceptors = [],
+    broadcast: getAccountBroadcastConfig,
   }: DynamicApiGetAccountOptions<Entity> = {}
 ): AuthGatewayConstructor<Entity> {
   // @ts-ignore
@@ -104,13 +121,6 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
     updateAccountOptions.abilityPredicate,
   ) {}
 
-  const getAccountEvent = 'auth-get-account';
-  const updateAccountEvent = 'auth-update-account';
-  const loginEvent = 'auth-login';
-  const registerEvent = 'auth-register';
-  const resetPasswordEvent = 'auth-reset-password';
-  const changePasswordEvent = 'auth-change-password';
-
   class BaseAuthGateway extends BaseGateway<Entity> {
     constructor(
       protected readonly service: AuthService<Entity>,
@@ -121,29 +131,47 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
 
     @UseGuards(new JwtSocketAuthGuard())
     @UseInterceptors(...getAccountUseInterceptors)
-    @SubscribeMessage(getAccountEvent)
+    @SubscribeMessage(AUTH_GET_ACCOUNT_EVENT)
     async getAccount(@ConnectedSocket() socket: ExtendedSocket<Entity>) {
-      return {
-        event: getAccountEvent,
-        data: socket.user ? await this.service.getAccount(socket.user) : undefined,
-      };
+      const account = socket.user ? await this.service.getAccount(socket.user) : undefined;
+
+      if (getAccountBroadcastConfig && account) {
+        const broadcastData = buildAuthBroadcastData(account, getAccountBroadcastConfig.fields);
+        this.broadcastIfNeeded(
+          socket,
+          getAccountBroadcastConfig.eventName ?? AUTH_GET_ACCOUNT_BROADCAST_EVENT,
+          [broadcastData],
+          getAccountBroadcastConfig,
+        );
+      }
+
+      return { event: AUTH_GET_ACCOUNT_EVENT, data: account };
     }
 
     @UseGuards(new JwtSocketAuthGuard(), new AuthUpdateAccountPoliciesGuard())
     @UseInterceptors(...updateAccountUseInterceptors)
-    @SubscribeMessage(updateAccountEvent)
+    @SubscribeMessage(AUTH_UPDATE_ACCOUNT_EVENT)
     async updateAccount(
       @ConnectedSocket() socket: ExtendedSocket<Entity>,
       @MessageBody() body: AuthUpdateAccountDto,
     ) {
-      return {
-        event: updateAccountEvent,
-        data: socket.user ? await this.service.updateAccount(socket.user, body) : undefined,
-      };
+      const account = socket.user ? await this.service.updateAccount(socket.user, body) : undefined;
+
+      if (updateAccountBroadcastConfig && account) {
+        const broadcastData = buildAuthBroadcastData(account, updateAccountBroadcastConfig.fields);
+        this.broadcastIfNeeded(
+          socket,
+          updateAccountBroadcastConfig.eventName ?? AUTH_UPDATE_ACCOUNT_BROADCAST_EVENT,
+          [broadcastData],
+          updateAccountBroadcastConfig,
+        );
+      }
+
+      return { event: AUTH_UPDATE_ACCOUNT_EVENT, data: account };
     }
 
     @UseInterceptors(...loginUseInterceptors)
-    @SubscribeMessage(loginEvent)
+    @SubscribeMessage(AUTH_LOGIN_EVENT)
     async login(
       @ConnectedSocket() socket: ExtendedSocket<Entity>,
       @MessageBody() { [loginField]: login, [passwordField]: password }: AuthSocketLoginDto,
@@ -160,51 +188,70 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
         throw new WsException('Access denied');
       }
 
-      return {
-        event: loginEvent,
-        data: await this.service.login(socket.user),
-      };
+      const result = await this.service.login(socket.user);
+
+      if (loginBroadcastConfig) {
+        const broadcastData = buildAuthBroadcastData(socket.user, loginBroadcastConfig.fields);
+        this.broadcastIfNeeded(
+          socket,
+          loginBroadcastConfig.eventName ?? AUTH_LOGIN_BROADCAST_EVENT,
+          [broadcastData],
+          loginBroadcastConfig,
+        );
+      }
+
+      return { event: AUTH_LOGIN_EVENT, data: result };
     }
 
     @UseGuards(new AuthRegisterPoliciesGuard())
     @UseInterceptors(...registerUseInterceptors)
-    @SubscribeMessage(registerEvent)
+    @SubscribeMessage(AUTH_REGISTER_EVENT)
     async register(
       @ConnectedSocket() socket: ExtendedSocket<Entity>,
       @MessageBody() data: AuthSocketRegisterDto,
     ) {
       this.addUserToSocket(socket, !registerProtected && !registerAbilityPredicate);
 
-      return {
-        event: registerEvent,
-        data: await this.service.register(data),
-      };
+      const result = await this.service.register(data);
+
+      if (registerBroadcastConfig) {
+        const { iat, exp, ...userPayload } = (this.jwtService.decode(result.accessToken) as any) ?? {};
+        const broadcastData = buildAuthBroadcastData(userPayload as Partial<Entity>, registerBroadcastConfig.fields);
+        this.broadcastIfNeeded(
+          socket,
+          registerBroadcastConfig.eventName ?? AUTH_REGISTER_BROADCAST_EVENT,
+          [broadcastData],
+          registerBroadcastConfig,
+        );
+      }
+
+      return { event: AUTH_REGISTER_EVENT, data: result };
     }
 
     @UseGuards(new ResetPasswordGuard(isNotEmptyObject(resetPasswordOptions)))
     @UseInterceptors(...resetPasswordUseInterceptors)
-    @SubscribeMessage(resetPasswordEvent)
+    @SubscribeMessage(AUTH_RESET_PASSWORD_EVENT)
     async resetPassword(@MessageBody() { email }: ResetPasswordDto) {
       if (isEmpty(resetPasswordOptions)) {
         throw new WsException('This feature is not enabled');
       }
 
       return {
-        event: resetPasswordEvent,
+        event: AUTH_RESET_PASSWORD_EVENT,
         data: await this.service.resetPassword(email),
       };
     }
 
     @UseGuards(new ResetPasswordGuard(isNotEmptyObject(resetPasswordOptions)))
     @UseInterceptors(...changePasswordUseInterceptors)
-    @SubscribeMessage(changePasswordEvent)
+    @SubscribeMessage(AUTH_CHANGE_PASSWORD_EVENT)
     async changePassword(@MessageBody() { resetPasswordToken, newPassword }: ChangePasswordDto) {
       if (isEmpty(resetPasswordOptions)) {
         throw new WsException('This feature is not enabled');
       }
 
       return {
-        event: changePasswordEvent,
+        event: AUTH_CHANGE_PASSWORD_EVENT,
         data: await this.service.changePassword(resetPasswordToken, newPassword),
       };
     }

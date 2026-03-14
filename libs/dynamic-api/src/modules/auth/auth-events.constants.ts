@@ -1,0 +1,25 @@
+const AUTH_LOGIN_EVENT = 'auth-login';
+const AUTH_REGISTER_EVENT = 'auth-register';
+const AUTH_GET_ACCOUNT_EVENT = 'auth-get-account';
+const AUTH_UPDATE_ACCOUNT_EVENT = 'auth-update-account';
+const AUTH_RESET_PASSWORD_EVENT = 'auth-reset-password';
+const AUTH_CHANGE_PASSWORD_EVENT = 'auth-change-password';
+
+const AUTH_LOGIN_BROADCAST_EVENT = 'auth-login-broadcast';
+const AUTH_REGISTER_BROADCAST_EVENT = 'auth-register-broadcast';
+const AUTH_GET_ACCOUNT_BROADCAST_EVENT = 'auth-get-account-broadcast';
+const AUTH_UPDATE_ACCOUNT_BROADCAST_EVENT = 'auth-update-account-broadcast';
+
+export {
+  AUTH_LOGIN_EVENT,
+  AUTH_REGISTER_EVENT,
+  AUTH_GET_ACCOUNT_EVENT,
+  AUTH_UPDATE_ACCOUNT_EVENT,
+  AUTH_RESET_PASSWORD_EVENT,
+  AUTH_CHANGE_PASSWORD_EVENT,
+  AUTH_LOGIN_BROADCAST_EVENT,
+  AUTH_REGISTER_BROADCAST_EVENT,
+  AUTH_GET_ACCOUNT_BROADCAST_EVENT,
+  AUTH_UPDATE_ACCOUNT_BROADCAST_EVENT,
+};
+
