@@ -272,6 +272,32 @@ describe('BaseAuthService', () => {
         );
         expect(result).toEqual({ accessToken, refreshToken });
       });
+
+      it('should use user.id fallback when user._id is absent and update DB', async () => {
+        const userWithoutId = { ...fakeUser, _id: undefined as any, id: 'only-id' };
+        exec.mockResolvedValueOnce({ ...fakeUser, nickname: fakeHash });
+        spyBcryptCompare.mockResolvedValueOnce(true);
+        spyBcriptHashPassword.mockResolvedValueOnce('new-hashed-refresh');
+        jest.spyOn(jwtService, 'decode')
+          .mockReturnValueOnce({ jti: 'input-jti' })
+          .mockReturnValueOnce({ jti: 'new-jti' });
+
+        await service['refreshToken'](userWithoutId as any, 'valid-token');
+
+        expect(model.updateOne).toHaveBeenCalledWith(
+          { _id: 'only-id' },
+          { $set: { nickname: 'new-hashed-refresh' } },
+        );
+      });
+
+      it('should handle rawToken without jti (decode returns object without jti)', async () => {
+        exec.mockResolvedValueOnce({ ...fakeUser, nickname: fakeHash });
+        jest.spyOn(jwtService, 'decode').mockReturnValueOnce({});
+
+        await expect(service['refreshToken'](fakeUser, 'token-without-jti')).rejects.toThrow(
+          new UnauthorizedException('Invalid refresh token'),
+        );
+      });
     });
   });
 
@@ -304,6 +330,18 @@ describe('BaseAuthService', () => {
         { $set: { nickname: null } },
       );
       expect(spyLoggerWarn).not.toHaveBeenCalled();
+    });
+
+    it('should use user.id as fallback when user._id is absent in logout', async () => {
+      service['refreshTokenField'] = 'nickname' as keyof User;
+      const userWithoutId = { ...fakeUser, _id: undefined as any, id: 'only-id' };
+
+      await service['logout'](userWithoutId as any);
+
+      expect(model.updateOne).toHaveBeenCalledWith(
+        { _id: 'only-id' },
+        { $set: { nickname: null } },
+      );
     });
   });
 
@@ -402,6 +440,22 @@ describe('BaseAuthService', () => {
       await service['login'](fakeUser);
 
       expect(model.updateOne).not.toHaveBeenCalled();
+    });
+
+    it('should store hashed refresh token using user.id when user._id is absent', async () => {
+      jest.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
+      jest.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'fake-jti' });
+      service['refreshTokenField'] = 'nickname' as keyof User;
+      spyBcriptHashPassword.mockResolvedValueOnce('hashed-refresh');
+      const userWithoutId = { ...fakeUser, _id: undefined as any, id: 'only-id' };
+
+      await service['login'](userWithoutId as any);
+
+      expect(model.updateOne).toHaveBeenCalledWith(
+        { _id: 'only-id' },
+        { $set: { nickname: 'hashed-refresh' } },
+      );
+      service['refreshTokenField'] = undefined;
     });
   });
 
