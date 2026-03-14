@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Type, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { randomUUID } from 'crypto';
+import { randomUUID } from 'node:crypto';
 import { Model, UpdateQuery, UpdateWithAggregationPipeline } from 'mongoose';
 import { DynamicApiResetPasswordCallbackMethods, DynamicApiServiceBeforeSaveCallback, DynamicApiServiceCallback } from '../../../interfaces';
 import { MongoDBDynamicApiLogger } from '../../../logger';
