@@ -38,7 +38,7 @@ export class UpdateOneModule {
     const hasBroadcast = !!routeConfig.broadcast;
     const gatewayOptions = webSocket
       ? initializeConfigFromOptions(webSocket)
-      : DynamicApiModule.state.get<GatewayMetadata>('gatewayOptions') ?? (hasBroadcast ? {} : null);
+      : DynamicApiModule.state.get<GatewayMetadata>('gatewayOptions') ?? null;
 
 
     return {
@@ -47,9 +47,9 @@ export class UpdateOneModule {
       controllers: [controller, ...(extraControllers ?? [])],
       providers: [
         ServiceProvider,
+        ...(hasBroadcast ? [DynamicApiBroadcastService] : []),
         ...(
           gatewayOptions ? [
-            DynamicApiBroadcastService,
             createUpdateOneGateway(
               entity,
               displayedName,
