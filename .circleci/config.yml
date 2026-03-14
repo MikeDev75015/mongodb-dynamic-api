@@ -263,7 +263,7 @@ jobs:
       - *notify-fail
       - *notify-success
 
-  test-with-sonarcloud-job:
+  test-with-coverage-job:
     executor: node
     parallelism: 8
     steps:
@@ -409,7 +409,7 @@ workflows:
           filters:
             branches:
               only: develop
-      - test-with-sonarcloud-job:
+      - test-with-coverage-job:
           requires:
             - dependencies-job
           context:
@@ -419,7 +419,7 @@ workflows:
               only: develop
       - merge-and-sonarcloud-job:
           requires:
-            - test-with-sonarcloud-job
+            - test-with-coverage-job
           context:
             - SONARCLOUD
             - SLACK
@@ -470,7 +470,7 @@ workflows:
           filters:
             branches:
               only: main
-      - test-with-sonarcloud-job:
+      - test-with-coverage-job:
           requires:
             - dependencies-job
           context:
@@ -480,7 +480,7 @@ workflows:
               only: main
       - merge-and-sonarcloud-job:
           requires:
-            - test-with-sonarcloud-job
+            - test-with-coverage-job
           context:
             - SONARCLOUD
             - SLACK
