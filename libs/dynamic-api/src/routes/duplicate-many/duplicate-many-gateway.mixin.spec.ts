@@ -6,6 +6,7 @@ import { BaseEntity } from '../../models';
 import { DuplicateManyGatewayConstructor } from './duplicate-many-gateway.interface';
 import { DuplicateManyGatewayMixin } from './duplicate-many-gateway.mixin';
 import { DuplicateManyService } from './duplicate-many-service.interface';
+import { ManyEntityQuery } from '../../dtos';
 
 describe('DuplicateManyGatewayMixin', () => {
   class TestEntity extends BaseEntity {
@@ -43,8 +44,8 @@ describe('DuplicateManyGatewayMixin', () => {
   });
 
   test.each([
-    ['ids is not in the body', { field1: 'test' } as any],
-    ['ids is not an array', { ids: '1', field1: 'test' } as any],
+    ['ids is not in the body', { field1: 'test' } as unknown as ManyEntityQuery & Partial<TestEntity>],
+    ['ids is not an array', { ids: '1', field1: 'test' } as unknown as ManyEntityQuery & Partial<TestEntity>],
   ])('should throw an exception if %s', async (_, body) => {
     DuplicateManyGateway = DuplicateManyGatewayMixin(
       TestEntity,

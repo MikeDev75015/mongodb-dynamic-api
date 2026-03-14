@@ -6,6 +6,7 @@ import { BaseEntity } from '../../models';
 import { UpdateOneGatewayConstructor } from './update-one-gateway.interface';
 import { UpdateOneGatewayMixin } from './update-one-gateway.mixin';
 import { UpdateOneService } from './update-one-service.interface';
+import { EntityParam } from '../../dtos';
 
 describe('UpdateOneGatewayMixin', () => {
   class TestEntity extends BaseEntity {
@@ -40,7 +41,7 @@ describe('UpdateOneGatewayMixin', () => {
   });
 
   test.each([
-    ['id is not in the body', {} as any],
+    ['id is not in the body', {} as unknown as EntityParam & Partial<TestEntity>],
     ['id is the only field in the body', { id: '1' }],
   ])('should throw an exception if %s', async (_, body) => {
     UpdateOneGateway = UpdateOneGatewayMixin(

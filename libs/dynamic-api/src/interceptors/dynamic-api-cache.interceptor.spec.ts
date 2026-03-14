@@ -1,5 +1,5 @@
 import { CacheInterceptor } from '@nestjs/cache-manager';
-import { CallHandler } from '@nestjs/common';
+import { CallHandler, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { HttpAdapterHost } from '@nestjs/core/helpers/http-adapter-host';
 import { of } from 'rxjs';
@@ -34,7 +34,7 @@ describe('DynamicApiCacheInterceptor', () => {
             url: '/users',
           }),
         }),
-      } as any;
+      } as unknown as ExecutionContext;
 
       expect(interceptor.isRequestCacheable(context)).toBe(false);
     });
@@ -48,7 +48,7 @@ describe('DynamicApiCacheInterceptor', () => {
             url: '/',
           }),
         }),
-      } as any;
+      } as unknown as ExecutionContext;
 
       expect(interceptor.isRequestCacheable(context)).toBe(false);
     });
@@ -62,7 +62,7 @@ describe('DynamicApiCacheInterceptor', () => {
             url: '/',
           }),
         }),
-      } as any;
+      } as unknown as ExecutionContext;
 
       expect(interceptor.isRequestCacheable(context)).toBe(false);
     });
@@ -76,7 +76,7 @@ describe('DynamicApiCacheInterceptor', () => {
             url: '/users',
           }),
         }),
-      } as any;
+      } as unknown as ExecutionContext;
 
       expect(interceptor.isRequestCacheable(context)).toBe(true);
     });
@@ -85,7 +85,7 @@ describe('DynamicApiCacheInterceptor', () => {
   describe('intercept', () => {
     it('should return next.handle() if global cache is disabled', (done) => {
       state.isGlobalCacheEnabled = false;
-      const context = {} as any;
+      const context = {} as unknown as ExecutionContext;
       const next = { handle: () => of('handled') } as CallHandler;
       jest.spyOn(CacheInterceptor.prototype, 'intercept').mockResolvedValue(of('intercepted'));
 
@@ -99,7 +99,7 @@ describe('DynamicApiCacheInterceptor', () => {
 
     it('should return super.intercept() if global cache is enabled', (done) => {
       state.isGlobalCacheEnabled = true;
-      const context = {} as any;
+      const context = {} as unknown as ExecutionContext;
       const next = { handle: () => of('handled') } as CallHandler;
       jest.spyOn(CacheInterceptor.prototype, 'intercept').mockResolvedValue(of('intercepted'));
 

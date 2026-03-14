@@ -38,7 +38,7 @@ describe('BaseDuplicateManyService', () => {
         }
       )),
       create: jest.fn(() => Promise.resolve(documents)),
-    } as any;
+    } as unknown as Model<any>;
 
     return new TestService(modelMock);
   };

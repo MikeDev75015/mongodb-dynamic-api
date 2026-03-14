@@ -1,4 +1,5 @@
 import { Server } from 'socket.io';
+import { DynamicApiBroadcastConfig } from '../../interfaces';
 import { DynamicApiBroadcastService } from './dynamic-api-broadcast.service';
 
 describe('DynamicApiBroadcastService', () => {
@@ -8,8 +9,8 @@ describe('DynamicApiBroadcastService', () => {
   beforeEach(() => {
     service = new DynamicApiBroadcastService();
     // Reset the static server before each test to avoid cross-test interference
-    (DynamicApiBroadcastService as any).wsServer = null;
-    mockServer = { emit: jest.fn() } as any;
+    (DynamicApiBroadcastService as unknown as { wsServer: Server | null }).wsServer = null;
+    mockServer = { emit: jest.fn() };
   });
 
   it('should be defined', () => {
@@ -20,7 +21,7 @@ describe('DynamicApiBroadcastService', () => {
     it('should set the static ws server', () => {
       service.setWsServer(mockServer as unknown as Server);
 
-      expect((DynamicApiBroadcastService as any).wsServer).toBe(mockServer);
+      expect((DynamicApiBroadcastService as unknown as { wsServer: Server | null }).wsServer).toBe(mockServer);
     });
   });
 
@@ -35,7 +36,7 @@ describe('DynamicApiBroadcastService', () => {
       it('should not emit when broadcastConfig is null', () => {
         service.setWsServer(mockServer as unknown as Server);
 
-        service.broadcastFromHttp('event', [{ id: '1' }], null as any);
+        service.broadcastFromHttp('event', [{ id: '1' }], null as unknown as DynamicApiBroadcastConfig<{ id: string }>);
 
         expect(mockServer.emit).not.toHaveBeenCalled();
       });

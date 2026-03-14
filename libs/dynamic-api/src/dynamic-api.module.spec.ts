@@ -1,5 +1,5 @@
 import { CacheModule } from '@nestjs/cache-manager';
-import { NestInterceptor } from '@nestjs/common';
+import { DynamicModule, NestInterceptor } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { HttpAdapterHost } from '@nestjs/core/helpers/http-adapter-host';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -182,7 +182,7 @@ describe('DynamicApiModule', () => {
 
     beforeEach(() => {
       defaultOptions = buildDynamicApiModuleOptionsMock();
-      jest.spyOn(helpers, 'buildSchemaFromEntity').mockReturnValue(fakeSchema as any);
+      jest.spyOn(helpers, 'buildSchemaFromEntity').mockReturnValue(fakeSchema as unknown as Schema);
       jest.spyOn(helpers, 'getDefaultRouteDescription').mockReturnValue('fake-description');
       jest.spyOn(helpers, 'isValidVersion').mockReturnValue(true);
       jest.spyOn(helpers, 'addVersionSuffix').mockReturnValue('fake-version');
@@ -199,7 +199,7 @@ describe('DynamicApiModule', () => {
       });
       mongooseModuleSpy = jest
       .spyOn(MongooseModule, 'forFeature')
-      .mockReturnValue(fakeDatabaseModule as any);
+      .mockReturnValue(fakeDatabaseModule as unknown as DynamicModule);
     });
 
     it('should call buildSchemaFromEntity with entity', () => {

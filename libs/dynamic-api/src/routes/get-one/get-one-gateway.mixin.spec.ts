@@ -6,6 +6,7 @@ import { BaseEntity } from '../../models';
 import { GetOneGatewayConstructor } from './get-one-gateway.interface';
 import { GetOneGatewayMixin } from './get-one-gateway.mixin';
 import { GetOneService } from './get-one-service.interface';
+import { EntityParam } from '../../dtos';
 
 describe('GetOneGatewayMixin', () => {
   class TestEntity extends BaseEntity {
@@ -40,7 +41,7 @@ describe('GetOneGatewayMixin', () => {
   });
 
   test.each([
-    ['id is not in the body', {} as any],
+    ['id is not in the body', {} as unknown as EntityParam],
   ])('should throw an exception if %s', async (_, body) => {
     GetOneGateway = GetOneGatewayMixin(
       TestEntity,

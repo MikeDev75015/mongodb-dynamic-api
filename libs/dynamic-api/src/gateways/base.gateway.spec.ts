@@ -128,7 +128,7 @@ describe('BaseGateway', () => {
         broadcast: {
           emit: jest.fn(),
         },
-      } as any;
+      } as unknown as ExtendedSocket<Entity>;
     });
 
     it('should not broadcast if broadcastConfig is undefined', () => {

@@ -18,7 +18,15 @@ class TestSoftEntity extends SoftDeletableEntity {
 class TestService extends BaseService<TestEntity> {
   protected abilityPredicate: AbilityPredicate<TestEntity> | undefined;
 
-  constructor(protected readonly model: any) {
+  constructor(protected readonly model: Model<TestEntity>) {
+    super(model);
+  }
+}
+
+class TestSoftService extends BaseService<TestSoftEntity> {
+  protected abilityPredicate: AbilityPredicate<TestSoftEntity> | undefined;
+
+  constructor(protected readonly model: Model<TestSoftEntity>) {
     super(model);
   }
 }
@@ -103,8 +111,8 @@ describe('BaseService', () => {
             isDeleted: {},
           },
         },
-      } as any;
-      const service = new TestService(model);
+      } as unknown as Model<TestSoftEntity>;
+      const service = new TestSoftService(model);
 
       expect(service.isSoftDeletable).toBe(true);
     });
@@ -118,7 +126,7 @@ describe('BaseService', () => {
         schema: {
           paths,
         },
-      } as any;
+      } as unknown as Model<TestEntity>;
       const service = new TestService(model);
 
       expect(service.isSoftDeletable).toBe(false);
@@ -398,7 +406,7 @@ describe('BaseService', () => {
         isDeleted: {},
       };
       jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel);
-      const service = new TestService(fakeModel);
+      const service = new TestSoftService(fakeModel);
 
       const result = await service['callbackMethods'].deleteManyDocuments(TestSoftEntity, [fakeId]);
 
@@ -429,7 +437,7 @@ describe('BaseService', () => {
         isDeleted: {},
       };
       jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel);
-      const service = new TestService(fakeModel);
+      const service = new TestSoftService(fakeModel);
 
       const result = await service['callbackMethods'].deleteOneDocument(TestSoftEntity, fakeId);
 
@@ -442,18 +450,13 @@ describe('BaseService', () => {
   });
 
   describe('buildInstance', () => {
-    let service: TestService;
-
-    beforeEach(() => {
-      service = new TestService({} as any);
-    });
-
     it('should build an instance of the entity with id defined and remove _id and __v properties', () => {
+      const service = new TestService({} as unknown as Model<TestEntity>);
       const document = {
         _id: 'id',
         __v: 1,
         name: 'toto',
-      } as any;
+      } as unknown as TestEntity;
 
       const instance = service['buildInstance'](document);
 
@@ -464,20 +467,22 @@ describe('BaseService', () => {
     });
 
     it('should build an instance of the entity with deletedAt if isDeleted is true', () => {
+      const service = new TestSoftService({} as unknown as Model<TestSoftEntity>);
+      const deletedAt = new Date();
       const document = {
         _id: 'id',
         __v: 1,
         name: 'toto',
         isDeleted: true,
-        deletedAt: new Date(),
-      } as any;
+        deletedAt,
+      } as unknown as TestSoftEntity;
 
       const instance = service['buildInstance'](document);
 
       expect(instance).toEqual({
         id: 'id',
         name: 'toto',
-        deletedAt: document.deletedAt,
+        deletedAt,
       });
     });
   });
@@ -486,7 +491,7 @@ describe('BaseService', () => {
     it(
       'should throw a ConflictException with the property that caused the error if error code is mongo duplicated error code',
       () => {
-        const service = new TestService({} as any);
+        const service = new TestService({} as unknown as Model<TestEntity>);
         const error = {
           code: 11000,
           keyValue: {
@@ -503,7 +508,7 @@ describe('BaseService', () => {
     it(
       'should throw a ConflictException with the combination that caused the error if error code is mongo duplicated error code',
       () => {
-        const service = new TestService({} as any);
+        const service = new TestService({} as unknown as Model<TestEntity>);
         const error = {
           code: 11000,
           keyValue: {
@@ -521,7 +526,7 @@ describe('BaseService', () => {
     );
 
     it('should throw a ServiceUnavailableException if the error code is not mongo duplicated error code', () => {
-      const service = new TestService({} as any);
+      const service = new TestService({} as unknown as Model<TestEntity>);
       const error = {
         code: 1,
         message: 'error',
@@ -533,7 +538,7 @@ describe('BaseService', () => {
     });
 
     it('should not throw an error if reThrow is false', () => {
-      const service = new TestService({} as any);
+      const service = new TestService({} as unknown as Model<TestEntity>);
       const error = {
         code: 1,
         message: 'error',
@@ -543,7 +548,7 @@ describe('BaseService', () => {
     });
 
     it('should throw original error if is instance of HttpException', () => {
-      const service = new TestService({} as any);
+      const service = new TestService({} as unknown as Model<TestEntity>);
       const error = new NotFoundException('Original not found error');
 
       expect(() => service['handleDuplicateKeyError'](error)).toThrow(error);
@@ -554,7 +559,7 @@ describe('BaseService', () => {
     it(
       'should throw a NotFoundException with the message "Document not found" if the error name is "CastError"',
       () => {
-        const service = new TestService({} as any);
+        const service = new TestService({} as unknown as Model<TestEntity>);
         const error = {
           name: 'CastError',
         };
@@ -566,7 +571,7 @@ describe('BaseService', () => {
     );
 
     it('should throw a BadRequestException with the error message if the error name is "ValidationError"', () => {
-      const service = new TestService({} as any);
+      const service = new TestService({} as unknown as Model<TestEntity>);
       const error = {
         name: 'ValidationError',
         errors: {
@@ -586,7 +591,7 @@ describe('BaseService', () => {
     it(
       'should throw a BadRequestException with the message "Invalid payload" if the error name is "ValidationError" and there is no error message',
       () => {
-        const service = new TestService({} as any);
+        const service = new TestService({} as unknown as Model<TestEntity>);
         const error = {
           name: 'ValidationError',
           errors: {},
@@ -599,7 +604,7 @@ describe('BaseService', () => {
     );
 
     it('should throw a ServiceUnavailableException if the error name is not "CastError" or "ValidationError"', () => {
-      const service = new TestService({} as any);
+      const service = new TestService({} as unknown as Model<TestEntity>);
       const error = {
         name: 'Error',
         message: 'error',
@@ -611,7 +616,7 @@ describe('BaseService', () => {
     });
 
     it('should not throw an error if reThrow is false', () => {
-      const service = new TestService({} as any);
+      const service = new TestService({} as unknown as Model<TestEntity>);
       const error = {
         name: 'Error',
         message: 'error',
@@ -621,7 +626,7 @@ describe('BaseService', () => {
     });
 
     it('should throw original error if is instance of HttpException', () => {
-      const service = new TestService({} as any);
+      const service = new TestService({} as unknown as Model<TestEntity>);
       const error = new NotFoundException('Original not found error');
 
       expect(() => service['handleMongoErrors'](error)).toThrow(error);
@@ -630,7 +635,7 @@ describe('BaseService', () => {
 
   describe('handleDocumentNotFound', () => {
     it('should throw a BadRequestException with the message "Document not found"', () => {
-      const service = new TestService({} as any);
+      const service = new TestService({} as unknown as Model<TestEntity>);
 
       expect(() => service['handleDocumentNotFound']()).toThrow(
         new BadRequestException('Document not found'),
@@ -640,9 +645,9 @@ describe('BaseService', () => {
 
   describe('verifyArguments', () => {
     it('should throw a BadRequestException if one argument is not defined', () => {
-      const service = new TestService({} as any);
+      const service = new TestService({} as unknown as Model<TestEntity>);
 
-      expect(() => service['verifyArguments']({} as any, 12, undefined, 'test')).toThrow(
+      expect(() => service['verifyArguments']({}, 12, undefined, 'test')).toThrow(
         new BadRequestException('Invalid or missing argument'),
       );
     });
@@ -650,7 +655,7 @@ describe('BaseService', () => {
 
   describe('addDocumentId', () => {
     it('should add the document id to the data and return the data', () => {
-      const service = new TestService({} as any);
+      const service = new TestService({} as unknown as Model<TestEntity>);
       const data = { _id: fakeId, name: 'toto' } as unknown as TestEntity;
 
       const result = service['addDocumentId'](data);

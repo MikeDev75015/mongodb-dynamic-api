@@ -6,6 +6,7 @@ import { BaseEntity } from '../../models';
 import { ReplaceOneGatewayConstructor } from './replace-one-gateway.interface';
 import { ReplaceOneGatewayMixin } from './replace-one-gateway.mixin';
 import { ReplaceOneService } from './replace-one-service.interface';
+import { EntityParam } from '../../dtos';
 
 describe('ReplaceOneGatewayMixin', () => {
   class TestEntity extends BaseEntity {
@@ -40,7 +41,7 @@ describe('ReplaceOneGatewayMixin', () => {
   });
 
   test.each([
-    ['id is not in the body', {} as any],
+    ['id is not in the body', {} as unknown as EntityParam & Partial<TestEntity>],
     ['id is only field in the body', { id: '1' }],
   ])('should throw an exception if %s', async (_, body) => {
     ReplaceOneGateway = ReplaceOneGatewayMixin(

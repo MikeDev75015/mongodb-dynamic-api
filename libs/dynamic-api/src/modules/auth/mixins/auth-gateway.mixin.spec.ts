@@ -367,7 +367,7 @@ describe('AuthGatewayMixin', () => {
         user: fakeUser,
         broadcast: { emit: jest.fn() },
         handshake: { query: {} },
-      } as any;
+      } as unknown as ExtendedSocket<TestEntity>;
 
       service.getAccount.mockResolvedValue(fakeAccount);
       service.updateAccount.mockResolvedValue(fakeAccount);

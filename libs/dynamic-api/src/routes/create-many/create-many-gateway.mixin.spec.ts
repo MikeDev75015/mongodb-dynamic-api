@@ -6,6 +6,7 @@ import { BaseEntity } from '../../models';
 import { CreateManyGatewayConstructor } from './create-many-gateway.interface';
 import { CreateManyGatewayMixin } from './create-many-gateway.mixin';
 import { CreateManyService } from './create-many-service.interface';
+import { CreateManyBody } from './create-many-controller.interface';
 
 describe('CreateManyGatewayMixin', () => {
   class TestEntity extends BaseEntity {
@@ -40,11 +41,11 @@ describe('CreateManyGatewayMixin', () => {
   });
 
   test.each([
-    ['body is empty', {} as any],
-    ['list is not in the body', { field1: 'test' } as any],
-    ['list is not an array', { list: '1' } as any],
-    ['list is empty', { list: [] } as any],
-    ['list is invalid', { list: [{ name: 'test invalid' }, true] } as any],
+    ['body is empty', {} as unknown as CreateManyBody<TestEntity>],
+    ['list is not in the body', { field1: 'test' } as unknown as CreateManyBody<TestEntity>],
+    ['list is not an array', { list: '1' } as unknown as CreateManyBody<TestEntity>],
+    ['list is empty', { list: [] } as unknown as CreateManyBody<TestEntity>],
+    ['list is invalid', { list: [{ name: 'test invalid' }, true] } as unknown as CreateManyBody<TestEntity>],
   ])('should throw an exception if %s', async (_, body) => {
     CreateManyGateway = CreateManyGatewayMixin(
       TestEntity,

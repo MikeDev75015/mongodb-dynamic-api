@@ -7,6 +7,7 @@ import { BaseEntity } from '../../models';
 import { UpdateManyGatewayConstructor } from './update-many-gateway.interface';
 import { UpdateManyGatewayMixin } from './update-many-gateway.mixin';
 import { UpdateManyService } from './update-many-service.interface';
+import { ManyEntityQuery } from '../../dtos';
 
 describe('UpdateManyGatewayMixin', () => {
   class TestEntity extends BaseEntity {
@@ -45,8 +46,8 @@ describe('UpdateManyGatewayMixin', () => {
 
   test.each([
     ['no entity field is in body', { ids: ['1', '2', '3'] }],
-    ['ids is not in the body', { field1: 'test' } as any],
-    ['ids is not an array', { ids: '1', field1: 'test' } as any],
+    ['ids is not in the body', { field1: 'test' } as unknown as ManyEntityQuery & Partial<TestEntity>],
+    ['ids is not an array', { ids: '1', field1: 'test' } as unknown as ManyEntityQuery & Partial<TestEntity>],
   ])('should throw an exception if %s', async (_, body) => {
     UpdateManyGateway = UpdateManyGatewayMixin(
       TestEntity,

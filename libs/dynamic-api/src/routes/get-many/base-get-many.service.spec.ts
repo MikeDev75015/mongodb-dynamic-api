@@ -22,7 +22,7 @@ describe('BaseGetManyService', () => {
           )),
         }
       )),
-    } as any;
+    } as unknown as Model<any>;
 
     return new TestService(modelMock);
   };
