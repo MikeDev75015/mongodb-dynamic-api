@@ -9,7 +9,7 @@ import { Strategy } from 'passport-local';
 import { ValidatorPipe } from '../../decorators';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { DynamicAPIWsExceptionFilter } from '../../filters';
-import { AuthAbilityPredicate, DynamicApiServiceBeforeSaveCallback, DynamicApiServiceCallback, DynamicAPIServiceProvider, GatewayOptions } from '../../interfaces';
+import { AuthAbilityPredicate, DynamicApiServiceCallback, DynamicAPIServiceProvider, GatewayOptions } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BcryptService } from '../../services';
 import { AuthControllerConstructor, AuthGatewayConstructor, AuthService, DynamicApiGetAccountOptions, DynamicApiLoginOptions, DynamicApiRegisterOptions, DynamicApiResetPasswordOptions, DynamicApiUpdateAccountOptions } from './interfaces';
@@ -63,11 +63,9 @@ function createAuthServiceProvider<Entity extends BaseEntity>(
   userEntity: Type<Entity>,
   { loginField, passwordField, additionalFields = [], callback: loginCallback }: DynamicApiLoginOptions<Entity>,
   getAccountCallback: DynamicApiServiceCallback<Entity> | undefined,
-  registerCallback: DynamicApiServiceCallback<Entity> | undefined,
+  register: DynamicApiRegisterOptions<Entity> | undefined,
   resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined,
-  updateAccountCallback: DynamicApiServiceCallback<Entity> | undefined,
-  beforeRegisterCallback: DynamicApiServiceBeforeSaveCallback<Entity> | undefined,
-  beforeUpdateAccountCallback: DynamicApiServiceBeforeSaveCallback<Entity> | undefined
+  updateAccount: DynamicApiUpdateAccountOptions<Entity> | undefined,
 ): DynamicAPIServiceProvider {
   class AuthService extends BaseAuthService<Entity> {
     protected entity = userEntity;
@@ -75,11 +73,11 @@ function createAuthServiceProvider<Entity extends BaseEntity>(
     protected loginField = loginField;
     protected passwordField = passwordField;
 
-    protected beforeRegisterCallback = beforeRegisterCallback;
-    protected registerCallback = registerCallback;
+    protected beforeRegisterCallback = register?.beforeSaveCallback;
+    protected registerCallback = register?.callback;
 
-    protected beforeUpdateAccountCallback = beforeUpdateAccountCallback;
-    protected updateAccountCallback = updateAccountCallback;
+    protected beforeUpdateAccountCallback = updateAccount?.beforeSaveCallback;
+    protected updateAccountCallback = updateAccount?.callback;
     protected loginCallback = loginCallback;
     protected getAccountCallback = getAccountCallback;
     protected resetPasswordOptions = resetPasswordOptions;
@@ -139,10 +137,9 @@ function createAuthGateway<Entity extends BaseEntity>(
   loginOptions: DynamicApiLoginOptions<Entity>,
   getAccountOptions: DynamicApiGetAccountOptions<Entity> | undefined,
   registerOptions: DynamicApiRegisterOptions<Entity> | undefined,
-  validationPipeOptions: ValidationPipeOptions | undefined,
   resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined,
   updateAccountOptions: DynamicApiUpdateAccountOptions<Entity> | undefined,
-  gatewayOptions: GatewayOptions,
+  { validationPipeOptions, ...gatewayOptions }: GatewayOptions & { validationPipeOptions?: ValidationPipeOptions },
 ): AuthGatewayConstructor<Entity> {
   @WebSocketGateway(gatewayOptions)
   @UseFilters(new DynamicAPIWsExceptionFilter())

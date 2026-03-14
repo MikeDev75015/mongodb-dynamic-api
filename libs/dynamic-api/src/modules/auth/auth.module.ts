@@ -52,11 +52,9 @@ export class AuthModule {
       userEntity,
       { loginField, passwordField, ...login },
       getAccount?.callback,
-      register.callback,
+      register,
       resetPasswordOptions,
-      updateAccount.callback,
-      register.beforeSaveCallback,
-      updateAccount.beforeSaveCallback,
+      updateAccount,
     );
     const LocalStrategyProvider = createLocalStrategyProvider(
       loginField, passwordField, login.abilityPredicate,
@@ -81,10 +79,9 @@ export class AuthModule {
           },
           getAccount,
           register,
-          validationPipeOptions,
           resetPasswordOptions,
           updateAccount,
-          gatewayOptions,
+          { ...gatewayOptions, validationPipeOptions },
         ),
       },
     ];

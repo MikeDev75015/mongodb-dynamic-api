@@ -150,8 +150,6 @@ describe('AuthHelper', () => {
         undefined,
         undefined,
         undefined,
-        undefined,
-        undefined,
       );
 
       expect(provider).toEqual({
@@ -176,11 +174,9 @@ describe('AuthHelper', () => {
             additionalFields: additionalRequestFields,
           },
           getAccountOptions.callback,
-          registerOptions.callback,
+          registerOptions,
           resetPasswordOptions,
-          updateAccountOptions.callback,
-          registerOptions.beforeSaveCallback,
-          updateAccountOptions.beforeSaveCallback,
+          updateAccountOptions,
         );
 
         AuthService = provider.useClass;
@@ -264,10 +260,9 @@ describe('AuthHelper', () => {
         { loginField, passwordField, additionalFields: additionalRequestFields },
         getAccountOptions,
         registerOptions,
-        validationPipeOptions,
         resetPasswordOptions,
         updateAccountOptions,
-        { namespace: 'auth' },
+        { namespace: 'auth', validationPipeOptions },
       );
 
       expect(Gateway).toEqual(expect.any(Function));
@@ -278,7 +273,6 @@ describe('AuthHelper', () => {
       Gateway = createAuthGateway(
         UserEntity,
         { loginField, passwordField },
-        undefined,
         undefined,
         undefined,
         undefined,
