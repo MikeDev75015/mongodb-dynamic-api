@@ -3,7 +3,7 @@ import { applyDecorators, UsePipes, ValidationPipe, ValidationPipeOptions } from
 function ValidatorPipe(validationPipeOptions?: ValidationPipeOptions): ClassDecorator {
   return validationPipeOptions ? applyDecorators(
     UsePipes(new ValidationPipe(validationPipeOptions)),
-  ) : (_: any) => undefined;
+  ) : (_: unknown) => undefined;
 }
 
 export { ValidatorPipe };

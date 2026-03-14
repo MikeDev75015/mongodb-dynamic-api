@@ -33,7 +33,7 @@ type DynamicAPISwaggerExtraConfig = {
     externalDocs?: ExternalDocumentationObject;
   }[];
   extensions?: {
-    [key: string]: any;
+    [key: string]: unknown;
   };
   security?: {
     [key: string]: SecuritySchemeObject;

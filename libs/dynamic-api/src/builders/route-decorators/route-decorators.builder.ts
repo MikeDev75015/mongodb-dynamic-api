@@ -44,7 +44,7 @@ class RouteDecoratorsBuilder<Entity extends BaseEntity> implements DynamicApiDec
   }
 
   private getRouteDecorators(paramKey?: string) {
-    let routeDecorators: any[] = [];
+    let routeDecorators: (ClassDecorator | MethodDecorator)[] = [];
     const isAuthEnabled = DynamicApiModule.state.get('isAuthEnabled');
 
     if (this.isPublic) {
