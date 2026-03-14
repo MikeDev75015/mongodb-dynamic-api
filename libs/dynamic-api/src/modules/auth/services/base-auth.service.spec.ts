@@ -2,6 +2,7 @@ import { BadRequestException, ForbiddenException, ServiceUnavailableException, U
 import { JwtService } from '@nestjs/jwt';
 import { plainToInstance } from 'class-transformer';
 import { Model, ObjectId, Schema } from 'mongoose';
+import { DynamicApiModule } from '../../../dynamic-api.module';
 import { BaseEntity } from '../../../models';
 import { BcryptService, DynamicApiGlobalStateService } from '../../../services';
 import { BaseAuthService } from './base-auth.service';
@@ -154,6 +155,156 @@ describe('BaseAuthService', () => {
     it('should have resetPassword method', () => {
       expect(service).toHaveProperty('resetPassword');
     });
+
+    it('should have refreshToken method', () => {
+      expect(service).toHaveProperty('refreshToken');
+    });
+  });
+
+  describe('refreshToken', () => {
+    let spyDynamicApiModuleStateGet: jest.SpyInstance;
+    let spyBcryptCompare: jest.SpyInstance;
+
+    const refreshToken = 'fake-refresh-token';
+    const fakeHash = 'fake-hashed-refresh';
+
+    beforeEach(() => {
+      spyJwtSign.mockReturnValue(accessToken);
+      spyBuildUserFields.mockReturnValue(fakeLoginBuilt);
+      spyDynamicApiModuleStateGet = jest.spyOn(DynamicApiModule.state, 'get');
+      spyBcryptCompare = jest.spyOn(bcryptService, 'comparePassword');
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should have logout method', () => {
+      expect(service).toHaveProperty('logout');
+    });
+
+    describe('without refreshTokenField', () => {
+      it('should return { accessToken, refreshToken } using default secret', async () => {
+        spyDynamicApiModuleStateGet.mockReturnValue(undefined);
+        spyJwtSign.mockReturnValueOnce(accessToken).mockReturnValueOnce(refreshToken);
+
+        const result = await service['refreshToken'](fakeUser);
+
+        expect(result).toEqual({ accessToken, refreshToken });
+        expect(spyBcryptCompare).not.toHaveBeenCalled();
+        expect(model.findOne).not.toHaveBeenCalled();
+      });
+
+      it('should sign refresh token with custom expiresIn when jwtRefreshTokenExpiresIn is defined', async () => {
+        spyDynamicApiModuleStateGet.mockImplementation((key?: string) => {
+          if (key === 'jwtRefreshTokenExpiresIn') return '7d';
+          return undefined;
+        });
+        spyJwtSign.mockReturnValueOnce(accessToken).mockReturnValueOnce(refreshToken);
+
+        const result = await service['refreshToken'](fakeUser);
+
+        expect(spyJwtSign).toHaveBeenNthCalledWith(2, { ...fakeLoginBuilt, jti: expect.any(String) }, { expiresIn: '7d' });
+        expect(result).toEqual({ accessToken, refreshToken });
+      });
+
+      it('should sign refresh token with custom refreshSecret when jwtRefreshSecret is defined', async () => {
+        spyDynamicApiModuleStateGet.mockImplementation((key?: string) => {
+          if (key === 'jwtRefreshSecret') return 'my-refresh-secret';
+          return undefined;
+        });
+        spyJwtSign.mockReturnValueOnce(accessToken).mockReturnValueOnce(refreshToken);
+
+        await service['refreshToken'](fakeUser);
+
+        expect(spyJwtSign).toHaveBeenNthCalledWith(2, { ...fakeLoginBuilt, jti: expect.any(String) }, { secret: 'my-refresh-secret' });
+      });
+    });
+
+    describe('with refreshTokenField', () => {
+      beforeEach(() => {
+        service['refreshTokenField'] = 'nickname' as keyof User;
+        spyDynamicApiModuleStateGet.mockReturnValue(undefined);
+        spyJwtSign.mockReturnValueOnce(accessToken).mockReturnValueOnce(refreshToken);
+      });
+
+      it('should throw UnauthorizedException if no stored hash in DB', async () => {
+        exec.mockResolvedValueOnce({ ...fakeUser, nickname: null });
+
+        await expect(service['refreshToken'](fakeUser, 'some-token')).rejects.toThrow(
+          new UnauthorizedException('Invalid refresh token'),
+        );
+      });
+
+      it('should throw UnauthorizedException if no rawToken provided', async () => {
+        exec.mockResolvedValueOnce({ ...fakeUser, nickname: fakeHash });
+
+        await expect(service['refreshToken'](fakeUser, undefined)).rejects.toThrow(
+          new UnauthorizedException('Invalid refresh token'),
+        );
+      });
+
+      it('should throw UnauthorizedException if hash comparison fails', async () => {
+        exec.mockResolvedValueOnce({ ...fakeUser, nickname: fakeHash });
+        jest.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'some-jti' });
+        spyBcryptCompare.mockResolvedValueOnce(false);
+
+        await expect(service['refreshToken'](fakeUser, 'wrong-token')).rejects.toThrow(
+          new UnauthorizedException('Invalid refresh token'),
+        );
+      });
+
+      it('should rotate refresh token and update hash in DB on valid token', async () => {
+        exec.mockResolvedValueOnce({ ...fakeUser, nickname: fakeHash });
+        spyBcryptCompare.mockResolvedValueOnce(true);
+        spyBcriptHashPassword.mockResolvedValueOnce('new-hashed-refresh');
+        jest.spyOn(jwtService, 'decode')
+          .mockReturnValueOnce({ jti: 'input-jti' })  // decode rawToken for validation
+          .mockReturnValueOnce({ jti: 'new-jti' });    // decode new refreshToken for storage
+
+        const result = await service['refreshToken'](fakeUser, 'valid-token');
+
+        expect(spyBcryptCompare).toHaveBeenCalledWith('input-jti', fakeHash);
+        expect(spyBcriptHashPassword).toHaveBeenCalledWith('new-jti');
+        expect(model.updateOne).toHaveBeenCalledWith(
+          { _id: fakeUser._id },
+          { $set: { nickname: 'new-hashed-refresh' } },
+        );
+        expect(result).toEqual({ accessToken, refreshToken });
+      });
+    });
+  });
+
+  describe('logout', () => {
+    let spyLoggerWarn: jest.SpyInstance;
+
+    beforeEach(() => {
+      spyLoggerWarn = jest.spyOn<any, any>(service['logger'], 'warn').mockImplementation(jest.fn());
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should log warning when refreshTokenField is not configured', async () => {
+      service['refreshTokenField'] = undefined;
+      await service['logout'](fakeUser);
+
+      expect(spyLoggerWarn).toHaveBeenCalledWith(expect.stringContaining('refreshTokenField'));
+      expect(model.updateOne).not.toHaveBeenCalled();
+    });
+
+    it('should clear refreshTokenField in DB when configured', async () => {
+      service['refreshTokenField'] = 'nickname' as keyof User;
+
+      await service['logout'](fakeUser);
+
+      expect(model.updateOne).toHaveBeenCalledWith(
+        { _id: fakeUser._id },
+        { $set: { nickname: null } },
+      );
+      expect(spyLoggerWarn).not.toHaveBeenCalled();
+    });
   });
 
   describe('validateUser', () => {
@@ -190,12 +341,15 @@ describe('BaseAuthService', () => {
   });
 
   describe('login', () => {
+    const fakeRefreshToken = 'fake-refresh-token';
+
     beforeEach(() => {
-      spyJwtSign.mockReturnValueOnce(accessToken);
+      spyJwtSign.mockReturnValueOnce(accessToken).mockReturnValueOnce(fakeRefreshToken);
       spyBuildUserFields.mockReturnValueOnce(fakeLoginBuilt);
+      jest.spyOn(DynamicApiModule.state, 'get').mockReturnValue(undefined);
     });
 
-    it('should return token and call loginCallback if defined and login is not call from member', async () => {
+    it('should return { accessToken, refreshToken } and call loginCallback if defined and login is not call from member', async () => {
       jest.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
       const result = await service['login'](fakeUser);
 
@@ -206,21 +360,48 @@ describe('BaseAuthService', () => {
         fakeUserInstance,
         service['callbackMethods'],
       );
-      expect(spyJwtSign).toHaveBeenCalledWith(fakeLoginBuilt);
-      expect(result).toEqual({ accessToken });
+      expect(spyJwtSign).toHaveBeenNthCalledWith(1, fakeLoginBuilt);
+      expect(result).toEqual({ accessToken, refreshToken: fakeRefreshToken });
     });
 
-    it('should return token and not call loginCallback if defined but login is call from member', async () => {
-      await service['login'](fakeUser, true);
+    it('should return { accessToken, refreshToken } and not call loginCallback if defined but login is called from member', async () => {
+      const result = await service['login'](fakeUser, true);
 
       expect(service['loginCallback']).not.toHaveBeenCalled();
+      expect(result).toEqual({ accessToken, refreshToken: fakeRefreshToken });
     });
 
-    it('should return token and not call loginCallback if not defined', async () => {
+    it('should return { accessToken, refreshToken } and not call loginCallback if not defined', async () => {
       service['loginCallback'] = undefined;
-      await service['login'](fakeUser);
+      const result = await service['login'](fakeUser);
 
       expect(fakeLoginCallback).not.toHaveBeenCalled();
+      expect(result).toEqual({ accessToken, refreshToken: fakeRefreshToken });
+    });
+
+    it('should store hashed refresh token in DB when refreshTokenField is configured', async () => {
+      jest.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
+      jest.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'fake-jti' });
+      service['refreshTokenField'] = 'nickname' as keyof User;
+      spyBcriptHashPassword.mockResolvedValueOnce('hashed-refresh');
+
+      await service['login'](fakeUser);
+
+      expect(spyBcriptHashPassword).toHaveBeenCalledWith('fake-jti');
+      expect(model.updateOne).toHaveBeenCalledWith(
+        { _id: fakeUser._id },
+        { $set: { nickname: 'hashed-refresh' } },
+      );
+      service['refreshTokenField'] = undefined;
+    });
+
+    it('should not store refresh token when refreshTokenField is not configured', async () => {
+      jest.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
+      service['refreshTokenField'] = undefined;
+
+      await service['login'](fakeUser);
+
+      expect(model.updateOne).not.toHaveBeenCalled();
     });
   });
 
@@ -236,7 +417,7 @@ describe('BaseAuthService', () => {
 
     beforeEach(() => {
       spyCheckFieldsValidity = jest.spyOn<any, any>(service, 'checkFieldsValidity');
-      spyLogin = jest.spyOn<any, any>(service, 'login').mockReturnValueOnce({ accessToken });
+      spyLogin = jest.spyOn<any, any>(service, 'login').mockReturnValueOnce({ accessToken, refreshToken: 'fake-refresh' });
       exec.mockResolvedValueOnce(fakeUser);
       spyHandleDuplicateKeyError = jest.spyOn<any, any>(service, 'handleDuplicateKeyError');
     });
@@ -256,7 +437,7 @@ describe('BaseAuthService', () => {
       expect(fakeRegisterCallback).toHaveBeenCalledWith(fakeUserInstance, service['callbackMethods']);
       expect(fakeBeforeRegisterCallback).not.toHaveBeenCalled();
       expect(spyLogin).toHaveBeenCalledWith(fakeUser, true);
-      expect(result).toEqual({ accessToken });
+      expect(result).toEqual({ accessToken, refreshToken: 'fake-refresh' });
     });
 
     it('should return token and not call registerCallback if it is not defined', async () => {

@@ -75,6 +75,7 @@ describe('AuthGatewayMixin', () => {
     expect(gateway).toHaveProperty('updateAccount', expect.any(Function));
     expect(gateway).toHaveProperty('resetPassword', expect.any(Function));
     expect(gateway).toHaveProperty('changePassword', expect.any(Function));
+    expect(gateway).toHaveProperty('refreshToken', expect.any(Function));
   });
 
   it('should create gateway with custom options', () => {
@@ -95,6 +96,7 @@ describe('AuthGatewayMixin', () => {
     expect(gateway).toHaveProperty('updateAccount', expect.any(Function));
     expect(gateway).toHaveProperty('resetPassword', expect.any(Function));
     expect(gateway).toHaveProperty('changePassword', expect.any(Function));
+    expect(gateway).toHaveProperty('refreshToken', expect.any(Function));
   });
 
   describe('getAccount', () => {
@@ -356,6 +358,39 @@ describe('AuthGatewayMixin', () => {
       .toThrow(new WsException('This feature is not enabled'));
 
       expect(service.changePassword).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('refreshToken', () => {
+    let gateway: AuthGateway<TestEntity>;
+    let socket: ExtendedSocket<TestEntity>;
+
+    beforeEach(() => {
+      service.refreshToken.mockResolvedValue(fakeLoginResponse);
+      socket = { handshake: { query: {} } } as unknown as ExtendedSocket<TestEntity>;
+    });
+
+    it('should return new token if user is logged', async () => {
+      const AuthGateway = AuthGatewayMixin(TestEntity, login);
+      gateway = new AuthGateway(service, jwtService);
+      socket.user = fakeUser;
+      (socket.handshake.query as any).refreshToken = 'fake-raw-refresh';
+
+      const result = await gateway.refreshToken(socket);
+
+      expect(result).toEqual({ event: 'auth-refresh-token', data: fakeLoginResponse });
+      expect(service.refreshToken).toHaveBeenCalledTimes(1);
+      expect(service.refreshToken).toHaveBeenCalledWith(fakeUser, 'fake-raw-refresh');
+    });
+
+    it('should return undefined data if user is not logged', async () => {
+      const AuthGateway = AuthGatewayMixin(TestEntity, login);
+      gateway = new AuthGateway(service, jwtService);
+
+      const result = await gateway.refreshToken(socket);
+
+      expect(result).toEqual({ event: 'auth-refresh-token', data: undefined });
+      expect(service.refreshToken).not.toHaveBeenCalled();
     });
   });
 

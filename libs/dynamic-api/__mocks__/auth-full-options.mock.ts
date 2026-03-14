@@ -14,7 +14,7 @@ export const getFullAuthOptionsMock = <Entity extends BaseEntity>(
   extraControllers: ModuleMetadata['controllers'] = [],
 ): DynamicApiAuthOptions<Entity> => ({
   userEntity,
-  jwt: { secret: 'secret', expiresIn: '1h' },
+  jwt: { secret: 'secret', expiresIn: '1h', refreshSecret: 'refresh-secret', refreshTokenExpiresIn: '7d' },
   login: {
     loginField,
     passwordField,
@@ -51,6 +51,11 @@ export const getFullAuthOptionsMock = <Entity extends BaseEntity>(
     emailField: 'email',
     expirationInMinutes: 30,
     changePasswordAbilityPredicate: jest.fn(),
+  },
+  refreshToken: {
+    useInterceptors: [],
+    refreshTokenField: 'refreshToken' as keyof Entity,
+    useCookie: false,
   },
   validationPipeOptions: { whitelist: true },
   webSocket: { namespace: 'namespace' },
