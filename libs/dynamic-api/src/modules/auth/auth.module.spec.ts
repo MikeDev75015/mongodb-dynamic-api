@@ -196,11 +196,9 @@ describe('AuthModule', () => {
             additionalFields: [],
           },
           undefined,
+          { additionalFields: [], protected: false },
           undefined,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
+          { additionalFieldsToExclude: [] },
         );
 
         expect(spyCreateLocalStrategyProvider).toHaveBeenCalledTimes(1);
@@ -265,11 +263,9 @@ describe('AuthModule', () => {
           UserEntity,
           fullOptions.login,
           fullOptions.getAccount.callback,
-          fullOptions.register.callback,
+          fullOptions.register,
           fullOptions.resetPassword,
-          fullOptions.updateAccount.callback,
-          fullOptions.register.beforeSaveCallback,
-          fullOptions.updateAccount.beforeSaveCallback,
+          fullOptions.updateAccount,
         );
 
         expect(spyCreateLocalStrategyProvider).toHaveBeenCalledTimes(1);
@@ -285,10 +281,9 @@ describe('AuthModule', () => {
           fullOptions.login,
           fullOptions.getAccount,
           fullOptions.register,
-          fullOptions.validationPipeOptions,
           fullOptions.resetPassword,
           fullOptions.updateAccount,
-          fakeGatewayOptions,
+          { ...fakeGatewayOptions, validationPipeOptions: fullOptions.validationPipeOptions },
         );
       });
 
