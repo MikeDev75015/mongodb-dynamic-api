@@ -23,6 +23,14 @@ type SocketOptions = {
   connectTimeoutMs?: number;
 };
 
+type HttpBroadcastOptions = {
+  authToken?: string;
+  broadcastEvent: string;
+  namespace?: string;
+  timeoutMs?: number;
+  connectTimeoutMs?: number;
+};
+
 const DEFAULT_SOCKET_TIMEOUT_MS = 5000;
 const DEFAULT_SOCKET_CONNECT_TIMEOUT_MS = 5000;
 
@@ -196,6 +204,75 @@ export const server = {
       'User-Agent': 'Chrome/51.0.2704.103 Safari/537.36',
       ...headers,
     }) as unknown as Promise<Response>;
+  },
+  httpWithBroadcast: async <Body extends object, Response = any>(
+    method: 'post' | 'patch' | 'put' | 'delete',
+    path: string,
+    body: Body,
+    { authToken, broadcastEvent, namespace, timeoutMs = DEFAULT_SOCKET_TIMEOUT_MS, connectTimeoutMs = DEFAULT_SOCKET_CONNECT_TIMEOUT_MS }: HttpBroadcastOptions,
+  ): Promise<{ httpResponse: Response; broadcastData: any }> => {
+    verifyApp();
+
+    return new Promise((resolve, reject) => {
+      const baseUrl = getAppBaseUrl();
+      const receiver = io(baseUrl, { path: namespace });
+      let settled = false;
+      let httpResponseReceived = false;
+      let broadcastReceived = false;
+      let httpResponseValue: Response;
+      let broadcastValue: any;
+      let timeoutRef: NodeJS.Timeout | undefined;
+
+      const cleanup = () => {
+        receiver.removeAllListeners();
+        receiver.disconnect();
+        receiver.close();
+      };
+
+      const finalize = (result?: { httpResponse: Response; broadcastData: any }, error?: Error) => {
+        if (settled) return;
+        settled = true;
+        if (timeoutRef) clearTimeout(timeoutRef);
+        cleanup();
+        if (error) { reject(error); return; }
+        resolve(result!);
+      };
+
+      const tryFinalize = () => {
+        if (httpResponseReceived && broadcastReceived) {
+          finalize({ httpResponse: httpResponseValue, broadcastData: broadcastValue });
+        }
+      };
+
+      receiver.on(broadcastEvent, (data) => {
+        handleSocketBroadcast({ event: broadcastEvent, data });
+        broadcastValue = data;
+        broadcastReceived = true;
+        tryFinalize();
+      });
+
+      timeoutRef = setTimeout(() => {
+        finalize(undefined, new Error(
+          `httpWithBroadcast timeout after ${timeoutMs}ms (httpReceived=${httpResponseReceived}, broadcastReceived=${broadcastReceived}, event=${broadcastEvent})`,
+        ));
+      }, timeoutMs);
+
+      waitForSocketConnect(receiver, 'Receiver', connectTimeoutMs)
+        .then(() => {
+          const req = verifyApp()[method](path).send(body).set({
+            ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+            'Content-Type': 'application/json',
+            'User-Agent': 'Chrome/51.0.2704.103 Safari/537.36',
+          });
+          return req;
+        })
+        .then((response: any) => {
+          httpResponseValue = response as Response;
+          httpResponseReceived = true;
+          tryFinalize();
+        })
+        .catch((error) => finalize(undefined, toError(error, 'HTTP request failed')));
+    });
   },
   emit: async <Data, Response = any>(event: string, data?: Data, { accessToken, namespace, broadcastEvent, expectBroadcast = false, timeoutMs = DEFAULT_SOCKET_TIMEOUT_MS, connectTimeoutMs = DEFAULT_SOCKET_CONNECT_TIMEOUT_MS }: SocketOptions = {}): Promise<Response> => {
     verifyApp();
