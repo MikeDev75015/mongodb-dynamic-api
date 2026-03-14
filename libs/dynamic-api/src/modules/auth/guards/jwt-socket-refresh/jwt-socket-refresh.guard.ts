@@ -42,7 +42,7 @@ export class JwtSocketRefreshGuard implements CanActivate {
     const jwtService = new JwtService({ secret });
 
     try {
-      const { iat, exp, ...user } = await jwtService.verifyAsync(refreshToken, {
+      const { iat, exp, jti, ...user } = await jwtService.verifyAsync(refreshToken, {
         secret,
         ignoreExpiration: false,
       });
