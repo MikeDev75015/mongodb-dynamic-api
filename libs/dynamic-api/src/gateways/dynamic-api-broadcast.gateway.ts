@@ -8,11 +8,11 @@ function createDynamicApiBroadcastGateway(options: GatewayOptions = {}) {
   @WebSocketGateway(options)
   class DynamicApiBroadcastGateway implements OnGatewayInit {
     @WebSocketServer()
-    private readonly server: Server;
+    readonly server: Server;
 
     constructor(
       @Inject(DynamicApiBroadcastService)
-      private readonly broadcastService: DynamicApiBroadcastService,
+      readonly broadcastService: DynamicApiBroadcastService,
     ) {}
 
     afterInit(server: Server) {
