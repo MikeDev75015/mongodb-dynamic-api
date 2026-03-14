@@ -1,32 +1,50 @@
 import { Model } from 'mongoose';
+import {
+  DynamicApiCallbackMethods,
+  DynamicApiServiceBeforeSaveCallback,
+  DynamicApiServiceCallback,
+} from '../../interfaces';
+import { BaseEntity } from '../../models';
 import { BaseCreateOneService } from './base-create-one.service';
 
-describe('BaseCreateOneService', () => {
-  let service: any;
-  let modelMock: Model<any>;
+class TestEntity extends BaseEntity {
+  name: string;
+}
 
-  const toCreate = { name: 'test' };
+class TestService extends BaseCreateOneService<TestEntity> {
+  constructor(protected readonly _: Model<TestEntity>) {
+    super(_);
+  }
+}
+
+type InternalService = {
+  callback: DynamicApiServiceCallback<TestEntity> | undefined;
+  callbackMethods: DynamicApiCallbackMethods;
+  beforeSaveCallback: DynamicApiServiceBeforeSaveCallback<TestEntity> | undefined;
+};
+
+const internal = (svc: TestService) => svc as unknown as InternalService;
+
+describe('BaseCreateOneService', () => {
+  let service: TestService;
+  let modelMock: Model<TestEntity>;
+
+  const toCreate = { name: 'test' } as Partial<TestEntity>;
   const created = { _id: 'ObjectId', __v: 1, name: 'test' };
 
-  const initService = (document?: any) => {
+  const initService = (document?: object) => {
     modelMock = {
       create: jest.fn().mockResolvedValue(created),
       findOne: jest.fn().mockReturnThis(),
       lean: jest.fn().mockReturnThis(),
       exec: jest.fn().mockResolvedValue(document),
-    } as unknown as Model<any>;
-
-    class TestService extends BaseCreateOneService<any> {
-      constructor(protected readonly _: Model<any>) {
-        super(_);
-      }
-    }
+    } as unknown as Model<TestEntity>;
 
     return new TestService(modelMock);
-  }
+  };
 
   it('should have createOne method', () => {
-    const service = initService();
+    service = initService();
     expect(service).toHaveProperty('createOne');
   });
 
@@ -45,23 +63,18 @@ describe('BaseCreateOneService', () => {
     it('should call callback if it is defined', async () => {
       service = initService(created);
       const callback = jest.fn(() => Promise.resolve());
-      service.callback = callback;
+      internal(service).callback = callback;
       await service.createOne(toCreate);
 
       expect(callback).toHaveBeenCalledTimes(1);
-      expect(callback).toHaveBeenCalledWith({ ...created, id: created._id }, service.callbackMethods);
+      expect(callback).toHaveBeenCalledWith({ ...created, id: created._id }, internal(service).callbackMethods);
     });
 
     it('should throw an error if the document already exists', async () => {
       service = initService();
-      (modelMock.create as jest.Mock).mockRejectedValue({
-        code: 11000,
-        keyValue: { name: 'test' },
-      });
+      (modelMock.create as jest.Mock).mockRejectedValue({ code: 11000, keyValue: { name: 'test' } });
 
-      await expect(service.createOne(toCreate)).rejects.toThrow(
-        "name 'test' is already used",
-      );
+      await expect(service.createOne(toCreate)).rejects.toThrow("name 'test' is already used");
     });
 
     it('should throw an error if the create query fails', async () => {
@@ -74,11 +87,15 @@ describe('BaseCreateOneService', () => {
     it('should call beforeSaveCallback if it is defined', async () => {
       service = initService(created);
       const beforeSaveCallback = jest.fn(() => Promise.resolve(toCreate));
-      service.beforeSaveCallback = beforeSaveCallback;
+      internal(service).beforeSaveCallback = beforeSaveCallback;
       await service.createOne(toCreate);
 
       expect(beforeSaveCallback).toHaveBeenCalledTimes(1);
-      expect(beforeSaveCallback).toHaveBeenCalledWith(undefined, { toCreate }, service.callbackMethods);
+      expect(beforeSaveCallback).toHaveBeenCalledWith(
+        undefined,
+        { toCreate },
+        internal(service).callbackMethods,
+      );
     });
   });
 });

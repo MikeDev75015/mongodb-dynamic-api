@@ -1,29 +1,38 @@
 import { BadRequestException } from '@nestjs/common';
 import { Model } from 'mongoose';
+import { DynamicApiCallbackMethods, DynamicApiServiceCallback } from '../../interfaces';
+import { BaseEntity } from '../../models';
 import { BaseGetOneService } from './base-get-one.service';
 
-class TestService extends BaseGetOneService<any> {
-  constructor(protected readonly _: Model<any>) {
+class TestEntity extends BaseEntity {
+  name: string;
+}
+
+class TestService extends BaseGetOneService<TestEntity> {
+  constructor(protected readonly _: Model<TestEntity>) {
     super(_);
   }
 }
 
+type InternalService = {
+  callback: DynamicApiServiceCallback<TestEntity> | undefined;
+  callbackMethods: DynamicApiCallbackMethods;
+};
+
+const internal = (svc: TestService) => svc as unknown as InternalService;
+
 describe('BaseGetOneService', () => {
-  let service: any;
-  let modelMock: Model<any>;
+  let service: TestService;
+  let modelMock: Model<TestEntity>;
 
   const response = { _id: 'ObjectId', __v: 1, name: 'test' };
 
   const initService = (exec = jest.fn()) => {
     modelMock = {
-      findOne: jest.fn(() => (
-        {
-          lean: jest.fn(() => (
-            { exec }
-          )),
-        }
-      )),
-    } as unknown as Model<any>;
+      findOne: jest.fn(() => ({
+        lean: jest.fn(() => ({ exec })),
+      })),
+    } as unknown as Model<TestEntity>;
 
     return new TestService(modelMock);
   };
@@ -54,10 +63,7 @@ describe('BaseGetOneService', () => {
       jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
       await service.getOne('ObjectId');
 
-      expect(modelMock.findOne).toHaveBeenCalledWith({
-        _id: 'ObjectId',
-        isDeleted: false,
-      });
+      expect(modelMock.findOne).toHaveBeenCalledWith({ _id: 'ObjectId', isDeleted: false });
     });
 
     it('should call callback if it is defined', async () => {
@@ -65,10 +71,10 @@ describe('BaseGetOneService', () => {
       service = initService(exec);
       jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       const callback = jest.fn(() => Promise.resolve());
-      service.callback = callback;
+      internal(service).callback = callback;
       await service.getOne('ObjectId');
 
-      expect(callback).toHaveBeenCalledWith({ ...response, id: response._id }, service.callbackMethods);
+      expect(callback).toHaveBeenCalledWith({ ...response, id: response._id }, internal(service).callbackMethods);
     });
 
     it('should throw error if document not found', async () => {

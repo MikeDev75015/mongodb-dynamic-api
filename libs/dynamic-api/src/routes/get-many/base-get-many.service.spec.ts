@@ -1,28 +1,37 @@
 import { Model } from 'mongoose';
+import { DynamicApiCallbackMethods, DynamicApiServiceCallback } from '../../interfaces';
+import { BaseEntity } from '../../models';
 import { BaseGetManyService } from './base-get-many.service';
 
-class TestService extends BaseGetManyService<any> {
-  constructor(protected readonly _: Model<any>) {
+class TestEntity extends BaseEntity {
+  name: string;
+}
+
+class TestService extends BaseGetManyService<TestEntity> {
+  constructor(protected readonly _: Model<TestEntity>) {
     super(_);
   }
 }
 
+type InternalService = {
+  callback: DynamicApiServiceCallback<TestEntity> | undefined;
+  callbackMethods: DynamicApiCallbackMethods;
+};
+
+const internal = (svc: TestService) => svc as unknown as InternalService;
+
 describe('BaseGetManyService', () => {
-  let service: any;
-  let modelMock: Model<any>;
+  let service: TestService;
+  let modelMock: Model<TestEntity>;
 
   const response = [{ _id: 'ObjectId', __v: 1, name: 'test' }];
 
   const initService = (exec = jest.fn()) => {
     modelMock = {
-      find: jest.fn(() => (
-        {
-          lean: jest.fn(() => (
-            { exec }
-          )),
-        }
-      )),
-    } as unknown as Model<any>;
+      find: jest.fn(() => ({
+        lean: jest.fn(() => ({ exec })),
+      })),
+    } as unknown as Model<TestEntity>;
 
     return new TestService(modelMock);
   };
@@ -41,10 +50,7 @@ describe('BaseGetManyService', () => {
       const { _id, __v, ...documentWithoutIdAndVersion } = response[0];
 
       await expect(service.getMany()).resolves.toStrictEqual([
-        {
-          ...documentWithoutIdAndVersion,
-          id: response[0]._id,
-        },
+        { ...documentWithoutIdAndVersion, id: response[0]._id },
       ]);
       expect(modelMock.find).toHaveBeenCalledWith({});
     });
@@ -62,10 +68,10 @@ describe('BaseGetManyService', () => {
       service = initService(exec);
       jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       const callback = jest.fn(() => Promise.resolve());
-      service.callback = callback;
+      internal(service).callback = callback;
       await service.getMany();
 
-      expect(callback).toHaveBeenCalledWith({ ...response[0], id: response[0]._id }, service.callbackMethods);
+      expect(callback).toHaveBeenCalledWith({ ...response[0], id: response[0]._id }, internal(service).callbackMethods);
     });
   });
 });
