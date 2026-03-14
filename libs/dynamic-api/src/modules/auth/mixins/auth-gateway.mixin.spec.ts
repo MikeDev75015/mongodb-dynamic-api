@@ -358,4 +358,175 @@ describe('AuthGatewayMixin', () => {
       expect(service.changePassword).not.toHaveBeenCalled();
     });
   });
+
+  describe('broadcast', () => {
+    let socket: ExtendedSocket<TestEntity>;
+
+    beforeEach(() => {
+      socket = {
+        user: fakeUser,
+        broadcast: { emit: jest.fn() },
+        handshake: { query: {} },
+      } as any;
+
+      service.getAccount.mockResolvedValue(fakeAccount);
+      service.updateAccount.mockResolvedValue(fakeAccount);
+      service.login.mockResolvedValue(fakeLoginResponse);
+      service.register.mockResolvedValue(fakeLoginResponse);
+      service.validateUser.mockResolvedValue(fakeUser);
+      jwtService.decode.mockReturnValue({ id: fakeUser.id, loginField: fakeUser.loginField, iat: 1, exp: 9999 });
+    });
+
+    afterEach(() => jest.clearAllMocks());
+
+    describe('login broadcast', () => {
+      it('should broadcast user fields on login with broadcast enabled', async () => {
+        const AuthGateway = AuthGatewayMixin(
+          TestEntity,
+          { ...login, abilityPredicate: undefined, broadcast: { enabled: true, fields: ['id', 'loginField'] } },
+        );
+        const gateway = new AuthGateway(service, jwtService);
+
+        await gateway.login(socket, { loginField: fakeUser.loginField, passwordField: fakeUser.passwordField });
+
+        expect(socket.broadcast.emit).toHaveBeenCalledWith(
+          'auth-login-broadcast',
+          [{ id: fakeUser.id, loginField: fakeUser.loginField }],
+        );
+      });
+
+      it('should broadcast all user fields when no fields specified', async () => {
+        const AuthGateway = AuthGatewayMixin(
+          TestEntity,
+          { ...login, abilityPredicate: undefined, broadcast: { enabled: true } },
+        );
+        const gateway = new AuthGateway(service, jwtService);
+
+        await gateway.login(socket, { loginField: fakeUser.loginField, passwordField: fakeUser.passwordField });
+
+        expect(socket.broadcast.emit).toHaveBeenCalledWith(
+          'auth-login-broadcast',
+          [expect.objectContaining({ id: fakeUser.id, loginField: fakeUser.loginField })],
+        );
+      });
+
+      it('should use custom eventName for login broadcast', async () => {
+        const AuthGateway = AuthGatewayMixin(
+          TestEntity,
+          { ...login, abilityPredicate: undefined, broadcast: { enabled: true, eventName: 'custom-event', fields: ['id'] } },
+        );
+        const gateway = new AuthGateway(service, jwtService);
+
+        await gateway.login(socket, { loginField: fakeUser.loginField, passwordField: fakeUser.passwordField });
+
+        expect(socket.broadcast.emit).toHaveBeenCalledWith('custom-event', [{ id: fakeUser.id }]);
+      });
+
+      it('should not broadcast on login when broadcast config is not set', async () => {
+        const AuthGateway = AuthGatewayMixin(TestEntity, { ...login, abilityPredicate: undefined, broadcast: undefined });
+        const gateway = new AuthGateway(service, jwtService);
+
+        await gateway.login(socket, { loginField: fakeUser.loginField, passwordField: fakeUser.passwordField });
+
+        expect(socket.broadcast.emit).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('register broadcast', () => {
+      it('should decode JWT and broadcast user fields on register', async () => {
+        const AuthGateway = AuthGatewayMixin(
+          TestEntity,
+          login,
+          { ...register, broadcast: { enabled: true, fields: ['id', 'loginField'] } },
+        );
+        const gateway = new AuthGateway(service, jwtService);
+
+        await gateway.register(socket, { loginField: fakeUser.loginField, passwordField: fakeUser.passwordField });
+
+        expect(jwtService.decode).toHaveBeenCalledWith(accessToken);
+        expect(socket.broadcast.emit).toHaveBeenCalledWith(
+          'auth-register-broadcast',
+          [{ id: fakeUser.id, loginField: fakeUser.loginField }],
+        );
+      });
+
+      it('should not broadcast on register when broadcast config is not set', async () => {
+        const AuthGateway = AuthGatewayMixin(
+          TestEntity,
+          login,
+          { ...register, broadcast: undefined },
+        );
+        const gateway = new AuthGateway(service, jwtService);
+
+        await gateway.register(socket, { loginField: fakeUser.loginField, passwordField: fakeUser.passwordField });
+
+        expect(socket.broadcast.emit).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('getAccount broadcast', () => {
+      it('should broadcast account with specified fields', async () => {
+        const AuthGateway = AuthGatewayMixin(
+          TestEntity,
+          login,
+          register,
+          undefined,
+          undefined,
+          { broadcast: { enabled: true, fields: ['id'] } },
+        );
+        const gateway = new AuthGateway(service, jwtService);
+
+        await gateway.getAccount(socket);
+
+        expect(socket.broadcast.emit).toHaveBeenCalledWith(
+          'auth-get-account-broadcast',
+          [{ id: fakeUser.id }],
+        );
+      });
+
+      it('should not broadcast getAccount when broadcast config is not set', async () => {
+        const AuthGateway = AuthGatewayMixin(TestEntity, login);
+        const gateway = new AuthGateway(service, jwtService);
+
+        await gateway.getAccount(socket);
+
+        expect(socket.broadcast.emit).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('updateAccount broadcast', () => {
+      it('should broadcast updated account with specified fields', async () => {
+        const AuthGateway = AuthGatewayMixin(
+          TestEntity,
+          login,
+          register,
+          undefined,
+          { ...updateAccount, broadcast: { enabled: true, fields: ['id'] } },
+        );
+        const gateway = new AuthGateway(service, jwtService);
+
+        await gateway.updateAccount(socket, {});
+
+        expect(socket.broadcast.emit).toHaveBeenCalledWith(
+          'auth-update-account-broadcast',
+          [{ id: fakeUser.id }],
+        );
+      });
+
+      it('should not broadcast updateAccount when broadcast config is not set', async () => {
+        const AuthGateway = AuthGatewayMixin(
+          TestEntity,
+          login,
+          register,
+          undefined,
+          { ...updateAccount, broadcast: undefined },
+        );
+        const gateway = new AuthGateway(service, jwtService);
+
+        await gateway.updateAccount(socket, {});
+
+        expect(socket.broadcast.emit).not.toHaveBeenCalled();
+      });
+    });
+  });
 });

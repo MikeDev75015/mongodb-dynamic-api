@@ -1,5 +1,7 @@
 import { createMock } from '@golevelup/ts-jest';
+import { JwtService } from '@nestjs/jwt';
 import { BaseEntity } from '../../../models';
+import { DynamicApiBroadcastService } from '../../../services';
 import { AuthService } from '../interfaces';
 import { AuthControllerMixin } from './auth-controller.mixin';
 
@@ -17,6 +19,8 @@ describe('AuthControllerMixin', () => {
   }
 
   const service = createMock<AuthService<TestEntity>>();
+  const broadcastService = createMock<DynamicApiBroadcastService>();
+  const jwtService = createMock<JwtService>();
 
   it('should throw error when invalid entity is provided', () => {
     expect(() => AuthControllerMixin<TestEntity>(
@@ -194,4 +198,202 @@ describe('AuthControllerMixin', () => {
       expect(service.changePassword).toHaveBeenCalledWith('fake-token', 'fake-password');
     });
   });
+
+  describe('broadcast', () => {
+    const fakeUser: TestEntity = Object.assign(new TestEntity(), {
+      id: 'user-id',
+      loginField: 'test@test.co',
+      passwordField: 'hashed',
+    });
+    const fakeAccount = { id: 'user-id', loginField: 'test@test.co' } as unknown as TestEntity;
+    const fakeAccessToken = 'fake.jwt.token';
+
+    beforeEach(() => {
+      service.login.mockResolvedValue({ accessToken: fakeAccessToken });
+      service.register.mockResolvedValue({ accessToken: fakeAccessToken });
+      service.getAccount.mockResolvedValue(fakeAccount);
+      service.updateAccount.mockResolvedValue(fakeAccount);
+      jwtService.decode.mockReturnValue({ id: 'user-id', loginField: 'test@test.co', iat: 1, exp: 9999 });
+    });
+
+    afterEach(() => {
+      jest.clearAllMocks();
+    });
+
+    describe('login broadcast', () => {
+      it('should call broadcastFromHttp with all user fields when broadcast enabled and no fields specified', async () => {
+        const AuthController = AuthControllerMixin(
+          TestEntity,
+          { loginField: 'loginField', passwordField: 'passwordField', broadcast: { enabled: true } },
+        );
+        const controller = new AuthController(service, broadcastService, jwtService);
+
+        await controller.login({ user: fakeUser }, {});
+
+        expect(broadcastService.broadcastFromHttp).toHaveBeenCalledWith(
+          'auth-login-broadcast',
+          [{ id: 'user-id', loginField: 'test@test.co', passwordField: 'hashed' }],
+          expect.objectContaining({ enabled: true }),
+        );
+      });
+
+      it('should broadcast only specified fields', async () => {
+        const AuthController = AuthControllerMixin(
+          TestEntity,
+          { loginField: 'loginField', passwordField: 'passwordField', broadcast: { enabled: true, fields: ['id', 'loginField'] } },
+        );
+        const controller = new AuthController(service, broadcastService, jwtService);
+
+        await controller.login({ user: fakeUser }, {});
+
+        expect(broadcastService.broadcastFromHttp).toHaveBeenCalledWith(
+          'auth-login-broadcast',
+          [{ id: 'user-id', loginField: 'test@test.co' }],
+          expect.objectContaining({ enabled: true }),
+        );
+      });
+
+      it('should use custom eventName when provided', async () => {
+        const AuthController = AuthControllerMixin(
+          TestEntity,
+          { loginField: 'loginField', passwordField: 'passwordField', broadcast: { enabled: true, eventName: 'custom-login' } },
+        );
+        const controller = new AuthController(service, broadcastService, jwtService);
+
+        await controller.login({ user: fakeUser }, {});
+
+        expect(broadcastService.broadcastFromHttp).toHaveBeenCalledWith(
+          'custom-login',
+          expect.any(Array),
+          expect.any(Object),
+        );
+      });
+
+      it('should not broadcast when broadcast config is not set', async () => {
+        const AuthController = AuthControllerMixin(
+          TestEntity,
+          { loginField: 'loginField', passwordField: 'passwordField' },
+        );
+        const controller = new AuthController(service, broadcastService, jwtService);
+
+        await controller.login({ user: fakeUser }, {});
+
+        expect(broadcastService.broadcastFromHttp).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('register broadcast', () => {
+      it('should decode JWT and broadcast user fields when broadcast enabled', async () => {
+        const AuthController = AuthControllerMixin(
+          TestEntity,
+          { loginField: 'loginField', passwordField: 'passwordField' },
+          { broadcast: { enabled: true, fields: ['id', 'loginField'] } },
+        );
+        const controller = new AuthController(service, broadcastService, jwtService);
+
+        await controller.register({});
+
+        expect(jwtService.decode).toHaveBeenCalledWith(fakeAccessToken);
+        expect(broadcastService.broadcastFromHttp).toHaveBeenCalledWith(
+          'auth-register-broadcast',
+          [{ id: 'user-id', loginField: 'test@test.co' }],
+          expect.objectContaining({ enabled: true }),
+        );
+      });
+
+      it('should broadcast all decoded JWT fields when no fields specified', async () => {
+        const AuthController = AuthControllerMixin(
+          TestEntity,
+          { loginField: 'loginField', passwordField: 'passwordField' },
+          { broadcast: { enabled: true } },
+        );
+        const controller = new AuthController(service, broadcastService, jwtService);
+
+        await controller.register({});
+
+        expect(broadcastService.broadcastFromHttp).toHaveBeenCalledWith(
+          'auth-register-broadcast',
+          [{ id: 'user-id', loginField: 'test@test.co' }],
+          expect.objectContaining({ enabled: true }),
+        );
+      });
+
+      it('should not broadcast register when jwtService is absent', async () => {
+        const AuthController = AuthControllerMixin(
+          TestEntity,
+          { loginField: 'loginField', passwordField: 'passwordField' },
+          { broadcast: { enabled: true } },
+        );
+        const controller = new AuthController(service, broadcastService, undefined);
+
+        await controller.register({});
+
+        expect(broadcastService.broadcastFromHttp).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('getAccount broadcast', () => {
+      it('should broadcast account with specified fields', async () => {
+        const AuthController = AuthControllerMixin(
+          TestEntity,
+          { loginField: 'loginField', passwordField: 'passwordField' },
+          undefined,
+          undefined,
+          undefined,
+          { broadcast: { enabled: true, fields: ['id'] } },
+        );
+        const controller = new AuthController(service, broadcastService, jwtService);
+
+        await controller.getAccount({ user: fakeUser });
+
+        expect(broadcastService.broadcastFromHttp).toHaveBeenCalledWith(
+          'auth-get-account-broadcast',
+          [{ id: 'user-id' }],
+          expect.objectContaining({ enabled: true }),
+        );
+      });
+
+      it('should broadcast all account fields when no fields specified', async () => {
+        const AuthController = AuthControllerMixin(
+          TestEntity,
+          { loginField: 'loginField', passwordField: 'passwordField' },
+          undefined,
+          undefined,
+          undefined,
+          { broadcast: { enabled: true } },
+        );
+        const controller = new AuthController(service, broadcastService, jwtService);
+
+        await controller.getAccount({ user: fakeUser });
+
+        expect(broadcastService.broadcastFromHttp).toHaveBeenCalledWith(
+          'auth-get-account-broadcast',
+          [fakeAccount],
+          expect.objectContaining({ enabled: true }),
+        );
+      });
+    });
+
+    describe('updateAccount broadcast', () => {
+      it('should broadcast updated account with specified fields', async () => {
+        const AuthController = AuthControllerMixin(
+          TestEntity,
+          { loginField: 'loginField', passwordField: 'passwordField' },
+          undefined,
+          undefined,
+          { broadcast: { enabled: true, fields: ['id', 'loginField'] } },
+        );
+        const controller = new AuthController(service, broadcastService, jwtService);
+
+        await controller.updateAccount({ user: fakeUser }, {});
+
+        expect(broadcastService.broadcastFromHttp).toHaveBeenCalledWith(
+          'auth-update-account-broadcast',
+          [{ id: 'user-id', loginField: 'test@test.co' }],
+          expect.objectContaining({ enabled: true }),
+        );
+      });
+    });
+  });
 });
+

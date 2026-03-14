@@ -7,7 +7,7 @@ import { getFullAuthOptionsMock } from '../../../__mocks__/auth-full-options.moc
 import { DynamicApiModule } from '../../dynamic-api.module';
 import * as Helpers from '../../helpers';
 import { BaseEntity } from '../../models';
-import { BcryptService, DynamicApiGlobalStateService } from '../../services';
+import { BcryptService, DynamicApiGlobalStateService, DynamicApiBroadcastService } from '../../services';
 import * as AuthHelpers from './auth.helper';
 import { authGatewayProviderName } from './auth.helper';
 import { AuthModule } from './auth.module';
@@ -45,9 +45,15 @@ jest.mock(
   ),
 );
 jest.mock(
+  '../../gateways',
+  () => (
+    { createDynamicApiBroadcastGateway: jest.fn(() => jest.fn()) }
+  ),
+);
+jest.mock(
   '../../services',
   () => (
-    { BcryptService: jest.fn(), DynamicApiGlobalStateService: { addEntitySchema: jest.fn() } }
+    { BcryptService: jest.fn(), DynamicApiGlobalStateService: { addEntitySchema: jest.fn() }, DynamicApiBroadcastService: jest.fn() }
   ),
 );
 jest.mock(
@@ -323,6 +329,37 @@ describe('AuthModule', () => {
 
       it('should have controllers', () => {
         expect(module.controllers).toEqual([AuthController, fakeController]);
+      });
+    });
+
+    describe('with broadcast options', () => {
+      const broadcastOptions: DynamicApiAuthOptions<UserEntity> = {
+        userEntity: UserEntity,
+        login: {
+          loginField: 'email',
+          passwordField: 'password',
+          broadcast: { enabled: true },
+        },
+      };
+
+      beforeEach(() => {
+        module = AuthModule.forRoot(broadcastOptions);
+        spyInitializeConfigFromOptions =
+          jest.spyOn(Helpers, 'initializeConfigFromOptions').mockImplementationOnce(() => undefined);
+      });
+
+      it('should include DynamicApiBroadcastService in providers when broadcast is configured', () => {
+        expect(module.providers).toEqual(
+          expect.arrayContaining([DynamicApiBroadcastService]),
+        );
+      });
+
+      it('should not include DynamicApiBroadcastService when no broadcast is configured', () => {
+        const moduleWithoutBroadcast = AuthModule.forRoot(basicOptions);
+
+        expect(moduleWithoutBroadcast.providers).not.toEqual(
+          expect.arrayContaining([DynamicApiBroadcastService]),
+        );
       });
     });
   });
