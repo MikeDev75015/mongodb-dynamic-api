@@ -56,13 +56,13 @@ class RepositoryHelper {
   private static async findAll<T extends BaseEntity>(model: Model<T>,
     query: FilterQuery<T> = {},
   ): Promise<T[]> {
-    const entities = await model.find(query).lean().exec();
+    const entities = await model.find(query).lean<T[]>().exec();
 
     return entities.map(entity => ({ ...entity, id: entity._id.toString() })) as T[];
   }
 
   private static async find<T extends BaseEntity>(model: Model<T>, query: FilterQuery<T>): Promise<T | null> {
-    const entity = await model.findOne(query).lean().exec();
+    const entity = await model.findOne(query).lean<T>().exec();
     if (!entity) {
       return null;
     }
@@ -88,7 +88,7 @@ class RepositoryHelper {
       { $set: toUpdate },
       { ...options, new: true },
     )
-    .lean()
+    .lean<T>()
     .exec();
 
     if (!entity) {
