@@ -95,7 +95,7 @@
     "jest-sonar-reporter": "^2.0.0",
     "lcov-result-merger": "^5.0.1",
     "prettier": "^3.2.5",
-    "release-it": "^17.2.1",
+    "release-it": "^17.11.0",
     "source-map-support": "^0.5.21",
     "supertest": "^6.3.4",
     "ts-jest": "^29.1.2",
