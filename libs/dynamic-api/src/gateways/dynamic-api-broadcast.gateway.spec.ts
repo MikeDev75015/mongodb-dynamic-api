@@ -1,3 +1,4 @@
+import { createMock } from '@golevelup/ts-jest';
 import { Server } from 'socket.io';
 import { DynamicApiBroadcastService } from '../services';
 import { createDynamicApiBroadcastGateway } from './dynamic-api-broadcast.gateway';
@@ -6,7 +7,7 @@ describe('createDynamicApiBroadcastGateway', () => {
   let mockBroadcastService: jest.Mocked<DynamicApiBroadcastService>;
 
   beforeEach(() => {
-    mockBroadcastService = { setWsServer: jest.fn() } as any;
+    mockBroadcastService = createMock<DynamicApiBroadcastService>();
   });
 
   it('should return a class', () => {

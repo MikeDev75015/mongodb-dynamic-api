@@ -36,7 +36,7 @@ describe('SocketConfigHelper', () => {
       };
 
       spySocketAdapter.mockImplementationOnce(() => {
-        process.emit('warning' as any, fakeError as any);
+        process.emit('warning', fakeError as unknown as Error);
       });
 
       enableDynamicAPIWebSockets(fakeApp, 50);

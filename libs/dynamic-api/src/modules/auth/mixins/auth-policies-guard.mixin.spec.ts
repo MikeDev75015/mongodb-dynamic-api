@@ -30,7 +30,7 @@ describe('AuthPoliciesGuardMixin', () => {
             getRequest: () => (
               { user }
             ),
-          } as any
+          } as unknown as ReturnType<ExecutionContext['switchToHttp']>
         ),
       } as ExecutionContext;
   });

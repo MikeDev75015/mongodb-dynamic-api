@@ -18,7 +18,7 @@ describe('BaseDeleteOneService', () => {
       updateOne: jest.fn(() => ({
         exec: jest.fn(() => Promise.resolve({ modifiedCount: 1 })),
       })),
-    } as any;
+    } as unknown as Model<any>;
 
     class TestService extends BaseDeleteOneService<any> {
       constructor(protected readonly _: Model<any>) {
@@ -43,7 +43,7 @@ describe('BaseDeleteOneService', () => {
     jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
     (modelMock.updateOne as jest.Mock).mockReturnValueOnce({
       exec: () => Promise.reject(new Error('Test error')),
-    } as any);
+    });
     presenter.deletedCount = 0;
 
     await expect(service.deleteOne(id)).resolves.toStrictEqual(presenter);
@@ -65,7 +65,7 @@ describe('BaseDeleteOneService', () => {
       jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
       (modelMock.updateOne as jest.Mock).mockReturnValueOnce({
         exec: () => Promise.resolve({ modifiedCount: 1 }),
-      } as any);
+      });
 
       await expect(service.deleteOne(id)).resolves.toStrictEqual(presenter);
       expect(modelMock.updateOne).toHaveBeenCalledWith(
@@ -79,7 +79,7 @@ describe('BaseDeleteOneService', () => {
       jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
       (modelMock.updateOne as jest.Mock).mockReturnValueOnce({
         exec: () => Promise.resolve({ modifiedCount: 0 }),
-      } as any);
+      });
       presenter.deletedCount = 0;
 
       await expect(service.deleteOne(id)).resolves.toStrictEqual(presenter);

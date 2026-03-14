@@ -6,6 +6,7 @@ import { BaseEntity } from '../../models';
 import { DeleteOneGatewayConstructor } from './delete-one-gateway.interface';
 import { DeleteOneGatewayMixin } from './delete-one-gateway.mixin';
 import { DeleteOneService } from './delete-one-service.interface';
+import { EntityParam } from '../../dtos';
 
 describe('DeleteOneGatewayMixin', () => {
   class TestEntity extends BaseEntity {
@@ -121,7 +122,7 @@ describe('DeleteOneGatewayMixin', () => {
   });
 
   test.each([
-    ['id is not in the body', {} as any],
+    ['id is not in the body', {} as unknown as EntityParam],
   ])('should throw an exception if %s', async (_, body) => {
     DeleteOneGateway = DeleteOneGatewayMixin(
       TestEntity,

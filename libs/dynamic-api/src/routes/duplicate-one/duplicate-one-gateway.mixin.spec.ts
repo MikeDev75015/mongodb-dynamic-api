@@ -6,6 +6,7 @@ import { BaseEntity } from '../../models';
 import { DuplicateOneGatewayConstructor } from './duplicate-one-gateway.interface';
 import { DuplicateOneGatewayMixin } from './duplicate-one-gateway.mixin';
 import { DuplicateOneService } from './duplicate-one-service.interface';
+import { EntityParam } from '../../dtos';
 
 describe('DuplicateOneGatewayMixin', () => {
   class TestEntity extends BaseEntity {
@@ -38,7 +39,7 @@ describe('DuplicateOneGatewayMixin', () => {
   });
 
   test.each([
-    ['id is not in the body', {} as any],
+    ['id is not in the body', {} as unknown as EntityParam],
   ])('should throw an exception if %s', async (_, body) => {
     DuplicateOneGateway = DuplicateOneGatewayMixin(
       TestEntity,

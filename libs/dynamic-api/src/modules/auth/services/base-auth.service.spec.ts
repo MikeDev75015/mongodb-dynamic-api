@@ -1,7 +1,7 @@
 import { BadRequestException, ForbiddenException, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { plainToInstance } from 'class-transformer';
-import { Model, Schema } from 'mongoose';
+import { Model, ObjectId, Schema } from 'mongoose';
 import { BaseEntity } from '../../../models';
 import { BcryptService, DynamicApiGlobalStateService } from '../../../services';
 import { BaseAuthService } from './base-auth.service';
@@ -32,7 +32,7 @@ describe('BaseAuthService', () => {
   const fakeLogin = 'fake-login';
   const fakePass = 'fake-pass';
   const fakeUser = {
-    _id: fakeUserId as any,
+    _id: fakeUserId as unknown as ObjectId,
     __v: 0,
     id: undefined,
     login: fakeEmail,

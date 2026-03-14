@@ -50,7 +50,7 @@ describe('BaseDeleteManyService', () => {
       modelMock.updateMany as jest.Mock
     ).mockReturnValueOnce({
       exec: () => Promise.reject(new Error('Test error')),
-    } as any);
+    });
     presenter.deletedCount = 0;
 
     await expect(service.deleteMany(ids)).resolves.toStrictEqual(presenter);
@@ -74,7 +74,7 @@ describe('BaseDeleteManyService', () => {
         modelMock.updateMany as jest.Mock
       ).mockReturnValueOnce({
         exec: () => Promise.resolve({ modifiedCount: 2 }),
-      } as any);
+      });
 
       await expect(service.deleteMany(ids)).resolves.toStrictEqual(presenter);
       expect(modelMock.updateMany).toHaveBeenCalledWith(
@@ -90,7 +90,7 @@ describe('BaseDeleteManyService', () => {
         modelMock.updateMany as jest.Mock
       ).mockReturnValueOnce({
         exec: () => Promise.resolve({ modifiedCount: 0 }),
-      } as any);
+      });
       presenter.deletedCount = 0;
 
       await expect(service.deleteMany(ids)).resolves.toStrictEqual(presenter);

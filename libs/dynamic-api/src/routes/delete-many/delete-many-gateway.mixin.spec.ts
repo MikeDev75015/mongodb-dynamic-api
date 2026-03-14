@@ -6,6 +6,7 @@ import { BaseEntity } from '../../models';
 import { DeleteManyGatewayConstructor } from './delete-many-gateway.interface';
 import { DeleteManyGatewayMixin } from './delete-many-gateway.mixin';
 import { DeleteManyService } from './delete-many-service.interface';
+import { ManyEntityQuery } from '../../dtos';
 
 describe('DeleteManyGatewayMixin', () => {
   class TestEntity extends BaseEntity {
@@ -40,9 +41,9 @@ describe('DeleteManyGatewayMixin', () => {
   });
 
   test.each([
-    ['ids is not in the body', {} as any],
-    ['ids is not an array', { ids: '1' } as any],
-    ['ids is empty', { ids: [] } as any],
+    ['ids is not in the body', {} as unknown as ManyEntityQuery],
+    ['ids is not an array', { ids: '1' } as unknown as ManyEntityQuery],
+    ['ids is empty', { ids: [] } as unknown as ManyEntityQuery],
   ])('should throw an exception if %s', async (_, body) => {
     DeleteManyGateway = DeleteManyGatewayMixin(
       TestEntity,

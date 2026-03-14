@@ -5,6 +5,7 @@ import { BaseEntity } from '../../models';
 import { CreateManyController } from './create-many-controller.interface';
 import { CreateManyControllerMixin } from './create-many-controller.mixin';
 import { CreateManyService } from './create-many-service.interface';
+import { CreateManyBody } from './create-many-controller.interface';
 
 class Entity extends BaseEntity {
   name: string;
@@ -45,11 +46,11 @@ describe('CreateManyControllerMixin', () => {
   });
 
   test.each([
-    ['body is empty', {} as any],
-    ['list is not in the body', { field1: 'test' } as any],
-    ['list is not an array', { list: '1' } as any],
-    ['list is empty', { list: [] } as any],
-    ['list is invalid', { list: [{ name: 'test invalid' }, true] } as any],
+    ['body is empty', {} as unknown as CreateManyBody<Entity>],
+    ['list is not in the body', { field1: 'test' } as unknown as CreateManyBody<Entity>],
+    ['list is not an array', { list: '1' } as unknown as CreateManyBody<Entity>],
+    ['list is empty', { list: [] } as unknown as CreateManyBody<Entity>],
+    ['list is invalid', { list: [{ name: 'test invalid' }, true] } as unknown as CreateManyBody<Entity>],
   ])('should throw an exception if %s', async (_, body) => {
     controller = initController();
 

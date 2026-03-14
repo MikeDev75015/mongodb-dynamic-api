@@ -31,7 +31,7 @@ describe('DynamicApiJwtAuthGuard', () => {
 
     guard = moduleRef.get<DynamicApiJwtAuthGuard>(DynamicApiJwtAuthGuard);
     reflector = moduleRef.get<Reflector>(Reflector);
-    context = { getHandler: jest.fn(), getClass: jest.fn() } as any;
+    context = { getHandler: jest.fn(), getClass: jest.fn() } as unknown as ExecutionContext;
   });
 
   it('should allow access if route is public', () => {

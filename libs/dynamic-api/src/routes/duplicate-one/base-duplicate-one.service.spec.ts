@@ -29,7 +29,7 @@ describe('BaseDuplicateOneService', () => {
         }
       )),
       create: jest.fn(() => Promise.resolve(document)),
-    } as any;
+    } as unknown as Model<any>;
 
     return new TestService(modelMock);
   };

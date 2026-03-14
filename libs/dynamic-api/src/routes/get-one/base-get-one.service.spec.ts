@@ -23,7 +23,7 @@ describe('BaseGetOneService', () => {
           )),
         }
       )),
-    } as any;
+    } as unknown as Model<any>;
 
     return new TestService(modelMock);
   };

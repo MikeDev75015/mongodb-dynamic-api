@@ -29,7 +29,7 @@ describe('BaseUpdateOneService', () => {
         }
       )),
       findOneAndUpdate: jest.fn(() => ({ lean: jest.fn(() => ({ exec })) })),
-    } as any;
+    } as unknown as Model<any>;
 
     return new TestService(modelMock);
   };

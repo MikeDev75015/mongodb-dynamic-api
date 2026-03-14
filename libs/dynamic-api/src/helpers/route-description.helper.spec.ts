@@ -1,3 +1,4 @@
+import { RouteType } from '../interfaces';
 import { getDefaultRouteDescription } from './route-description.helper';
 
 describe('RouteDescriptionHelper', () => {
@@ -51,7 +52,7 @@ describe('RouteDescriptionHelper', () => {
     });
 
     it('should throw an error for unsupported route type', () => {
-      expect(() => getDefaultRouteDescription('FakeRouteType' as any, 'Entity'))
+      expect(() => getDefaultRouteDescription('FakeRouteType' as unknown as RouteType, 'Entity'))
       .toThrowError('Route type "FakeRouteType" is not supported');
     });
   });
