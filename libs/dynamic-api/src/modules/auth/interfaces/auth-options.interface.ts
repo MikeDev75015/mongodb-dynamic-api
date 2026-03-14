@@ -1,7 +1,9 @@
 import { ModuleMetadata, NestInterceptor, Type, ValidationPipeOptions } from '@nestjs/common';
 import {
   AuthAbilityPredicate,
-  DynamicApiResetPasswordCallback, DynamicApiServiceBeforeSaveCallback,
+  BroadcastAbilityPredicate,
+  DynamicApiResetPasswordCallback,
+  DynamicApiServiceBeforeSaveCallback,
   DynamicApiServiceCallback,
   DynamicApiWebSocketOptions,
 } from '../../../interfaces';
@@ -12,6 +14,12 @@ type DynamicApiJWTOptions = {
   expiresIn?: string | number;
 };
 
+type DynamicApiAuthBroadcastConfig<Entity extends BaseEntity = any> = {
+  enabled: boolean | BroadcastAbilityPredicate<Partial<Entity>>;
+  eventName?: string;
+  fields?: (keyof Entity)[];
+};
+
 type DynamicApiLoginOptions<Entity extends BaseEntity = any> = {
   loginField?: keyof Entity;
   passwordField?: keyof Entity;
@@ -19,11 +27,13 @@ type DynamicApiLoginOptions<Entity extends BaseEntity = any> = {
   abilityPredicate?: AuthAbilityPredicate;
   additionalFields?: (keyof Entity)[];
   useInterceptors?: Type<NestInterceptor>[];
+  broadcast?: DynamicApiAuthBroadcastConfig<Entity>;
 }
 
 type DynamicApiGetAccountOptions<Entity extends BaseEntity = any> = {
   callback?: DynamicApiServiceCallback<Entity>;
   useInterceptors?: Type<NestInterceptor>[];
+  broadcast?: DynamicApiAuthBroadcastConfig<Entity>;
 };
 
 type DynamicApiRegisterOptions<Entity extends BaseEntity = any> = {
@@ -33,6 +43,7 @@ type DynamicApiRegisterOptions<Entity extends BaseEntity = any> = {
   abilityPredicate?: AuthAbilityPredicate;
   additionalFields?: (keyof Entity | { name: keyof Entity; required?: boolean })[];
   useInterceptors?: Type<NestInterceptor>[];
+  broadcast?: DynamicApiAuthBroadcastConfig<Entity>;
 };
 
 type DynamicApiUpdateAccountOptions<Entity extends BaseEntity = any> = {
@@ -41,6 +52,7 @@ type DynamicApiUpdateAccountOptions<Entity extends BaseEntity = any> = {
   abilityPredicate?: AuthAbilityPredicate;
   additionalFieldsToExclude?: (keyof Entity)[];
   useInterceptors?: Type<NestInterceptor>[];
+  broadcast?: DynamicApiAuthBroadcastConfig<Entity>;
 };
 
 type DynamicApiResetPasswordOptions<Entity extends BaseEntity = any> = {
@@ -70,6 +82,7 @@ type DynamicApiAuthOptions<Entity extends BaseEntity = any> = {
 };
 
 export type {
+  DynamicApiAuthBroadcastConfig,
   DynamicApiAuthOptions,
   DynamicApiRegisterOptions,
   DynamicApiUpdateAccountOptions,

@@ -4,9 +4,11 @@ import type { StringValue } from 'ms';
 import { MongooseModule } from '@nestjs/mongoose';
 import { PassportModule } from '@nestjs/passport';
 import { DynamicApiModule } from '../../dynamic-api.module';
+import { createDynamicApiBroadcastGateway } from '../../gateways';
 import { buildSchemaFromEntity, initializeConfigFromOptions } from '../../helpers';
+import { GatewayOptions } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import { BcryptService, DynamicApiGlobalStateService } from '../../services';
+import { BcryptService, DynamicApiGlobalStateService, DynamicApiBroadcastService } from '../../services';
 import { authGatewayProviderName, createAuthController, createAuthGateway, createAuthServiceProvider, createLocalStrategyProvider } from './auth.helper';
 import { DynamicApiAuthOptions, DynamicApiResetPasswordOptions } from './interfaces';
 import { JwtStrategy } from './strategies';
@@ -68,6 +70,15 @@ export class AuthModule {
       webSocket ?? DynamicApiModule.state.get('gatewayOptions'),
     );
 
+    const hasBroadcast = !!(login?.broadcast || register?.broadcast || getAccount?.broadcast || updateAccount?.broadcast);
+
+    const broadcastProviders = hasBroadcast ? [
+      DynamicApiBroadcastService,
+      createDynamicApiBroadcastGateway(
+        DynamicApiModule.state.get<GatewayOptions>('broadcastGatewayOptions') ?? {},
+      ),
+    ] : [];
+
     const webSocketsProviders = !gatewayOptions ? [] : [
       {
         provide: authGatewayProviderName,
@@ -112,6 +123,7 @@ export class AuthModule {
         LocalStrategyProvider,
         JwtStrategy,
         BcryptService,
+        ...broadcastProviders,
         ...webSocketsProviders,
         ...extraProviders,
       ],

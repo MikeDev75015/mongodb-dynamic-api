@@ -1,4 +1,6 @@
+import { JwtService } from '@nestjs/jwt';
 import { BaseEntity } from '../../../models';
+import { DynamicApiBroadcastService } from '../../../services';
 import { ChangePasswordDto } from '../dtos/change-password.dto';
 import { ResetPasswordDto } from '../dtos/reset-password.dto';
 import { AuthService, LoginResponse } from './auth-service.interface';
@@ -13,7 +15,9 @@ interface AuthController<Entity extends BaseEntity> {
 }
 
 type AuthControllerConstructor<Entity extends BaseEntity> = new (
-  service:AuthService<Entity>,
+  service: AuthService<Entity>,
+  broadcastService?: DynamicApiBroadcastService,
+  jwtService?: JwtService,
 ) => AuthController<Entity>;
 
 export type { AuthController, AuthControllerConstructor };

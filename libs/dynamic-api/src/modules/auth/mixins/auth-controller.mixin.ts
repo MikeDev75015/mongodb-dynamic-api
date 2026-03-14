@@ -1,10 +1,19 @@
-import { Body, Get, HttpCode, HttpStatus, Patch, Post, Request, Type, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Get, HttpCode, HttpStatus, Optional, Patch, Post, Request, Type, UseGuards, UseInterceptors } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiProperty, IntersectionType, PartialType, PickType } from '@nestjs/swagger';
 import { AuthDecoratorsBuilder } from '../../../builders';
 import { ApiEndpointVisibility, Public } from '../../../decorators';
 import { RouteDecoratorsHelper } from '../../../helpers';
 import { EntityBodyMixin } from '../../../mixins';
 import { BaseEntity } from '../../../models';
+import { DynamicApiBroadcastService } from '../../../services';
+import { buildAuthBroadcastData } from '../auth-broadcast.helper';
+import {
+  AUTH_GET_ACCOUNT_BROADCAST_EVENT,
+  AUTH_LOGIN_BROADCAST_EVENT,
+  AUTH_REGISTER_BROADCAST_EVENT,
+  AUTH_UPDATE_ACCOUNT_BROADCAST_EVENT,
+} from '../auth-events.constants';
 import { ChangePasswordDto } from '../dtos/change-password.dto';
 import { ResetPasswordDto } from '../dtos/reset-password.dto';
 import { JwtAuthGuard, LocalAuthGuard, ResetPasswordGuard } from '../guards';
@@ -18,12 +27,14 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     passwordField,
     additionalFields: additionalRequestFields = [],
     useInterceptors: loginUseInterceptors = [],
+    broadcast: loginBroadcastConfig,
   }: DynamicApiLoginOptions<Entity>,
   {
     additionalFields: additionalRegisterFields,
     protected: registerProtected,
     abilityPredicate: registerAbilityPredicate,
     useInterceptors: registerUseInterceptors = [],
+    broadcast: registerBroadcastConfig,
   }: DynamicApiRegisterOptions<Entity> = {},
   {
     resetPasswordUseInterceptors = [],
@@ -32,10 +43,12 @@ function AuthControllerMixin<Entity extends BaseEntity>(
   }: DynamicApiResetPasswordOptions<Entity> = {},
   {
     useInterceptors: updateAccountUseInterceptors = [],
+    broadcast: updateAccountBroadcastConfig,
     ...updateAccountOptions
   }: DynamicApiUpdateAccountOptions<Entity> = {},
   {
     useInterceptors: getAccountUseInterceptors = [],
+    broadcast: getAccountBroadcastConfig,
   }: DynamicApiGetAccountOptions<Entity> = {}
 ): AuthControllerConstructor<Entity> {
   if (!loginField || !passwordField) {
@@ -116,7 +129,11 @@ function AuthControllerMixin<Entity extends BaseEntity>(
   );
 
   class BaseAuthController implements AuthController<Entity> {
-    constructor(protected readonly service: AuthService<Entity>) {}
+    constructor(
+      protected readonly service: AuthService<Entity>,
+      @Optional() protected readonly broadcastService?: DynamicApiBroadcastService,
+      @Optional() protected readonly jwtService?: JwtService,
+    ) {}
 
     @ApiBearerAuth()
     @UseGuards(JwtAuthGuard)
@@ -124,8 +141,19 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     @ApiOkResponse({ type: AuthUserPresenter })
     @UseInterceptors(...getAccountUseInterceptors)
     @Get('account')
-    getAccount(@Request() req: { user: Entity }) {
-      return this.service.getAccount(req.user);
+    async getAccount(@Request() req: { user: Entity }) {
+      const account = await this.service.getAccount(req.user);
+
+      if (getAccountBroadcastConfig) {
+        const broadcastData = buildAuthBroadcastData(account, getAccountBroadcastConfig.fields);
+        this.broadcastService?.broadcastFromHttp(
+          getAccountBroadcastConfig.eventName ?? AUTH_GET_ACCOUNT_BROADCAST_EVENT,
+          [broadcastData],
+          getAccountBroadcastConfig,
+        );
+      }
+
+      return account;
     }
 
     @ApiEndpointVisibility(!!resetPasswordOptions, Public())
@@ -143,8 +171,19 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     @ApiOkResponse({ type: AuthPresenter })
     @UseInterceptors(...loginUseInterceptors)
     @Post('login')
-    login(@Request() req: { user: Entity }, @Body() _: AuthLoginDto) {
-      return this.service.login(req.user);
+    async login(@Request() req: { user: Entity }, @Body() _: AuthLoginDto) {
+      const result = await this.service.login(req.user);
+
+      if (loginBroadcastConfig) {
+        const broadcastData = buildAuthBroadcastData(req.user, loginBroadcastConfig.fields);
+        this.broadcastService?.broadcastFromHttp(
+          loginBroadcastConfig.eventName ?? AUTH_LOGIN_BROADCAST_EVENT,
+          [broadcastData],
+          loginBroadcastConfig,
+        );
+      }
+
+      return result;
     }
 
     @RouteDecoratorsHelper(authRegisterDecorators)
@@ -152,8 +191,20 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     @ApiCreatedResponse({ type: AuthPresenter })
     @UseInterceptors(...registerUseInterceptors)
     @Post('register')
-    register(@Body() body: AuthRegisterDto) {
-      return this.service.register(body);
+    async register(@Body() body: AuthRegisterDto) {
+      const result = await this.service.register(body);
+
+      if (registerBroadcastConfig && this.jwtService) {
+        const { iat, exp, ...userPayload } = (this.jwtService.decode(result.accessToken) as any) ?? {};
+        const broadcastData = buildAuthBroadcastData(userPayload as Partial<Entity>, registerBroadcastConfig.fields);
+        this.broadcastService?.broadcastFromHttp(
+          registerBroadcastConfig.eventName ?? AUTH_REGISTER_BROADCAST_EVENT,
+          [broadcastData],
+          registerBroadcastConfig,
+        );
+      }
+
+      return result;
     }
 
     @ApiEndpointVisibility(!!resetPasswordOptions, Public())
@@ -170,11 +221,22 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     @ApiOkResponse({ type: AuthUserPresenter })
     @UseInterceptors(...updateAccountUseInterceptors)
     @Patch('account')
-    updateAccount(
+    async updateAccount(
       @Request() req: { user: Entity },
       @Body() body: AuthUpdateAccountDto,
     ) {
-      return this.service.updateAccount(req.user, body);
+      const account = await this.service.updateAccount(req.user, body);
+
+      if (updateAccountBroadcastConfig) {
+        const broadcastData = buildAuthBroadcastData(account, updateAccountBroadcastConfig.fields);
+        this.broadcastService?.broadcastFromHttp(
+          updateAccountBroadcastConfig.eventName ?? AUTH_UPDATE_ACCOUNT_BROADCAST_EVENT,
+          [broadcastData],
+          updateAccountBroadcastConfig,
+        );
+      }
+
+      return account;
     }
   }
 
