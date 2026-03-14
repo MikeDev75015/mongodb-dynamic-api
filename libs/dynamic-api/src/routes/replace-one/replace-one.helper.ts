@@ -2,6 +2,7 @@ import {
   ClassSerializerInterceptor,
   Controller,
   Inject,
+  Optional,
   Type,
   UseInterceptors,
   ValidationPipeOptions,
@@ -22,6 +23,7 @@ import {
   GatewayOptions,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
+import { DynamicApiBroadcastService } from '../../services';
 import { BaseReplaceOneService } from './base-replace-one.service';
 import { ReplaceOneControllerConstructor } from './replace-one-controller.interface';
 import { ReplaceOneControllerMixin } from './replace-one-controller.mixin';
@@ -84,8 +86,10 @@ function createReplaceOneController<Entity extends BaseEntity>(
     constructor(
       @Inject(provideName('ReplaceOne', displayedName, version, 'Service'))
       protected readonly service: ReplaceOneService<Entity>,
+      @Optional() @Inject(DynamicApiBroadcastService)
+      protected readonly broadcastService?: DynamicApiBroadcastService,
     ) {
-      super(service);
+      super(service, broadcastService);
     }
   }
 

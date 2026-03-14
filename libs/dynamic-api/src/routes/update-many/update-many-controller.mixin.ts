@@ -1,17 +1,18 @@
-import { Body, Query, Type, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Optional, Query, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { isEmpty } from 'lodash';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
+import { DynamicApiBroadcastService } from '../../services';
 import { UpdateManyController, UpdateManyControllerConstructor } from './update-many-controller.interface';
 import { UpdateManyService } from './update-many-service.interface';
 
 function UpdateManyControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): UpdateManyControllerConstructor<Entity> {
   const {
@@ -20,6 +21,7 @@ function UpdateManyControllerMixin<Entity extends BaseEntity>(
     description,
     isPublic,
     abilityPredicate,
+    event,
   } = getMixinData(
     entity,
     controllerOptions,
@@ -70,8 +72,10 @@ function UpdateManyControllerMixin<Entity extends BaseEntity>(
   class BaseUpdateManyController implements UpdateManyController<Entity> {
     protected readonly entity = entity;
 
-    constructor(protected readonly service: UpdateManyService<Entity>) {
-    }
+    constructor(
+      protected readonly service: UpdateManyService<Entity>,
+      @Optional() protected readonly broadcastService?: DynamicApiBroadcastService,
+    ) {}
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(UpdateManyPoliciesGuard)
@@ -95,7 +99,11 @@ function UpdateManyControllerMixin<Entity extends BaseEntity>(
         UpdateManyPresenter as Mappable<Entity>
       ).fromEntities;
 
-      return fromEntities ? fromEntities<UpdateManyPresenter>(list) : list;
+      const responseData = fromEntities ? fromEntities<UpdateManyPresenter>(list) : list;
+
+      this.broadcastService?.broadcastFromHttp(event, responseData as object[], broadcastConfig);
+
+      return responseData;
     }
   }
 

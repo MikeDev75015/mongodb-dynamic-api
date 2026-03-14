@@ -2,6 +2,7 @@ import {
   ClassSerializerInterceptor,
   Controller,
   Inject,
+  Optional,
   Type,
   UseInterceptors,
   ValidationPipeOptions,
@@ -22,6 +23,7 @@ import {
   GatewayOptions,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
+import { DynamicApiBroadcastService } from '../../services';
 import { BaseDuplicateManyService } from './base-duplicate-many.service';
 import { DuplicateManyControllerConstructor } from './duplicate-many-controller.interface';
 import { DuplicateManyControllerMixin } from './duplicate-many-controller.mixin';
@@ -84,8 +86,10 @@ function createDuplicateManyController<Entity extends BaseEntity>(
     constructor(
       @Inject(provideName('DuplicateMany', displayedName, version, 'Service'))
       protected readonly service: DuplicateManyService<Entity>,
+      @Optional() @Inject(DynamicApiBroadcastService)
+      protected readonly broadcastService?: DynamicApiBroadcastService,
     ) {
-      super(service);
+      super(service, broadcastService);
     }
   }
 

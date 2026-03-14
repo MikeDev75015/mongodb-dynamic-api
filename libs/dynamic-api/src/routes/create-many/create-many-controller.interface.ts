@@ -1,4 +1,5 @@
 import { BaseEntity } from '../../models';
+import { DynamicApiBroadcastService } from '../../services';
 import { CreateManyService } from './create-many-service.interface';
 
 type CreateManyBody<T = any> = {
@@ -11,6 +12,7 @@ interface CreateManyController<Entity extends BaseEntity, Response = any> {
 
 type CreateManyControllerConstructor<Entity extends BaseEntity> = new (
   service: CreateManyService<Entity>,
+  broadcastService?: DynamicApiBroadcastService,
 ) => CreateManyController<Entity>;
 
 export type { CreateManyBody, CreateManyController, CreateManyControllerConstructor };

@@ -1,10 +1,11 @@
-import { BadRequestException, Body, Type, UseGuards, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Optional, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { isEmpty } from 'lodash';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
+import { DynamicApiBroadcastService } from '../../services';
 import { CreateManyBodyMixin } from './create-many-body.mixin';
 import { CreateManyController, CreateManyControllerConstructor } from './create-many-controller.interface';
 import { CreateManyPresenterMixin } from './create-many-presenter.mixin';
@@ -13,7 +14,7 @@ import { CreateManyService } from './create-many-service.interface';
 function CreateManyControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): CreateManyControllerConstructor<Entity> {
   const {
@@ -22,6 +23,7 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
     description,
     isPublic,
     abilityPredicate,
+    event,
   } = getMixinData(
     entity,
     controllerOptions,
@@ -70,6 +72,7 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
 
     constructor(
       protected readonly service: CreateManyService<Entity>,
+      @Optional() protected readonly broadcastService?: DynamicApiBroadcastService,
     ) {}
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
@@ -97,7 +100,11 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
         CreateManyPresenter as Mappable<Entity>
       ).fromEntities;
 
-      return fromEntities ? fromEntities<CreateManyPresenter>(list) : list;
+      const responseData = fromEntities ? fromEntities<CreateManyPresenter>(list) : list;
+
+      this.broadcastService?.broadcastFromHttp(event, responseData as object[], broadcastConfig);
+
+      return responseData;
     }
   }
 

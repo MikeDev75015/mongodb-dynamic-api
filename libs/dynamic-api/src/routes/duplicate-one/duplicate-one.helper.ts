@@ -2,6 +2,7 @@ import {
   ClassSerializerInterceptor,
   Controller,
   Inject,
+  Optional,
   Type,
   UseInterceptors,
   ValidationPipeOptions,
@@ -22,6 +23,7 @@ import {
   GatewayOptions,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
+import { DynamicApiBroadcastService } from '../../services';
 import { BaseDuplicateOneService } from './base-duplicate-one.service';
 import { DuplicateOneControllerConstructor } from './duplicate-one-controller.interface';
 import { DuplicateOneControllerMixin } from './duplicate-one-controller.mixin';
@@ -84,8 +86,10 @@ function createDuplicateOneController<Entity extends BaseEntity>(
     constructor(
       @Inject(provideName('DuplicateOne', displayedName, version, 'Service'))
       protected readonly service: DuplicateOneService<Entity>,
+      @Optional() @Inject(DynamicApiBroadcastService)
+      protected readonly broadcastService?: DynamicApiBroadcastService,
     ) {
-      super(service);
+      super(service, broadcastService);
     }
   }
 

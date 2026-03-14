@@ -1,4 +1,4 @@
-import { Body, Param, Type, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Optional, Param, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { isEmpty } from 'lodash';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityParam } from '../../dtos';
@@ -6,13 +6,14 @@ import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } fr
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
+import { DynamicApiBroadcastService } from '../../services';
 import { UpdateOneController, UpdateOneControllerConstructor } from './update-one-controller.interface';
 import { UpdateOneService } from './update-one-service.interface';
 
 function UpdateOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): UpdateOneControllerConstructor<Entity> {
   const {
@@ -21,6 +22,7 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
     description,
     isPublic,
     abilityPredicate,
+    event,
   } = getMixinData(
     entity,
     controllerOptions,
@@ -72,8 +74,10 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
   class BaseUpdateOneController implements UpdateOneController<Entity> {
     protected readonly entity = entity;
 
-    constructor(protected readonly service: UpdateOneService<Entity>) {
-    }
+    constructor(
+      protected readonly service: UpdateOneService<Entity>,
+      @Optional() protected readonly broadcastService?: DynamicApiBroadcastService,
+    ) {}
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(UpdateOnePoliciesGuard)
@@ -93,7 +97,11 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
         UpdateOnePresenter as Mappable<Entity>
       ).fromEntity;
 
-      return fromEntity ? fromEntity<UpdateOnePresenter>(entity) : entity;
+      const responseData = fromEntity ? fromEntity<UpdateOnePresenter>(entity) : entity;
+
+      this.broadcastService?.broadcastFromHttp(event, [responseData as object], broadcastConfig);
+
+      return responseData;
     }
   }
 

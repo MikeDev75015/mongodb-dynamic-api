@@ -1,17 +1,18 @@
-import { Param, Type, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Optional, Param, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { DeletePresenter, EntityParam } from '../../dtos';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
+import { DynamicApiBroadcastService } from '../../services';
 import { DeleteOneController, DeleteOneControllerConstructor } from './delete-one-controller.interface';
 import { DeleteOneService } from './delete-one-service.interface';
 
 function DeleteOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): DeleteOneControllerConstructor<Entity> {
   const {
@@ -20,6 +21,7 @@ function DeleteOneControllerMixin<Entity extends BaseEntity>(
     description,
     isPublic,
     abilityPredicate,
+    event,
   } = getMixinData(
     entity,
     controllerOptions,
@@ -61,8 +63,10 @@ function DeleteOneControllerMixin<Entity extends BaseEntity>(
   class BaseDeleteOneController implements DeleteOneController<Entity> {
     protected readonly entity = entity;
 
-    constructor(protected readonly service: DeleteOneService<Entity>) {
-    }
+    constructor(
+      protected readonly service: DeleteOneService<Entity>,
+      @Optional() protected readonly broadcastService?: DynamicApiBroadcastService,
+    ) {}
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(DeleteOnePoliciesGuard)
@@ -74,7 +78,11 @@ function DeleteOneControllerMixin<Entity extends BaseEntity>(
         DeleteOnePresenter as Mappable<Entity>
       ).fromDeleteResult;
 
-      return fromDeleteResult ? fromDeleteResult<DeleteOnePresenter>(deleteResult) : deleteResult;
+      const responseData = fromDeleteResult ? fromDeleteResult<DeleteOnePresenter>(deleteResult) : deleteResult;
+
+      this.broadcastService?.broadcastFromHttp(event, [{ id } as object], broadcastConfig);
+
+      return responseData;
     }
   }
 

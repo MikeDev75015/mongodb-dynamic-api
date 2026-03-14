@@ -2,6 +2,7 @@ import {
   ClassSerializerInterceptor,
   Controller,
   Inject,
+  Optional,
   Type,
   UseInterceptors,
   ValidationPipeOptions,
@@ -21,6 +22,7 @@ import {
   DynamicAPIServiceProvider, GatewayOptions,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
+import { DynamicApiBroadcastService } from '../../services';
 import { BaseCreateOneService } from './base-create-one.service';
 import { CreateOneControllerConstructor } from './create-one-controller.interface';
 import { CreateOneControllerMixin } from './create-one-controller.mixin';
@@ -85,8 +87,10 @@ function createCreateOneController<Entity extends BaseEntity>(
     constructor(
       @Inject(provideName('CreateOne', displayedName, version, 'Service'))
       protected readonly service: CreateOneService<Entity>,
+      @Optional() @Inject(DynamicApiBroadcastService)
+      protected readonly broadcastService?: DynamicApiBroadcastService,
     ) {
-      super(service);
+      super(service, broadcastService);
     }
   }
 

@@ -1,16 +1,17 @@
-import { Body, Type, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Optional, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
+import { DynamicApiBroadcastService } from '../../services';
 import { CreateOneController, CreateOneControllerConstructor } from './create-one-controller.interface';
 import { CreateOneService } from './create-one-service.interface';
 
 function CreateOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): CreateOneControllerConstructor<Entity> {
   const {
@@ -19,6 +20,7 @@ function CreateOneControllerMixin<Entity extends BaseEntity>(
     description,
     isPublic,
     abilityPredicate,
+    event,
   } = getMixinData(
     entity,
     controllerOptions,
@@ -65,8 +67,10 @@ function CreateOneControllerMixin<Entity extends BaseEntity>(
   class BaseCreateOneController implements CreateOneController<Entity> {
     protected readonly entity = entity;
 
-    constructor(protected readonly service: CreateOneService<Entity>) {
-    }
+    constructor(
+      protected readonly service: CreateOneService<Entity>,
+      @Optional() protected readonly broadcastService?: DynamicApiBroadcastService,
+    ) {}
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(CreateOnePoliciesGuard)
@@ -82,7 +86,11 @@ function CreateOneControllerMixin<Entity extends BaseEntity>(
         CreateOnePresenter as Mappable<Entity>
       ).fromEntity;
 
-      return fromEntity ? fromEntity(entity) : entity;
+      const responseData = fromEntity ? fromEntity(entity) : entity;
+
+      this.broadcastService?.broadcastFromHttp(event, [responseData], broadcastConfig);
+
+      return responseData;
     }
   }
 
