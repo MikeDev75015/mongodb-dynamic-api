@@ -1,11 +1,12 @@
 import { plainToInstance } from 'class-transformer';
 import { Model } from 'mongoose';
 import { DeletePresenter } from '../../dtos';
+import { BaseEntity } from '../../models';
 import { BaseDeleteManyService } from './base-delete-many.service';
 
 describe('BaseDeleteManyService', () => {
-  let service: any;
-  let modelMock: Model<any>;
+  let service: BaseDeleteManyService<BaseEntity>;
+  let modelMock: Model<BaseEntity>;
   let presenter: DeletePresenter;
 
   const ids = ['ObjectId1', 'ObjectId2'];
@@ -23,10 +24,10 @@ describe('BaseDeleteManyService', () => {
           exec: jest.fn().mockResolvedValue({ modifiedCount: ids.length }),
         }
       )),
-    } as unknown as Model<any>;
+    } as unknown as Model<BaseEntity>;
 
-    class TestService extends BaseDeleteManyService<any> {
-      constructor(protected readonly _: Model<any>) {
+    class TestService extends BaseDeleteManyService<BaseEntity> {
+      constructor(protected readonly _: Model<BaseEntity>) {
         super(_);
       }
     }

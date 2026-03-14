@@ -1,11 +1,12 @@
 import { plainToInstance } from 'class-transformer';
 import { Model } from 'mongoose';
 import { DeletePresenter } from '../../dtos';
+import { BaseEntity } from '../../models';
 import { BaseDeleteOneService } from './base-delete-one.service';
 
 describe('BaseDeleteOneService', () => {
-  let service: any;
-  let modelMock: Model<any>;
+  let service: BaseDeleteOneService<BaseEntity>;
+  let modelMock: Model<BaseEntity>;
   const id = 'ObjectId';
   const deleted = { deletedCount: 1 };
   let presenter: DeletePresenter;
@@ -18,10 +19,10 @@ describe('BaseDeleteOneService', () => {
       updateOne: jest.fn(() => ({
         exec: jest.fn(() => Promise.resolve({ modifiedCount: 1 })),
       })),
-    } as unknown as Model<any>;
+    } as unknown as Model<BaseEntity>;
 
-    class TestService extends BaseDeleteOneService<any> {
-      constructor(protected readonly _: Model<any>) {
+    class TestService extends BaseDeleteOneService<BaseEntity> {
+      constructor(protected readonly _: Model<BaseEntity>) {
         super(_);
       }
     }
