@@ -12,6 +12,8 @@ import { BaseEntity } from '../../../models';
 type DynamicApiJWTOptions = {
   secret: string;
   expiresIn?: string | number;
+  refreshTokenExpiresIn?: string | number;
+  refreshSecret?: string;
 };
 
 type DynamicApiAuthBroadcastConfig<Entity extends BaseEntity = any> = {
@@ -66,6 +68,22 @@ type DynamicApiResetPasswordOptions<Entity extends BaseEntity = any> = {
   changePasswordUseInterceptors?: Type<NestInterceptor>[];
 };
 
+type DynamicApiRefreshTokenOptions<Entity extends BaseEntity = any> = {
+  useInterceptors?: Type<NestInterceptor>[];
+  /**
+   * Field in the entity where the hashed refresh token is stored.
+   * Required for server-side token rotation and revocation.
+   * If not configured, logout will not invalidate existing refresh tokens server-side
+   * (a warning will be logged at runtime).
+   */
+  refreshTokenField?: keyof Entity;
+  /**
+   * When true, the refresh token is sent/read as an httpOnly cookie exclusively (Bearer header disabled).
+   * When false (default), the refresh token is sent/read via the Authorization Bearer header exclusively.
+   */
+  useCookie?: boolean;
+};
+
 type DynamicApiAuthOptions<Entity extends BaseEntity = any> = {
   userEntity: Type<Entity>;
   jwt?: DynamicApiJWTOptions;
@@ -74,6 +92,7 @@ type DynamicApiAuthOptions<Entity extends BaseEntity = any> = {
   register?: DynamicApiRegisterOptions<Entity>;
   updateAccount?: DynamicApiUpdateAccountOptions<Entity>;
   resetPassword?: Partial<DynamicApiResetPasswordOptions<Entity>>;
+  refreshToken?: DynamicApiRefreshTokenOptions<Entity>;
   validationPipeOptions?: ValidationPipeOptions;
   webSocket?: DynamicApiWebSocketOptions;
   extraImports?: ModuleMetadata['imports'];
@@ -89,5 +108,6 @@ export type {
   DynamicApiGetAccountOptions,
   DynamicApiJWTOptions,
   DynamicApiLoginOptions,
+  DynamicApiRefreshTokenOptions,
   DynamicApiResetPasswordOptions,
 };
