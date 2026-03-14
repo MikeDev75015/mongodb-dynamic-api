@@ -1,4 +1,5 @@
 import { ExecutionContext } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
 import { DynamicApiModule } from '../../../../dynamic-api.module';
 import { JwtSocketRefreshGuard } from './jwt-socket-refresh.guard';
@@ -37,45 +38,73 @@ describe('JwtSocketRefreshGuard', () => {
       await expect(guard.canActivate(context)).rejects.toThrow(WsException);
     });
 
-    it('should set socket.user and return true for valid token', async () => {
-      const validPayload = { id: 'user-id', email: 'test@test.co' };
-      const spyExtract = jest.spyOn<any, any>(guard as any, 'extractUserFromToken')
-        .mockResolvedValueOnce(validPayload);
+    it('should throw WsException when extracted user is empty (payload with no extra fields)', async () => {
+      const secret = 'refresh-secret';
+      const jwtService = new JwtService({ secret });
+      const emptyPayloadToken = jwtService.sign({});
 
-      const socket = { handshake: { query: { refreshToken: 'valid-token' } }, user: undefined };
-      const context = {
-        getArgs: () => [socket],
-      } as unknown as ExecutionContext;
-
-      const result = await guard.canActivate(context);
-
-      expect(spyExtract).toHaveBeenCalledWith('valid-token');
-      expect(result).toBe(true);
-      expect((socket as any).user).toEqual(validPayload);
-    });
-
-    it('should throw WsException when user is empty after extraction', async () => {
-      jest.spyOn<any, any>(guard as any, 'extractUserFromToken').mockResolvedValueOnce({});
-
-      const socket = { handshake: { query: { refreshToken: 'valid-token' } }, user: undefined };
+      const socket = { handshake: { query: { refreshToken: emptyPayloadToken } }, user: undefined };
       const context = {
         getArgs: () => [socket],
       } as unknown as ExecutionContext;
 
       await expect(guard.canActivate(context)).rejects.toThrow(WsException);
     });
+
+    it('should set socket.user and return true for a valid JWT token with user data', async () => {
+      const secret = 'refresh-secret';
+      const jwtService = new JwtService({ secret });
+      const validToken = jwtService.sign({ id: 'user-id', email: 'test@test.co' });
+
+      const socket: { handshake: { query: Record<string, string> }; user: unknown } = {
+        handshake: { query: { refreshToken: validToken } },
+        user: undefined,
+      };
+      const context = {
+        getArgs: () => [socket],
+      } as unknown as ExecutionContext;
+
+      const result = await guard.canActivate(context);
+
+      expect(result).toBe(true);
+      expect(socket.user).toEqual(expect.objectContaining({ id: 'user-id', email: 'test@test.co' }));
+    });
+
+    it('should use jwtSecret as fallback when jwtRefreshSecret is undefined', async () => {
+      DynamicApiModule.state.set(['partial', {
+        jwtSecret: 'access-secret',
+        jwtRefreshSecret: undefined,
+      }]);
+      guard = new JwtSocketRefreshGuard();
+
+      const jwtService = new JwtService({ secret: 'access-secret' });
+      const validToken = jwtService.sign({ id: 'user-id', email: 'test@test.co' });
+
+      const socket: { handshake: { query: Record<string, string> }; user: unknown } = {
+        handshake: { query: { refreshToken: validToken } },
+        user: undefined,
+      };
+      const context = {
+        getArgs: () => [socket],
+      } as unknown as ExecutionContext;
+
+      const result = await guard.canActivate(context);
+
+      expect(result).toBe(true);
+      expect(socket.user).toEqual(expect.objectContaining({ id: 'user-id', email: 'test@test.co' }));
+    });
   });
 
   describe('getRefreshTokenFromSocket', () => {
     it('should return refreshToken from socket query', () => {
       const socket = { handshake: { query: { refreshToken: 'my-refresh-token' } } };
-      const result = (guard as any).getRefreshTokenFromSocket(socket);
+      const result = guard['getRefreshTokenFromSocket'](socket as any);
       expect(result).toBe('my-refresh-token');
     });
 
     it('should throw WsException when refreshToken is missing', () => {
       const socket = { handshake: { query: {} } };
-      expect(() => (guard as any).getRefreshTokenFromSocket(socket)).toThrow(WsException);
+      expect(() => guard['getRefreshTokenFromSocket'](socket as any)).toThrow(WsException);
     });
   });
 });
