@@ -225,11 +225,7 @@ describe('AuthHelper', () => {
       AuthController = createAuthController(
         UserEntity,
         { loginField, passwordField, additionalFields: additionalRequestFields },
-        getAccountOptions,
-        registerOptions,
-        validationPipeOptions,
-        resetPasswordOptions,
-        updateAccountOptions,
+        { getAccountOptions, registerOptions, validationPipeOptions, resetPasswordOptions, updateAccountOptions },
       );
 
       expect(AuthController).toEqual(expect.any(Function));
@@ -240,11 +236,6 @@ describe('AuthHelper', () => {
       AuthController = createAuthController(
         UserEntity,
         { loginField, passwordField, additionalFields: undefined },
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
       );
 
       const authController = new AuthController(service);
@@ -255,17 +246,23 @@ describe('AuthHelper', () => {
       AuthController = createAuthController(
         UserEntity,
         { loginField, passwordField },
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
       );
 
       const authController = new AuthController(service, broadcastService, jwtService);
       expect(authController).toHaveProperty('service', service);
       expect(authController).toHaveProperty('broadcastService', broadcastService);
       expect(authController).toHaveProperty('jwtService', jwtService);
+    });
+
+    it('should return a controller with refreshTokenOptions', () => {
+      AuthController = createAuthController(
+        UserEntity,
+        { loginField, passwordField },
+        { refreshTokenOptions: { refreshTokenField: 'nickname' as keyof UserEntity } },
+      );
+
+      expect(AuthController).toEqual(expect.any(Function));
+      expect(AuthController.name).toBe('AuthController');
     });
   });
 
@@ -278,11 +275,7 @@ describe('AuthHelper', () => {
       Gateway = createAuthGateway(
         UserEntity,
         { loginField, passwordField, additionalFields: additionalRequestFields },
-        getAccountOptions,
-        registerOptions,
-        resetPasswordOptions,
-        updateAccountOptions,
-        { namespace: 'auth', validationPipeOptions },
+        { namespace: 'auth', validationPipeOptions, getAccountOptions, registerOptions, resetPasswordOptions, updateAccountOptions },
       );
 
       expect(Gateway).toEqual(expect.any(Function));
@@ -293,16 +286,23 @@ describe('AuthHelper', () => {
       Gateway = createAuthGateway(
         UserEntity,
         { loginField, passwordField },
-        undefined,
-        undefined,
-        undefined,
-        undefined,
         { namespace: 'auth' },
       );
 
       const gateway = new Gateway(service, jwtService);
       expect(gateway).toHaveProperty('service', service);
       expect(gateway).toHaveProperty('jwtService', jwtService);
+    });
+
+    it('should return a gateway with refreshTokenOptions', () => {
+      Gateway = createAuthGateway(
+        UserEntity,
+        { loginField, passwordField },
+        { namespace: 'auth', refreshTokenOptions: { refreshTokenField: 'nickname' as keyof UserEntity } },
+      );
+
+      expect(Gateway).toEqual(expect.any(Function));
+      expect(Gateway.name).toBe('AuthGateway');
     });
   });
 });
