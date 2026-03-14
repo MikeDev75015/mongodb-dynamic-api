@@ -32,7 +32,7 @@ function getMixinData<Entity extends BaseEntity>(
   description: string;
   isPublic: boolean;
   abilityPredicate: AbilityPredicate<Entity>;
-  event?: string;
+  event: string;
 } {
   const displayedName = getDisplayedName(apiTag,  entity.name, subPath);
 
@@ -50,13 +50,15 @@ function getMixinData<Entity extends BaseEntity>(
     routeType,
   );
 
+  const event = eventName ?? kebabCase(`${routeType}/${displayedName}`);
+
   return {
     routeType,
     displayedName,
     description,
     isPublic,
     abilityPredicate,
-    ...(isGateway && { event: eventName ?? kebabCase(`${routeType}/${displayedName}`) }),
+    event,
   };
 }
 
