@@ -1,7 +1,16 @@
 import { createMock } from '@golevelup/ts-jest';
-import { Model } from 'mongoose';
+import { Model, Query } from 'mongoose';
 
-const buildModelMock = <T = any>({
+type LeanQueryMock<T> = {
+  exec: jest.Mock<Promise<T>>;
+  lean: () => { exec: jest.Mock<Promise<T>> };
+};
+
+type ExecQueryMock<T> = {
+  exec: jest.Mock<Promise<T>>;
+};
+
+const buildModelMock = <T = unknown>({
   create,
   find,
   findOne,
@@ -11,14 +20,14 @@ const buildModelMock = <T = any>({
   deleteOne,
   updateOne,
 }: {
-  create?: any[];
-  find?: any[][];
-  findOne?: any[];
-  findOneAndReplace?: any[];
-  findOneAndUpdate?: any[];
-  deleteMany?: any[];
-  deleteOne?: any[];
-  updateOne?: any[];
+  create?: T[];
+  find?: T[][];
+  findOne?: T[];
+  findOneAndReplace?: T[];
+  findOneAndUpdate?: T[];
+  deleteMany?: unknown[];
+  deleteOne?: unknown[];
+  updateOne?: unknown[];
 } = {}) => {
   const exec = jest.fn();
   const lean = jest.fn(() => ({ exec }));
@@ -37,117 +46,117 @@ const buildModelMock = <T = any>({
   if (create?.length) {
     create.forEach((c, i) =>
       i === create.length - 1
-        ? modelMock.create.mockResolvedValue(c)
-        : modelMock.create.mockResolvedValueOnce(c),
+        ? modelMock.create.mockResolvedValue(c as unknown as never)
+        : modelMock.create.mockResolvedValueOnce(c as unknown as never),
     );
   }
 
   if (find?.length) {
     find.forEach((f, i) => {
-      const value = {
+      const value: LeanQueryMock<T[]> = {
         exec: jest.fn(() => Promise.resolve(f)),
         lean: () => ({
           exec: jest.fn(() => Promise.resolve(f)),
         }),
-      } as any;
+      };
 
       if (i === find.length - 1) {
-        modelMock.find.mockReturnValue(value);
+        modelMock.find.mockReturnValue(value as unknown as Query<unknown[], unknown, object, T, 'find', object>);
       } else {
-        modelMock.find.mockReturnValueOnce(value);
+        modelMock.find.mockReturnValueOnce(value as unknown as Query<unknown[], unknown, object, T, 'find', object>);
       }
     });
   }
 
   if (findOne?.length) {
     findOne.forEach((f, i) => {
-      const value = {
+      const value: LeanQueryMock<T> = {
         exec: jest.fn(() => Promise.resolve(f)),
         lean: () => ({
           exec: jest.fn(() => Promise.resolve(f)),
         }),
-      } as any;
+      };
 
       if (i === findOne.length - 1) {
-        modelMock.findOne.mockReturnValue(value);
+        modelMock.findOne.mockReturnValue(value as unknown as Query<unknown, unknown, object, T, 'findOne', object>);
       } else {
-        modelMock.findOne.mockReturnValueOnce(value);
+        modelMock.findOne.mockReturnValueOnce(value as unknown as Query<unknown, unknown, object, T, 'findOne', object>);
       }
     });
   }
 
   if (findOneAndReplace?.length) {
     findOneAndReplace.forEach((f, i) => {
-      const value = {
+      const value: LeanQueryMock<T> = {
         exec: jest.fn(() => Promise.resolve(f)),
         lean: () => ({
           exec: jest.fn(() => Promise.resolve(f)),
         }),
-      } as any;
+      };
 
       if (i === findOneAndReplace.length - 1) {
-        modelMock.findOneAndReplace.mockReturnValue(value);
+        modelMock.findOneAndReplace.mockReturnValue(value as unknown as Query<unknown, unknown, object, T, 'findOneAndReplace', object>);
       } else {
-        modelMock.findOneAndReplace.mockReturnValueOnce(value);
+        modelMock.findOneAndReplace.mockReturnValueOnce(value as unknown as Query<unknown, unknown, object, T, 'findOneAndReplace', object>);
       }
     });
   }
 
   if (findOneAndUpdate?.length) {
     findOneAndUpdate.forEach((f, i) => {
-      const value = {
+      const value: LeanQueryMock<T> = {
         exec: jest.fn(() => Promise.resolve(f)),
         lean: () => ({
           exec: jest.fn(() => Promise.resolve(f)),
         }),
-      } as any;
+      };
 
       if (i === findOneAndUpdate.length - 1) {
-        modelMock.findOneAndUpdate.mockReturnValue(value);
+        modelMock.findOneAndUpdate.mockReturnValue(value as unknown as Query<unknown, unknown, object, T, 'findOneAndUpdate', object>);
       } else {
-        modelMock.findOneAndUpdate.mockReturnValueOnce(value);
+        modelMock.findOneAndUpdate.mockReturnValueOnce(value as unknown as Query<unknown, unknown, object, T, 'findOneAndUpdate', object>);
       }
     });
   }
 
   if (deleteOne?.length) {
     deleteOne.forEach((d, i) => {
-      const value = {
+      const value: ExecQueryMock<unknown> = {
         exec: jest.fn(() => Promise.resolve(d)),
-      } as any;
+      };
 
       if (i === deleteOne.length - 1) {
-        modelMock.deleteOne.mockReturnValue(value);
+        modelMock.deleteOne.mockReturnValue(value as unknown as ReturnType<Model<T>['deleteOne']>);
       } else {
-        modelMock.deleteOne.mockReturnValueOnce(value);
+        modelMock.deleteOne.mockReturnValueOnce(value as unknown as ReturnType<Model<T>['deleteOne']>);
       }
     });
   }
 
   if (deleteMany?.length) {
     deleteMany.forEach((d, i) => {
-      const value = {
+      const value: ExecQueryMock<unknown> = {
         exec: jest.fn(() => Promise.resolve(d)),
-      } as any;
+      };
 
       if (i === deleteMany.length - 1) {
-        modelMock.deleteMany.mockReturnValue(value);
+        modelMock.deleteMany.mockReturnValue(value as unknown as ReturnType<Model<T>['deleteMany']>);
       } else {
-        modelMock.deleteMany.mockReturnValueOnce(value);
+        modelMock.deleteMany.mockReturnValueOnce(value as unknown as ReturnType<Model<T>['deleteMany']>);
       }
     });
   }
 
   if (updateOne?.length) {
     updateOne.forEach((u, i) => {
-      const value = {
+      const value: ExecQueryMock<unknown> = {
         exec: jest.fn(() => Promise.resolve(u)),
-      } as any;
+      };
 
       if (i === updateOne.length - 1) {
-        modelMock.updateOne.mockReturnValue(value);
+        modelMock.updateOne.mockReturnValue(value as unknown as ReturnType<Model<T>['updateOne']>);
       } else {
-        modelMock.updateOne.mockReturnValueOnce(value);
+        modelMock.updateOne.mockReturnValueOnce(value as unknown as ReturnType<Model<T>['updateOne']>);
       }
     });
   }
