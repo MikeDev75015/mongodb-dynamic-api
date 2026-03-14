@@ -372,6 +372,42 @@ describe('AuthControllerMixin', () => {
           expect.objectContaining({ enabled: true }),
         );
       });
+
+      it('should use custom eventName for getAccount broadcast', async () => {
+        const AuthController = AuthControllerMixin(
+          TestEntity,
+          { loginField: 'loginField', passwordField: 'passwordField' },
+          undefined,
+          undefined,
+          undefined,
+          { broadcast: { enabled: true, eventName: 'custom-get-account', fields: ['id'] } },
+        );
+        const controller = new AuthController(service, broadcastService, jwtService);
+
+        await controller.getAccount({ user: fakeUser });
+
+        expect(broadcastService.broadcastFromHttp).toHaveBeenCalledWith(
+          'custom-get-account',
+          expect.any(Array),
+          expect.any(Object),
+        );
+      });
+
+      it('should not broadcast getAccount when broadcast config is not set', async () => {
+        const AuthController = AuthControllerMixin(
+          TestEntity,
+          { loginField: 'loginField', passwordField: 'passwordField' },
+          undefined,
+          undefined,
+          undefined,
+          {},
+        );
+        const controller = new AuthController(service, broadcastService, jwtService);
+
+        await controller.getAccount({ user: fakeUser });
+
+        expect(broadcastService.broadcastFromHttp).not.toHaveBeenCalled();
+      });
     });
 
     describe('updateAccount broadcast', () => {
@@ -392,6 +428,59 @@ describe('AuthControllerMixin', () => {
           [{ id: 'user-id', loginField: 'test@test.co' }],
           expect.objectContaining({ enabled: true }),
         );
+      });
+
+      it('should broadcast all updated account fields when no fields specified', async () => {
+        const AuthController = AuthControllerMixin(
+          TestEntity,
+          { loginField: 'loginField', passwordField: 'passwordField' },
+          undefined,
+          undefined,
+          { broadcast: { enabled: true } },
+        );
+        const controller = new AuthController(service, broadcastService, jwtService);
+
+        await controller.updateAccount({ user: fakeUser }, {});
+
+        expect(broadcastService.broadcastFromHttp).toHaveBeenCalledWith(
+          'auth-update-account-broadcast',
+          [fakeAccount],
+          expect.objectContaining({ enabled: true }),
+        );
+      });
+
+      it('should use custom eventName for updateAccount broadcast', async () => {
+        const AuthController = AuthControllerMixin(
+          TestEntity,
+          { loginField: 'loginField', passwordField: 'passwordField' },
+          undefined,
+          undefined,
+          { broadcast: { enabled: true, eventName: 'custom-update-account', fields: ['id'] } },
+        );
+        const controller = new AuthController(service, broadcastService, jwtService);
+
+        await controller.updateAccount({ user: fakeUser }, {});
+
+        expect(broadcastService.broadcastFromHttp).toHaveBeenCalledWith(
+          'custom-update-account',
+          expect.any(Array),
+          expect.any(Object),
+        );
+      });
+
+      it('should not broadcast updateAccount when broadcast config is not set', async () => {
+        const AuthController = AuthControllerMixin(
+          TestEntity,
+          { loginField: 'loginField', passwordField: 'passwordField' },
+          undefined,
+          undefined,
+          {},
+        );
+        const controller = new AuthController(service, broadcastService, jwtService);
+
+        await controller.updateAccount({ user: fakeUser }, {});
+
+        expect(broadcastService.broadcastFromHttp).not.toHaveBeenCalled();
       });
     });
   });
