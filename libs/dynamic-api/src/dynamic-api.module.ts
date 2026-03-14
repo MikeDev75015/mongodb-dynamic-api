@@ -4,45 +4,15 @@ import { APP_GUARD, APP_INTERCEPTOR, Reflector } from '@nestjs/core';
 import { HttpAdapterHost } from '@nestjs/core/helpers/http-adapter-host';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Cache } from 'cache-manager';
+import { createDynamicApiBroadcastGateway } from './gateways';
 import { DynamicApiJwtAuthGuard } from './guards';
-import {
-  buildSchemaFromEntity,
-  getDefaultRouteDescription,
-  initializeConfigFromOptions,
-  isValidVersion,
-} from './helpers';
+import { buildSchemaFromEntity, getDefaultRouteDescription, initializeConfigFromOptions, isValidVersion } from './helpers';
 import { DynamicApiCacheInterceptor } from './interceptors';
-import {
-  DYNAMIC_API_GLOBAL_STATE,
-  DynamicApiCacheOptions,
-  DynamicApiForFeatureOptions,
-  DynamicApiForRootOptions,
-  DynamicApiGlobalState,
-  DynamicAPIRouteConfig,
-  DynamicApiWebSocketOptions,
-  GatewayOptions,
-  RouteModule,
-  RoutesConfig,
-  RouteType,
-} from './interfaces';
+import { DYNAMIC_API_GLOBAL_STATE, DynamicApiCacheOptions, DynamicApiForFeatureOptions, DynamicApiForRootOptions, DynamicApiGlobalState, DynamicAPIRouteConfig, DynamicApiWebSocketOptions, GatewayOptions, RouteModule, RoutesConfig, RouteType } from './interfaces';
 import { BaseEntity } from './models';
 import { AuthModule, DynamicApiAuthOptions, DynamicApiConfigModule } from './modules';
-import {
-  AggregateModule, CreateManyModule,
-  CreateOneModule,
-  DeleteManyModule,
-  DeleteOneModule,
-  DuplicateManyModule,
-  DuplicateOneModule,
-  GetManyModule,
-  GetOneModule,
-  ReplaceOneModule,
-  UpdateManyModule,
-  UpdateOneModule,
-} from './routes';
-import { DynamicApiGlobalStateService } from './services';
-import { DynamicApiBroadcastService } from './services';
-import { createDynamicApiBroadcastGateway } from './gateways';
+import { AggregateModule, CreateManyModule, CreateOneModule, DeleteManyModule, DeleteOneModule, DuplicateManyModule, DuplicateOneModule, GetManyModule, GetOneModule, ReplaceOneModule, UpdateManyModule, UpdateOneModule } from './routes';
+import { DynamicApiBroadcastService, DynamicApiGlobalStateService } from './services';
 
 /**
  * DynamicApiModule is a module that provides dynamic API functionality.
@@ -83,7 +53,15 @@ export class DynamicApiModule {
 
     this.state.set([
       'partial',
-      this.buildStateFromOptions(uri, useGlobalCache, cacheOptions, useAuth, routesConfig, webSocket, broadcastGatewayOptions),
+      this.buildStateFromOptions(
+        uri,
+        useGlobalCache,
+        cacheOptions,
+        useAuth,
+        routesConfig,
+        webSocket,
+        broadcastGatewayOptions,
+      ),
     ]);
 
     return {
@@ -239,14 +217,16 @@ export class DynamicApiModule {
                 return new DynamicApiJwtAuthGuard(reflector, state);
               },
             },
-            ...(routes.some((r) => r.broadcast) ? [
-              DynamicApiBroadcastService,
-              createDynamicApiBroadcastGateway(
-                this.state.get<GatewayOptions>('broadcastGatewayOptions')
-                ?? this.state.get<GatewayOptions>('gatewayOptions')
-                ?? {},
-              ),
-            ] : []),
+            ...(
+              routes.some((r) => r.broadcast) ? [
+                DynamicApiBroadcastService,
+                createDynamicApiBroadcastGateway(
+                  this.state.get<GatewayOptions>('broadcastGatewayOptions')
+                  ?? this.state.get<GatewayOptions>('gatewayOptions')
+                  ?? {},
+                ),
+              ] : []
+            ),
           ],
         };
 
@@ -263,6 +243,7 @@ export class DynamicApiModule {
    * @param {DynamicApiAuthOptions} useAuth - The auth options.
    * @param routesConfig - The route's configurations.
    * @param webSocket - The web socket options.
+   * @param broadcastGatewayOptions
    * @returns {{ initialized: boolean; isGlobalCacheEnabled: boolean }} - The built state.
    */
   private static buildStateFromOptions(
@@ -304,7 +285,9 @@ export class DynamicApiModule {
         } : {}
       ),
       gatewayOptions: initializeConfigFromOptions(webSocket),
-      ...(broadcastGatewayOptions ? { broadcastGatewayOptions } : {}),
+      ...(
+        broadcastGatewayOptions ? { broadcastGatewayOptions } : {}
+      ),
     };
   }
 
