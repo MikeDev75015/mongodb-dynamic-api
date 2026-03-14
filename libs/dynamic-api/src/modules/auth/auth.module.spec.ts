@@ -12,7 +12,7 @@ import * as AuthHelpers from './auth.helper';
 import { authGatewayProviderName } from './auth.helper';
 import { AuthModule } from './auth.module';
 import { DynamicApiAuthOptions } from './interfaces';
-import { JwtStrategy } from './strategies';
+import { JwtRefreshStrategy, JwtStrategy } from './strategies';
 
 jest.mock(
   '@nestjs/mongoose',
@@ -70,7 +70,7 @@ jest.mock(
 jest.mock(
   './strategies',
   () => (
-    { JwtStrategy: jest.fn() }
+    { JwtStrategy: jest.fn(), JwtRefreshStrategy: jest.fn() }
   ),
 );
 
@@ -191,6 +191,7 @@ describe('AuthModule', () => {
           undefined,
           undefined,
           { additionalFieldsToExclude: [] },
+          { useInterceptors: [], refreshTokenField: undefined, useCookie: false },
         );
 
         expect(spyCreateAuthServiceProvider).toHaveBeenCalledTimes(1);
@@ -205,6 +206,7 @@ describe('AuthModule', () => {
           { additionalFields: [], protected: false },
           undefined,
           { additionalFieldsToExclude: [] },
+          { useInterceptors: [], refreshTokenField: undefined, useCookie: false },
         );
 
         expect(spyCreateLocalStrategyProvider).toHaveBeenCalledTimes(1);
@@ -226,7 +228,7 @@ describe('AuthModule', () => {
         .toHaveBeenCalledWith({
           global: true,
           secret: 'dynamic-api-jwt-secret',
-          signOptions: { expiresIn: '1d' },
+          signOptions: { expiresIn: '15m' },
         });
       });
 
@@ -235,6 +237,7 @@ describe('AuthModule', () => {
           AuthServiceProvider,
           LocalStrategyProvider,
           JwtStrategy,
+          JwtRefreshStrategy,
           BcryptService,
         ]);
       });
@@ -262,6 +265,7 @@ describe('AuthModule', () => {
           fullOptions.validationPipeOptions,
           fullOptions.resetPassword,
           fullOptions.updateAccount,
+          fullOptions.refreshToken,
         );
 
         expect(spyCreateAuthServiceProvider).toHaveBeenCalledTimes(1);
@@ -272,6 +276,7 @@ describe('AuthModule', () => {
           fullOptions.register,
           fullOptions.resetPassword,
           fullOptions.updateAccount,
+          fullOptions.refreshToken,
         );
 
         expect(spyCreateLocalStrategyProvider).toHaveBeenCalledTimes(1);
@@ -290,6 +295,7 @@ describe('AuthModule', () => {
           fullOptions.resetPassword,
           fullOptions.updateAccount,
           { ...fakeGatewayOptions, validationPipeOptions: fullOptions.validationPipeOptions },
+          fullOptions.refreshToken,
         );
       });
 
@@ -318,6 +324,7 @@ describe('AuthModule', () => {
           AuthServiceProvider,
           LocalStrategyProvider,
           JwtStrategy,
+          JwtRefreshStrategy,
           BcryptService,
           {
             provide: authGatewayProviderName,

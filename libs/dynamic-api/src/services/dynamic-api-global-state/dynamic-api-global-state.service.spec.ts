@@ -11,6 +11,9 @@ describe('DynamicApiGlobalStateService', () => {
 
     expect(DynamicApiGlobalStateService['_']).toStrictEqual(service['defaultGlobalState']);
     expect(DynamicApiGlobalStateService['_'].jwtSecret).toBeUndefined();
+    expect(DynamicApiGlobalStateService['_'].jwtRefreshTokenExpiresIn).toBeUndefined();
+    expect(DynamicApiGlobalStateService['_'].jwtRefreshSecret).toBeUndefined();
+    expect(DynamicApiGlobalStateService['_'].jwtRefreshUseCookie).toBeUndefined();
   });
 
   it('should init with initial values', () => {
