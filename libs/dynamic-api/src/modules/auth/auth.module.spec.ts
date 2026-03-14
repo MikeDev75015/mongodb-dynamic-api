@@ -183,15 +183,14 @@ describe('AuthModule', () => {
             passwordField: 'password',
             additionalFields: [],
           },
-          { useInterceptors: [] },
           {
-            additionalFields: [],
-            protected: false,
+            getAccountOptions: { useInterceptors: [] },
+            registerOptions: { additionalFields: [], protected: false },
+            validationPipeOptions: undefined,
+            resetPasswordOptions: undefined,
+            updateAccountOptions: { additionalFieldsToExclude: [] },
+            refreshTokenOptions: { useInterceptors: [], refreshTokenField: undefined, useCookie: false },
           },
-          undefined,
-          undefined,
-          { additionalFieldsToExclude: [] },
-          { useInterceptors: [], refreshTokenField: undefined, useCookie: false },
         );
 
         expect(spyCreateAuthServiceProvider).toHaveBeenCalledTimes(1);
@@ -260,12 +259,14 @@ describe('AuthModule', () => {
         expect(spyCreateAuthController).toHaveBeenCalledWith(
           UserEntity,
           fullOptions.login,
-          fullOptions.getAccount,
-          fullOptions.register,
-          fullOptions.validationPipeOptions,
-          fullOptions.resetPassword,
-          fullOptions.updateAccount,
-          fullOptions.refreshToken,
+          {
+            getAccountOptions: fullOptions.getAccount,
+            registerOptions: fullOptions.register,
+            validationPipeOptions: fullOptions.validationPipeOptions,
+            resetPasswordOptions: fullOptions.resetPassword,
+            updateAccountOptions: fullOptions.updateAccount,
+            refreshTokenOptions: fullOptions.refreshToken,
+          },
         );
 
         expect(spyCreateAuthServiceProvider).toHaveBeenCalledTimes(1);
@@ -290,12 +291,15 @@ describe('AuthModule', () => {
         expect(spyCreateAuthGateway).toHaveBeenCalledWith(
           UserEntity,
           fullOptions.login,
-          fullOptions.getAccount,
-          fullOptions.register,
-          fullOptions.resetPassword,
-          fullOptions.updateAccount,
-          { ...fakeGatewayOptions, validationPipeOptions: fullOptions.validationPipeOptions },
-          fullOptions.refreshToken,
+          {
+            ...fakeGatewayOptions,
+            validationPipeOptions: fullOptions.validationPipeOptions,
+            getAccountOptions: fullOptions.getAccount,
+            registerOptions: fullOptions.register,
+            resetPasswordOptions: fullOptions.resetPassword,
+            updateAccountOptions: fullOptions.updateAccount,
+            refreshTokenOptions: fullOptions.refreshToken,
+          },
         );
       });
 
