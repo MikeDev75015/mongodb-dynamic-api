@@ -150,6 +150,24 @@ describe('AuthControllerMixin', () => {
 
       expect(service.login).toHaveBeenCalledWith(user);
     });
+
+    it('should set cookie and return body without refreshToken when useCookie is true', async () => {
+      const AuthController = AuthControllerMixin(
+        TestEntity,
+        { loginField: 'loginField', passwordField: 'passwordField' },
+        undefined, undefined, undefined, undefined,
+        { useCookie: true },
+      );
+      const controller = new AuthController(service);
+      const user = new TestEntity();
+      const fakeRes = { cookie: jest.fn() };
+      service.login.mockResolvedValueOnce({ accessToken: 'at', refreshToken: 'rt' });
+
+      const result = await controller.login({ user }, {}, fakeRes as any);
+
+      expect(fakeRes.cookie).toHaveBeenCalledWith('refreshToken', 'rt', expect.objectContaining({ httpOnly: true }));
+      expect(result).toEqual({ accessToken: 'at' });
+    });
   });
 
   describe('register', () => {
@@ -169,6 +187,23 @@ describe('AuthControllerMixin', () => {
       await controller.register({ user } as any, fakeRes as any);
 
       expect(service.register).toHaveBeenCalledWith({ user });
+    });
+
+    it('should set cookie and return body without refreshToken when useCookie is true', async () => {
+      const AuthController = AuthControllerMixin(
+        TestEntity,
+        { loginField: 'loginField', passwordField: 'passwordField' },
+        undefined, undefined, undefined, undefined,
+        { useCookie: true },
+      );
+      const controller = new AuthController(service);
+      const fakeRes = { cookie: jest.fn() };
+      service.register.mockResolvedValueOnce({ accessToken: 'at', refreshToken: 'rt' });
+
+      const result = await controller.register({} as any, fakeRes as any);
+
+      expect(fakeRes.cookie).toHaveBeenCalledWith('refreshToken', 'rt', expect.objectContaining({ httpOnly: true }));
+      expect(result).toEqual({ accessToken: 'at' });
     });
   });
 
@@ -422,6 +457,25 @@ describe('AuthControllerMixin', () => {
         await controller.register({} as any, fakeRes as any);
 
         expect(broadcastService.broadcastFromHttp).not.toHaveBeenCalled();
+      });
+
+      it('should broadcast with empty payload when jwtService.decode returns null', async () => {
+        const AuthController = AuthControllerMixin(
+          TestEntity,
+          { loginField: 'loginField', passwordField: 'passwordField' },
+          { broadcast: { enabled: true } },
+        );
+        const controller = new AuthController(service, broadcastService, jwtService);
+        const fakeRes = { cookie: jest.fn() };
+        jwtService.decode.mockReturnValueOnce(null);
+
+        await controller.register({} as any, fakeRes as any);
+
+        expect(broadcastService.broadcastFromHttp).toHaveBeenCalledWith(
+          'auth-register-broadcast',
+          [{}],
+          expect.objectContaining({ enabled: true }),
+        );
       });
     });
 
