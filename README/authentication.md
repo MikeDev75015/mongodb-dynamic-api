@@ -4,7 +4,9 @@
 
 # Authentication (JWT)
 
-JWT authentication is built-in and provides secure, token-based authentication for your API. Configure the `useAuth` property in `DynamicApiModule.forRoot` to enable authentication endpoints.
+JWT authentication is built-in and provides secure, **dual-token** (access + refresh) authentication for your API. Configure the `useAuth` property in `DynamicApiModule.forRoot` to enable authentication endpoints.
+
+> **⚠️ v4 Breaking Changes:** The login/register response now returns `{ accessToken, refreshToken }`. The default access-token expiry changed from `'1d'` to `'15m'`. Two new endpoints are available: `POST /auth/refresh-token` and `POST /auth/logout`. See the [Migration Guide](#migration-guide-v3--v4) for details.
 
 ## 📋 Table of Contents
 
@@ -23,6 +25,10 @@ JWT authentication is built-in and provides secure, token-based authentication f
   - [Validation Options](#validation-options)
   - [WebSocket Support](#websocket-support)
   - [Broadcasting Auth Events](#broadcasting-auth-events)
+  - [Refresh Token Configuration](#refresh-token-configuration) ⭐ *New in v4*
+  - [Cookie Mode](#cookie-mode) ⭐ *New in v4*
+  - [Server-Side Token Revocation](#server-side-token-revocation) ⭐ *New in v4*
+- [Migration Guide (v3 → v4)](#migration-guide-v3--v4) ⚠️ *Breaking changes*
 - [Best Practices](#best-practices)
 - [Examples](#examples)
 
@@ -103,7 +109,15 @@ DynamicApiModule.forRoot('mongodb-uri', {
     // JWT Configuration
     jwt: {
       secret: string;
-      expiresIn?: string | number;
+      expiresIn?: string | number;        // Default: '15m' (⚠️ changed from '1d' in v4)
+      refreshSecret?: string;             // Secret for signing refresh tokens (falls back to `secret` if omitted)
+    },
+
+    // Refresh Token Configuration (v4)
+    refreshToken?: {
+      refreshTokenField?: keyof Entity;        // Entity field to store the bcrypt hash of the refresh token
+      useCookie?: boolean;                     // Send/read refresh token via httpOnly cookie (default: false)
+      refreshTokenExpiresIn?: string | number; // Default: '7d'
     },
     
     // Login Configuration
@@ -210,7 +224,7 @@ DynamicApiModule.forRoot('mongodb-uri', {
     // JWT configuration
     jwt: {
       secret: process.env.JWT_SECRET || 'your-secret-key',
-      expiresIn: '7d', // Token expiration
+      expiresIn: '15m', // Token expiration (v4 default; was '1d' in v3)
     },
     // Customize login
     login: {
@@ -242,7 +256,7 @@ DynamicApiModule.forRoot('mongodb-uri', {
 
 ## Generated Endpoints
 
-Authentication automatically generates **five endpoints**:
+Authentication automatically generates **eight endpoints**:
 
 ### 1. Register a New User
 
@@ -263,16 +277,12 @@ Register a new user account.
 **Response (201 Created):**
 ```json
 {
-  "id": "507f1f77bcf86cd799439011",
-  "email": "john.doe@example.com",
-  "name": "John Doe",
-  "role": "user",
-  "createdAt": "2026-02-21T10:30:00.000Z",
-  "updatedAt": "2026-02-21T10:30:00.000Z"
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
 
-**Note:** Password is automatically hashed before saving.
+**Note:** Password is automatically hashed before saving. The response returns a token pair — the `accessToken` is short-lived (`'15m'` by default); use the `refreshToken` to obtain a new one.
 
 ### 2. Login
 
@@ -291,15 +301,12 @@ Authenticate and receive a JWT token.
 **Response (200 OK):**
 ```json
 {
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": "507f1f77bcf86cd799439011",
-    "email": "john.doe@example.com",
-    "name": "John Doe",
-    "role": "user"
-  }
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
+
+> **⚠️ v4 Breaking Change:** The response now returns `{ accessToken, refreshToken }` instead of `{ access_token, user }`. Update all clients that consume this response.
 
 **Error Response (401 Unauthorized):**
 ```json
@@ -397,6 +404,62 @@ Change password using the reset token.
 **Response (204 No Content)**
 
 **Note:** Password reset is optional. It's only enabled if you configure `resetPassword` options. You need to implement `resetPasswordCallback` to send the reset token (e.g., via email).
+
+---
+
+### 6. Refresh Token ⭐ *New in v4*
+
+**POST** `/auth/refresh-token`
+
+Obtain a new `{ accessToken, refreshToken }` pair using a valid refresh token. Protected by `JwtRefreshGuard`.
+
+**Option A — Bearer header (default, `useCookie: false`):**
+```http
+POST /auth/refresh-token
+Authorization: Bearer <refreshToken>
+```
+
+**Option B — httpOnly cookie (`useCookie: true`):**
+```http
+POST /auth/refresh-token
+Cookie: refreshToken=<refreshToken>
+```
+
+**Response (200 OK):**
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**Error Response (401 Unauthorized)** — when the refresh token is invalid, expired, or has been revoked server-side.
+
+> **Note:** If `refreshTokenField` is configured, each call rotates the stored hash, effectively invalidating any previously issued refresh token.
+
+---
+
+### 7. Logout ⭐ *New in v4*
+
+**POST** `/auth/logout`
+
+Invalidates the current refresh token server-side (requires `refreshTokenField` to be configured). Protected by `JwtRefreshGuard`.
+
+**Option A — Bearer header:**
+```http
+POST /auth/logout
+Authorization: Bearer <refreshToken>
+```
+
+**Option B — httpOnly cookie (`useCookie: true`):**
+```http
+POST /auth/logout
+Cookie: refreshToken=<refreshToken>
+```
+
+**Response (204 No Content)**
+
+> **Note:** Without `refreshTokenField`, the endpoint still returns `204` but **cannot** invalidate tokens server-side — a warning is logged at startup. After a successful logout with `refreshTokenField` configured, any call to `/auth/refresh-token` using the invalidated token returns `401 Unauthorized`.
 
 ---
 
@@ -891,7 +954,7 @@ The data included in the broadcast payload depends on the action:
 | **getAccount** | The `account` object returned by the service |
 | **updateAccount** | The updated `account` object returned by the service |
 
-> ⚠️ **Important for `register`**: Because the register route returns only an `accessToken` (not the full user entity), the broadcast data is extracted from the **JWT payload**. Only fields embedded in the token are available: `id`, your `loginField` (e.g., `email`), and any `login.additionalFields` you configured. Use `fields` to restrict which of these are broadcast.
+> ⚠️ **Important for `register`**: Because the register route returns `accessToken` and `refreshToken` (not the full user entity), the broadcast data is extracted from the **JWT payload** of the `accessToken`. Only fields embedded in the token are available: `id`, your `loginField` (e.g., `email`), and any `login.additionalFields` you configured. Use `fields` to restrict which of these are broadcast.
 
 ### Filtering Fields with `fields`
 
@@ -1067,6 +1130,183 @@ socket.on('admin-logged-in', (data) => {
 
 ---
 
+### Refresh Token Configuration ⭐ *New in v4*
+
+Configure the refresh token behaviour via the `refreshToken` option in `useAuth`:
+
+```typescript
+DynamicApiModule.forRoot('mongodb-uri', {
+  useAuth: {
+    userEntity: User,
+    jwt: {
+      secret: process.env.JWT_SECRET,
+      expiresIn: '15m',                         // Short-lived access token (v4 default)
+      refreshSecret: process.env.JWT_REFRESH_SECRET, // Optional — falls back to `secret` if omitted
+    },
+    refreshToken: {
+      refreshTokenField: 'refreshToken',         // Entity field that stores the bcrypt hash
+      useCookie: false,                          // false = Bearer header (default), true = httpOnly cookie
+      refreshTokenExpiresIn: '7d',               // v4 default
+    },
+  },
+})
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `refreshTokenField` | `keyof Entity` | — | Field on the entity where the bcrypt hash of the refresh token is stored. Required for server-side revocation. |
+| `useCookie` | `boolean` | `false` | When `true`, the refresh token is transported via an httpOnly, SameSite=Strict cookie named `refreshToken` instead of the response body / `Authorization` header. |
+| `refreshTokenExpiresIn` | `string \| number` | `'7d'` | Expiration duration for the refresh token. |
+
+---
+
+### Cookie Mode ⭐ *New in v4*
+
+Set `useCookie: true` to transport the refresh token exclusively via an **httpOnly** cookie, which prevents JavaScript access and protects against XSS.
+
+```typescript
+DynamicApiModule.forRoot('mongodb-uri', {
+  useAuth: {
+    userEntity: User,
+    jwt: { secret: process.env.JWT_SECRET },
+    refreshToken: {
+      useCookie: true,
+      refreshTokenField: 'refreshToken',
+    },
+  },
+})
+```
+
+**Behaviour when `useCookie: true`:**
+- The `refreshToken` is **never** included in the response body on login, register, or refresh-token calls.
+- Instead, the server sets an httpOnly, secure, `SameSite=Strict` cookie named `refreshToken`.
+- `/auth/refresh-token` and `/auth/logout` read and clear this cookie automatically.
+- `cookie-parser` middleware is registered **automatically** on all routes — no manual setup required.
+
+> **Note:** `useCookie: false` (default) sends the refresh token in the JSON response body and expects it as a `Bearer` token in the `Authorization` header for `/auth/refresh-token` and `/auth/logout`.
+
+---
+
+### Server-Side Token Revocation ⭐ *New in v4*
+
+To enable server-side revocation (strongly recommended), add a nullable field to your user entity and reference it via `refreshTokenField`:
+
+**Step 1 — Add the field to your entity:**
+
+```typescript
+// src/users/user.entity.ts
+import { Prop, Schema } from '@nestjs/mongoose';
+import { BaseEntity } from 'mongodb-dynamic-api';
+
+@Schema({ collection: 'users' })
+export class User extends BaseEntity {
+  @Prop({ type: String, required: true, unique: true })
+  email: string;
+
+  @Prop({ type: String, required: true })
+  password: string;
+
+  // Stores bcrypt hash of the current refresh token
+  @Prop({ type: String, default: null })
+  refreshToken: string | null;
+}
+```
+
+**Step 2 — Configure `refreshTokenField`:**
+
+```typescript
+DynamicApiModule.forRoot('mongodb-uri', {
+  useAuth: {
+    userEntity: User,
+    jwt: {
+      secret: process.env.JWT_SECRET,
+      refreshSecret: process.env.JWT_REFRESH_SECRET, // Optional — falls back to `secret` if omitted
+    },
+    refreshToken: {
+      refreshTokenField: 'refreshToken',
+    },
+  },
+})
+```
+
+**How it works:**
+1. On login / register / refresh-token → the new refresh token is hashed (bcrypt) and stored in `user.refreshToken`.
+2. On `/auth/refresh-token` → the stored hash is compared with the provided token. Mismatch = `401`.
+3. On `/auth/logout` → `user.refreshToken` is set to `null`, instantly invalidating any existing tokens.
+4. Each successful refresh **rotates** the token, revoking the previous one.
+
+> Without `refreshTokenField`, the server cannot compare or revoke tokens. A warning is logged at startup when `POST /auth/logout` is called without this field configured.
+
+---
+
+## Migration Guide (v3 → v4) ⚠️
+
+### 1. Login / Register response shape changed
+
+**Before (v3):**
+```json
+{ "accessToken": "eyJ..." }
+```
+
+**After (v4):**
+```json
+{ "accessToken": "eyJ...", "refreshToken": "eyJ..." }
+```
+
+Update all clients that consume the login or register response to handle the new `refreshToken` field.
+
+---
+
+### 2. `/auth/refresh-token` now requires the refresh token, not the access token
+
+**Before (v3):** protected by `JwtAuthGuard` — expected a valid **access token**.
+
+**After (v4):** protected by `JwtRefreshGuard` — expects a valid **refresh token**:
+
+```http
+POST /auth/refresh-token
+Authorization: Bearer <refreshToken>
+```
+
+Or, if `useCookie: true`:
+```http
+POST /auth/refresh-token
+Cookie: refreshToken=<refreshToken>
+```
+
+---
+
+### 3. New default expiration times
+
+| Token | v3 default | v4 default |
+|-------|-----------|-----------|
+| Access token (`expiresIn`) | `'1d'` | `'15m'` |
+| Refresh token (`refreshTokenExpiresIn`) | — | `'7d'` |
+
+If your application relied on the `'1d'` access-token lifetime, set it explicitly:
+
+```typescript
+DynamicApiModule.forRoot(uri, {
+  auth: {
+    jwt: { secret: '...', expiresIn: '1d' },
+  },
+});
+```
+
+---
+
+### 4. Add `POST /auth/logout` support (optional but recommended)
+
+The new logout endpoint requires `refreshTokenField` to invalidate tokens server-side. Add a nullable field to your user entity (see [Server-Side Token Revocation](#server-side-token-revocation)).
+
+---
+
+### 5. Cookie mode (optional)
+
+If you want to switch to httpOnly cookie transport for the refresh token, set `useCookie: true` (see [Cookie Mode](#cookie-mode)). No manual `cookie-parser` setup is required.
+
+---
+
 ## Best Practices
 
 ### 1. Environment Variables
@@ -1076,13 +1316,21 @@ Always use environment variables for sensitive configuration:
 ```typescript
 // .env
 JWT_SECRET=your-very-secure-random-secret-key-here
-JWT_EXPIRES_IN=7d
+JWT_REFRESH_SECRET=another-very-secure-random-secret-key  # v4: separate refresh secret
+JWT_EXPIRES_IN=15m        # v4 default (was '1d')
+JWT_REFRESH_EXPIRES_IN=7d # v4 default
 MONGODB_URI=mongodb://localhost:27017/myapp
 
 // src/config/auth.config.ts
 export const authConfig = {
-  secret: process.env.JWT_SECRET,
-  expiresIn: process.env.JWT_EXPIRES_IN || '24h',
+  jwt: {
+    secret: process.env.JWT_SECRET,
+    expiresIn: process.env.JWT_EXPIRES_IN || '15m',
+    refreshSecret: process.env.JWT_REFRESH_SECRET, // Optional — falls back to `secret` if omitted
+  },
+  refreshToken: {
+    refreshTokenExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+  },
 };
 
 // src/app.module.ts
@@ -1091,7 +1339,8 @@ import { authConfig } from './config/auth.config';
 DynamicApiModule.forRoot(process.env.MONGODB_URI, {
   useAuth: {
     userEntity: User,
-    jwt: authConfig,
+    jwt: authConfig.jwt,
+    refreshToken: authConfig.refreshToken,
   },
 })
 ```
@@ -1147,12 +1396,18 @@ export class User extends BaseEntity {
 
 ### 4. Token Security
 
+**Access token:**
+- ✅ Use short expiration times (`'15m'` is the v4 default)
 - ✅ Use HTTPS in production
-- ✅ Set appropriate token expiration times
-- ✅ Implement token refresh mechanism
-- ✅ Store tokens securely (httpOnly cookies or secure storage)
-- ✅ Implement token revocation if needed
-- ✅ Use strong, random JWT secrets
+- ✅ Store access tokens in memory (not `localStorage`) to protect against XSS
+
+**Refresh token:**
+- ✅ Use a **separate** `refreshSecret` from your access token `secret` (falls back to `secret` if omitted — **not recommended for production**)
+- ✅ Use `useCookie: true` to transport the refresh token via httpOnly cookie (recommended)
+- ✅ Configure `refreshTokenField` to enable server-side rotation and revocation
+- ✅ Set a reasonable `refreshTokenExpiresIn` (e.g., `'7d'` or `'30d'`)
+- ✅ Always call `POST /auth/logout` on sign-out to invalidate the stored hash
+- ✅ Use strong, random secrets for both `secret` and `refreshSecret`
 
 ### 5. Rate Limiting
 
@@ -1250,6 +1505,10 @@ export class User extends BaseEntity {
   })
   @Prop({ type: Date })
   lastLoginAt?: Date;
+
+  // v4: store bcrypt hash of refresh token for server-side revocation
+  @Prop({ type: String, default: null })
+  refreshToken?: string | null;
 }
 
 // src/app.module.ts
@@ -1271,7 +1530,14 @@ import { User } from './users/user.entity';
         userEntity: User,
         jwt: {
           secret: process.env.JWT_SECRET,
-          expiresIn: '7d',
+          expiresIn: '15m',                            // v4 default (short-lived access token)
+          refreshSecret: process.env.JWT_REFRESH_SECRET, // Optional — falls back to `secret` if omitted
+        },
+        // v4: refresh token configuration
+        refreshToken: {
+          refreshTokenField: 'refreshToken',            // Store hash in user.refreshToken
+          useCookie: false,                             // or true for httpOnly cookie transport
+          refreshTokenExpiresIn: '7d',
         },
         login: {
           loginField: 'email',
@@ -1316,6 +1582,9 @@ async function bootstrap() {
   console.log('   POST /auth/register');
   console.log('   POST /auth/login');
   console.log('   GET  /auth/account');
+  console.log('   PATCH /auth/account');
+  console.log('   POST /auth/refresh-token  (v4)');
+  console.log('   POST /auth/logout         (v4)');
 }
 bootstrap();
 ```
@@ -1323,7 +1592,7 @@ bootstrap();
 ### Using Authentication in Your Application
 
 ```typescript
-// Frontend example (using fetch)
+// Frontend example (using fetch) — v4
 async function login(email: string, password: string) {
   const response = await fetch('http://localhost:3000/auth/login', {
     method: 'POST',
@@ -1336,16 +1605,55 @@ async function login(email: string, password: string) {
   const data = await response.json();
   
   if (response.ok) {
-    // Store token securely
-    localStorage.setItem('access_token', data.access_token);
-    return data.user;
+    // v4: response now returns { accessToken, refreshToken }
+    // Store tokens securely (prefer memory / httpOnly cookies over localStorage)
+    localStorage.setItem('accessToken', data.accessToken);
+    localStorage.setItem('refreshToken', data.refreshToken);
+    return data;
   } else {
     throw new Error(data.message);
   }
 }
 
+async function refreshTokens() {
+  const refreshToken = localStorage.getItem('refreshToken');
+
+  const response = await fetch('http://localhost:3000/auth/refresh-token', {
+    method: 'POST',
+    headers: {
+      // v4: use the refresh token (not the access token) in the Authorization header
+      'Authorization': `Bearer ${refreshToken}`,
+    },
+  });
+
+  if (response.ok) {
+    const data = await response.json();
+    localStorage.setItem('accessToken', data.accessToken);
+    localStorage.setItem('refreshToken', data.refreshToken);
+    return data;
+  } else {
+    // Refresh token is expired or revoked — force logout
+    logout();
+    throw new Error('Session expired. Please log in again.');
+  }
+}
+
+async function logout() {
+  const refreshToken = localStorage.getItem('refreshToken');
+
+  await fetch('http://localhost:3000/auth/logout', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${refreshToken}`,
+    },
+  });
+
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
+}
+
 async function getAccount() {
-  const token = localStorage.getItem('access_token');
+  const token = localStorage.getItem('accessToken');
   
   const response = await fetch('http://localhost:3000/auth/account', {
     headers: {
@@ -1353,11 +1661,17 @@ async function getAccount() {
     },
   });
 
+  if (response.status === 401) {
+    // Access token expired — try to refresh
+    await refreshTokens();
+    return getAccount();
+  }
+
   return response.json();
 }
 
-async function makeAuthenticatedRequest(url: string, options = {}) {
-  const token = localStorage.getItem('access_token');
+async function makeAuthenticatedRequest(url: string, options: RequestInit = {}) {
+  const token = localStorage.getItem('accessToken');
   
   return fetch(url, {
     ...options,
