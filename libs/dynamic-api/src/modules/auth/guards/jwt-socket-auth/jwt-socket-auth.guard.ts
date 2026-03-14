@@ -53,7 +53,7 @@ export class JwtSocketAuthGuard implements CanActivate {
       return user;
     } catch (e: unknown) {
       this.logger.warn('extractUserFromToken jwtService.verify error');
-      this.logger.warn(e instanceof Error ? e.message : String(e));
+      this.logger.warn(e instanceof Error ? e.message : JSON.stringify(e));
 
       throw new WsException('Unauthorized');
     }

@@ -46,7 +46,7 @@ export abstract class BaseDuplicateManyService<Entity extends BaseEntity>
 
             return { ...acc, [key]: value };
           }, {}),
-          ...partial ?? {},
+          ...partial,
         },
       )));
       const documents = await this.model.find({ _id: { $in: duplicatedList.map(({ _id }) => _id.toString()) } })
@@ -63,7 +63,7 @@ export abstract class BaseDuplicateManyService<Entity extends BaseEntity>
 
       return documents.map((d) => this.buildInstance(d));
     } catch (error: unknown) {
-      const err = error instanceof Error ? error : new Error(String(error));
+      const err = error instanceof Error ? error : new Error(JSON.stringify(error));
       this.handleMongoErrors(err, false);
       this.handleDuplicateKeyError(err);
     }

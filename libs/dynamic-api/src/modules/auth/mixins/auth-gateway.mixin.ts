@@ -220,7 +220,8 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
       const result = await this.service.register(data);
 
       if (registerBroadcastConfig) {
-        const { iat, exp, ...userPayload } = (this.jwtService.decode(result.accessToken) as Record<string, unknown>) ?? {};
+        const decoded = this.jwtService.decode(result.accessToken);
+        const { iat, exp, ...userPayload } = (decoded && typeof decoded !== 'string' ? decoded : {}) as Record<string, unknown>;
         const broadcastData = buildAuthBroadcastData(userPayload as Partial<Entity>, registerBroadcastConfig.fields);
         this.broadcastIfNeeded(
           socket,
