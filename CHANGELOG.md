@@ -1,5 +1,46 @@
 Changelog
 
+## [3.2.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v3.1.0...v3.2.0) (2026-03-14)
+
+
+### gateways
+
+* **gateways:** add DynamicApiBroadcastGateway factory to capture ws server ([24d0e74](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/24d0e748a973b6c0a5808225448c931417eac550))
+* **gateways:** remove private modifier from server and broadcastService in DynamicApiBroadcastGateway ([cc9aed6](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/cc9aed6e0b95a2f82ff6d6eac10d6d211e119249))
+
+
+### broadcast
+
+* **broadcast:** use static wsServer in DynamicApiBroadcastService to share across DI scopes, separate broadcastService provider from gateway in write modules ([d7ded07](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/d7ded072c35ed9d2680440da53143bb627936747))
+
+
+### helpers
+
+* **helpers:** always resolve event name in getMixinData for HTTP broadcast support ([8ddca98](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/8ddca9855fe3ca8fea68ed5ef19665a07e42ad62))
+
+
+### services
+
+* **services:** add DynamicApiBroadcastService for HTTP broadcast support ([f8a4bca](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/f8a4bca30b9d422407c4c7fbec22df32caeb9725))
+
+
+### routes
+
+* **routes:** declare hasBroadcast in write modules and remove from read-only modules ([543907d](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/543907d2c9178ced1eb138ad3b3b154e1134a1e7))
+* **routes:** inject optional broadcastService in 9 write-route controller mixins and helpers ([43af94a](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/43af94a4cd5b08d200732bfa97fd5357d7200531))
+
+
+### interfaces
+
+* **interfaces:** add broadcastGatewayOptions to forRoot options and global state ([e24dba1](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/e24dba1980f2b37ead56c0ff19f2e959e1911a27))
+
+
+### auth
+
+* **auth:** add DynamicApiGetAccountOptions type with callback and useInterceptors ([dc7f072](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/dc7f07215e58ffc433dc27f93b7f4f99b4ef0dd4))
+* **auth:** add useInterceptors support to getAccount on controller and gateway ([461fc4d](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/461fc4d678a42d5568035b166a41c065df2d5525))
+* **auth:** wire getAccount callback through service, module and helper ([c769e15](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/c769e1559f7b7542723c0b35caf2198143d63b0a))
+
 ## [3.1.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v3.0.1...v3.1.0) (2026-03-08)
 
 
