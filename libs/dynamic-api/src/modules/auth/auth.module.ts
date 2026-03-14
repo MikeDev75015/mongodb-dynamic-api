@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import type { StringValue } from 'ms';
 import { MongooseModule } from '@nestjs/mongoose';
 import { PassportModule } from '@nestjs/passport';
 import { DynamicApiModule } from '../../dynamic-api.module';
@@ -103,7 +104,7 @@ export class AuthModule {
         JwtModule.register({
           global: true,
           secret,
-          signOptions: { expiresIn },
+          signOptions: { expiresIn: expiresIn as number | StringValue },
         }),
       ],
       providers: [
