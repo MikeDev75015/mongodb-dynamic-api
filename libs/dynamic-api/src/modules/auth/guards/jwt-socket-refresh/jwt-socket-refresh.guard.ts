@@ -48,9 +48,9 @@ export class JwtSocketRefreshGuard implements CanActivate {
       });
 
       return user;
-    } catch (e: any) {
+    } catch (e: unknown) {
       this.logger.warn('extractUserFromToken (refresh) jwtService.verify error');
-      this.logger.warn(e.message);
+      this.logger.warn(e instanceof Error ? e.message : String(e));
 
       throw new WsException('Unauthorized');
     }

@@ -2,6 +2,7 @@ import { ExecutionContext } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
 import { DynamicApiModule } from '../../../../dynamic-api.module';
+import { ExtendedSocket } from '../../../../interfaces';
 import { JwtSocketRefreshGuard } from './jwt-socket-refresh.guard';
 
 describe('JwtSocketRefreshGuard', () => {
@@ -98,13 +99,13 @@ describe('JwtSocketRefreshGuard', () => {
   describe('getRefreshTokenFromSocket', () => {
     it('should return refreshToken from socket query', () => {
       const socket = { handshake: { query: { refreshToken: 'my-refresh-token' } } };
-      const result = guard['getRefreshTokenFromSocket'](socket as any);
+      const result = guard['getRefreshTokenFromSocket'](socket as unknown as ExtendedSocket);
       expect(result).toBe('my-refresh-token');
     });
 
     it('should throw WsException when refreshToken is missing', () => {
       const socket = { handshake: { query: {} } };
-      expect(() => guard['getRefreshTokenFromSocket'](socket as any)).toThrow(WsException);
+      expect(() => guard['getRefreshTokenFromSocket'](socket as unknown as ExtendedSocket)).toThrow(WsException);
     });
   });
 });
