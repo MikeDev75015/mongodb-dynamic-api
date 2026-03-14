@@ -92,7 +92,7 @@ describe('DynamicApiModule forRoot - POST /auth/register with register options (
       });
 
       expect(status).toBe(201);
-      expect(body).toEqual({ accessToken: expect.any(String) });
+      expect(body).toEqual({ accessToken: expect.any(String), refreshToken: expect.any(String) });
     });
   });
 
@@ -110,7 +110,7 @@ describe('DynamicApiModule forRoot - POST /auth/register with register options (
       );
 
       expect(status).toBe(201);
-      expect(body).toEqual({ accessToken: expect.any(String) });
+      expect(body).toEqual({ accessToken: expect.any(String), refreshToken: expect.any(String) });
     });
   });
 

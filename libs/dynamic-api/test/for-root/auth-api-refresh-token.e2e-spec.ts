@@ -5,9 +5,9 @@ import { DynamicApiModule } from '../../src';
 import { closeTestingApp, server } from '../e2e.setup';
 import 'dotenv/config';
 import { wait } from '../utils';
-import { createBasicUserEntity, initModule } from '../shared';
+import { createBasicUserEntity, createUserWithRefreshTokenEntity, initModule } from '../shared';
 
-describe('DynamicApiModule forRoot - POST /auth/refresh-token with refreshTokenExpiresIn (e2e)', () => {
+describe('DynamicApiModule forRoot - POST /auth/refresh-token (e2e)', () => {
   const uri = process.env.MONGO_DB_URL;
 
   beforeEach(() => {
@@ -18,10 +18,95 @@ describe('DynamicApiModule forRoot - POST /auth/refresh-token with refreshTokenE
     await closeTestingApp(mongoose.connections);
   });
 
-  describe('with jwt.refreshTokenExpiresIn configured', () => {
+  describe('with refreshTokenField configured (full rotation + DB validation)', () => {
     let app: INestApplication;
     let jwtService: JwtService;
     let accessToken: string;
+    let refreshToken: string;
+
+    beforeEach(async () => {
+      const User = createUserWithRefreshTokenEntity();
+      app = await initModule({
+        useAuth: {
+          userEntity: User,
+          jwt: {
+            secret: 'test-secret',
+            expiresIn: '2s',
+            refreshTokenExpiresIn: '20s',
+          },
+          refreshToken: {
+            refreshTokenField: 'refreshTokenHash',
+          },
+        },
+      });
+      jwtService = app.get<JwtService>(JwtService);
+
+      await server.post('/auth/register', { email: 'rotate@test.co', password: 'test' });
+      const { body } = await server.post('/auth/login', { email: 'rotate@test.co', password: 'test' });
+      accessToken = body.accessToken;
+      refreshToken = body.refreshToken;
+    });
+
+    it('should return { accessToken, refreshToken } with longer expiration', async () => {
+      const headers = { Authorization: `Bearer ${refreshToken}` };
+      const { body, status } = await server.post('/auth/refresh-token', {}, { headers });
+
+      expect(status).toBe(200);
+      expect(body).toEqual({ accessToken: expect.any(String), refreshToken: expect.any(String) });
+
+      const decoded = jwtService.decode(body.refreshToken) as { exp: number; iat: number };
+      const accessDecoded = jwtService.decode(accessToken) as { exp: number; iat: number };
+
+      expect(decoded.exp - decoded.iat).toBeGreaterThan(accessDecoded.exp - accessDecoded.iat);
+    });
+
+    it('should rotate: new refreshToken is different from old one', async () => {
+      const headers = { Authorization: `Bearer ${refreshToken}` };
+      const { body } = await server.post('/auth/refresh-token', {}, { headers });
+
+      expect(body.refreshToken).not.toBe(refreshToken);
+    });
+
+    it('should reject old refresh token after rotation (DB validation)', async () => {
+      const headers = { Authorization: `Bearer ${refreshToken}` };
+      await server.post('/auth/refresh-token', {}, { headers });
+
+      // Old token is invalidated in DB
+      const { status } = await server.post('/auth/refresh-token', {}, { headers });
+      expect(status).toBe(401);
+    });
+
+    it('should reject refresh token if no stored hash (after logout)', async () => {
+      const refreshHeaders = { Authorization: `Bearer ${refreshToken}` };
+      await server.post('/auth/logout', {}, { headers: refreshHeaders });
+
+      const { status } = await server.post('/auth/refresh-token', {}, { headers: refreshHeaders });
+      expect(status).toBe(401);
+    });
+
+    it('should still issue a valid new access token after the original access token has expired', async () => {
+      const headers = { Authorization: `Bearer ${refreshToken}` };
+
+      await wait(3000);
+
+      // Original access token is expired
+      const { status: expiredStatus } = await server.get('/auth/account', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      expect(expiredStatus).toBe(401);
+
+      // But the refresh token is still valid
+      const { body, status } = await server.post('/auth/refresh-token', {}, { headers });
+      expect(status).toBe(200);
+      expect(body.accessToken).toBeDefined();
+    }, 10000);
+  });
+
+  describe('without refreshTokenField (no DB validation, no rotation enforcement)', () => {
+    let app: INestApplication;
+    let jwtService: JwtService;
+    let accessToken: string;
+    let refreshToken: string;
 
     beforeEach(async () => {
       app = await initModule({
@@ -36,95 +121,72 @@ describe('DynamicApiModule forRoot - POST /auth/refresh-token with refreshTokenE
       });
       jwtService = app.get<JwtService>(JwtService);
 
-      await server.post('/auth/register', { email: 'refresh@test.co', password: 'test' });
-      const { body } = await server.post('/auth/login', { email: 'refresh@test.co', password: 'test' });
-      accessToken = body.accessToken;
-    });
-
-    it('should store jwtRefreshTokenExpiresIn in module state', () => {
-      expect(DynamicApiModule.state.get('jwtRefreshTokenExpiresIn')).toBe('10s');
-    });
-
-    it('should return a refresh token with longer expiration than the access token', async () => {
-      const headers = { Authorization: `Bearer ${accessToken}` };
-      const { body, status } = await server.post('/auth/refresh-token', {}, { headers });
-
-      expect(status).toBe(200);
-      expect(body).toEqual({ accessToken: expect.any(String) });
-
-      const decoded = jwtService.decode(body.accessToken) as { exp: number; iat: number };
-      const accessDecoded = jwtService.decode(accessToken) as { exp: number; iat: number };
-
-      const refreshDuration = decoded.exp - decoded.iat;
-      const accessDuration = accessDecoded.exp - accessDecoded.iat;
-
-      expect(refreshDuration).toBeGreaterThan(accessDuration);
-      expect(refreshDuration).toBeCloseTo(10, -1);
-    });
-
-    it('should still issue a valid refresh token after the access token has expired', async () => {
-      const headers = { Authorization: `Bearer ${accessToken}` };
-
-      // Get refresh token before access token expires
-      const { body: refreshBody } = await server.post('/auth/refresh-token', {}, { headers });
-      const refreshToken = refreshBody.accessToken;
-
-      // Wait for the short-lived access token to expire
-      await wait(3000);
-
-      // Original access token is expired
-      const { status: expiredStatus } = await server.get('/auth/account', {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      expect(expiredStatus).toBe(401);
-
-      // But the refresh token is still valid (10s > 3s elapsed)
-      const { body: accountBody, status: accountStatus } = await server.get('/auth/account', {
-        headers: { Authorization: `Bearer ${refreshToken}` },
-      });
-      expect(accountStatus).toBe(200);
-      expect(accountBody).toEqual({ id: expect.any(String), email: 'refresh@test.co' });
-    }, 10000);
-  });
-
-  describe('without jwt.refreshTokenExpiresIn (fallback)', () => {
-    let app: INestApplication;
-    let jwtService: JwtService;
-    let accessToken: string;
-
-    beforeEach(async () => {
-      app = await initModule({
-        useAuth: {
-          userEntity: createBasicUserEntity(),
-          jwt: {
-            secret: 'test-secret',
-            expiresIn: '1h',
-          },
-        },
-      });
-      jwtService = app.get<JwtService>(JwtService);
-
       await server.post('/auth/register', { email: 'fallback@test.co', password: 'test' });
       const { body } = await server.post('/auth/login', { email: 'fallback@test.co', password: 'test' });
       accessToken = body.accessToken;
+      refreshToken = body.refreshToken;
     });
 
-    it('should return a refresh token with same expiration as the access token', async () => {
-      const headers = { Authorization: `Bearer ${accessToken}` };
+    it('should return { accessToken, refreshToken } with longer expiration', async () => {
+      const headers = { Authorization: `Bearer ${refreshToken}` };
       const { body, status } = await server.post('/auth/refresh-token', {}, { headers });
 
       expect(status).toBe(200);
+      expect(body).toEqual({ accessToken: expect.any(String), refreshToken: expect.any(String) });
 
-      const refreshDecoded = jwtService.decode(body.accessToken) as { exp: number; iat: number };
+      const decoded = jwtService.decode(body.refreshToken) as { exp: number; iat: number };
       const accessDecoded = jwtService.decode(accessToken) as { exp: number; iat: number };
 
-      const refreshDuration = refreshDecoded.exp - refreshDecoded.iat;
-      const accessDuration = accessDecoded.exp - accessDecoded.iat;
+      expect(decoded.exp - decoded.iat).toBeGreaterThan(accessDecoded.exp - accessDecoded.iat);
+    });
 
-      expect(refreshDuration).toBeCloseTo(accessDuration, -1);
+    it('should allow reuse of old refresh token (no server-side invalidation)', async () => {
+      const headers = { Authorization: `Bearer ${refreshToken}` };
+      await server.post('/auth/refresh-token', {}, { headers });
+
+      // Without refreshTokenField, old token still works
+      const { status } = await server.post('/auth/refresh-token', {}, { headers });
+      expect(status).toBe(200);
+    });
+  });
+
+  describe('with custom refreshSecret', () => {
+    let refreshToken: string;
+
+    beforeEach(async () => {
+      await initModule({
+        useAuth: {
+          userEntity: createBasicUserEntity(),
+          jwt: {
+            secret: 'access-secret',
+            expiresIn: '15m',
+            refreshTokenExpiresIn: '7d',
+            refreshSecret: 'refresh-secret',
+          },
+        },
+      });
+
+      await server.post('/auth/register', { email: 'custom@test.co', password: 'test' });
+      const { body } = await server.post('/auth/login', { email: 'custom@test.co', password: 'test' });
+      refreshToken = body.refreshToken;
+    });
+
+    it('should accept refresh token signed with refreshSecret', async () => {
+      const headers = { Authorization: `Bearer ${refreshToken}` };
+      const { body, status } = await server.post('/auth/refresh-token', {}, { headers });
+
+      expect(status).toBe(200);
+      expect(body).toEqual({ accessToken: expect.any(String), refreshToken: expect.any(String) });
+    });
+
+    it('should reject access token as refresh token (different secret)', async () => {
+      await server.post('/auth/register', { email: 'custom2@test.co', password: 'test' });
+      const { body: loginBody } = await server.post('/auth/login', { email: 'custom2@test.co', password: 'test' });
+      const headers = { Authorization: `Bearer ${loginBody.accessToken}` };
+
+      // accessToken is signed with 'access-secret', refresh endpoint expects 'refresh-secret'
+      const { status } = await server.post('/auth/refresh-token', {}, { headers });
+      expect(status).toBe(401);
     });
   });
 });
-
-
-

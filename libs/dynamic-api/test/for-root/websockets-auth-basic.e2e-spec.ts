@@ -90,7 +90,7 @@ describe('DynamicApiModule forRoot - Websockets Authentication Basic (e2e)', () 
 
           expect(handleSocketException).not.toHaveBeenCalled();
           expect(handleSocketResponse).toHaveBeenCalledTimes(1);
-          expect(handleSocketResponse).toHaveBeenCalledWith({ accessToken: expect.any(String) });
+          expect(handleSocketResponse).toHaveBeenCalledWith({ accessToken: expect.any(String), refreshToken: expect.any(String) });
         });
       });
 
@@ -122,7 +122,7 @@ describe('DynamicApiModule forRoot - Websockets Authentication Basic (e2e)', () 
 
           expect(handleSocketException).not.toHaveBeenCalled();
           expect(handleSocketResponse).toHaveBeenCalledTimes(2);
-          expect(handleSocketResponse).toHaveBeenNthCalledWith(2, { accessToken: expect.any(String) });
+          expect(handleSocketResponse).toHaveBeenNthCalledWith(2, { accessToken: expect.any(String), refreshToken: expect.any(String) });
         });
       });
 
@@ -146,11 +146,32 @@ describe('DynamicApiModule forRoot - Websockets Authentication Basic (e2e)', () 
 
           expect(handleSocketException).not.toHaveBeenCalled();
           expect(handleSocketResponse).toHaveBeenCalledTimes(2);
-          expect(handleSocketResponse).toHaveBeenNthCalledWith(1, { accessToken: expect.any(String) });
+          expect(handleSocketResponse).toHaveBeenNthCalledWith(1, { accessToken: expect.any(String), refreshToken: expect.any(String) });
           expect(handleSocketResponse).toHaveBeenNthCalledWith(
             2,
             { email: 'unit@test.co', id: expect.any(String) },
           );
+        });
+      });
+
+      describe('EVENT auth-refresh-token', () => {
+        it('should throw a ws exception if refresh token is missing', async () => {
+          await server.emit('auth-refresh-token');
+
+          expect(handleSocketException).toHaveBeenCalledTimes(1);
+          expect(handleSocketException).toHaveBeenCalledWith({ message: 'Unauthorized' });
+          expect(handleSocketResponse).not.toHaveBeenCalled();
+        });
+
+        it('should return new tokens using refresh token', async () => {
+          const { refreshToken } = await server.emit('auth-register', { email: 'unit@test.co', password: 'test' });
+          handleSocketResponse.mockReset();
+
+          await server.emit('auth-refresh-token', undefined, { refreshToken });
+
+          expect(handleSocketException).not.toHaveBeenCalled();
+          expect(handleSocketResponse).toHaveBeenCalledTimes(1);
+          expect(handleSocketResponse).toHaveBeenCalledWith({ accessToken: expect.any(String), refreshToken: expect.any(String) });
         });
       });
 
@@ -227,6 +248,9 @@ describe('DynamicApiModule forRoot - Websockets Authentication Basic (e2e)', () 
           },
           isAuthEnabled: true,
           jwtExpirationTime: '3s',
+          jwtRefreshTokenExpiresIn: '7d',
+          jwtRefreshSecret: undefined,
+          jwtRefreshUseCookie: false,
           jwtSecret: 'test-secret',
           routesConfig: {
             defaults: [
@@ -333,6 +357,7 @@ describe('DynamicApiModule forRoot - Websockets Authentication Basic (e2e)', () 
           expect(handleSocketResponse).toHaveBeenCalledTimes(1);
           expect(handleSocketResponse).toHaveBeenCalledWith({
             accessToken: expect.any(String),
+            refreshToken: expect.any(String),
           });
         });
       });
@@ -384,6 +409,7 @@ describe('DynamicApiModule forRoot - Websockets Authentication Basic (e2e)', () 
           expect(handleSocketResponse).toHaveBeenCalledTimes(1);
           expect(handleSocketResponse).toHaveBeenCalledWith({
             accessToken: expect.any(String),
+            refreshToken: expect.any(String),
           });
         });
       });

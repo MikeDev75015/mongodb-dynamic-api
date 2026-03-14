@@ -106,7 +106,7 @@ describe('DynamicApiModule forRoot - Websockets EVENT auth-register with registe
 
       expect(handleSocketException).not.toHaveBeenCalled();
       expect(handleSocketResponse).toHaveBeenCalledTimes(1);
-      expect(handleSocketResponse).toHaveBeenCalledWith({ accessToken: expect.any(String) });
+      expect(handleSocketResponse).toHaveBeenCalledWith({ accessToken: expect.any(String), refreshToken: expect.any(String) });
     });
   });
 
@@ -126,7 +126,7 @@ describe('DynamicApiModule forRoot - Websockets EVENT auth-register with registe
 
       expect(handleSocketException).not.toHaveBeenCalled();
       expect(handleSocketResponse).toHaveBeenCalledTimes(1);
-      expect(handleSocketResponse).toHaveBeenCalledWith({ accessToken: expect.any(String) });
+      expect(handleSocketResponse).toHaveBeenCalledWith({ accessToken: expect.any(String), refreshToken: expect.any(String) });
     });
   });
 

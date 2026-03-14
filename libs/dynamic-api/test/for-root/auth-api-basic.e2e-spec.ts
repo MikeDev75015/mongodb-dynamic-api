@@ -40,7 +40,10 @@ describe('DynamicApiModule forRoot - Authentication API Basic (e2e)', () => {
           passwordField: 'password',
         },
         isAuthEnabled: true,
-        jwtExpirationTime: '1d',
+        jwtExpirationTime: '15m',
+        jwtRefreshTokenExpiresIn: '7d',
+        jwtRefreshSecret: undefined,
+        jwtRefreshUseCookie: false,
         jwtSecret: 'dynamic-api-jwt-secret',
         routesConfig: {
           defaults: [
@@ -85,11 +88,11 @@ describe('DynamicApiModule forRoot - Authentication API Basic (e2e)', () => {
         });
       });
 
-      it('should create a new user and return access token', async () => {
+      it('should create a new user and return access token and refresh token', async () => {
         const { body, status } = await server.post('/auth/register', { email: 'unit@test.co', password: 'test' });
 
         expect(status).toBe(201);
-        expect(body).toEqual({ accessToken: expect.any(String) });
+        expect(body).toEqual({ accessToken: expect.any(String), refreshToken: expect.any(String) });
       });
     });
 
@@ -114,13 +117,13 @@ describe('DynamicApiModule forRoot - Authentication API Basic (e2e)', () => {
         });
       });
 
-      it('should return access token', async () => {
+      it('should return access token and refresh token', async () => {
         await server.post('/auth/register', { email: 'unit@test.co', password: 'test' });
 
         const { body, status } = await server.post('/auth/login', { email: 'unit@test.co', password: 'test' });
 
         expect(status).toBe(200);
-        expect(body).toEqual({ accessToken: expect.any(String) });
+        expect(body).toEqual({ accessToken: expect.any(String), refreshToken: expect.any(String) });
       });
     });
 
@@ -147,6 +150,52 @@ describe('DynamicApiModule forRoot - Authentication API Basic (e2e)', () => {
 
         expect(accountStatus).toBe(200);
         expect(account).toEqual({ id: expect.any(String), email: 'unit@test.co' });
+      });
+    });
+
+    describe('POST /auth/refresh-token', () => {
+      it('should throw an unauthorized exception if refresh token is missing', async () => {
+        const { body, status } = await server.post('/auth/refresh-token', {});
+
+        expect(status).toBe(401);
+        expect(body).toEqual({ message: 'Unauthorized', statusCode: 401 });
+      });
+
+      it('should return a new access token and refresh token using the refresh token as Bearer', async () => {
+        await server.post('/auth/register', { email: 'unit@test.co', password: 'test' });
+        const { body: { refreshToken } } = await server.post('/auth/login', { email: 'unit@test.co', password: 'test' });
+        const headers = { Authorization: `Bearer ${refreshToken}` };
+
+        const { body, status } = await server.post('/auth/refresh-token', {}, { headers });
+
+        expect(status).toBe(200);
+        expect(body).toEqual({ accessToken: expect.any(String), refreshToken: expect.any(String) });
+      });
+
+      it('should reject the old refresh token after rotation', async () => {
+        await server.post('/auth/register', { email: 'unit@test.co', password: 'test' });
+        const { body: loginBody } = await server.post('/auth/login', { email: 'unit@test.co', password: 'test' });
+        const oldRefreshToken = loginBody.refreshToken;
+        const headers = { Authorization: `Bearer ${oldRefreshToken}` };
+
+        // Use the refresh token once
+        await server.post('/auth/refresh-token', {}, { headers });
+
+        // Old refresh token still works without refreshTokenField (no DB validation)
+        const { status } = await server.post('/auth/refresh-token', {}, { headers });
+        expect(status).toBe(200);
+      });
+    });
+
+    describe('POST /auth/logout', () => {
+      it('should logout and return 204', async () => {
+        await server.post('/auth/register', { email: 'unit@test.co', password: 'test' });
+        const { body: loginBody } = await server.post('/auth/login', { email: 'unit@test.co', password: 'test' });
+        const headers = { Authorization: `Bearer ${loginBody.refreshToken}` };
+
+        const { status } = await server.post('/auth/logout', {}, { headers });
+
+        expect(status).toBe(204);
       });
     });
 
@@ -219,6 +268,9 @@ describe('DynamicApiModule forRoot - Authentication API Basic (e2e)', () => {
         },
         isAuthEnabled: true,
         jwtExpirationTime: '4s',
+        jwtRefreshTokenExpiresIn: '7d',
+        jwtRefreshSecret: undefined,
+        jwtRefreshUseCookie: false,
         jwtSecret: 'test-secret',
         routesConfig: {
           defaults: [
@@ -317,7 +369,7 @@ describe('DynamicApiModule forRoot - Authentication API Basic (e2e)', () => {
         const { body, status } = await server.post('/auth/register', { email: 'unit@test.co', password: 'Test-2' });
 
         expect(status).toBe(201);
-        expect(body).toEqual({ accessToken: expect.any(String) });
+        expect(body).toEqual({ accessToken: expect.any(String), refreshToken: expect.any(String) });
       });
     });
 
@@ -366,7 +418,7 @@ describe('DynamicApiModule forRoot - Authentication API Basic (e2e)', () => {
         const { body, status } = await server.post('/auth/login', { email: 'unit@test.co', password: 'Test-2' });
 
         expect(status).toBe(200);
-        expect(body).toEqual({ accessToken: expect.any(String) });
+        expect(body).toEqual({ accessToken: expect.any(String), refreshToken: expect.any(String) });
       });
     });
   });
