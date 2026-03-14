@@ -274,7 +274,7 @@ describe('BaseAuthService', () => {
       });
 
       it('should use user.id fallback when user._id is absent and update DB', async () => {
-        const userWithoutId = { ...fakeUser, _id: undefined as any, id: 'only-id' };
+        const userWithoutId = { ...fakeUser, _id: undefined as unknown as ObjectId, id: 'only-id' };
         exec.mockResolvedValueOnce({ ...fakeUser, nickname: fakeHash });
         spyBcryptCompare.mockResolvedValueOnce(true);
         spyBcriptHashPassword.mockResolvedValueOnce('new-hashed-refresh');
@@ -282,7 +282,7 @@ describe('BaseAuthService', () => {
           .mockReturnValueOnce({ jti: 'input-jti' })
           .mockReturnValueOnce({ jti: 'new-jti' });
 
-        await service['refreshToken'](userWithoutId as any, 'valid-token');
+        await service['refreshToken'](userWithoutId as unknown as User, 'valid-token');
 
         expect(model.updateOne).toHaveBeenCalledWith(
           { _id: 'only-id' },
@@ -334,9 +334,9 @@ describe('BaseAuthService', () => {
 
     it('should use user.id as fallback when user._id is absent in logout', async () => {
       service['refreshTokenField'] = 'nickname' as keyof User;
-      const userWithoutId = { ...fakeUser, _id: undefined as any, id: 'only-id' };
+      const userWithoutId = { ...fakeUser, _id: undefined as unknown as ObjectId, id: 'only-id' };
 
-      await service['logout'](userWithoutId as any);
+      await service['logout'](userWithoutId as unknown as User);
 
       expect(model.updateOne).toHaveBeenCalledWith(
         { _id: 'only-id' },
@@ -447,9 +447,9 @@ describe('BaseAuthService', () => {
       jest.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'fake-jti' });
       service['refreshTokenField'] = 'nickname' as keyof User;
       spyBcriptHashPassword.mockResolvedValueOnce('hashed-refresh');
-      const userWithoutId = { ...fakeUser, _id: undefined as any, id: 'only-id' };
+      const userWithoutId = { ...fakeUser, _id: undefined as unknown as ObjectId, id: 'only-id' };
 
-      await service['login'](userWithoutId as any);
+      await service['login'](userWithoutId as unknown as User);
 
       expect(model.updateOne).toHaveBeenCalledWith(
         { _id: 'only-id' },

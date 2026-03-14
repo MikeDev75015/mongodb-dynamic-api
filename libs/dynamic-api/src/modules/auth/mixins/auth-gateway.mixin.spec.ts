@@ -406,7 +406,7 @@ describe('AuthGatewayMixin', () => {
       const AuthGateway = AuthGatewayMixin(TestEntity, login);
       gateway = new AuthGateway(service, jwtService);
       socket.user = fakeUser;
-      (socket.handshake.query as any).refreshToken = 'fake-raw-refresh';
+      (socket.handshake.query as Record<string, string>).refreshToken = 'fake-raw-refresh';
 
       const result = await gateway.refreshToken(socket);
 
