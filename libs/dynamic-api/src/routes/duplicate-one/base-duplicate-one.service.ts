@@ -50,7 +50,7 @@ export abstract class BaseDuplicateOneService<Entity extends BaseEntity>
 
       return this.buildInstance(document);
     } catch (error: unknown) {
-      const err = error instanceof Error ? error : new Error(String(error));
+      const err = error instanceof Error ? error : new Error(JSON.stringify(error));
       this.handleMongoErrors(err, false);
       this.handleDuplicateKeyError(err);
     }

@@ -43,7 +43,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
   }
 
   protected verifyArguments(...args: unknown[]) {
-    if (args.some((arg) => arg === undefined)) {
+    if (args.includes(undefined)) {
       throw new BadRequestException('Invalid or missing argument');
     }
   }
@@ -259,11 +259,14 @@ export abstract class BaseService<Entity extends BaseEntity> {
       throw error;
     }
 
-    throw new ServiceUnavailableException(
-      error instanceof Error ? error.message
-        : typeof (error as Record<string, unknown>).message === 'string' ? (error as Record<string, unknown>).message as string
-        : String(error),
-    );
+    let errorMessage: string;
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else {
+      const errRecord = error as Record<string, unknown>;
+      errorMessage = typeof errRecord.message === 'string' ? errRecord.message : JSON.stringify(error);
+    }
+    throw new ServiceUnavailableException(errorMessage);
   }
 
   protected handleMongoErrors(error: unknown, reThrow = true) {
@@ -273,7 +276,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
     }
 
     if (mongoError.name === 'ValidationError') {
-      const errorDetails = Object.values(mongoError.errors ?? {})?.map(({ properties }) => properties.message as string);
+      const errorDetails = Object.values(mongoError.errors ?? {})?.map(({ properties }) => properties.message);
       throw new BadRequestException(errorDetails?.length ? errorDetails : ['Invalid payload']);
     }
 
@@ -285,11 +288,14 @@ export abstract class BaseService<Entity extends BaseEntity> {
       throw error;
     }
 
-    throw new ServiceUnavailableException(
-      error instanceof Error ? error.message
-        : typeof (error as Record<string, unknown>).message === 'string' ? (error as Record<string, unknown>).message as string
-        : String(error),
-    );
+    let errorMessage: string;
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else {
+      const errRecord = error as Record<string, unknown>;
+      errorMessage = typeof errRecord.message === 'string' ? errRecord.message : JSON.stringify(error);
+    }
+    throw new ServiceUnavailableException(errorMessage);
   }
 
   protected handleDocumentNotFound() {

@@ -75,7 +75,8 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     const refreshToken = this.buildRefreshToken(payload);
 
     if (this.refreshTokenField && (user._id || user.id)) {
-      const { jti } = this.jwtService.decode(refreshToken) as { jti: string };
+      const decodedRefresh = this.jwtService.decode(refreshToken);
+      const jti: string = decodedRefresh && typeof decodedRefresh !== 'string' ? decodedRefresh['jti'] : '';
       const hashedRefreshToken = await this.bcryptService.hashPassword(jti);
       await this.model.updateOne(
         { _id: user._id || user.id },
@@ -221,7 +222,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
       const decoded = this.jwtService.decode(resetPasswordToken);
       email = decoded.email;
       exp = decoded.exp;
-    } catch (error) {
+    } catch {
       this.logger.warn('Invalid reset password token');
     }
 
@@ -287,7 +288,8 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     if (this.refreshTokenField) {
       const storedUser = await this.model.findOne({ _id: user._id || user.id }).lean<Entity>().exec();
       const storedHash = storedUser?.[this.refreshTokenField] as string | undefined;
-      const jtiFromToken = rawToken ? (this.jwtService.decode(rawToken) as { jti?: string })?.jti : undefined;
+      const decodedRaw = rawToken ? this.jwtService.decode(rawToken) : undefined;
+      const jtiFromToken: string | undefined = decodedRaw && typeof decodedRaw !== 'string' ? decodedRaw['jti'] : undefined;
 
       if (!storedHash || !jtiFromToken) {
         throw new UnauthorizedException('Invalid refresh token');
@@ -312,7 +314,8 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     const refreshToken = this.buildRefreshToken(payload);
 
     if (this.refreshTokenField && (user._id || user.id)) {
-      const { jti } = this.jwtService.decode(refreshToken) as { jti: string };
+      const decodedRefresh = this.jwtService.decode(refreshToken);
+      const jti: string = decodedRefresh && typeof decodedRefresh !== 'string' ? decodedRefresh['jti'] : '';
       const hashedRefreshToken = await this.bcryptService.hashPassword(jti);
       await this.model.updateOne(
         { _id: user._id || user.id },
@@ -363,7 +366,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
   private buildUserFields(user: Entity, fieldsToBuild: (keyof Entity)[]) {
     return this.buildInstance(fieldsToBuild.reduce<Entity>(
       (acc, field) => (
-        user[field] !== undefined ? { ...acc, [field]: user[field] } : acc
+        user[field] === undefined ? acc : { ...acc, [field]: user[field] }
       ),
       {} as Entity,
     ));
