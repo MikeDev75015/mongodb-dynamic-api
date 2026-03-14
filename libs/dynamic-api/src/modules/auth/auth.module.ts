@@ -103,7 +103,7 @@ export class AuthModule {
         JwtModule.register({
           global: true,
           secret,
-          signOptions: { expiresIn },
+          signOptions: { expiresIn: expiresIn as any },
         }),
       ],
       providers: [
