@@ -85,6 +85,24 @@ commands:
             - coverage-data
             - reports/sonar
 
+  e2e-tests-parallelized-command:
+    description: "Split and run E2E tests with JUnit reporter"
+    steps:
+      - run:
+          name: Create report folder
+          command: mkdir -p reports/junit
+      - run:
+          name: Split and run E2E tests
+          command: |
+            E2E_FILES=$(circleci tests glob "libs/**/*.e2e-spec.ts" | circleci tests split --split-by=timings)
+            echo "Running E2E files on node ${CIRCLE_NODE_INDEX}:"
+            echo $E2E_FILES
+            npm run test-e2e:ci -- --testResultsProcessor=jest-junit $E2E_FILES
+          environment:
+            JEST_JUNIT_OUTPUT_DIR: reports/junit
+      - store_test_results:
+          path: reports/junit
+
   merge-coverage-command:
     description: "Merge all per-node LCOV and Sonar XML reports into single files"
     steps:
@@ -277,6 +295,7 @@ jobs:
     executor: node
     steps:
       - checkout
+      - *restore-cache
       - attach_workspace:
           at: .
       - merge-coverage-command
@@ -293,6 +312,7 @@ jobs:
           MONGO_INITDB_ROOT_USERNAME: dam-user
           MONGO_INITDB_ROOT_PASSWORD: dam-pass
     resource_class: medium
+    parallelism: 4
     steps:
       - checkout
       - *restore-cache
@@ -309,9 +329,7 @@ jobs:
           name: Create dam-db database with dam-user as dbOwner
           command: |
             mongosh --host localhost:27017 -u dam-user -p dam-pass --authenticationDatabase admin --eval "db.getSiblingDB('dam-db').createUser({user: 'dam-user', pwd: 'dam-pass', roles: [{role: 'dbOwner', db: 'dam-db'}]})"
-      - run:
-          name: Run E2E tests
-          command: npm run test-e2e:ci
+      - e2e-tests-parallelized-command
       - *notify-fail
       - *notify-success
 
