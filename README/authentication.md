@@ -22,6 +22,7 @@ JWT authentication is built-in and provides secure, token-based authentication f
   - [Interceptors](#interceptors)
   - [Validation Options](#validation-options)
   - [WebSocket Support](#websocket-support)
+  - [Broadcasting Auth Events](#broadcasting-auth-events)
 - [Best Practices](#best-practices)
 - [Examples](#examples)
 
@@ -113,12 +114,22 @@ DynamicApiModule.forRoot('mongodb-uri', {
       abilityPredicate?: (user, body?) => boolean;
       additionalFields?: (keyof Entity)[];    // JWT payload fields
       useInterceptors?: Type<NestInterceptor>[];
+      broadcast?: {
+        enabled: boolean | ((data: Partial<Entity>, user?: any) => boolean);
+        eventName?: string;                   // Default: 'auth-login-broadcast'
+        fields?: (keyof Entity)[];            // Fields to include (default: all)
+      };
     },
 
     // Get Account Configuration
     getAccount: {
       callback?: (user: Entity) => void;      // Before get account response formatting
       useInterceptors?: Type<NestInterceptor>[];
+      broadcast?: {
+        enabled: boolean | ((data: Partial<Entity>, user?: any) => boolean);
+        eventName?: string;                   // Default: 'auth-get-account-broadcast'
+        fields?: (keyof Entity)[];            // Fields to include (default: all)
+      };
     },
     
     // Register Configuration
@@ -129,6 +140,11 @@ DynamicApiModule.forRoot('mongodb-uri', {
       abilityPredicate?: (user, body?) => boolean;
       additionalFields?: (keyof Entity | { name: keyof Entity; required?: boolean })[];
       useInterceptors?: Type<NestInterceptor>[];
+      broadcast?: {
+        enabled: boolean | ((data: Partial<Entity>, user?: any) => boolean);
+        eventName?: string;                   // Default: 'auth-register-broadcast'
+        fields?: (keyof Entity)[];            // Fields to include (default: all)
+      };
     },
     
     // Update Account Configuration
@@ -138,6 +154,11 @@ DynamicApiModule.forRoot('mongodb-uri', {
       abilityPredicate?: (user, body?) => boolean;
       additionalFieldsToExclude?: (keyof Entity)[]; // Fields to exclude from update
       useInterceptors?: Type<NestInterceptor>[];
+      broadcast?: {
+        enabled: boolean | ((data: Partial<Entity>, user?: any) => boolean);
+        eventName?: string;                   // Default: 'auth-update-account-broadcast'
+        fields?: (keyof Entity)[];            // Fields to include (default: all)
+      };
     },
     
     // Reset Password Configuration
@@ -753,15 +774,296 @@ Enable WebSocket for authentication routes:
 DynamicApiModule.forRoot('mongodb-uri', {
   useAuth: {
     userEntity: User,
-    webSocket: true, // or { namespace: '/auth' }
+    webSocket: true, // or { namespace: '/auth', cors: { origin: '*' } }
   },
 })
 ```
 
-Now authentication is available via Socket.IO:
-- Event: `auth-login`
-- Event: `auth-register`
-- Event: `auth-reset-password`
+When WebSocket is enabled, all authentication routes are accessible via Socket.IO in addition to HTTP REST:
+
+| Event | HTTP equivalent | Auth Required |
+|-------|-----------------|---------------|
+| `auth-login` | `POST /auth/login` | No |
+| `auth-register` | `POST /auth/register` | No (unless `protected: true`) |
+| `auth-get-account` | `GET /auth/account` | Yes |
+| `auth-update-account` | `PATCH /auth/account` | Yes |
+| `auth-reset-password` | `POST /auth/reset-password` | No |
+| `auth-change-password` | `PATCH /auth/change-password` | No (requires reset token) |
+
+> See the full [WebSocket documentation](./websockets.md) for client-side integration details.
+
+---
+
+## Broadcasting Auth Events
+
+After any authentication action, the server can automatically broadcast a WebSocket event to all connected clients. This is useful for real-time use cases such as showing online presence, notifying administrators of new registrations, or keeping user lists synchronized.
+
+### How It Works
+
+> **🔑 Key concept: `broadcast` is fully independent from `useAuth.webSocket`.**
+>
+> Broadcasts are triggered by auth actions — whether those actions are invoked via HTTP REST or WebSocket. You do **not** need to enable `useAuth.webSocket` to get broadcasts after HTTP calls. The only requirement is `enableDynamicAPIWebSockets(app)` in `main.ts` so the WebSocket server is available to push events to listening clients.
+
+Broadcasting is supported for four actions: **login**, **register**, **getAccount**, and **updateAccount**.
+
+- **Triggered via HTTP REST** (`POST /auth/login`, etc.) → the server broadcasts to **all** connected WebSocket clients via `wsServer.emit()`
+- **Triggered via WebSocket** (`auth-login`, etc., requires `useAuth.webSocket: true`) → the server broadcasts to **all other** connected clients via `socket.broadcast.emit()` (the sender does not receive the broadcast)
+
+Both transports trigger the same broadcast — the behavior is transparent to the listening clients.
+
+### Prerequisites
+
+The only mandatory prerequisite is calling `enableDynamicAPIWebSockets(app)` in your `main.ts` so the WebSocket server is ready to push broadcasts to listeners:
+
+```typescript
+// src/main.ts
+import { NestFactory } from '@nestjs/core';
+import { enableDynamicAPIWebSockets } from 'mongodb-dynamic-api';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  enableDynamicAPIWebSockets(app); // Required for broadcasting
+  await app.listen(3000);
+}
+bootstrap();
+```
+
+`useAuth.webSocket` is **not required** for broadcasting — it only enables auth routes to be callable via WebSocket (`auth-login`, `auth-register`, etc.). Broadcasting after HTTP calls works without it.
+
+The broadcast gateway is automatically registered when at least one auth action has `broadcast` configured. You can optionally configure its Socket.IO options via `broadcastGatewayOptions` in `forRoot()`:
+
+```typescript
+DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
+  broadcastGatewayOptions: {      // Optional — configures the broadcast WebSocket gateway
+    namespace: '/broadcast',
+    cors: { origin: '*' },
+  },
+  useAuth: {
+    userEntity: User,
+    // useAuth.webSocket not needed just for broadcasts
+    login: {
+      broadcast: { enabled: true },
+    },
+  },
+})
+```
+
+> **Note:** `broadcastGatewayOptions` configures the dedicated broadcast gateway and is **separate** from `webSocket` / `useAuth.webSocket` which configure the auth request gateway (used for `auth-login`, `auth-register`, etc. events).
+
+### `AuthBroadcastConfig` Options
+
+Each auth action (`login`, `register`, `getAccount`, `updateAccount`) accepts an optional `broadcast` property:
+
+```typescript
+type AuthBroadcastConfig<Entity> = {
+  enabled: boolean | BroadcastAbilityPredicate<Partial<Entity>>;
+  eventName?: string;
+  fields?: (keyof Entity)[];
+};
+```
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `enabled` | `boolean \| (data, user?) => boolean` | ✅ Yes | `true` = always broadcast · `false` = never broadcast · function = conditional broadcast evaluated with the data about to be broadcast |
+| `eventName` | `string` | ❌ No | Custom broadcast event name. Defaults to the standard name (see table below) |
+| `fields` | `(keyof Entity)[]` | ❌ No | List of fields to include in the broadcast payload. If omitted or empty, **all available fields** from the data source are broadcast |
+
+### Default Broadcast Event Names
+
+Auth broadcast events always use the **`-broadcast` suffix** to clearly distinguish them from WebSocket request events:
+
+| Action | WS Request Event | Default Broadcast Event |
+|--------|-----------------|-------------------------|
+| Login | `auth-login` | `auth-login-broadcast` |
+| Register | `auth-register` | `auth-register-broadcast` |
+| Get Account | `auth-get-account` | `auth-get-account-broadcast` |
+| Update Account | `auth-update-account` | `auth-update-account-broadcast` |
+
+### Data Source per Action
+
+The data included in the broadcast payload depends on the action:
+
+| Action | Broadcast Data Source |
+|--------|----------------------|
+| **login** | The authenticated `user` object from the request (full entity from DB — `password` field is structurally excluded) |
+| **register** | The JWT payload decoded from the returned `accessToken` (fields: `id`, `loginField`, and any `login.additionalFields`) |
+| **getAccount** | The `account` object returned by the service |
+| **updateAccount** | The updated `account` object returned by the service |
+
+> ⚠️ **Important for `register`**: Because the register route returns only an `accessToken` (not the full user entity), the broadcast data is extracted from the **JWT payload**. Only fields embedded in the token are available: `id`, your `loginField` (e.g., `email`), and any `login.additionalFields` you configured. Use `fields` to restrict which of these are broadcast.
+
+### Filtering Fields with `fields`
+
+The `fields` option lets you control exactly which properties are included in the broadcast payload. This is especially important to **avoid broadcasting sensitive data**.
+
+```typescript
+// Only broadcast id, email and role — never internal flags or metadata
+login: {
+  broadcast: {
+    enabled: true,
+    fields: ['id', 'email', 'role'],
+  },
+},
+```
+
+- If `fields` is **not provided** or is empty → **all available fields** from the data source are broadcast
+- If `fields` is provided → only the listed properties are included in the broadcast
+
+### Configuration Examples
+
+#### Simple Broadcast (Always enabled)
+
+```typescript
+DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
+  useAuth: {
+    userEntity: User,
+    login: {
+      additionalFields: ['role', 'name'], // Added to JWT → available for register broadcast
+      broadcast: {
+        enabled: true,
+        fields: ['id', 'email', 'name', 'role'], // Safe subset
+      },
+    },
+    register: {
+      broadcast: {
+        enabled: true,
+        // JWT payload has: id, email (loginField), role, name (from login.additionalFields)
+        fields: ['id', 'email', 'name'],
+      },
+    },
+  },
+})
+```
+
+#### Conditional Broadcast (Function predicate)
+
+```typescript
+DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
+  useAuth: {
+    userEntity: User,
+    login: {
+      additionalFields: ['role'],
+      broadcast: {
+        // Only broadcast logins from admin users
+        enabled: (data) => data.role === 'admin',
+        eventName: 'admin-logged-in', // Custom broadcast event name
+        fields: ['id', 'email', 'role'],
+      },
+    },
+    updateAccount: {
+      broadcast: {
+        enabled: true,
+        fields: ['id', 'email', 'name', 'role'],
+      },
+    },
+  },
+})
+```
+
+#### All Four Actions with Custom Event Names
+
+```typescript
+DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
+  broadcastGatewayOptions: {
+    namespace: '/events',
+    cors: { origin: 'http://localhost:4200' },
+  },
+  useAuth: {
+    userEntity: User,
+    login: {
+      additionalFields: ['role', 'name'],
+      broadcast: {
+        enabled: true,
+        eventName: 'user-connected',       // Instead of 'auth-login-broadcast'
+        fields: ['id', 'email', 'role'],
+      },
+    },
+    register: {
+      broadcast: {
+        enabled: true,
+        eventName: 'new-user-registered',  // Instead of 'auth-register-broadcast'
+        fields: ['id', 'email', 'name'],
+      },
+    },
+    getAccount: {
+      broadcast: {
+        // Only broadcast when an admin views their account
+        enabled: (data) => data.role === 'admin',
+        eventName: 'admin-activity',       // Instead of 'auth-get-account-broadcast'
+        fields: ['id', 'email'],
+      },
+    },
+    updateAccount: {
+      broadcast: {
+        enabled: true,
+        eventName: 'account-updated',      // Instead of 'auth-update-account-broadcast'
+        fields: ['id', 'email', 'name', 'role'],
+      },
+    },
+  },
+})
+```
+
+### Client-Side: Listening for Broadcast Events
+
+```typescript
+import { io } from 'socket.io-client';
+
+const socket = io('http://localhost:3000');
+
+// Listen for login broadcasts (another user logged in)
+socket.on('auth-login-broadcast', (data) => {
+  console.log('A user logged in:', data);
+  // data is always an array: [{ id, email, name, role }]
+  updateOnlineUsers(data[0]);
+});
+
+// Listen for registration broadcasts (a new user registered)
+socket.on('auth-register-broadcast', (data) => {
+  console.log('New user registered:', data);
+  // data extracted from JWT payload: [{ id, email, name }]
+  addToUserList(data[0]);
+});
+
+// Listen for account update broadcasts
+socket.on('auth-update-account-broadcast', (data) => {
+  console.log('An account was updated:', data);
+  // data = [{ id, email, name, role }]
+  refreshUserInList(data[0]);
+});
+
+// Listen with custom event names (if configured)
+socket.on('admin-logged-in', (data) => {
+  console.log('An admin logged in:', data);
+  showAdminNotification(data[0]);
+});
+```
+
+> **Broadcast payload format**: The broadcast data is always wrapped in an **array** (e.g., `[{ id, email, ... }]`), consistent with how CRUD route broadcasts work.
+
+### Key Differences: HTTP vs WebSocket Trigger
+
+| | HTTP API call | WebSocket event |
+|---|---|---|
+| Endpoint | `POST /auth/login`, etc. | `auth-login`, etc. |
+| Who receives the broadcast | **All** connected WS clients | All clients **except the sender** |
+| Mechanism | `wsServer.emit(event, data)` | `socket.broadcast.emit(event, data)` |
+| Requires `useAuth.webSocket` | ❌ No | ✅ Yes (to make the action callable via WS) |
+| Requires `enableDynamicAPIWebSockets` | ✅ Yes (always) | ✅ Yes (always) |
+
+### Supported Actions
+
+| Action | HTTP Route | WS Event* | Broadcast Supported |
+|--------|-----------|----------|---------------------|
+| Login | `POST /auth/login` | `auth-login` | ✅ |
+| Register | `POST /auth/register` | `auth-register` | ✅ |
+| Get Account | `GET /auth/account` | `auth-get-account` | ✅ |
+| Update Account | `PATCH /auth/account` | `auth-update-account` | ✅ |
+| Reset Password | `POST /auth/reset-password` | `auth-reset-password` | ❌ |
+| Change Password | `PATCH /auth/change-password` | `auth-change-password` | ❌ |
+
+\* WS events require `useAuth.webSocket: true` to be enabled. Broadcasts work independently via HTTP without it.
 
 ---
 

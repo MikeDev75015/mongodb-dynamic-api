@@ -15,6 +15,8 @@ Add WebSocket support to your API to make your routes accessible via Socket.IO i
   - [Route-Level Configuration](#route-level-configuration)
   - [Custom Event Names](#custom-event-names)
   - [Broadcasting Events](#broadcasting-events)
+    - [Broadcasting for CRUD Routes](#broadcasting-for-crud-routes)
+    - [Broadcasting for Auth Routes](#broadcasting-for-auth-routes)
 - [Available Events](#available-events)
   - [Authentication Events](#authentication-events-1)
 - [Authentication with WebSockets](#authentication-with-websockets)
@@ -40,6 +42,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   
   // Enable WebSocket support
+  // ⚠️ Also required if you use broadcast-only (no webSocket: true on routes)
   enableDynamicAPIWebSockets(app);
   
   await app.listen(3000);
@@ -48,6 +51,8 @@ async function bootstrap() {
 }
 bootstrap();
 ```
+
+> **Note:** `enableDynamicAPIWebSockets(app)` is required whenever you use **any** WebSocket feature — including broadcasting after HTTP calls — even if no route has `webSocket: true`.
 
 ### Enable WebSockets Globally
 
@@ -172,6 +177,12 @@ socket.emit('list-products', { page: 1, limit: 10 }, (response) => {
 
 You can automatically broadcast event responses to all connected clients (except the sender) using the `broadcast` option. This is useful for real-time synchronization across multiple clients.
 
+#### Broadcasting for CRUD Routes
+
+> **🔑 Key concept: `broadcast` is fully independent from `webSocket: true`.**
+>
+> You can broadcast after **HTTP REST calls** without enabling WebSocket on the route at all. The only requirement is that `enableDynamicAPIWebSockets(app)` is called in `main.ts` so the WebSocket server is available to receive listeners. `webSocket: true` on a route only controls whether that route is also *callable* via WebSocket — it has no effect on broadcasting.
+
 **⚠️ Important: Broadcasting is only available for routes that modify data.**
 
 **Supported Routes:**
@@ -190,35 +201,64 @@ You can automatically broadcast event responses to all connected clients (except
 - ❌ `GetMany` - No broadcast (read operation)
 - ❌ `Aggregate` - No broadcast (read operation)
 
+**Prerequisites:**
+
+```typescript
+// src/main.ts — Required for any broadcast to work
+import { enableDynamicAPIWebSockets } from 'mongodb-dynamic-api';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  enableDynamicAPIWebSockets(app); // Initializes the WS server for broadcasts
+  await app.listen(3000);
+}
+```
+
+**Example: broadcast on HTTP-only routes (no `webSocket: true` required)**
+
 ```typescript
 DynamicApiModule.forFeature({
   entity: Product,
-  controllerOptions: {
-    path: 'products',
-  },
+  controllerOptions: { path: 'products' },
   routes: [
     {
       type: 'CreateOne',
-      webSocket: true,
+      // ✅ No webSocket: true — this route is HTTP only
+      // but it still broadcasts to all WS clients after POST /products
       broadcast: {
-        enabled: true, // Always broadcasts using the same event name
+        enabled: true,
+        // eventName defaults to the WS event name pattern: 'create-one-product'
       },
     },
     {
       type: 'UpdateOne',
-      webSocket: true,
       broadcast: {
         enabled: true,
-        eventName: 'product-updated', // Broadcasts using a custom event name
+        eventName: 'product-updated', // Custom broadcast event name
       },
     },
     {
       type: 'DeleteOne',
-      webSocket: true,
       broadcast: {
-        // For delete routes, data only contains { id: string }
-        // BroadcastAbilityPredicate can check user permissions but not entity properties
-        enabled: (data, user) => user?.role === 'admin',
+        enabled: (data, user) => user?.role === 'admin', // Conditional broadcast
+      },
+    },
+  ],
+})
+```
+
+**Example: broadcast combined with WebSocket (route callable via both HTTP and WS)**
+
+```typescript
+DynamicApiModule.forFeature({
+  entity: Product,
+  controllerOptions: { path: 'products' },
+  routes: [
+    {
+      type: 'CreateOne',
+      webSocket: true, // Route also callable via WS event 'create-one-product'
+      broadcast: {
+        enabled: true, // Broadcasts after both HTTP POST and WS emit
       },
     },
     {
@@ -228,7 +268,7 @@ DynamicApiModule.forFeature({
         // enabled is called ONCE PER UPDATED ENTITY
         // Only entities where status === 'published' are broadcasted
         enabled: (data, user) => data.status === 'published',
-        eventName: 'products-published', // Conditional with custom event name
+        eventName: 'products-published',
       },
     },
   ],
@@ -244,7 +284,7 @@ The `broadcast` option accepts an object with the following properties:
   - `false` - Never broadcasts (same as omitting the option)
   - `BroadcastAbilityPredicate<ResponseData>` - Function with signature `(data: ResponseData, user: User) => boolean` that determines whether to broadcast a specific entity. **This predicate is evaluated per entity**: for routes that return multiple entities (e.g., `CreateMany`, `UpdateMany`, `DuplicateMany`, `DeleteMany`), the function is called once for each entity in the response, and only entities that pass the test are broadcasted.
 
-- `eventName` (optional): Custom event name for the broadcast. If not specified, uses the same event name as the request.
+- `eventName` (optional): Custom event name for the broadcast. If not specified, uses the same event name pattern as the route (`{route-type}-{displayed-name}`).
 
 **Special Note for Delete Routes:**
 
@@ -379,6 +419,7 @@ socket.on('expensive-products-created', (data) => {
 - Chat applications
 - Notification systems
 - Multi-user editing interfaces
+- **Push updates to WS clients after HTTP REST calls** — broadcast works on HTTP-only routes without enabling `webSocket: true`
 
 **When to use conditional broadcasting (BroadcastAbilityPredicate):**
 - Only broadcast changes made by specific user roles (e.g., only admin actions)
@@ -386,6 +427,59 @@ socket.on('expensive-products-created', (data) => {
 - Implement privacy controls (e.g., only broadcast public items)
 - Optimize performance by avoiding unnecessary broadcasts
 
+#### Broadcasting for Auth Routes
+
+Authentication actions also support broadcasting. Like CRUD routes, **auth broadcasting is fully independent from WebSocket** — it works after both HTTP REST calls and WebSocket calls, without requiring `useAuth.webSocket` to be enabled:
+
+```typescript
+DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
+  broadcastGatewayOptions: {   // Optional — configure the broadcast WebSocket gateway
+    namespace: '/events',
+    cors: { origin: '*' },
+  },
+  useAuth: {
+    userEntity: User,
+    login: {
+      additionalFields: ['role', 'name'],
+      broadcast: {
+        enabled: true,
+        fields: ['id', 'email', 'name', 'role'], // Only broadcast these fields
+        // eventName: 'auth-login-broadcast' (default)
+      },
+    },
+    register: {
+      broadcast: {
+        enabled: true,
+        // Data comes from JWT payload (id + loginField + login.additionalFields)
+        fields: ['id', 'email', 'name'],
+      },
+    },
+    getAccount: {
+      broadcast: {
+        enabled: (data) => data.role === 'admin', // Only for admins
+        eventName: 'admin-activity',
+        fields: ['id', 'email'],
+      },
+    },
+    updateAccount: {
+      broadcast: {
+        enabled: true,
+        fields: ['id', 'email', 'name', 'role'],
+        // eventName: 'auth-update-account-broadcast' (default)
+      },
+    },
+  },
+})
+```
+
+**Supported auth actions:**
+- ✅ `login` → broadcasts `auth-login-broadcast` (or custom `eventName`)
+- ✅ `register` → broadcasts `auth-register-broadcast` (or custom `eventName`)
+- ✅ `getAccount` → broadcasts `auth-get-account-broadcast` (or custom `eventName`)
+- ✅ `updateAccount` → broadcasts `auth-update-account-broadcast` (or custom `eventName`)
+- ❌ `resetPassword` / `changePassword` — not supported
+
+> See the [Broadcasting Auth Events](./authentication.md#broadcasting-auth-events) section in the Authentication documentation for full details, including how to filter fields and the data source for each action.
 
 ---
 
@@ -415,6 +509,12 @@ You can customize event names using the `eventName` parameter in route configura
 - `auth-update-account` - Update current user account
 - `auth-reset-password` - Request password reset
 - `auth-change-password` - Change password with reset token
+
+**Authentication Broadcast Events (Fixed Names):**
+- `auth-login-broadcast` - Broadcast after login
+- `auth-register-broadcast` - Broadcast after registration
+- `auth-get-account-broadcast` - Broadcast after get account
+- `auth-update-account-broadcast` - Broadcast after account update
 
 ### CRUD Route Events
 
@@ -528,6 +628,17 @@ Unlike CRUD route events which are generated from entity names, **authentication
 
 \* May require authentication if `register.protected` is set to `true`  
 \** Requires a valid reset token, not JWT authentication
+
+**Broadcast event names for auth** (received by listening clients — not used to make requests):
+
+| Broadcast Event | Triggered after | Customizable? |
+|-----------------|----------------|---------------|
+| `auth-login-broadcast` | Login (HTTP or WS) | ✅ via `broadcast.eventName` |
+| `auth-register-broadcast` | Register (HTTP or WS) | ✅ via `broadcast.eventName` |
+| `auth-get-account-broadcast` | Get Account (HTTP or WS) | ✅ via `broadcast.eventName` |
+| `auth-update-account-broadcast` | Update Account (HTTP or WS) | ✅ via `broadcast.eventName` |
+
+> These broadcast events are only emitted when `broadcast` is configured for the corresponding action. See the [Broadcasting Auth Events](./authentication.md#broadcasting-auth-events) section for full configuration details.
 
 ### Important Notes
 
