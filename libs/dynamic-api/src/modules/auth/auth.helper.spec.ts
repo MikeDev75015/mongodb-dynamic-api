@@ -1,6 +1,5 @@
 import { ForbiddenException, Type, UnauthorizedException, ValidationPipeOptions } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { describe } from 'node:test';
 import { BaseEntity } from '../../models';
 import {
   authServiceProviderName,
@@ -217,6 +216,8 @@ describe('AuthHelper', () => {
   describe('createAuthController', () => {
     let AuthController: Type;
     const service = {} as AuthService<UserEntity>;
+    const broadcastService = { broadcastFromHttp: jest.fn() } as any;
+    const jwtService = { sign: jest.fn() } as any;
 
     it('should return a controller', () => {
       AuthController = createAuthController(
@@ -246,6 +247,23 @@ describe('AuthHelper', () => {
 
       const authController = new AuthController(service);
       expect(authController).toHaveProperty('service', service);
+    });
+
+    it('should have a constructor with broadcastService and jwtService properties', () => {
+      AuthController = createAuthController(
+        UserEntity,
+        { loginField, passwordField },
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+      );
+
+      const authController = new AuthController(service, broadcastService, jwtService);
+      expect(authController).toHaveProperty('service', service);
+      expect(authController).toHaveProperty('broadcastService', broadcastService);
+      expect(authController).toHaveProperty('jwtService', jwtService);
     });
   });
 

@@ -450,6 +450,22 @@ describe('AuthGatewayMixin', () => {
         );
       });
 
+      it('should broadcast all decoded JWT fields when no fields specified', async () => {
+        const AuthGateway = AuthGatewayMixin(
+          TestEntity,
+          login,
+          { ...register, broadcast: { enabled: true } },
+        );
+        const gateway = new AuthGateway(service, jwtService);
+
+        await gateway.register(socket, { loginField: fakeUser.loginField, passwordField: fakeUser.passwordField });
+
+        expect(socket.broadcast.emit).toHaveBeenCalledWith(
+          'auth-register-broadcast',
+          [expect.objectContaining({ id: fakeUser.id, loginField: fakeUser.loginField })],
+        );
+      });
+
       it('should not broadcast on register when broadcast config is not set', async () => {
         const AuthGateway = AuthGatewayMixin(
           TestEntity,
@@ -484,6 +500,44 @@ describe('AuthGatewayMixin', () => {
         );
       });
 
+      it('should broadcast all account fields when no fields specified', async () => {
+        const AuthGateway = AuthGatewayMixin(
+          TestEntity,
+          login,
+          register,
+          undefined,
+          undefined,
+          { broadcast: { enabled: true } },
+        );
+        const gateway = new AuthGateway(service, jwtService);
+
+        await gateway.getAccount(socket);
+
+        expect(socket.broadcast.emit).toHaveBeenCalledWith(
+          'auth-get-account-broadcast',
+          [fakeAccount],
+        );
+      });
+
+      it('should use custom eventName for getAccount broadcast', async () => {
+        const AuthGateway = AuthGatewayMixin(
+          TestEntity,
+          login,
+          register,
+          undefined,
+          undefined,
+          { broadcast: { enabled: true, eventName: 'custom-get-account', fields: ['id'] } },
+        );
+        const gateway = new AuthGateway(service, jwtService);
+
+        await gateway.getAccount(socket);
+
+        expect(socket.broadcast.emit).toHaveBeenCalledWith(
+          'custom-get-account',
+          [{ id: fakeUser.id }],
+        );
+      });
+
       it('should not broadcast getAccount when broadcast config is not set', async () => {
         const AuthGateway = AuthGatewayMixin(TestEntity, login);
         const gateway = new AuthGateway(service, jwtService);
@@ -509,6 +563,42 @@ describe('AuthGatewayMixin', () => {
 
         expect(socket.broadcast.emit).toHaveBeenCalledWith(
           'auth-update-account-broadcast',
+          [{ id: fakeUser.id }],
+        );
+      });
+
+      it('should broadcast all updated account fields when no fields specified', async () => {
+        const AuthGateway = AuthGatewayMixin(
+          TestEntity,
+          login,
+          register,
+          undefined,
+          { ...updateAccount, broadcast: { enabled: true } },
+        );
+        const gateway = new AuthGateway(service, jwtService);
+
+        await gateway.updateAccount(socket, {});
+
+        expect(socket.broadcast.emit).toHaveBeenCalledWith(
+          'auth-update-account-broadcast',
+          [fakeAccount],
+        );
+      });
+
+      it('should use custom eventName for updateAccount broadcast', async () => {
+        const AuthGateway = AuthGatewayMixin(
+          TestEntity,
+          login,
+          register,
+          undefined,
+          { ...updateAccount, broadcast: { enabled: true, eventName: 'custom-update-account', fields: ['id'] } },
+        );
+        const gateway = new AuthGateway(service, jwtService);
+
+        await gateway.updateAccount(socket, {});
+
+        expect(socket.broadcast.emit).toHaveBeenCalledWith(
+          'custom-update-account',
           [{ id: fakeUser.id }],
         );
       });
