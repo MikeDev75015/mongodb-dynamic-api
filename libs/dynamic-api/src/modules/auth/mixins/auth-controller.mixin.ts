@@ -219,7 +219,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
       const result = await this.service.register(body);
 
       if (registerBroadcastConfig && this.jwtService) {
-        const { iat, exp, ...userPayload } = (this.jwtService.decode(result.accessToken) as any) ?? {};
+        const { iat, exp, ...userPayload } = (this.jwtService.decode(result.accessToken) as Record<string, unknown>) ?? {};
         const broadcastData = buildAuthBroadcastData(userPayload as Partial<Entity>, registerBroadcastConfig.fields);
         this.broadcastService?.broadcastFromHttp(
           registerBroadcastConfig.eventName ?? AUTH_REGISTER_BROADCAST_EVENT,

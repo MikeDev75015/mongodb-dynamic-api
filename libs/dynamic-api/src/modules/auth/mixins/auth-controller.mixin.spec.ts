@@ -1,5 +1,6 @@
 import { createMock } from '@golevelup/ts-jest';
 import { JwtService } from '@nestjs/jwt';
+import { Response } from 'express';
 import { BaseEntity } from '../../../models';
 import { DynamicApiBroadcastService } from '../../../services';
 import { AuthService } from '../interfaces';
@@ -16,6 +17,8 @@ describe('AuthControllerMixin', () => {
     field2?: string;
 
     field3?: string;
+
+    isAdmin?: boolean;
   }
 
   const service = createMock<AuthService<TestEntity>>();
@@ -81,7 +84,7 @@ describe('AuthControllerMixin', () => {
       { loginField: 'loginField', passwordField: 'passwordField', additionalFields: ['field1'] },
       {
         additionalFields: ['field1', { name: 'field2', required: true }, { name: 'field3', required: false }],
-        abilityPredicate: (user: any) => user.isAdmin,
+        abilityPredicate: (user: TestEntity) => user.isAdmin,
         protected: true,
       },
       undefined
@@ -146,7 +149,7 @@ describe('AuthControllerMixin', () => {
       const fakeRes = { cookie: jest.fn() };
       service.login.mockResolvedValueOnce({ accessToken: 'at', refreshToken: 'rt' });
 
-      await controller.login({ user }, {}, fakeRes as any);
+      await controller.login({ user }, {}, fakeRes as unknown as Response);
 
       expect(service.login).toHaveBeenCalledWith(user);
     });
@@ -163,7 +166,7 @@ describe('AuthControllerMixin', () => {
       const fakeRes = { cookie: jest.fn() };
       service.login.mockResolvedValueOnce({ accessToken: 'at', refreshToken: 'rt' });
 
-      const result = await controller.login({ user }, {}, fakeRes as any);
+      const result = await controller.login({ user }, {}, fakeRes as unknown as Response);
 
       expect(fakeRes.cookie).toHaveBeenCalledWith('refreshToken', 'rt', expect.objectContaining({ httpOnly: true }));
       expect(result).toEqual({ accessToken: 'at' });
@@ -184,7 +187,7 @@ describe('AuthControllerMixin', () => {
       const fakeRes = { cookie: jest.fn() };
       service.register.mockResolvedValueOnce({ accessToken: 'at', refreshToken: 'rt' });
 
-      await controller.register({ user } as any, fakeRes as any);
+      await controller.register({ user } as unknown as Parameters<typeof controller.register>[0], fakeRes as unknown as Response);
 
       expect(service.register).toHaveBeenCalledWith({ user });
     });
@@ -200,7 +203,7 @@ describe('AuthControllerMixin', () => {
       const fakeRes = { cookie: jest.fn() };
       service.register.mockResolvedValueOnce({ accessToken: 'at', refreshToken: 'rt' });
 
-      const result = await controller.register({} as any, fakeRes as any);
+      const result = await controller.register({} as unknown as Parameters<typeof controller.register>[0], fakeRes as unknown as Response);
 
       expect(fakeRes.cookie).toHaveBeenCalledWith('refreshToken', 'rt', expect.objectContaining({ httpOnly: true }));
       expect(result).toEqual({ accessToken: 'at' });
@@ -257,7 +260,7 @@ describe('AuthControllerMixin', () => {
         user,
         headers: { authorization: 'Bearer raw-refresh-token' },
         cookies: {},
-      } as any, fakeRes as any);
+      }, fakeRes as unknown as Response);
 
       expect(service.refreshToken).toHaveBeenCalledWith(user, 'raw-refresh-token');
     });
@@ -279,7 +282,7 @@ describe('AuthControllerMixin', () => {
         user,
         headers: {},
         cookies: { refreshToken: 'cookie-refresh-token' },
-      } as any, fakeRes as any);
+      }, fakeRes as unknown as Response);
 
       expect(service.refreshToken).toHaveBeenCalledWith(user, 'cookie-refresh-token');
       expect(fakeRes.cookie).toHaveBeenCalledWith('refreshToken', 'new-rt', expect.objectContaining({ httpOnly: true }));
@@ -296,7 +299,7 @@ describe('AuthControllerMixin', () => {
       const user = new TestEntity();
       const fakeRes = { clearCookie: jest.fn() };
 
-      await controller.logout({ user } as any, fakeRes as any);
+      await controller.logout({ user }, fakeRes as unknown as Response);
 
       expect(service.logout).toHaveBeenCalledWith(user);
       expect(fakeRes.clearCookie).not.toHaveBeenCalled();
@@ -313,7 +316,7 @@ describe('AuthControllerMixin', () => {
       const user = new TestEntity();
       const fakeRes = { clearCookie: jest.fn() };
 
-      await controller.logout({ user } as any, fakeRes as any);
+      await controller.logout({ user }, fakeRes as unknown as Response);
 
       expect(service.logout).toHaveBeenCalledWith(user);
       expect(fakeRes.clearCookie).toHaveBeenCalledWith('refreshToken');
@@ -350,7 +353,7 @@ describe('AuthControllerMixin', () => {
         const controller = new AuthController(service, broadcastService, jwtService);
         const fakeRes = { cookie: jest.fn() };
 
-        await controller.login({ user: fakeUser }, {}, fakeRes as any);
+        await controller.login({ user: fakeUser }, {}, fakeRes as unknown as Response);
 
         expect(broadcastService.broadcastFromHttp).toHaveBeenCalledWith(
           'auth-login-broadcast',
@@ -367,7 +370,7 @@ describe('AuthControllerMixin', () => {
         const controller = new AuthController(service, broadcastService, jwtService);
         const fakeRes = { cookie: jest.fn() };
 
-        await controller.login({ user: fakeUser }, {}, fakeRes as any);
+        await controller.login({ user: fakeUser }, {}, fakeRes as unknown as Response);
 
         expect(broadcastService.broadcastFromHttp).toHaveBeenCalledWith(
           'auth-login-broadcast',
@@ -384,7 +387,7 @@ describe('AuthControllerMixin', () => {
         const controller = new AuthController(service, broadcastService, jwtService);
         const fakeRes = { cookie: jest.fn() };
 
-        await controller.login({ user: fakeUser }, {}, fakeRes as any);
+        await controller.login({ user: fakeUser }, {}, fakeRes as unknown as Response);
 
         expect(broadcastService.broadcastFromHttp).toHaveBeenCalledWith(
           'custom-login',
@@ -401,7 +404,7 @@ describe('AuthControllerMixin', () => {
         const controller = new AuthController(service, broadcastService, jwtService);
         const fakeRes = { cookie: jest.fn() };
 
-        await controller.login({ user: fakeUser }, {}, fakeRes as any);
+        await controller.login({ user: fakeUser }, {}, fakeRes as unknown as Response);
 
         expect(broadcastService.broadcastFromHttp).not.toHaveBeenCalled();
       });
@@ -417,7 +420,7 @@ describe('AuthControllerMixin', () => {
         const controller = new AuthController(service, broadcastService, jwtService);
         const fakeRes = { cookie: jest.fn() };
 
-        await controller.register({} as any, fakeRes as any);
+        await controller.register({} as unknown as Parameters<typeof controller.register>[0], fakeRes as unknown as Response);
 
         expect(jwtService.decode).toHaveBeenCalledWith(fakeAccessToken);
         expect(broadcastService.broadcastFromHttp).toHaveBeenCalledWith(
@@ -436,7 +439,7 @@ describe('AuthControllerMixin', () => {
         const controller = new AuthController(service, broadcastService, jwtService);
         const fakeRes = { cookie: jest.fn() };
 
-        await controller.register({} as any, fakeRes as any);
+        await controller.register({} as unknown as Parameters<typeof controller.register>[0], fakeRes as unknown as Response);
 
         expect(broadcastService.broadcastFromHttp).toHaveBeenCalledWith(
           'auth-register-broadcast',
@@ -454,7 +457,7 @@ describe('AuthControllerMixin', () => {
         const controller = new AuthController(service, broadcastService, undefined);
         const fakeRes = { cookie: jest.fn() };
 
-        await controller.register({} as any, fakeRes as any);
+        await controller.register({} as unknown as Parameters<typeof controller.register>[0], fakeRes as unknown as Response);
 
         expect(broadcastService.broadcastFromHttp).not.toHaveBeenCalled();
       });
@@ -469,7 +472,7 @@ describe('AuthControllerMixin', () => {
         const fakeRes = { cookie: jest.fn() };
         jwtService.decode.mockReturnValueOnce(null);
 
-        await controller.register({} as any, fakeRes as any);
+        await controller.register({} as unknown as Parameters<typeof controller.register>[0], fakeRes as unknown as Response);
 
         expect(broadcastService.broadcastFromHttp).toHaveBeenCalledWith(
           'auth-register-broadcast',
