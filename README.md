@@ -57,6 +57,37 @@ npm install --save mongodb-dynamic-api
 
 ---
 
+> ## ⚠️ What's new in v4.0.0 — Breaking Changes
+>
+> **v4 refactors the entire JWT authentication flow.** Please read the notes below before upgrading from v3.
+>
+> ### 🔄 Dual-token authentication (access + refresh)
+> Login and register now return **`{ accessToken, refreshToken }`** instead of a single token.  
+> The `/auth/refresh-token` endpoint now requires the **refresh token** (not the access token).
+>
+> ### ⏱️ New default expiration times
+> | Token | v3 | v4 |
+> |---|---|---|
+> | Access token (`expiresIn`) | `'1d'` | **`'15m'`** |
+> | Refresh token (`refreshTokenExpiresIn`) | — | **`'7d'`** |
+>
+> If your app relied on the `'1d'` lifetime, set it explicitly: `jwt: { expiresIn: '1d' }`.
+>
+> ### 🆕 Two new endpoints
+> | Endpoint | Description |
+> |---|---|
+> | `POST /auth/refresh-token` | Get a new token pair using the refresh token (protected by `JwtRefreshGuard`) |
+> | `POST /auth/logout` | Invalidate the refresh token server-side (204 No Content) |
+>
+> ### 🔒 New options in `useAuth`
+> - **`jwt.refreshSecret`** — dedicated signing secret for refresh tokens (falls back to `secret` if omitted)
+> - **`refreshToken.refreshTokenField`** — entity field storing the bcrypt hash (enables server-side revocation)
+> - **`refreshToken.useCookie`** — send/read refresh token via httpOnly cookie (`cookie-parser` auto-registered)
+>
+> 📖 **Full migration guide:** [README/authentication.md → Migration Guide (v3 → v4)](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/authentication.md#migration-guide-v3--v4)
+
+---
+
 <div style="text-align: center; width: 100%;">
 
 # Dynamic API Module<br>with WebSockets
@@ -93,7 +124,7 @@ The module provides:
 | Feature | Description |
 |---------|-------------|
 | 🚀 **Zero Boilerplate** | Generate complete CRUD APIs from schema definitions |
-| 🔐 **JWT Authentication** | Built-in authentication with 6 endpoints (login, register, get/update account, reset/change password) |
+| 🔐 **JWT Authentication** | Built-in dual-token authentication (access + refresh) with 8 endpoints (login, register, get/update account, reset/change password, refresh token, logout) |
 | 🛡️ **Authorization** | Role-based access control with ability predicates |
 | ⚡ **Smart Caching** | Global caching with automatic invalidation |
 | ✅ **Validation** | Global and per-route validation with class-validator |
@@ -861,7 +892,7 @@ Explore advanced features and configurations:
 | 🔄 **Versioning** | URI-based API versioning | [View Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/versioning.md) |
 | ✅ **Validation** | Request validation with class-validator | [View Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/validation.md) |
 | ⚡ **Caching** | Global caching with auto-invalidation | [View Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/caching.md) |
-| 🔐 **Authentication** | JWT authentication (6 endpoints) | [View Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/authentication.md) |
+| 🔐 **Authentication** | JWT dual-token auth (8 endpoints) — access + refresh tokens, cookie mode, server-side revocation | [View Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/authentication.md) |
 | 🛡️ **Authorization** | Role-based access control | [View Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/authorization.md) |
 | 📡 **WebSockets** | Socket.IO integration for routes | [View Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/websockets.md) |
 
@@ -871,7 +902,7 @@ Explore advanced features and configurations:
 - **Soft Delete**: Use `SoftDeletableEntity` to add `isDeleted` and `deletedAt` fields
 - **Version Format**: Must be numeric strings (`'1'`, `'2'`), not semantic versioning
 - **WebSocket Events**: 
-  - Auth events have fixed names: `auth-login`, `auth-register`, `auth-get-account`, `auth-update-account`, `auth-reset-password`, `auth-change-password`
+  - Auth events have fixed names: `auth-login`, `auth-register`, `auth-get-account`, `auth-update-account`, `auth-reset-password`, `auth-change-password`, `auth-refresh-token`, `auth-logout`
   - CRUD events are generated from entity name or `apiTag`: `kebabCase(routeType + '/' + displayedName)`
 - **Ability Predicates**: Signature varies by context:
   - Auth routes: `(user, body?) => boolean`

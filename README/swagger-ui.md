@@ -559,7 +559,8 @@ async function bootstrap() {
       - Authentication with JWT
       
       ## Authentication
-      Most endpoints require authentication. Use the /auth/login endpoint to obtain a JWT token.
+      Most endpoints require authentication. Use the /auth/login endpoint to obtain an access + refresh token pair (v4).
+      Use /auth/refresh-token to renew tokens and /auth/logout to invalidate the session.
     `,
     version: '2.0.0',
     path: 'api-docs',

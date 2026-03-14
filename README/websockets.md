@@ -509,6 +509,8 @@ You can customize event names using the `eventName` parameter in route configura
 - `auth-update-account` - Update current user account
 - `auth-reset-password` - Request password reset
 - `auth-change-password` - Change password with reset token
+- `auth-refresh-token` - Obtain a new token pair using the refresh token ⭐ *New in v4*
+- `auth-logout` - Invalidate the current refresh token ⭐ *New in v4*
 
 **Authentication Broadcast Events (Fixed Names):**
 - `auth-login-broadcast` - Broadcast after login
@@ -544,6 +546,8 @@ These event names are fixed and cannot be customized:
 | `auth-update-account` | Update current user account | Yes |
 | `auth-reset-password` | Request password reset email | No |
 | `auth-change-password` | Change password with reset token | No (requires reset token) |
+| `auth-refresh-token` | Obtain a new token pair (access + refresh) | Yes (refresh token via `JwtRefreshGuard`) ⭐ *New in v4* |
+| `auth-logout` | Invalidate the current refresh token | Yes (refresh token via `JwtRefreshGuard`) ⭐ *New in v4* |
 
 **Response Format for All Events:**
 ```typescript
@@ -625,6 +629,8 @@ Unlike CRUD route events which are generated from entity names, **authentication
 | `auth-update-account` | Update current user | Yes | Partial user data |
 | `auth-reset-password` | Request password reset | No | `{ email }` |
 | `auth-change-password` | Reset password with token | No** | `{ resetPasswordToken, newPassword }` |
+| `auth-refresh-token` | Get new token pair | Yes (refresh token) ⭐ *v4* | `{}` (token via header or cookie) |
+| `auth-logout` | Invalidate refresh token | Yes (refresh token) ⭐ *v4* | `{}` (token via header or cookie) |
 
 \* May require authentication if `register.protected` is set to `true`  
 \** Requires a valid reset token, not JWT authentication
@@ -703,7 +709,12 @@ Unlike CRUD route events which are generated from entity names, **authentication
         webSocket: true,
         jwt: {
           secret: process.env.JWT_SECRET,
-          expiresIn: '7d',
+          expiresIn: '15m',              // v4 default
+          refreshSecret: process.env.JWT_REFRESH_SECRET, // Optional — falls back to `secret` if omitted
+        },
+        refreshToken: {                  // v4: refresh token configuration
+          refreshTokenField: 'refreshToken',
+          refreshTokenExpiresIn: '7d',
         },
         login: {
           loginField: 'email',
@@ -737,8 +748,9 @@ export const authService = {
     return new Promise((resolve, reject) => {
       socket.emit('auth-login', { email, password }, (response) => {
         if (response.event === 'auth-login') {
-          // Store the JWT token
+          // v4: response now returns { accessToken, refreshToken }
           localStorage.setItem('accessToken', response.data.accessToken);
+          localStorage.setItem('refreshToken', response.data.refreshToken);
           resolve(response.data);
         } else {
           reject(response);
@@ -751,6 +763,9 @@ export const authService = {
     return new Promise((resolve, reject) => {
       socket.emit('auth-register', userData, (response) => {
         if (response.event === 'auth-register') {
+          // v4: register also returns { accessToken, refreshToken }
+          localStorage.setItem('accessToken', response.data.accessToken);
+          localStorage.setItem('refreshToken', response.data.refreshToken);
           resolve(response.data);
         } else {
           reject(response);
@@ -768,6 +783,33 @@ export const authService = {
         } else {
           reject(response);
         }
+      });
+    });
+  },
+
+  // v4: refresh token endpoint
+  async refreshTokens() {
+    return new Promise((resolve, reject) => {
+      // The refresh token must be sent in the socket auth or as data
+      socket.emit('auth-refresh-token', {}, (response) => {
+        if (response.event === 'auth-refresh-token') {
+          localStorage.setItem('accessToken', response.data.accessToken);
+          localStorage.setItem('refreshToken', response.data.refreshToken);
+          resolve(response.data);
+        } else {
+          reject(response);
+        }
+      });
+    });
+  },
+
+  // v4: logout endpoint
+  async logout() {
+    return new Promise((resolve, reject) => {
+      socket.emit('auth-logout', {}, (response) => {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        resolve(response);
       });
     });
   },
@@ -842,22 +884,25 @@ socket.emit('delete-one-user', { id: '507f1f77bcf86cd799439011' }, (response) =>
 });
 
 // Authentication events (fixed names)
-// Login
+// Login — v4: response.data now returns { accessToken, refreshToken }
 socket.emit('auth-login', {
   email: 'user@example.com',
   password: 'mypassword'
 }, (response) => {
-  console.log('Login response:', response.data);
-  // response.data contains { user, accessToken }
+  const { accessToken, refreshToken } = response.data;
+  localStorage.setItem('accessToken', accessToken);
+  localStorage.setItem('refreshToken', refreshToken);
 });
 
-// Register
+// Register — v4: also returns { accessToken, refreshToken }
 socket.emit('auth-register', {
   email: 'newuser@example.com',
   password: 'newpassword',
   name: 'New User'
 }, (response) => {
-  console.log('Registration response:', response.data);
+  const { accessToken, refreshToken } = response.data;
+  localStorage.setItem('accessToken', accessToken);
+  localStorage.setItem('refreshToken', refreshToken);
 });
 
 // Get current account
@@ -885,6 +930,20 @@ socket.emit('auth-change-password', {
   newPassword: 'newpassword123'
 }, (response) => {
   console.log('Password changed');
+});
+
+// v4: Refresh tokens — use refresh token in socket auth
+// (reconnect socket with refresh token in auth.token, then emit)
+socket.emit('auth-refresh-token', {}, (response) => {
+  const { accessToken, refreshToken } = response.data;
+  localStorage.setItem('accessToken', accessToken);
+  localStorage.setItem('refreshToken', refreshToken);
+});
+
+// v4: Logout — invalidates the refresh token server-side
+socket.emit('auth-logout', {}, () => {
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
 });
 
 // Handle connection events
