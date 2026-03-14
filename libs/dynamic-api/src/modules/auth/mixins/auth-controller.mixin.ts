@@ -1,6 +1,7 @@
-import { Body, Get, HttpCode, HttpStatus, Optional, Patch, Post, Request, Type, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Get, HttpCode, HttpStatus, Optional, Patch, Post, Request, Res, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiProperty, IntersectionType, PartialType, PickType } from '@nestjs/swagger';
+import { Response } from 'express';
 import { AuthDecoratorsBuilder } from '../../../builders';
 import { ApiEndpointVisibility, Public } from '../../../decorators';
 import { RouteDecoratorsHelper } from '../../../helpers';
@@ -16,9 +17,12 @@ import {
 } from '../auth-events.constants';
 import { ChangePasswordDto } from '../dtos/change-password.dto';
 import { ResetPasswordDto } from '../dtos/reset-password.dto';
-import { JwtAuthGuard, LocalAuthGuard, ResetPasswordGuard } from '../guards';
-import { AuthController, AuthControllerConstructor, AuthService, DynamicApiGetAccountOptions, DynamicApiLoginOptions, DynamicApiRegisterOptions, DynamicApiResetPasswordOptions, DynamicApiUpdateAccountOptions } from '../interfaces';
+import { JwtAuthGuard, JwtRefreshGuard, LocalAuthGuard, ResetPasswordGuard } from '../guards';
+import { AuthController, AuthControllerConstructor, AuthService, DynamicApiGetAccountOptions, DynamicApiLoginOptions, DynamicApiRefreshTokenOptions, DynamicApiRegisterOptions, DynamicApiResetPasswordOptions, DynamicApiUpdateAccountOptions } from '../interfaces';
 import { AuthPoliciesGuardMixin } from './auth-policies-guard.mixin';
+
+const REFRESH_TOKEN_COOKIE = 'refreshToken';
+const COOKIE_OPTIONS = { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict' as const };
 
 function AuthControllerMixin<Entity extends BaseEntity>(
   userEntity: Type<Entity>,
@@ -49,7 +53,11 @@ function AuthControllerMixin<Entity extends BaseEntity>(
   {
     useInterceptors: getAccountUseInterceptors = [],
     broadcast: getAccountBroadcastConfig,
-  }: DynamicApiGetAccountOptions<Entity> = {}
+  }: DynamicApiGetAccountOptions<Entity> = {},
+  {
+    useInterceptors: refreshTokenUseInterceptors = [],
+    useCookie = false,
+  }: DynamicApiRefreshTokenOptions<Entity> = {}
 ): AuthControllerConstructor<Entity> {
   if (!loginField || !passwordField) {
     throw new Error('Login and password fields are required');
@@ -114,6 +122,9 @@ function AuthControllerMixin<Entity extends BaseEntity>(
   class AuthPresenter {
     @ApiProperty()
     accessToken: string;
+
+    @ApiProperty({ required: false })
+    refreshToken?: string;
   }
 
   // @ts-ignore
@@ -171,7 +182,11 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     @ApiOkResponse({ type: AuthPresenter })
     @UseInterceptors(...loginUseInterceptors)
     @Post('login')
-    async login(@Request() req: { user: Entity }, @Body() _: AuthLoginDto) {
+    async login(
+      @Request() req: { user: Entity },
+      @Body() _: AuthLoginDto,
+      @Res({ passthrough: true }) res: Response,
+    ) {
       const result = await this.service.login(req.user);
 
       if (loginBroadcastConfig) {
@@ -183,6 +198,12 @@ function AuthControllerMixin<Entity extends BaseEntity>(
         );
       }
 
+      if (useCookie) {
+        res.cookie(REFRESH_TOKEN_COOKIE, result.refreshToken, COOKIE_OPTIONS);
+        const { refreshToken: _rt, ...bodyResult } = result;
+        return bodyResult;
+      }
+
       return result;
     }
 
@@ -191,7 +212,10 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     @ApiCreatedResponse({ type: AuthPresenter })
     @UseInterceptors(...registerUseInterceptors)
     @Post('register')
-    async register(@Body() body: AuthRegisterDto) {
+    async register(
+      @Body() body: AuthRegisterDto,
+      @Res({ passthrough: true }) res: Response,
+    ) {
       const result = await this.service.register(body);
 
       if (registerBroadcastConfig && this.jwtService) {
@@ -202,6 +226,12 @@ function AuthControllerMixin<Entity extends BaseEntity>(
           [broadcastData],
           registerBroadcastConfig,
         );
+      }
+
+      if (useCookie) {
+        res.cookie(REFRESH_TOKEN_COOKIE, result.refreshToken, COOKIE_OPTIONS);
+        const { refreshToken: _rt, ...bodyResult } = result;
+        return bodyResult;
       }
 
       return result;
@@ -237,6 +267,46 @@ function AuthControllerMixin<Entity extends BaseEntity>(
       }
 
       return account;
+    }
+
+    @ApiBearerAuth()
+    @UseGuards(JwtRefreshGuard)
+    @HttpCode(HttpStatus.OK)
+    @ApiOkResponse({ type: AuthPresenter })
+    @UseInterceptors(...refreshTokenUseInterceptors)
+    @Post('refresh-token')
+    async refreshToken(
+      @Request() req: { user: Entity; headers: Record<string, string>; cookies: Record<string, string> },
+      @Res({ passthrough: true }) res: Response,
+    ) {
+      const rawToken = useCookie
+        ? req.cookies?.[REFRESH_TOKEN_COOKIE]
+        : req.headers?.authorization?.split(' ')[1];
+
+      const result = await this.service.refreshToken(req.user, rawToken);
+
+      if (useCookie) {
+        res.cookie(REFRESH_TOKEN_COOKIE, result.refreshToken, COOKIE_OPTIONS);
+        const { refreshToken: _rt, ...bodyResult } = result;
+        return bodyResult;
+      }
+
+      return result;
+    }
+
+    @ApiBearerAuth()
+    @UseGuards(JwtRefreshGuard)
+    @HttpCode(HttpStatus.NO_CONTENT)
+    @Post('logout')
+    async logout(
+      @Request() req: { user: Entity },
+      @Res({ passthrough: true }) res: Response,
+    ) {
+      await this.service.logout(req.user);
+
+      if (useCookie) {
+        res.clearCookie(REFRESH_TOKEN_COOKIE);
+      }
     }
   }
 
