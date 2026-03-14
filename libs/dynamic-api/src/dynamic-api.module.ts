@@ -20,6 +20,7 @@ import {
   DynamicApiGlobalState,
   DynamicAPIRouteConfig,
   DynamicApiWebSocketOptions,
+  GatewayOptions,
   RouteModule,
   RoutesConfig,
   RouteType,
@@ -40,6 +41,8 @@ import {
   UpdateOneModule,
 } from './routes';
 import { DynamicApiGlobalStateService } from './services';
+import { DynamicApiBroadcastService } from './services';
+import { createDynamicApiBroadcastGateway } from './gateways';
 
 /**
  * DynamicApiModule is a module that provides dynamic API functionality.
@@ -69,6 +72,7 @@ export class DynamicApiModule {
       useAuth,
       routesConfig,
       webSocket,
+      broadcastGatewayOptions,
     }: DynamicApiForRootOptions<Entity> = {},
   ): DynamicModule {
     if (!uri) {
@@ -79,7 +83,7 @@ export class DynamicApiModule {
 
     this.state.set([
       'partial',
-      this.buildStateFromOptions(uri, useGlobalCache, cacheOptions, useAuth, routesConfig, webSocket),
+      this.buildStateFromOptions(uri, useGlobalCache, cacheOptions, useAuth, routesConfig, webSocket, broadcastGatewayOptions),
     ]);
 
     return {
@@ -235,6 +239,14 @@ export class DynamicApiModule {
                 return new DynamicApiJwtAuthGuard(reflector, state);
               },
             },
+            ...(routes.some((r) => r.broadcast) ? [
+              DynamicApiBroadcastService,
+              createDynamicApiBroadcastGateway(
+                this.state.get<GatewayOptions>('broadcastGatewayOptions')
+                ?? this.state.get<GatewayOptions>('gatewayOptions')
+                ?? {},
+              ),
+            ] : []),
           ],
         };
 
@@ -260,6 +272,7 @@ export class DynamicApiModule {
     useAuth?: DynamicApiAuthOptions,
     routesConfig?: Partial<RoutesConfig>,
     webSocket?: DynamicApiWebSocketOptions,
+    broadcastGatewayOptions?: GatewayOptions,
   ): Partial<DynamicApiGlobalState> {
     const routesConfigState = this.state.get<RoutesConfig>('routesConfig');
 
@@ -291,6 +304,7 @@ export class DynamicApiModule {
         } : {}
       ),
       gatewayOptions: initializeConfigFromOptions(webSocket),
+      ...(broadcastGatewayOptions ? { broadcastGatewayOptions } : {}),
     };
   }
 

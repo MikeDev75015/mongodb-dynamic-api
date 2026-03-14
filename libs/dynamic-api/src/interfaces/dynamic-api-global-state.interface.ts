@@ -28,6 +28,7 @@ interface DynamicApiGlobalState {
   jwtExpirationTime: string | number | undefined;
   routesConfig: RoutesConfig;
   gatewayOptions: GatewayMetadata | undefined;
+  broadcastGatewayOptions: GatewayMetadata | undefined;
 }
 
 export { DynamicApiGlobalState, Credentials, EntitySchemas, RoutesConfig };
