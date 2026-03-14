@@ -94,9 +94,10 @@ commands:
       - run:
           name: Merge Sonar XML test reports
           command: |
-            echo '<testExecutions version="1">' > reports/sonar/merged-test-report.xml
+            echo '<?xml version="1.0" encoding="UTF-8"?>' > reports/sonar/merged-test-report.xml
+            echo '<testExecutions version="1">' >> reports/sonar/merged-test-report.xml
             for f in reports/sonar/node-*/test-report.xml; do
-              grep -v 'testExecutions' "$f" >> reports/sonar/merged-test-report.xml
+              grep -vE '(<\?xml|testExecutions)' "$f" >> reports/sonar/merged-test-report.xml
             done
             echo '</testExecutions>' >> reports/sonar/merged-test-report.xml
       - store_artifacts:
