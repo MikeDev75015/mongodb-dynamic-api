@@ -103,15 +103,35 @@ function createAuthServiceProvider<Entity extends BaseEntity>(
   };
 }
 
+type CreateAuthControllerOptions<Entity extends BaseEntity> = {
+  getAccountOptions?: DynamicApiGetAccountOptions<Entity>;
+  registerOptions?: DynamicApiRegisterOptions<Entity>;
+  validationPipeOptions?: ValidationPipeOptions;
+  resetPasswordOptions?: DynamicApiResetPasswordOptions<Entity>;
+  updateAccountOptions?: DynamicApiUpdateAccountOptions<Entity>;
+  refreshTokenOptions?: DynamicApiRefreshTokenOptions<Entity>;
+};
+
+type CreateAuthGatewayOptions<Entity extends BaseEntity> = GatewayOptions & {
+  validationPipeOptions?: ValidationPipeOptions;
+  getAccountOptions?: DynamicApiGetAccountOptions<Entity>;
+  registerOptions?: DynamicApiRegisterOptions<Entity>;
+  resetPasswordOptions?: DynamicApiResetPasswordOptions<Entity>;
+  updateAccountOptions?: DynamicApiUpdateAccountOptions<Entity>;
+  refreshTokenOptions?: DynamicApiRefreshTokenOptions<Entity>;
+};
+
 function createAuthController<Entity extends BaseEntity>(
   userEntity: Type<Entity>,
   loginOptions: DynamicApiLoginOptions<Entity>,
-  getAccountOptions: DynamicApiGetAccountOptions<Entity> | undefined,
-  registerOptions: DynamicApiRegisterOptions<Entity> | undefined,
-  validationPipeOptions: ValidationPipeOptions | undefined,
-  resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined,
-  updateAccountOptions: DynamicApiUpdateAccountOptions<Entity> | undefined,
-  refreshTokenOptions?: DynamicApiRefreshTokenOptions<Entity>,
+  {
+    getAccountOptions,
+    registerOptions,
+    validationPipeOptions,
+    resetPasswordOptions,
+    updateAccountOptions,
+    refreshTokenOptions,
+  }: CreateAuthControllerOptions<Entity> = {},
 ): AuthControllerConstructor<Entity> {
   @Controller('auth')
   @ApiTags('Auth')
@@ -143,12 +163,15 @@ function createAuthController<Entity extends BaseEntity>(
 function createAuthGateway<Entity extends BaseEntity>(
   userEntity: Type<Entity>,
   loginOptions: DynamicApiLoginOptions<Entity>,
-  getAccountOptions: DynamicApiGetAccountOptions<Entity> | undefined,
-  registerOptions: DynamicApiRegisterOptions<Entity> | undefined,
-  resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined,
-  updateAccountOptions: DynamicApiUpdateAccountOptions<Entity> | undefined,
-  { validationPipeOptions, ...gatewayOptions }: GatewayOptions & { validationPipeOptions?: ValidationPipeOptions },
-  refreshTokenOptions?: DynamicApiRefreshTokenOptions<Entity>,
+  {
+    getAccountOptions,
+    registerOptions,
+    resetPasswordOptions,
+    updateAccountOptions,
+    refreshTokenOptions,
+    validationPipeOptions,
+    ...gatewayOptions
+  }: CreateAuthGatewayOptions<Entity>,
 ): AuthGatewayConstructor<Entity> {
   @WebSocketGateway(gatewayOptions)
   @UseFilters(new DynamicAPIWsExceptionFilter())
