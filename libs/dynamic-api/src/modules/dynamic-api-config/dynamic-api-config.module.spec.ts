@@ -16,6 +16,7 @@ describe('DynamicApiConfigModule', () => {
     routesConfig: undefined,
     uri: '',
     gatewayOptions: undefined,
+    broadcastGatewayOptions: undefined,
   };
 
   describe('register', () => {

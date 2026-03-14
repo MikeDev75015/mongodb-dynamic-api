@@ -2,6 +2,7 @@ import { DynamicModule, ValidationPipeOptions } from '@nestjs/common';
 import * as Helpers from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
+import { DynamicApiBroadcastService } from '../../services';
 import * as DuplicateOneHelpers from './duplicate-one.helper';
 import { DuplicateOneModule } from './duplicate-one.module';
 
@@ -68,7 +69,7 @@ describe('DuplicateOneModule', () => {
         module: DuplicateOneModule,
         imports: [databaseModule],
         controllers: [FakeController],
-        providers: [FakeServiceProvider, FakeGateway],
+        providers: [FakeServiceProvider, DynamicApiBroadcastService, FakeGateway],
       });
 
       expect(spyCreateDuplicateOneController)

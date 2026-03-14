@@ -2,6 +2,7 @@ import { DynamicModule, ValidationPipeOptions } from '@nestjs/common';
 import * as Helpers from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
+import { DynamicApiBroadcastService } from '../../services';
 import * as DuplicateManyHelpers from './duplicate-many.helper';
 import { DuplicateManyModule } from './duplicate-many.module';
 
@@ -68,7 +69,7 @@ describe('DuplicateManyModule', () => {
         module: DuplicateManyModule,
         imports: [databaseModule],
         controllers: [FakeController],
-        providers: [FakeServiceProvider, FakeGateway],
+        providers: [FakeServiceProvider, DynamicApiBroadcastService, FakeGateway],
       });
 
       expect(spyCreateDuplicateManyController)

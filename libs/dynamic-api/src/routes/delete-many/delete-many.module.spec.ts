@@ -2,6 +2,7 @@ import { DynamicModule, ValidationPipeOptions } from '@nestjs/common';
 import * as Helpers from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
+import { DynamicApiBroadcastService } from '../../services';
 import * as DeleteManyHelpers from './delete-many.helper';
 import { DeleteManyModule } from './delete-many.module';
 
@@ -66,7 +67,7 @@ describe('DeleteManyModule', () => {
         module: DeleteManyModule,
         imports: [databaseModule],
         controllers: [FakeController],
-        providers: [FakeServiceProvider, FakeGateway],
+        providers: [FakeServiceProvider, DynamicApiBroadcastService, FakeGateway],
       });
 
       expect(spyCreateDeleteManyController)
