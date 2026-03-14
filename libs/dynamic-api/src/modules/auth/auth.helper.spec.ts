@@ -1,6 +1,8 @@
+import { createMock } from '@golevelup/ts-jest';
 import { ForbiddenException, Type, UnauthorizedException, ValidationPipeOptions } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { BaseEntity } from '../../models';
+import { DynamicApiBroadcastService } from '../../services';
 import {
   authServiceProviderName,
   createAuthController, createAuthGateway,
@@ -216,8 +218,8 @@ describe('AuthHelper', () => {
   describe('createAuthController', () => {
     let AuthController: Type;
     const service = {} as AuthService<UserEntity>;
-    const broadcastService = { broadcastFromHttp: jest.fn() } as any;
-    const jwtService = { sign: jest.fn() } as any;
+    const broadcastService = createMock<DynamicApiBroadcastService>();
+    const jwtService = createMock<JwtService>();
 
     it('should return a controller', () => {
       AuthController = createAuthController(
