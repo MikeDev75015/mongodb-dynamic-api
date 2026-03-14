@@ -1,17 +1,18 @@
-import { Body, Query, Type, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Optional, Query, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { isEmpty } from 'lodash';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
+import { DynamicApiBroadcastService } from '../../services';
 import { DuplicateManyController, DuplicateManyControllerConstructor } from './duplicate-many-controller.interface';
 import { DuplicateManyService } from './duplicate-many-service.interface';
 
 function DuplicateManyControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): DuplicateManyControllerConstructor<Entity> {
   const {
@@ -20,6 +21,7 @@ function DuplicateManyControllerMixin<Entity extends BaseEntity>(
     description,
     isPublic,
     abilityPredicate,
+    event,
   } = getMixinData(
     entity,
     controllerOptions,
@@ -70,8 +72,10 @@ function DuplicateManyControllerMixin<Entity extends BaseEntity>(
   class BaseDuplicateManyController implements DuplicateManyController<Entity> {
     protected readonly entity = entity;
 
-    constructor(protected readonly service: DuplicateManyService<Entity>) {
-    }
+    constructor(
+      protected readonly service: DuplicateManyService<Entity>,
+      @Optional() protected readonly broadcastService?: DynamicApiBroadcastService,
+    ) {}
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(DuplicateManyPoliciesGuard)
@@ -94,7 +98,11 @@ function DuplicateManyControllerMixin<Entity extends BaseEntity>(
         DuplicateManyPresenter as Mappable<Entity>
       ).fromEntities;
 
-      return fromEntities ? fromEntities<DuplicateManyPresenter>(list) : list;
+      const responseData = fromEntities ? fromEntities<DuplicateManyPresenter>(list) : list;
+
+      this.broadcastService?.broadcastFromHttp(event, responseData as object[], broadcastConfig);
+
+      return responseData;
     }
   }
 

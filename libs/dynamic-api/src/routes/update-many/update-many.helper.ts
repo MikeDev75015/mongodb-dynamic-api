@@ -2,6 +2,7 @@ import {
   ClassSerializerInterceptor,
   Controller,
   Inject,
+  Optional,
   Type,
   UseInterceptors,
   ValidationPipeOptions,
@@ -22,6 +23,7 @@ import {
   GatewayOptions,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
+import { DynamicApiBroadcastService } from '../../services';
 import { BaseUpdateManyService } from './base-update-many.service';
 import { UpdateManyControllerConstructor } from './update-many-controller.interface';
 import { UpdateManyControllerMixin } from './update-many-controller.mixin';
@@ -84,8 +86,10 @@ function createUpdateManyController<Entity extends BaseEntity>(
     constructor(
       @Inject(provideName('UpdateMany', displayedName, version, 'Service'))
       protected readonly service: UpdateManyService<Entity>,
+      @Optional() @Inject(DynamicApiBroadcastService)
+      protected readonly broadcastService?: DynamicApiBroadcastService,
     ) {
-      super(service);
+      super(service, broadcastService);
     }
   }
 

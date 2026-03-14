@@ -2,6 +2,7 @@ import {
   ClassSerializerInterceptor,
   Controller,
   Inject,
+  Optional,
   Type,
   UseInterceptors,
   ValidationPipeOptions,
@@ -21,6 +22,7 @@ import {
   GatewayOptions,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
+import { DynamicApiBroadcastService } from '../../services';
 import { BaseDeleteOneService } from './base-delete-one.service';
 import { DeleteOneControllerConstructor } from './delete-one-controller.interface';
 import { DeleteOneControllerMixin } from './delete-one-controller.mixin';
@@ -81,8 +83,10 @@ function createDeleteOneController<Entity extends BaseEntity>(
     constructor(
       @Inject(provideName('DeleteOne', displayedName, version, 'Service'))
       protected readonly service: DeleteOneService<Entity>,
+      @Optional() @Inject(DynamicApiBroadcastService)
+      protected readonly broadcastService?: DynamicApiBroadcastService,
     ) {
-      super(service);
+      super(service, broadcastService);
     }
   }
 

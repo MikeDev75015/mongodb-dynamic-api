@@ -1,6 +1,7 @@
 import { ManyEntityQuery } from '../../dtos';
 import { DeleteResult } from '../../interfaces';
 import { BaseEntity } from '../../models';
+import { DynamicApiBroadcastService } from '../../services';
 import { DeleteManyService } from './delete-many-service.interface';
 
 interface DeleteManyController<_Entity extends BaseEntity, Response = any> {
@@ -9,6 +10,7 @@ interface DeleteManyController<_Entity extends BaseEntity, Response = any> {
 
 type DeleteManyControllerConstructor<Entity extends BaseEntity> = new (
   service: DeleteManyService<Entity>,
+  broadcastService?: DynamicApiBroadcastService,
 ) => DeleteManyController<Entity>;
 
 export type { DeleteManyController, DeleteManyControllerConstructor };

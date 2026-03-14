@@ -1,17 +1,18 @@
-import { Body, Param, Type, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Optional, Param, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityParam } from '../../dtos';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
+import { DynamicApiBroadcastService } from '../../services';
 import { ReplaceOneController, ReplaceOneControllerConstructor } from './replace-one-controller.interface';
 import { ReplaceOneService } from './replace-one-service.interface';
 
 function ReplaceOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): ReplaceOneControllerConstructor<Entity> {
   const {
@@ -20,6 +21,7 @@ function ReplaceOneControllerMixin<Entity extends BaseEntity>(
     description,
     isPublic,
     abilityPredicate,
+    event,
   } = getMixinData(
     entity,
     controllerOptions,
@@ -71,8 +73,10 @@ function ReplaceOneControllerMixin<Entity extends BaseEntity>(
   class BaseReplaceOneController implements ReplaceOneController<Entity> {
     protected readonly entity = entity;
 
-    constructor(protected readonly service: ReplaceOneService<Entity>) {
-    }
+    constructor(
+      protected readonly service: ReplaceOneService<Entity>,
+      @Optional() protected readonly broadcastService?: DynamicApiBroadcastService,
+    ) {}
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(ReplaceOnePoliciesGuard)
@@ -88,7 +92,11 @@ function ReplaceOneControllerMixin<Entity extends BaseEntity>(
         ReplaceOnePresenter as Mappable<Entity>
       ).fromEntity;
 
-      return fromEntity ? fromEntity<ReplaceOnePresenter>(entity) : entity;
+      const responseData = fromEntity ? fromEntity<ReplaceOnePresenter>(entity) : entity;
+
+      this.broadcastService?.broadcastFromHttp(event, [responseData as object], broadcastConfig);
+
+      return responseData;
     }
   }
 

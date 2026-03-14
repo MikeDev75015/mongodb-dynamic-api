@@ -1,4 +1,4 @@
-import { Body, Param, Type, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Optional, Param, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { isEmpty } from 'lodash';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityParam } from '../../dtos';
@@ -6,13 +6,14 @@ import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } fr
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
+import { DynamicApiBroadcastService } from '../../services';
 import { DuplicateOneController, DuplicateOneControllerConstructor } from './duplicate-one-controller.interface';
 import { DuplicateOneService } from './duplicate-one-service.interface';
 
 function DuplicateOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): DuplicateOneControllerConstructor<Entity> {
   const {
@@ -21,6 +22,7 @@ function DuplicateOneControllerMixin<Entity extends BaseEntity>(
     description,
     isPublic,
     abilityPredicate,
+    event,
   } = getMixinData(
     entity,
     controllerOptions,
@@ -72,8 +74,10 @@ function DuplicateOneControllerMixin<Entity extends BaseEntity>(
   class BaseDuplicateOneController implements DuplicateOneController<Entity> {
     protected readonly entity = entity;
 
-    constructor(protected readonly service: DuplicateOneService<Entity>) {
-    }
+    constructor(
+      protected readonly service: DuplicateOneService<Entity>,
+      @Optional() protected readonly broadcastService?: DynamicApiBroadcastService,
+    ) {}
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(DuplicateOnePoliciesGuard)
@@ -92,7 +96,11 @@ function DuplicateOneControllerMixin<Entity extends BaseEntity>(
         DuplicateOnePresenter as Mappable<Entity>
       ).fromEntity;
 
-      return fromEntity ? fromEntity(entity) : entity;
+      const responseData = fromEntity ? fromEntity(entity) : entity;
+
+      this.broadcastService?.broadcastFromHttp(event, [responseData as object], broadcastConfig);
+
+      return responseData;
     }
   }
 
