@@ -361,6 +361,38 @@ describe('AuthGatewayMixin', () => {
     });
   });
 
+  describe('logout', () => {
+    let gateway: AuthGateway<TestEntity>;
+    let socket: ExtendedSocket<TestEntity>;
+
+    beforeEach(() => {
+      service.logout = jest.fn().mockResolvedValue(undefined);
+      socket = {} as ExtendedSocket<TestEntity>;
+    });
+
+    it('should call service logout and return event when socket.user is set', async () => {
+      const AuthGateway = AuthGatewayMixin(TestEntity, login);
+      gateway = new AuthGateway(service, jwtService);
+      socket.user = fakeUser;
+
+      const result = await gateway.logout(socket);
+
+      expect(service.logout).toHaveBeenCalledTimes(1);
+      expect(service.logout).toHaveBeenCalledWith(fakeUser);
+      expect(result).toEqual({ event: 'auth-logout', data: undefined });
+    });
+
+    it('should not call service logout and return event when socket.user is not set', async () => {
+      const AuthGateway = AuthGatewayMixin(TestEntity, login);
+      gateway = new AuthGateway(service, jwtService);
+
+      const result = await gateway.logout(socket);
+
+      expect(service.logout).not.toHaveBeenCalled();
+      expect(result).toEqual({ event: 'auth-logout', data: undefined });
+    });
+  });
+
   describe('refreshToken', () => {
     let gateway: AuthGateway<TestEntity>;
     let socket: ExtendedSocket<TestEntity>;
@@ -512,6 +544,20 @@ describe('AuthGatewayMixin', () => {
         await gateway.register(socket, { loginField: fakeUser.loginField, passwordField: fakeUser.passwordField });
 
         expect(socket.broadcast.emit).not.toHaveBeenCalled();
+      });
+
+      it('should broadcast with empty payload when jwtService.decode returns null', async () => {
+        const AuthGateway = AuthGatewayMixin(
+          TestEntity,
+          login,
+          { ...register, broadcast: { enabled: true } },
+        );
+        const gateway = new AuthGateway(service, jwtService);
+        jwtService.decode.mockReturnValueOnce(null);
+
+        await gateway.register(socket, { loginField: fakeUser.loginField, passwordField: fakeUser.passwordField });
+
+        expect(socket.broadcast.emit).toHaveBeenCalledWith('auth-register-broadcast', [{}]);
       });
     });
 
