@@ -27,6 +27,7 @@ type HttpBroadcastOptions = {
   authToken?: string;
   broadcastEvent: string;
   namespace?: string;
+  query?: Record<string, any>;
   timeoutMs?: number;
   connectTimeoutMs?: number;
 };
@@ -209,7 +210,7 @@ export const server = {
     method: 'post' | 'patch' | 'put' | 'delete',
     path: string,
     body: Body,
-    { authToken, broadcastEvent, namespace, timeoutMs = DEFAULT_SOCKET_TIMEOUT_MS, connectTimeoutMs = DEFAULT_SOCKET_CONNECT_TIMEOUT_MS }: HttpBroadcastOptions,
+    { authToken, broadcastEvent, namespace, query, timeoutMs = DEFAULT_SOCKET_TIMEOUT_MS, connectTimeoutMs = DEFAULT_SOCKET_CONNECT_TIMEOUT_MS }: HttpBroadcastOptions,
   ): Promise<{ httpResponse: Response; broadcastData: any }> => {
     verifyApp();
 
@@ -259,7 +260,7 @@ export const server = {
 
       waitForSocketConnect(receiver, 'Receiver', connectTimeoutMs)
         .then(() => {
-          const req = verifyApp()[method](path).send(body).set({
+          const req = verifyApp()[method](path).query(query ?? {}).send(body).set({
             ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
             'Content-Type': 'application/json',
             'User-Agent': 'Chrome/51.0.2704.103 Safari/537.36',

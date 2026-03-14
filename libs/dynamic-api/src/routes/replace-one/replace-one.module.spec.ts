@@ -69,7 +69,7 @@ describe('ReplaceOneModule', () => {
         module: ReplaceOneModule,
         imports: [databaseModule],
         controllers: [FakeController],
-        providers: [FakeServiceProvider, DynamicApiBroadcastService, FakeGateway],
+        providers: [FakeServiceProvider, FakeGateway],
       });
 
       expect(spyCreateReplaceOneController)
@@ -86,6 +86,21 @@ describe('ReplaceOneModule', () => {
         validationPipeOptions,
         fakeGatewayOptions,
       );
+    });
+
+    it('should return a DynamicModule with broadcast service when broadcast is configured', () => {
+      const broadcastRouteConfig: DynamicAPIRouteConfig<Entity> = {
+        ...routeConfig,
+        broadcast: { enabled: true },
+      };
+      const result = ReplaceOneModule.forFeature(databaseModule, Entity, controllerOptions, broadcastRouteConfig, version, validationPipeOptions);
+
+      expect(result).toEqual({
+        module: ReplaceOneModule,
+        imports: [databaseModule],
+        controllers: [FakeController],
+        providers: [FakeServiceProvider, DynamicApiBroadcastService],
+      });
     });
   });
 });

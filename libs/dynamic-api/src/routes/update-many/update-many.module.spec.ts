@@ -69,7 +69,7 @@ describe('UpdateManyModule', () => {
         module: UpdateManyModule,
         imports: [databaseModule],
         controllers: [FakeController],
-        providers: [FakeServiceProvider, DynamicApiBroadcastService, FakeGateway],
+        providers: [FakeServiceProvider, FakeGateway],
       });
 
       expect(spyCreateUpdateManyController)
@@ -86,6 +86,21 @@ describe('UpdateManyModule', () => {
         validationPipeOptions,
         fakeGatewayOptions,
       );
+    });
+
+    it('should return a DynamicModule with broadcast service when broadcast is configured', () => {
+      const broadcastRouteConfig: DynamicAPIRouteConfig<Entity> = {
+        ...routeConfig,
+        broadcast: { enabled: true },
+      };
+      const result = UpdateManyModule.forFeature(databaseModule, Entity, controllerOptions, broadcastRouteConfig, version, validationPipeOptions);
+
+      expect(result).toEqual({
+        module: UpdateManyModule,
+        imports: [databaseModule],
+        controllers: [FakeController],
+        providers: [FakeServiceProvider, DynamicApiBroadcastService],
+      });
     });
   });
 });

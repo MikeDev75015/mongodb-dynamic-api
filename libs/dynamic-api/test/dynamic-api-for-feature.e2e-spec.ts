@@ -1303,9 +1303,12 @@ describe('DynamicApiModule forFeature (e2e)', () => {
     it('[DuplicateMany] should broadcast duplicated products after HTTP call', async () => {
       const { broadcastData } = await server.httpWithBroadcast(
         'post',
-        '/hb-products/duplicate/many',
+        '/hb-products/duplicate',
         { status: 'dup' },
-        { broadcastEvent: 'duplicate-many-hb-product' },
+        {
+          broadcastEvent: 'duplicate-many-hb-product',
+          query: { ids: [firstProduct.id, secondProduct.id] },
+        },
       );
 
       expect(handleSocketBroadcast).toHaveBeenCalledTimes(1);
@@ -1332,9 +1335,12 @@ describe('DynamicApiModule forFeature (e2e)', () => {
       const ids = [firstProduct.id, secondProduct.id];
       const { broadcastData } = await server.httpWithBroadcast(
         'delete',
-        '/hb-products/many',
+        '/hb-products',
         {},
-        { broadcastEvent: 'delete-many-hb-product' },
+        {
+          broadcastEvent: 'delete-many-hb-product',
+          query: { ids },
+        },
       );
 
       expect(handleSocketBroadcast).toHaveBeenCalledTimes(1);

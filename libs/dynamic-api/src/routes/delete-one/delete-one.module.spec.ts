@@ -67,7 +67,7 @@ describe('DeleteOneModule', () => {
         module: DeleteOneModule,
         imports: [databaseModule],
         controllers: [FakeController],
-        providers: [FakeServiceProvider, DynamicApiBroadcastService, FakeGateway],
+        providers: [FakeServiceProvider, FakeGateway],
       });
 
       expect(spyCreateDeleteOneController)
@@ -82,6 +82,21 @@ describe('DeleteOneModule', () => {
         validationPipeOptions,
         fakeGatewayOptions,
       );
+    });
+
+    it('should return a DynamicModule with broadcast service when broadcast is configured', () => {
+      const broadcastRouteConfig: DynamicAPIRouteConfig<Entity> = {
+        ...routeConfig,
+        broadcast: { enabled: true },
+      };
+      const result = DeleteOneModule.forFeature(databaseModule, Entity, controllerOptions, broadcastRouteConfig, version, validationPipeOptions);
+
+      expect(result).toEqual({
+        module: DeleteOneModule,
+        imports: [databaseModule],
+        controllers: [FakeController],
+        providers: [FakeServiceProvider, DynamicApiBroadcastService],
+      });
     });
   });
 });
