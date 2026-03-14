@@ -40,7 +40,7 @@ export class DuplicateManyModule {
     const hasBroadcast = !!routeConfig.broadcast;
     const gatewayOptions = webSocket
       ? initializeConfigFromOptions(webSocket)
-      : DynamicApiModule.state.get<GatewayMetadata>('gatewayOptions') ?? (hasBroadcast ? {} : null);
+      : DynamicApiModule.state.get<GatewayMetadata>('gatewayOptions') ?? null;
 
 
     return {
@@ -49,9 +49,9 @@ export class DuplicateManyModule {
       controllers: [controller, ...(extraControllers || [])],
       providers: [
         ServiceProvider,
+        ...(hasBroadcast ? [DynamicApiBroadcastService] : []),
         ...(
           gatewayOptions ? [
-            DynamicApiBroadcastService,
             createDuplicateManyGateway(
               entity,
               displayedName,

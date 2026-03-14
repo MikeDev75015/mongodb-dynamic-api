@@ -4,10 +4,10 @@ import { DynamicApiBroadcastConfig } from '../../interfaces';
 
 @Injectable()
 export class DynamicApiBroadcastService {
-  private wsServer: Server | null = null;
+  private static wsServer: Server | null = null;
 
   setWsServer(server: Server): void {
-    this.wsServer = server;
+    DynamicApiBroadcastService.wsServer = server;
   }
 
   broadcastFromHttp<T extends object>(
@@ -15,7 +15,7 @@ export class DynamicApiBroadcastService {
     data: T[],
     broadcastConfig: DynamicApiBroadcastConfig<T>,
   ): void {
-    if (!this.wsServer || !broadcastConfig || !data?.length) {
+    if (!DynamicApiBroadcastService.wsServer || !broadcastConfig || !data?.length) {
       return;
     }
 
@@ -33,7 +33,7 @@ export class DynamicApiBroadcastService {
       return;
     }
 
-    this.wsServer.emit(eventName || event, broadcastData);
+    DynamicApiBroadcastService.wsServer.emit(eventName || event, broadcastData);
   }
 }
 
