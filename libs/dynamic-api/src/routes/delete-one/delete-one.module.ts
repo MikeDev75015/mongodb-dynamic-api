@@ -4,6 +4,7 @@ import { DynamicApiModule } from '../../dynamic-api.module';
 import { getDisplayedName, initializeConfigFromOptions } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiWebSocketOptions } from '../../interfaces';
 import { BaseEntity } from '../../models';
+import { DynamicApiBroadcastService } from '../../services';
 import {
   createDeleteOneController,
   createDeleteOneGateway,
@@ -36,9 +37,11 @@ export class DeleteOneModule {
     );
     const ServiceProvider = createDeleteOneServiceProvider(entity, displayedName, version);
 
+    const hasBroadcast = !!routeConfig.broadcast;
     const gatewayOptions = webSocket
       ? initializeConfigFromOptions(webSocket)
-      : DynamicApiModule.state.get<GatewayMetadata>('gatewayOptions');
+      : DynamicApiModule.state.get<GatewayMetadata>('gatewayOptions') ?? (hasBroadcast ? {} : null);
+
 
     return {
       module: DeleteOneModule,
@@ -48,6 +51,7 @@ export class DeleteOneModule {
         ServiceProvider,
         ...(
           gatewayOptions ? [
+            DynamicApiBroadcastService,
             createDeleteOneGateway(
               entity,
               displayedName,

@@ -37,7 +37,7 @@ export class GetOneModule {
 
     const gatewayOptions = webSocket
       ? initializeConfigFromOptions(webSocket)
-      : DynamicApiModule.state.get<GatewayMetadata>('gatewayOptions');
+      : DynamicApiModule.state.get<GatewayMetadata>('gatewayOptions') ?? null;
 
     return {
       module: GetOneModule,
