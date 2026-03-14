@@ -1,5 +1,59 @@
 Changelog
 
+## [4.0.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v3.2.1...v4.0.0) (2026-03-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* **auth:** add refreshSecret, refreshTokenField, useCookie options and extend global state with jwtRefreshSecret, jwtRefreshUseCookie
+
+* resolve SonarQube code smells - replace String() with JSON.stringify() for proper object serialization - remove unnecessary type assertions on jwtService.decode() - extract nested ternary operations into if/else blocks ([c908ad2](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/c908ad2b6b0d6871acb9f5d4d0ac5fa9ad3812d2))
+
+
+### types
+
+* **types:** eliminate any in base service - use typed lean<T>(), PipelineStage and unknown error handling ([db7f6e5](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/db7f6e5277a6e49ccae62065b9443568a1ff3434))
+* **types:** improve type safety in auth module controller interface, mixins and service spec ([12a41a0](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/12a41a0e6b96bf9b464d03a1c3807bb78f387040))
+* **types:** replace any with typed params in builders, decorators, helpers, interceptors and interfaces ([ec6802e](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/ec6802e8196e99876c5e9e8f5ebbf6cc92d5e9bf))
+* **types:** replace any with unknown in socket adapter and JWT guards/strategies ([4acfcb2](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/4acfcb2bab2ac3f9823d76c61783bc9c046dcc15))
+* **types:** use typed lean<T>() queries and replace error: any with error: unknown in all route services ([52a5dc8](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/52a5dc8c14b9a25ef037c55a37cc851656e9d98f))
+
+
+### auth/strategy
+
+* **auth/strategy:** extract jwtFromRequest cookie logic to static method for testability ([5149916](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/5149916a8dcc68c9ca8adf69c14b5b06f3f911e8))
+
+
+### auth/service
+
+* **auth/service:** replace crypto with node:crypto protocol (sonar typescript:S7772) ([4a9d535](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/4a9d535291346304576743e9e749c95f99b0bde4))
+
+
+### auth/module
+
+* **auth/module:** update createAuthController and createAuthGateway calls to new options object signatures ([a148d3f](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/a148d3fd641c8e547cd5972dae306b9204ebc8ba))
+
+
+### auth
+
+* **auth:** add broadcast support for auth actions (login, register, getAccount, updateAccount) ([5e4583e](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/5e4583e9bad607e07cf9a91e631f2945063e00b0))
+* **auth:** add JwtRefreshStrategy (Bearer/cookie extractor), JwtRefreshGuard and JwtSocketRefreshGuard ([fa11ebf](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/fa11ebf15445502491ab7650457645da64aa87bf))
+* **auth:** add POST /auth/refresh-token and POST /auth/logout to controller and gateway mixins ([4fbc572](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/4fbc572a63887cc7b4d1324402e8e0a7d3036759))
+* **auth:** add refreshSecret, refreshTokenField, useCookie options and extend global state with jwtRefreshSecret, jwtRefreshUseCookie ([1e00969](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/1e00969d9f0c783bdfd8a82c4c7c93a27cc7a72f))
+* **auth:** implement refresh token flow in BaseAuthService ([1e08538](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/1e08538a2aa6960527c072b3a5374dc7daeda371))
+* **auth:** reduce createAuthController and createAuthGateway to 3 params (sonar max-params) ([1c47791](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/1c47791d8267804de4f0a9c8d44d6d726124110d))
+* **auth:** wire refresh token options through AuthModule, auth helper and DynamicApiModule ([5621d82](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/5621d8215fcbaffb3232d6106c55ac8354fe2eca))
+
+
+### deps
+
+* **deps:** add cookie-parser and @types/cookie-parser dependencies ([1878546](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/1878546535ab271be733f2cf93b7574b0cd20c56))
+
+
+### ci
+
+* **ci:** fix merged Sonar XML report format for SonarScanner ([5ec4e67](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/5ec4e675dfea8fc7cc7f14f21e656f761308f533))
+
 ## [3.2.1](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v3.2.0...v3.2.1) (2026-03-14)
 
 
