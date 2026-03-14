@@ -12,7 +12,7 @@ import { DynamicAPIWsExceptionFilter } from '../../filters';
 import { AuthAbilityPredicate, DynamicApiServiceCallback, DynamicAPIServiceProvider, GatewayOptions } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BcryptService, DynamicApiBroadcastService } from '../../services';
-import { AuthControllerConstructor, AuthGatewayConstructor, AuthService, DynamicApiGetAccountOptions, DynamicApiLoginOptions, DynamicApiRegisterOptions, DynamicApiResetPasswordOptions, DynamicApiUpdateAccountOptions } from './interfaces';
+import { AuthControllerConstructor, AuthGatewayConstructor, AuthService, DynamicApiGetAccountOptions, DynamicApiLoginOptions, DynamicApiRefreshTokenOptions, DynamicApiRegisterOptions, DynamicApiResetPasswordOptions, DynamicApiUpdateAccountOptions } from './interfaces';
 import { AuthControllerMixin, AuthGatewayMixin } from './mixins';
 import { BaseAuthService } from './services';
 
@@ -66,12 +66,14 @@ function createAuthServiceProvider<Entity extends BaseEntity>(
   register: DynamicApiRegisterOptions<Entity> | undefined,
   resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined,
   updateAccount: DynamicApiUpdateAccountOptions<Entity> | undefined,
+  refreshToken?: DynamicApiRefreshTokenOptions<Entity>,
 ): DynamicAPIServiceProvider {
   class AuthService extends BaseAuthService<Entity> {
     protected entity = userEntity;
     protected additionalRequestFields = additionalFields;
     protected loginField = loginField;
     protected passwordField = passwordField;
+    protected refreshTokenField = refreshToken?.refreshTokenField;
 
     protected beforeRegisterCallback = register?.beforeSaveCallback;
     protected registerCallback = register?.callback;
@@ -108,7 +110,8 @@ function createAuthController<Entity extends BaseEntity>(
   registerOptions: DynamicApiRegisterOptions<Entity> | undefined,
   validationPipeOptions: ValidationPipeOptions | undefined,
   resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined,
-  updateAccountOptions: DynamicApiUpdateAccountOptions<Entity> | undefined
+  updateAccountOptions: DynamicApiUpdateAccountOptions<Entity> | undefined,
+  refreshTokenOptions?: DynamicApiRefreshTokenOptions<Entity>,
 ): AuthControllerConstructor<Entity> {
   @Controller('auth')
   @ApiTags('Auth')
@@ -120,6 +123,7 @@ function createAuthController<Entity extends BaseEntity>(
     resetPasswordOptions,
     updateAccountOptions,
     getAccountOptions,
+    refreshTokenOptions,
   ) {
     constructor(
       @Inject(authServiceProviderName)
@@ -144,6 +148,7 @@ function createAuthGateway<Entity extends BaseEntity>(
   resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined,
   updateAccountOptions: DynamicApiUpdateAccountOptions<Entity> | undefined,
   { validationPipeOptions, ...gatewayOptions }: GatewayOptions & { validationPipeOptions?: ValidationPipeOptions },
+  refreshTokenOptions?: DynamicApiRefreshTokenOptions<Entity>,
 ): AuthGatewayConstructor<Entity> {
   @WebSocketGateway(gatewayOptions)
   @UseFilters(new DynamicAPIWsExceptionFilter())
@@ -155,6 +160,7 @@ function createAuthGateway<Entity extends BaseEntity>(
     resetPasswordOptions,
     updateAccountOptions,
     getAccountOptions,
+    refreshTokenOptions,
   ) {
     constructor(
       @Inject(authServiceProviderName)
