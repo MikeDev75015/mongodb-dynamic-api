@@ -195,6 +195,7 @@ describe('DynamicApiModule', () => {
         isPublic: false,
         abilityPredicate: undefined,
         displayedName: 'fake-displayed-name',
+        event: 'fake-event',
       });
       mongooseModuleSpy = jest
       .spyOn(MongooseModule, 'forFeature')
