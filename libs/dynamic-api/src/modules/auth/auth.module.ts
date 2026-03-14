@@ -1,4 +1,5 @@
-import { Module } from '@nestjs/common';
+import * as cookieParser from 'cookie-parser';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import type { StringValue } from 'ms';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -11,10 +12,18 @@ import { BaseEntity } from '../../models';
 import { BcryptService, DynamicApiGlobalStateService, DynamicApiBroadcastService } from '../../services';
 import { authGatewayProviderName, createAuthController, createAuthGateway, createAuthServiceProvider, createLocalStrategyProvider } from './auth.helper';
 import { DynamicApiAuthOptions, DynamicApiResetPasswordOptions } from './interfaces';
-import { JwtStrategy } from './strategies';
+import { JwtRefreshStrategy, JwtStrategy } from './strategies';
 
 @Module({})
-export class AuthModule {
+export class AuthModule implements NestModule {
+  private static useCookie = false;
+
+  configure(consumer: MiddlewareConsumer) {
+    if (AuthModule.useCookie) {
+      consumer.apply(cookieParser()).forRoutes('*');
+    }
+  }
+
   static forRoot<Entity extends BaseEntity>(
     options: DynamicApiAuthOptions<Entity>,
   ) {
@@ -29,6 +38,7 @@ export class AuthModule {
       register,
       updateAccount,
       resetPassword,
+      refreshToken,
       jwt: { secret, expiresIn },
       validationPipeOptions,
       webSocket,
@@ -36,6 +46,8 @@ export class AuthModule {
       extraProviders,
       extraControllers,
     } = this.initializeAuthOptions<Entity>(options);
+
+    AuthModule.useCookie = refreshToken?.useCookie ?? false;
 
     const { resetPasswordCallback, ...resetPasswordOptionsRest } = resetPassword;
     const resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined = resetPasswordCallback
@@ -50,6 +62,7 @@ export class AuthModule {
       validationPipeOptions,
       resetPasswordOptions,
       updateAccount,
+      refreshToken,
     );
     const AuthServiceProvider = createAuthServiceProvider(
       userEntity,
@@ -58,6 +71,7 @@ export class AuthModule {
       register,
       resetPasswordOptions,
       updateAccount,
+      refreshToken,
     );
     const LocalStrategyProvider = createLocalStrategyProvider(
       loginField, passwordField, login.abilityPredicate,
@@ -94,6 +108,7 @@ export class AuthModule {
           resetPasswordOptions,
           updateAccount,
           { ...gatewayOptions, validationPipeOptions },
+          refreshToken,
         ),
       },
     ];
@@ -122,6 +137,7 @@ export class AuthModule {
         AuthServiceProvider,
         LocalStrategyProvider,
         JwtStrategy,
+        JwtRefreshStrategy,
         BcryptService,
         ...broadcastProviders,
         ...webSocketsProviders,
@@ -131,11 +147,6 @@ export class AuthModule {
     };
   }
 
-  /**
-   * Initializes the auth options with default values.
-   * @param {DynamicApiAuthOptions} useAuth - The auth options.
-   * @returns {DynamicApiAuthOptions} - The initialized auth options.
-   */
   private static initializeAuthOptions<Entity extends BaseEntity>({
     userEntity,
     jwt,
@@ -144,6 +155,7 @@ export class AuthModule {
     updateAccount,
     getAccount,
     resetPassword,
+    refreshToken,
     validationPipeOptions,
     webSocket,
     extraImports = [],
@@ -154,7 +166,9 @@ export class AuthModule {
       userEntity: userEntity,
       jwt: {
         secret: jwt?.secret ?? 'dynamic-api-jwt-secret',
-        expiresIn: jwt?.expiresIn ?? '1d',
+        expiresIn: jwt?.expiresIn ?? '15m',
+        refreshTokenExpiresIn: jwt?.refreshTokenExpiresIn ?? '7d',
+        refreshSecret: jwt?.refreshSecret,
       },
       login: {
         ...login,
@@ -179,6 +193,12 @@ export class AuthModule {
         ...resetPassword,
         emailField: (!resetPassword?.emailField ? 'email' as keyof Entity : String(resetPassword.emailField)),
         expirationInMinutes: resetPassword?.expirationInMinutes ?? 10,
+      },
+      refreshToken: {
+        ...refreshToken,
+        useInterceptors: refreshToken?.useInterceptors ?? [],
+        refreshTokenField: refreshToken?.refreshTokenField,
+        useCookie: refreshToken?.useCookie ?? false,
       },
       validationPipeOptions: validationPipeOptions,
       webSocket,

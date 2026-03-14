@@ -272,7 +272,10 @@ export class DynamicApiModule {
             passwordField: !useAuth.login?.passwordField ? 'password' : String(useAuth.login.passwordField),
           },
           jwtSecret: useAuth.jwt?.secret ?? 'dynamic-api-jwt-secret',
-          jwtExpirationTime: useAuth.jwt?.expiresIn ?? '1d',
+          jwtExpirationTime: useAuth.jwt?.expiresIn ?? '15m',
+          jwtRefreshTokenExpiresIn: useAuth.jwt?.refreshTokenExpiresIn ?? '7d',
+          jwtRefreshSecret: useAuth.jwt?.refreshSecret,
+          jwtRefreshUseCookie: useAuth.refreshToken?.useCookie ?? false,
           gatewayOptions: initializeConfigFromOptions(webSocket),
         } : {}
       ),
