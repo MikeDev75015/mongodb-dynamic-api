@@ -48,7 +48,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
     }
   }
 
-  protected async aggregateDocumentsWithAbilityPredicate(pipeline: any[]) {
+  protected async aggregateDocumentsWithAbilityPredicate(pipeline: PipelineStage[]) {
     this.baseServiceLogger.debug('aggregateDocumentsWithAbilityPredicate', {
       pipeline: JSON.stringify(pipeline),
       entityName: this.entity.name,
@@ -117,7 +117,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
 
   protected async findManyDocuments<T extends BaseEntity>(entity: Type<T>, query: FilterQuery<T>): Promise<T[]> {
     const model = await DynamicApiGlobalStateService.getEntityModel(entity);
-    const documents = await model.find(query).lean().exec() as T[];
+    const documents = await model.find(query).lean<T[]>().exec();
 
     return documents.map((d) => this.addDocumentId(d));
   }
@@ -127,7 +127,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
     query: FilterQuery<T>,
   ): Promise<T | undefined> {
     const model = await DynamicApiGlobalStateService.getEntityModel(entity);
-    const document = await model.findOne(query).lean().exec() as T | undefined;
+    const document = await model.findOne(query).lean<T>().exec();
 
     return document ? this.addDocumentId(document) : undefined;
   }
@@ -237,9 +237,10 @@ export abstract class BaseService<Entity extends BaseEntity> {
     }
   }
 
-  protected handleDuplicateKeyError(error: any, reThrow = true) {
-    if (error.code === 11000) {
-      const properties = Object.entries(error.keyValue)
+  protected handleDuplicateKeyError(error: unknown, reThrow = true) {
+    const mongoError = error as { code?: number; keyValue?: Record<string, unknown> };
+    if (mongoError.code === 11000) {
+      const properties = Object.entries(mongoError.keyValue ?? {})
       .filter(([key]) => key !== 'deletedAt')
       .map(([key, value]) => `${key} '${value}'`);
 
@@ -258,16 +259,21 @@ export abstract class BaseService<Entity extends BaseEntity> {
       throw error;
     }
 
-    throw new ServiceUnavailableException(error.message);
+    throw new ServiceUnavailableException(
+      error instanceof Error ? error.message
+        : typeof (error as Record<string, unknown>).message === 'string' ? (error as Record<string, unknown>).message as string
+        : String(error),
+    );
   }
 
-  protected handleMongoErrors(error: any, reThrow = true) {
-    if (error.name === 'CastError') {
+  protected handleMongoErrors(error: unknown, reThrow = true) {
+    const mongoError = error as { name?: string; errors?: Record<string, { properties: { message: string } }> };
+    if (mongoError.name === 'CastError') {
       throw new NotFoundException(`${this.entity?.name ?? 'Document'} not found`);
     }
 
-    if (error.name === 'ValidationError') {
-      const errorDetails = Object.values(error.errors)?.map(({ properties }) => properties.message as string);
+    if (mongoError.name === 'ValidationError') {
+      const errorDetails = Object.values(mongoError.errors ?? {})?.map(({ properties }) => properties.message as string);
       throw new BadRequestException(errorDetails?.length ? errorDetails : ['Invalid payload']);
     }
 
@@ -279,7 +285,11 @@ export abstract class BaseService<Entity extends BaseEntity> {
       throw error;
     }
 
-    throw new ServiceUnavailableException(error.message);
+    throw new ServiceUnavailableException(
+      error instanceof Error ? error.message
+        : typeof (error as Record<string, unknown>).message === 'string' ? (error as Record<string, unknown>).message as string
+        : String(error),
+    );
   }
 
   protected handleDocumentNotFound() {

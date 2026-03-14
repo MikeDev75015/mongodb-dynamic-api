@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
-import { Model, Schema, ObjectId } from 'mongoose';
+import { Model, ObjectId } from 'mongoose';
 import { AbilityPredicate, DeleteResult, UpdateResult } from '../../interfaces';
 import { BaseEntity, SoftDeletableEntity } from '../../models';
 import { DynamicApiGlobalStateService } from '../dynamic-api-global-state/dynamic-api-global-state.service';
@@ -32,9 +32,21 @@ class TestSoftService extends BaseService<TestSoftEntity> {
 }
 
 describe('BaseService', () => {
+  type FakeModel = {
+    aggregate: jest.Mock;
+    find: jest.Mock;
+    findOne: jest.Mock;
+    create: jest.Mock;
+    updateOne: jest.Mock;
+    updateMany: jest.Mock;
+    deleteOne: jest.Mock;
+    deleteMany: jest.Mock;
+    schema: { paths: Record<string, unknown> };
+  };
+
   let service: TestService;
-  let fakeModel: any;
-  let model: Model<any>;
+  let fakeModel: FakeModel;
+  let model: Model<TestEntity>;
 
   const fakeId = 'fake-id';
   const fakeEntity = { _id: fakeId as unknown as ObjectId, name: 'toto' } as TestEntity;
@@ -79,10 +91,10 @@ describe('BaseService', () => {
       )),
       schema: {
         paths: {},
-      } as Schema<any>,
+      },
     };
 
-    service = new TestService(fakeModel);
+    service = new TestService(fakeModel as unknown as Model<TestEntity>);
   });
 
   describe('callbackMethods', () => {
@@ -138,8 +150,8 @@ describe('BaseService', () => {
       model = {
         aggregate: jest.fn().mockReturnThis(),
         exec: jest.fn().mockResolvedValue(documents),
-      } as unknown as Model<any>;
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
+      } as unknown as Model<TestEntity>;
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model as unknown as Model<unknown>);
     });
 
     it('should not call handleAbilityPredicate return an array of documents', async () => {
@@ -182,8 +194,8 @@ describe('BaseService', () => {
         find: jest.fn().mockReturnThis(),
         lean: jest.fn().mockReturnThis(),
         exec: jest.fn().mockResolvedValue(documents),
-      } as unknown as Model<any>;
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
+      } as unknown as Model<TestEntity>;
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model as unknown as Model<unknown>);
     });
 
     it('should not call handleAbilityPredicate return an array of documents', async () => {
@@ -226,8 +238,8 @@ describe('BaseService', () => {
         findOne: jest.fn().mockReturnThis(),
         lean: jest.fn().mockReturnThis(),
         exec: jest.fn().mockResolvedValue(document),
-      } as unknown as Model<any>;
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
+      } as unknown as Model<TestEntity>;
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model as unknown as Model<unknown>);
     });
 
     it('should not call handleAbilityPredicate return the document', async () => {
@@ -281,8 +293,8 @@ describe('BaseService', () => {
         findOne: jest.fn().mockReturnThis(),
         lean: jest.fn().mockReturnThis(),
         exec: jest.fn().mockResolvedValue(null),
-      } as unknown as Model<any>;
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
+      } as unknown as Model<TestEntity>;
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model as unknown as Model<unknown>);
       const service = new TestService(model);
       // @ts-ignore
       service['entity'] = TestEntity;
@@ -296,8 +308,8 @@ describe('BaseService', () => {
   describe('aggregateDocuments', () => {
     it('should call the model aggregate method with the pipeline and return the documents', async () => {
       exec.mockResolvedValue(documents);
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel);
-      const service = new TestService(fakeModel);
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
+      const service = new TestService(fakeModel as unknown as Model<TestEntity>);
 
       const result = await service['callbackMethods'].aggregateDocuments(TestEntity, []);
 
@@ -309,8 +321,8 @@ describe('BaseService', () => {
   describe('findManyDocuments', () => {
     it('should call the model find method with the query and return the documents', async () => {
       exec.mockResolvedValue(documents);
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel);
-      const service = new TestService(fakeModel);
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
+      const service = new TestService(fakeModel as unknown as Model<TestEntity>);
 
       const result = await service['callbackMethods'].findManyDocuments(TestEntity, fakeQuery);
 
@@ -322,8 +334,8 @@ describe('BaseService', () => {
   describe('findOneDocument', () => {
     it('should call the model findOne method with the query and return the document', async () => {
       exec.mockResolvedValue(fakeEntity);
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel);
-      const service = new TestService(fakeModel);
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
+      const service = new TestService(fakeModel as unknown as Model<TestEntity>);
 
       const result = await service['callbackMethods'].findOneDocument(TestEntity, fakeQuery);
 
@@ -336,8 +348,8 @@ describe('BaseService', () => {
     it('should call the model create method with the data and return the documents', async () => {
       const data = [{ name: 'toto' }, { name: 'unit' }];
       fakeModel.create.mockResolvedValue(documents);
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel);
-      const service = new TestService(fakeModel);
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
+      const service = new TestService(fakeModel as unknown as Model<TestEntity>);
 
       const result = await service['callbackMethods'].createManyDocuments(TestEntity, data);
 
@@ -349,8 +361,8 @@ describe('BaseService', () => {
   describe('createOneDocument', () => {
     it('should call the model create method with the data and return the document', async () => {
       fakeModel.create.mockResolvedValue(fakeEntity);
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel);
-      const service = new TestService(fakeModel);
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
+      const service = new TestService(fakeModel as unknown as Model<TestEntity>);
 
       const result = await service['callbackMethods'].createOneDocument(TestEntity, fakeEntity);
 
@@ -363,8 +375,8 @@ describe('BaseService', () => {
     it('should call the model updateMany method with the query and data and return the documents', async () => {
       const data = { name: 'unit' };
       exec.mockResolvedValue(fakeUpdateResult);
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel);
-      const service = new TestService(fakeModel);
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
+      const service = new TestService(fakeModel as unknown as Model<TestEntity>);
 
       const result = await service['callbackMethods'].updateManyDocuments(TestEntity, fakeQuery, data);
 
@@ -377,8 +389,8 @@ describe('BaseService', () => {
     it('should call the model updateOne method with the query and data and return the document', async () => {
       const data = { name: 'unit' };
       exec.mockResolvedValue(fakeUpdateResult);
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel);
-      const service = new TestService(fakeModel);
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
+      const service = new TestService(fakeModel as unknown as Model<TestEntity>);
 
       const result = await service['callbackMethods'].updateOneDocument(TestEntity, fakeQuery, data);
 
@@ -390,8 +402,8 @@ describe('BaseService', () => {
   describe('deleteManyDocuments', () => {
     it('should call the model deleteMany method with the query and return the delete result', async () => {
       exec.mockResolvedValue(fakeDeleteResult);
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel);
-      const service = new TestService(fakeModel);
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
+      const service = new TestService(fakeModel as unknown as Model<TestEntity>);
 
       const result = await service['callbackMethods'].deleteManyDocuments(TestEntity, [fakeId]);
 
@@ -405,8 +417,8 @@ describe('BaseService', () => {
         deletedAt: {},
         isDeleted: {},
       };
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel);
-      const service = new TestSoftService(fakeModel);
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
+      const service = new TestSoftService(fakeModel as unknown as Model<TestSoftEntity>);
 
       const result = await service['callbackMethods'].deleteManyDocuments(TestSoftEntity, [fakeId]);
 
@@ -421,8 +433,8 @@ describe('BaseService', () => {
   describe('deleteOneDocument', () => {
     it('should call the model deleteOne method with the query and return the document', async () => {
       exec.mockResolvedValue(fakeDeleteResult);
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel);
-      const service = new TestService(fakeModel);
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
+      const service = new TestService(fakeModel as unknown as Model<TestEntity>);
 
       const result = await service['callbackMethods'].deleteOneDocument(TestEntity, fakeId);
 
@@ -436,8 +448,8 @@ describe('BaseService', () => {
         deletedAt: {},
         isDeleted: {},
       };
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel);
-      const service = new TestSoftService(fakeModel);
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
+      const service = new TestSoftService(fakeModel as unknown as Model<TestSoftEntity>);
 
       const result = await service['callbackMethods'].deleteOneDocument(TestSoftEntity, fakeId);
 
