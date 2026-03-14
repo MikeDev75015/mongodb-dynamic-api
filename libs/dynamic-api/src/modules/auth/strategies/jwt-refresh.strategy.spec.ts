@@ -21,6 +21,21 @@ describe('JwtRefreshStrategy', () => {
     return moduleRef.get<JwtRefreshStrategy>(JwtRefreshStrategy);
   };
 
+  describe('extractFromCookies (static)', () => {
+    it('should return the refreshToken from cookies', () => {
+      const req = { cookies: { refreshToken: 'my-token' } };
+      expect(JwtRefreshStrategy.extractFromCookies(req)).toBe('my-token');
+    });
+
+    it('should return null when refreshToken cookie is absent', () => {
+      expect(JwtRefreshStrategy.extractFromCookies({ cookies: {} })).toBeNull();
+    });
+
+    it('should return null when cookies property is undefined', () => {
+      expect(JwtRefreshStrategy.extractFromCookies({})).toBeNull();
+    });
+  });
+
   describe('with Bearer mode (useCookie: false / undefined)', () => {
     beforeEach(async () => {
       setupState({ jwtRefreshUseCookie: false });
@@ -63,6 +78,13 @@ describe('JwtRefreshStrategy', () => {
 
     it('should return user payload without iat and exp', async () => {
       const payload = { iat: 1000, exp: 9999, id: 'user-id', email: 'test@test.co' };
+      const result = await strategy.validate(payload);
+
+      expect(result).toEqual({ id: 'user-id', email: 'test@test.co' });
+    });
+
+    it('should return user payload without iat, exp and jti', async () => {
+      const payload = { iat: 1000, exp: 9999, jti: 'some-jti', id: 'user-id', email: 'test@test.co' };
       const result = await strategy.validate(payload);
 
       expect(result).toEqual({ id: 'user-id', email: 'test@test.co' });
