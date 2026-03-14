@@ -4,6 +4,7 @@ import { DynamicApiModule } from '../../dynamic-api.module';
 import { getDisplayedName, initializeConfigFromOptions } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiWebSocketOptions } from '../../interfaces';
 import { BaseEntity } from '../../models';
+import { DynamicApiBroadcastService } from '../../services';
 import { createCreateOneController, createCreateOneGateway, createCreateOneServiceProvider } from './create-one.helper';
 
 @Module({})
@@ -34,9 +35,11 @@ export class CreateOneModule {
       entity, displayedName, version, routeConfig.callback, routeConfig.beforeSaveCallback,
     );
 
+    const hasBroadcast = !!routeConfig.broadcast;
     const gatewayOptions = webSocket
       ? initializeConfigFromOptions(webSocket)
-      : DynamicApiModule.state.get<GatewayMetadata>('gatewayOptions');
+      : DynamicApiModule.state.get<GatewayMetadata>('gatewayOptions') ?? (hasBroadcast ? {} : null);
+
 
     return {
       module: CreateOneModule,
@@ -46,6 +49,7 @@ export class CreateOneModule {
         ServiceProvider,
         ...(
           gatewayOptions ? [
+            DynamicApiBroadcastService,
             createCreateOneGateway(
               entity,
               displayedName,

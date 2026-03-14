@@ -4,6 +4,7 @@ import { DynamicApiModule } from '../../dynamic-api.module';
 import { getDisplayedName, initializeConfigFromOptions } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiWebSocketOptions } from '../../interfaces';
 import { BaseEntity } from '../../models';
+import { DynamicApiBroadcastService } from '../../services';
 import {
   createUpdateManyController,
   createUpdateManyGateway,
@@ -36,9 +37,11 @@ export class UpdateManyModule {
     );
     const ServiceProvider = createUpdateManyServiceProvider(entity, displayedName, version, routeConfig.callback);
 
+    const hasBroadcast = !!routeConfig.broadcast;
     const gatewayOptions = webSocket
       ? initializeConfigFromOptions(webSocket)
-      : DynamicApiModule.state.get<GatewayMetadata>('gatewayOptions');
+      : DynamicApiModule.state.get<GatewayMetadata>('gatewayOptions') ?? (hasBroadcast ? {} : null);
+
 
     return {
       module: UpdateManyModule,
@@ -48,6 +51,7 @@ export class UpdateManyModule {
         ServiceProvider,
         ...(
           gatewayOptions ? [
+            DynamicApiBroadcastService,
             createUpdateManyGateway(
               entity,
               displayedName,
