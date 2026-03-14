@@ -1,5 +1,10 @@
 Changelog
 
+## [3.2.1](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v3.2.0...v3.2.1) (2026-03-14)
+
+
+* resolve TypeScript breaking changes from dependency upgrades ([a836768](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/a836768e4fc0609898ec3917aecbf677b1b74935))
+
 ## [3.2.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v3.1.0...v3.2.0) (2026-03-14)
 
 
