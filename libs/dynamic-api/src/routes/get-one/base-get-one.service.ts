@@ -22,7 +22,7 @@ export abstract class BaseGetOneService<Entity extends BaseEntity>
           this.isSoftDeletable ? { isDeleted: false } : undefined
         ),
       })
-      .lean()
+      .lean<Entity>()
       .exec();
 
       if (!document) {
@@ -30,10 +30,10 @@ export abstract class BaseGetOneService<Entity extends BaseEntity>
       }
 
       if (this.callback) {
-        await this.callback(this.addDocumentId(document as Entity), this.callbackMethods);
+        await this.callback(this.addDocumentId(document), this.callbackMethods);
       }
 
-      return this.buildInstance(document as Entity);
+      return this.buildInstance(document);
     } catch (error) {
       this.handleMongoErrors(error);
     }

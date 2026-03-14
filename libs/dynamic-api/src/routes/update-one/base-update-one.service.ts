@@ -30,8 +30,8 @@ export abstract class BaseUpdateOneService<Entity extends BaseEntity>
           this.isSoftDeletable ? { isDeleted: false } : undefined
         ),
       })
-      .lean()
-      .exec() as Entity;
+      .lean<Entity>()
+      .exec();
 
       if (!document) {
         this.handleDocumentNotFound();
@@ -51,8 +51,8 @@ export abstract class BaseUpdateOneService<Entity extends BaseEntity>
         { $set: update },
         { new: true },
       )
-      .lean()
-      .exec() as Entity;
+      .lean<Entity>()
+      .exec();
 
       if (this.callback) {
         await this.callback(this.addDocumentId(updatedDocument), this.callbackMethods);

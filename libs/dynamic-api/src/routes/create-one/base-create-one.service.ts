@@ -36,7 +36,7 @@ export abstract class BaseCreateOneService<Entity extends BaseEntity>
 
       const { _id } = await this.model.create(plainToInstance(this.entity, toCreate));
 
-      const document = await this.model.findOne({ _id }).lean().exec() as Entity;
+      const document = await this.model.findOne({ _id }).lean<Entity>().exec();
 
       if (this.callback) {
         await this.callback(this.addDocumentId(document), this.callbackMethods);

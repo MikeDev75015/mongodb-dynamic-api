@@ -33,7 +33,7 @@ export abstract class BaseReplaceOneService<Entity extends BaseEntity>
           setDefaultsOnInsert: true,
         },
       )
-      .lean()
+      .lean<Entity>()
       .exec();
 
       if (!document) {
@@ -41,13 +41,14 @@ export abstract class BaseReplaceOneService<Entity extends BaseEntity>
       }
 
       if (this.callback) {
-        await this.callback(this.addDocumentId(document as Entity), this.callbackMethods);
+        await this.callback(this.addDocumentId(document), this.callbackMethods);
       }
 
-      return this.buildInstance(document as Entity);
-    } catch (error: any) {
-      this.handleMongoErrors(error, false);
-      this.handleDuplicateKeyError(error);
+      return this.buildInstance(document);
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      this.handleMongoErrors(err, false);
+      this.handleDuplicateKeyError(err);
     }
   }
 }
