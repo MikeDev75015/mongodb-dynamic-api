@@ -72,7 +72,7 @@ commands:
           command: |
             UT_FILES=$(circleci tests glob "libs/**/*.spec.ts" | circleci tests split --split-by=timings)
             echo $UT_FILES
-            npm run test:ci:sonar $UT_FILES --coverageDirectory=coverage-data/node-${CIRCLE_NODE_INDEX}
+            npm run test:ci:sonar -- $UT_FILES --coverageDirectory=coverage-data/node-${CIRCLE_NODE_INDEX}
       - run:
           name: Move Sonar XML report to node-specific folder
           command: |
