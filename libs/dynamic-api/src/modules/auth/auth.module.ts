@@ -57,12 +57,14 @@ export class AuthModule implements NestModule {
     const AuthController = createAuthController(
       userEntity,
       { loginField, passwordField, ...login },
-      getAccount,
-      register,
-      validationPipeOptions,
-      resetPasswordOptions,
-      updateAccount,
-      refreshToken,
+      {
+        getAccountOptions: getAccount,
+        registerOptions: register,
+        validationPipeOptions,
+        resetPasswordOptions,
+        updateAccountOptions: updateAccount,
+        refreshTokenOptions: refreshToken,
+      },
     );
     const AuthServiceProvider = createAuthServiceProvider(
       userEntity,
@@ -103,12 +105,15 @@ export class AuthModule implements NestModule {
             passwordField,
             ...login,
           },
-          getAccount,
-          register,
-          resetPasswordOptions,
-          updateAccount,
-          { ...gatewayOptions, validationPipeOptions },
-          refreshToken,
+          {
+            ...gatewayOptions,
+            validationPipeOptions,
+            getAccountOptions: getAccount,
+            registerOptions: register,
+            resetPasswordOptions,
+            updateAccountOptions: updateAccount,
+            refreshTokenOptions: refreshToken,
+          },
         ),
       },
     ];
