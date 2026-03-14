@@ -1,10 +1,12 @@
 import { BadRequestException, ForbiddenException, Type, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { randomUUID } from 'crypto';
 import { Model, UpdateQuery, UpdateWithAggregationPipeline } from 'mongoose';
 import { DynamicApiResetPasswordCallbackMethods, DynamicApiServiceBeforeSaveCallback, DynamicApiServiceCallback } from '../../../interfaces';
 import { MongoDBDynamicApiLogger } from '../../../logger';
 import { BaseEntity } from '../../../models';
 import { BaseService, BcryptService } from '../../../services';
+import { DynamicApiModule } from '../../../dynamic-api.module';
 import { DynamicApiResetPasswordOptions } from '../interfaces';
 
 export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseService<Entity> {
@@ -19,6 +21,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
   protected loginCallback: DynamicApiServiceCallback<Entity> | undefined;
   protected getAccountCallback: DynamicApiServiceCallback<Entity> | undefined;
   protected resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined;
+  protected refreshTokenField: keyof Entity | undefined;
 
   private resetPasswordCallbackMethods: DynamicApiResetPasswordCallbackMethods<Entity> | undefined;
 
@@ -36,10 +39,8 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     this.logger.debug('Validating user', { login, pass: !!pass });
     this.verifyArguments(login, pass);
 
-    const user = (
-      // @ts-ignore
-      await this.model.findOne({ [this.loginField]: login }).lean().exec()
-    ) as Entity;
+    // @ts-ignore
+    const user = await this.model.findOne({ [this.loginField]: login }).lean<Entity>().exec();
 
     // @ts-ignore
     const isPasswordValid = user ? await this.bcryptService.comparePassword(pass, user[this.passwordField]) : false;
@@ -56,7 +57,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     this.verifyArguments(user);
 
     if (!fromMember && !!this.loginCallback) {
-      const fullUser = (await this.model.findOne({ _id: user.id }).lean().exec()) as Entity;
+      const fullUser = await this.model.findOne({ _id: user.id }).lean<Entity>().exec();
       const instance = this.buildInstance(fullUser);
       await this.loginCallback(instance, this.callbackMethods);
     }
@@ -68,14 +69,22 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
       ...this.additionalRequestFields,
     ];
 
+    const payload: object = { ...this.buildUserFields(user, fieldsToBuild) };
 
-    const payload: object = {
-      ...this.buildUserFields(user, fieldsToBuild),
-    };
+    const accessToken = this.jwtService.sign(payload);
+    const refreshToken = this.buildRefreshToken(payload);
 
-    return {
-      accessToken: this.jwtService.sign(payload),
-    };
+    if (this.refreshTokenField && (user._id || user.id)) {
+      const { jti } = this.jwtService.decode(refreshToken) as { jti: string };
+      const hashedRefreshToken = await this.bcryptService.hashPassword(jti);
+      await this.model.updateOne(
+        { _id: user._id || user.id },
+        // @ts-ignore
+        { $set: { [this.refreshTokenField]: hashedRefreshToken } },
+      ).exec();
+    }
+
+    return { accessToken, refreshToken };
   }
 
   protected async register(userToCreate: Partial<Entity>) {
@@ -95,12 +104,12 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
       const created = await this.model.create({ ...userToCreate, [this.passwordField]: hashedPassword });
 
       if (this.registerCallback) {
-        const user = (await this.model.findOne({ _id: created._id }).lean().exec()) as Entity;
+        const user = await this.model.findOne({ _id: created._id }).lean<Entity>().exec();
         const instance = this.buildInstance(user);
         await this.registerCallback(instance, this.callbackMethods);
       }
 
-      const user = (await this.model.findOne({ _id: created._id }).lean().exec()) as Entity;
+      const user = await this.model.findOne({ _id: created._id }).lean<Entity>().exec();
 
       return this.login(user, true);
     } catch (error) {
@@ -113,7 +122,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     this.logger.debug('Getting account', { userId: id });
     this.verifyArguments(id);
 
-    const user = (await this.model.findOne({ _id: id }).lean().exec()) as Entity;
+    const user = (await this.model.findOne({ _id: id }).lean<Entity>().exec());
 
     if (this.getAccountCallback) {
       const instance = this.buildInstance(user);
@@ -134,9 +143,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     this.verifyArguments(id, update);
 
     if (this.beforeUpdateAccountCallback) {
-      const user = (
-        await this.model.findOne({ _id: id }).lean().exec()
-      ) as Entity;
+      const user = await this.model.findOne({ _id: id }).lean<Entity>().exec();
       update =
         await this.beforeUpdateAccountCallback({ ...user, id: user._id.toString() }, { update }, this.callbackMethods);
     }
@@ -148,7 +155,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     ).exec();
 
     if (this.updateAccountCallback) {
-      const fullUser = (await this.model.findOne({ _id: id }).lean().exec()) as Entity;
+      const fullUser = (await this.model.findOne({ _id: id }).lean<Entity>().exec());
       const instance = this.buildInstance(fullUser);
       await this.updateAccountCallback(instance, this.callbackMethods);
     }
@@ -168,14 +175,14 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
       findUserByEmail: async () => {
         // @ts-ignore
         const user = await this.model.findOne({ [this.resetPasswordOptions.emailField]: email })
-        .lean()
+        .lean<Entity>()
         .exec();
 
         if (!user) {
           return;
         }
 
-        return this.buildInstance(user as Entity);
+        return this.buildInstance(user);
       },
       updateUserByEmail: async (update: UpdateQuery<Entity> | UpdateWithAggregationPipeline) => {
         const user = await this.model.findOneAndUpdate(
@@ -183,13 +190,13 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
           { [this.resetPasswordOptions.emailField]: email },
           update,
           { new: true },
-        ).lean().exec();
+        ).lean<Entity>().exec();
 
         if (!user) {
           return;
         }
 
-        return this.buildInstance(user as Entity);
+        return this.buildInstance(user);
       },
     };
 
@@ -250,9 +257,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     const hashedPassword = await this.bcryptService.hashPassword(newPassword);
 
     if (this.resetPasswordOptions?.beforeChangePasswordCallback) {
-      const user = (
-        await this.model.findOne({ _id: userId }).lean().exec()
-      ) as Entity;
+      const user = await this.model.findOne({ _id: userId }).lean<Entity>().exec();
       await this.resetPasswordOptions.beforeChangePasswordCallback(
         { ...user, id: user._id.toString() },
         { resetPasswordToken, newPassword, hashedPassword },
@@ -267,12 +272,92 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     );
 
     if (this.resetPasswordOptions?.changePasswordCallback) {
-      const user = (await this.model.findOne({ _id: userId }).lean().exec()) as Entity;
+      const user = await this.model.findOne({ _id: userId }).lean<Entity>().exec();
       await this.resetPasswordOptions.changePasswordCallback(
         { ...user, id: user._id.toString() },
         this.callbackMethods,
       );
     }
+  }
+
+  protected async refreshToken(user: Entity, rawToken?: string) {
+    this.logger.debug('Refreshing token', { userId: user?.id });
+    this.verifyArguments(user);
+
+    if (this.refreshTokenField) {
+      const storedUser = await this.model.findOne({ _id: user._id || user.id }).lean<Entity>().exec();
+      const storedHash = storedUser?.[this.refreshTokenField] as string | undefined;
+      const jtiFromToken = rawToken ? (this.jwtService.decode(rawToken) as { jti?: string })?.jti : undefined;
+
+      if (!storedHash || !jtiFromToken) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+
+      const isValid = await this.bcryptService.comparePassword(jtiFromToken, storedHash);
+      if (!isValid) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+    }
+
+    const fieldsToBuild = [
+      '_id' as keyof Entity,
+      'id' as keyof Entity,
+      this.loginField,
+      ...this.additionalRequestFields,
+    ];
+
+    const payload: object = { ...this.buildUserFields(user, fieldsToBuild) };
+
+    const accessToken = this.jwtService.sign(payload);
+    const refreshToken = this.buildRefreshToken(payload);
+
+    if (this.refreshTokenField && (user._id || user.id)) {
+      const { jti } = this.jwtService.decode(refreshToken) as { jti: string };
+      const hashedRefreshToken = await this.bcryptService.hashPassword(jti);
+      await this.model.updateOne(
+        { _id: user._id || user.id },
+        // @ts-ignore
+        { $set: { [this.refreshTokenField]: hashedRefreshToken } },
+      ).exec();
+    }
+
+    return { accessToken, refreshToken };
+  }
+
+  protected async logout(user: Entity) {
+    this.logger.debug('Logging out user', { userId: user.id });
+    this.verifyArguments(user);
+
+    if (!this.refreshTokenField) {
+      this.logger.warn(
+        'logout called without refreshTokenField configured. ' +
+        'Server-side token revocation is not possible. ' +
+        'To enable server-side revocation, add a field to your entity ' +
+        'and configure refreshToken.refreshTokenField in your auth options.',
+      );
+      return;
+    }
+
+    await this.model.updateOne(
+      { _id: user._id || user.id },
+      // @ts-ignore
+      { $set: { [this.refreshTokenField]: null } },
+    ).exec();
+  }
+
+  private buildRefreshToken(payload: object): string {
+    const refreshSecret = DynamicApiModule.state.get<string | undefined>('jwtRefreshSecret');
+    const refreshTokenExpiresIn = DynamicApiModule.state.get<string | number | undefined>('jwtRefreshTokenExpiresIn');
+
+    // @ts-ignore
+    return this.jwtService.sign(
+      { ...payload, jti: randomUUID() },
+      {
+        ...(refreshSecret ? { secret: refreshSecret } : {}),
+        // @ts-ignore
+        ...(refreshTokenExpiresIn ? { expiresIn: refreshTokenExpiresIn } : {}),
+      },
+    );
   }
 
   private buildUserFields(user: Entity, fieldsToBuild: (keyof Entity)[]) {
