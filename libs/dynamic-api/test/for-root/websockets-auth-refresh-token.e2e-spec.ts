@@ -26,6 +26,7 @@ describe('DynamicApiModule forRoot - Websockets EVENT auth-refresh-token with re
     let app: INestApplication;
     let jwtService: JwtService;
     let wsAccessToken: string;
+    let wsRefreshToken: string;
 
     beforeEach(async () => {
       app = await initModule(
@@ -47,46 +48,50 @@ describe('DynamicApiModule forRoot - Websockets EVENT auth-refresh-token with re
       );
       jwtService = app.get<JwtService>(JwtService);
 
-      const { accessToken } = await server.emit<any, any>(
+      const { accessToken, refreshToken } = await server.emit<any, any>(
         'auth-register',
         { email: 'ws-refresh@test.co', password: 'test' },
       );
       wsAccessToken = accessToken;
+      wsRefreshToken = refreshToken;
       handleSocketResponse.mockReset();
     });
 
-    it('should return a refresh token with longer expiration than the access token', async () => {
-      await server.emit('auth-refresh-token', undefined, { accessToken: wsAccessToken });
+    it('should return { accessToken, refreshToken } with refresh token having longer expiration', async () => {
+      await server.emit('auth-refresh-token', undefined, { refreshToken: wsRefreshToken });
 
       expect(handleSocketException).not.toHaveBeenCalled();
       expect(handleSocketResponse).toHaveBeenCalledTimes(1);
 
       const [responseData] = handleSocketResponse.mock.calls[0];
       expect(responseData).toHaveProperty('accessToken');
+      expect(responseData).toHaveProperty('refreshToken');
 
-      const refreshDecoded = jwtService.decode(responseData.accessToken) as { exp: number; iat: number };
+      const newRefreshDecoded = jwtService.decode(responseData.refreshToken) as { exp: number; iat: number };
       const accessDecoded = jwtService.decode(wsAccessToken) as { exp: number; iat: number };
 
-      expect(refreshDecoded.exp - refreshDecoded.iat).toBeGreaterThan(accessDecoded.exp - accessDecoded.iat);
+      expect(newRefreshDecoded.exp - newRefreshDecoded.iat).toBeGreaterThan(accessDecoded.exp - accessDecoded.iat);
     });
 
-    it('should still issue a valid refresh token after the access token has expired', async () => {
-      // Get refresh token before access token expires
-      await server.emit('auth-refresh-token', undefined, { accessToken: wsAccessToken });
-      const [refreshResponseData] = handleSocketResponse.mock.calls[0];
-      const refreshToken = refreshResponseData.accessToken;
-      handleSocketResponse.mockReset();
-
-      // Wait for the short-lived token to expire
+    it('should still issue a valid new access token after the original access token has expired', async () => {
+      // Wait for the short-lived access token to expire
       await wait(3000);
 
-      // Original token is expired — auth-get-account should fail
+      // Original access token is expired — auth-get-account should fail
       await server.emit('auth-get-account', undefined, { accessToken: wsAccessToken });
       expect(handleSocketException).toHaveBeenCalledWith({ message: 'Unauthorized' });
       handleSocketException.mockReset();
+      handleSocketResponse.mockReset();
 
-      // But the refresh token is still valid
-      await server.emit('auth-get-account', undefined, { accessToken: refreshToken });
+      // But the refresh token (10s) is still valid — get a new access token
+      await server.emit('auth-refresh-token', undefined, { refreshToken: wsRefreshToken });
+      expect(handleSocketException).not.toHaveBeenCalled();
+      const [refreshData] = handleSocketResponse.mock.calls[0];
+      const newAccessToken = refreshData.accessToken;
+      handleSocketResponse.mockReset();
+
+      // New access token works for auth-get-account
+      await server.emit('auth-get-account', undefined, { accessToken: newAccessToken });
       expect(handleSocketException).not.toHaveBeenCalled();
       expect(handleSocketResponse).toHaveBeenCalledWith(
         expect.objectContaining({ email: 'ws-refresh@test.co' }),
@@ -94,10 +99,11 @@ describe('DynamicApiModule forRoot - Websockets EVENT auth-refresh-token with re
     }, 10000);
   });
 
-  describe('without jwt.refreshTokenExpiresIn (fallback)', () => {
+  describe('without jwt.refreshTokenExpiresIn (defaults to 7d)', () => {
     let app: INestApplication;
     let jwtService: JwtService;
     let wsAccessToken: string;
+    let wsRefreshToken: string;
 
     beforeEach(async () => {
       app = await initModule(
@@ -118,26 +124,27 @@ describe('DynamicApiModule forRoot - Websockets EVENT auth-refresh-token with re
       );
       jwtService = app.get<JwtService>(JwtService);
 
-      const { accessToken } = await server.emit<any, any>(
+      const { accessToken, refreshToken } = await server.emit<any, any>(
         'auth-register',
         { email: 'ws-fallback@test.co', password: 'test' },
       );
       wsAccessToken = accessToken;
+      wsRefreshToken = refreshToken;
       handleSocketResponse.mockReset();
     });
 
-    it('should return a refresh token with same expiration as the access token', async () => {
-      await server.emit('auth-refresh-token', undefined, { accessToken: wsAccessToken });
+    it('should return a refresh token with longer expiration than the access token (defaults to 7d)', async () => {
+      await server.emit('auth-refresh-token', undefined, { refreshToken: wsRefreshToken });
 
       const [responseData] = handleSocketResponse.mock.calls[0];
-      expect(responseData).toHaveProperty('accessToken');
+      expect(responseData).toHaveProperty('refreshToken');
 
-      const refreshDecoded = jwtService.decode(responseData.accessToken) as { exp: number; iat: number };
+      const newRefreshDecoded = jwtService.decode(responseData.refreshToken) as { exp: number; iat: number };
       const accessDecoded = jwtService.decode(wsAccessToken) as { exp: number; iat: number };
 
-      expect(refreshDecoded.exp - refreshDecoded.iat).toBeCloseTo(accessDecoded.exp - accessDecoded.iat, -1);
+      // 7d (604800s) >> 1h (3600s)
+      expect(newRefreshDecoded.exp - newRefreshDecoded.iat).toBeGreaterThan(accessDecoded.exp - accessDecoded.iat);
     });
   });
 });
-
 

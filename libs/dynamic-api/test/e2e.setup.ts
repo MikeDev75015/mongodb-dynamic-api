@@ -16,6 +16,7 @@ type RequestOptions<Query extends object = any> = {
 
 type SocketOptions = {
   accessToken?: string;
+  refreshToken?: string;
   namespace?: string;
   broadcastEvent?: string;
   expectBroadcast?: boolean;
@@ -276,12 +277,12 @@ export const server = {
         .catch((error) => finalize(undefined, toError(error, 'HTTP request failed')));
     });
   },
-  emit: async <Data, Response = any>(event: string, data?: Data, { accessToken, namespace, broadcastEvent, expectBroadcast = false, timeoutMs = DEFAULT_SOCKET_TIMEOUT_MS, connectTimeoutMs = DEFAULT_SOCKET_CONNECT_TIMEOUT_MS }: SocketOptions = {}): Promise<Response> => {
+  emit: async <Data, Response = any>(event: string, data?: Data, { accessToken, refreshToken, namespace, broadcastEvent, expectBroadcast = false, timeoutMs = DEFAULT_SOCKET_TIMEOUT_MS, connectTimeoutMs = DEFAULT_SOCKET_CONNECT_TIMEOUT_MS }: SocketOptions = {}): Promise<Response> => {
     verifyApp();
 
     return new Promise<Response>((resolve, reject) => {
       const baseUrl = getAppBaseUrl();
-      const emitter = io(baseUrl, { query: { accessToken }, path: namespace });
+      const emitter = io(baseUrl, { query: { accessToken, refreshToken }, path: namespace });
       const receiver = expectBroadcast ? io(baseUrl, { path: namespace }) : undefined;
       const receiverEvent = broadcastEvent || event;
       let settled = false;

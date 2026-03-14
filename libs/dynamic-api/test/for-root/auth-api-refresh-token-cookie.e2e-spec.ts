@@ -59,7 +59,7 @@ describe('DynamicApiModule forRoot - Cookie mode (useCookie: true) (e2e)', () =>
     expect(res.body).toEqual({ accessToken: expect.any(String) });
     expect(res.body.refreshToken).toBeUndefined();
 
-    const setCookieHeader = res.headers['set-cookie'] as string[];
+    const setCookieHeader = res.headers['set-cookie'] as unknown as string[];
     expect(setCookieHeader).toBeDefined();
     const refreshCookie = (Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader])
       .find((c: string) => c.startsWith('refreshToken='));
@@ -76,7 +76,7 @@ describe('DynamicApiModule forRoot - Cookie mode (useCookie: true) (e2e)', () =>
     expect(res.body).toEqual({ accessToken: expect.any(String) });
     expect(res.body.refreshToken).toBeUndefined();
 
-    const setCookieHeader = res.headers['set-cookie'] as string[];
+    const setCookieHeader = res.headers['set-cookie'] as unknown as string[];
     const refreshCookie = (Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader])
       .find((c: string) => c.startsWith('refreshToken='));
     expect(refreshCookie).toBeDefined();
@@ -115,7 +115,7 @@ describe('DynamicApiModule forRoot - Cookie mode (useCookie: true) (e2e)', () =>
 
     expect(res.status).toBe(204);
 
-    const setCookieHeader = res.headers['set-cookie'] as string[];
+    const setCookieHeader = res.headers['set-cookie'] as unknown as string[];
     const refreshCookie = (Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader])
       .find((c: string) => c.startsWith('refreshToken='));
     expect(refreshCookie).toBeDefined();
