@@ -18,7 +18,9 @@ aliases:
       command: npm ci
   - &restore-cache
     restore_cache:
-      key: dependency-cache-{{ checksum "package.json" }}
+      keys:
+        - dependency-cache-{{ checksum "package.json" }}
+        - dependency-cache-
   - &save-cache
     save_cache:
       key: dependency-cache-{{ checksum "package.json" }}
@@ -31,7 +33,7 @@ aliases:
   - &update-npm-version
     run:
       name: Update NPM version
-      command: 'sudo npm install -g npm@latest'
+      command: 'sudo npm install -g npm@10'
   - &notify-fail
     slack/notify:
       event: fail
@@ -59,15 +61,44 @@ commands:
       - store_test_results:
           path: reports/junit
 
-  unit-tests-not-parallelized-command:
-    description: "Run unit tests with Sonar as reporter"
+  unit-tests-parallelized-sonar-command:
+    description: "Split and run unit tests with Sonar reporter, per-node coverage and XML"
     steps:
       - run:
-          name: Create report folder
-          command: mkdir -p reports/sonar
+          name: Create report folders
+          command: mkdir -p reports/sonar/node-${CIRCLE_NODE_INDEX} coverage-data/node-${CIRCLE_NODE_INDEX}
       - run:
-          name: Run unit tests
-          command: npm run test:ci:sonar
+          name: Split and run unit tests with Sonar reporter
+          command: |
+            UT_FILES=$(circleci tests glob "libs/**/*.spec.ts" | circleci tests split --split-by=timings)
+            echo $UT_FILES
+            npm run test:ci:sonar $UT_FILES --coverageDirectory=coverage-data/node-${CIRCLE_NODE_INDEX}
+      - run:
+          name: Move Sonar XML report to node-specific folder
+          command: |
+            if [ -f reports/sonar/test-report.xml ]; then
+              mv reports/sonar/test-report.xml reports/sonar/node-${CIRCLE_NODE_INDEX}/test-report.xml
+            fi
+      - persist_to_workspace:
+          root: .
+          paths:
+            - coverage-data
+            - reports/sonar
+
+  merge-coverage-command:
+    description: "Merge all per-node LCOV and Sonar XML reports into single files"
+    steps:
+      - run:
+          name: Merge LCOV coverage reports
+          command: npx lcov-result-merger 'coverage-data/*/lcov.info' reports/sonar/lcov.info
+      - run:
+          name: Merge Sonar XML test reports
+          command: |
+            echo '<testExecutions version="1">' > reports/sonar/merged-test-report.xml
+            for f in reports/sonar/node-*/test-report.xml; do
+              grep -v 'testExecutions' "$f" >> reports/sonar/merged-test-report.xml
+            done
+            echo '</testExecutions>' >> reports/sonar/merged-test-report.xml
       - store_artifacts:
           path: reports/sonar
           destination: reports/sonar
@@ -233,10 +264,21 @@ jobs:
 
   test-with-sonarcloud-job:
     executor: node
+    parallelism: 8
     steps:
       - checkout
       - *restore-cache
-      - unit-tests-not-parallelized-command
+      - unit-tests-parallelized-sonar-command
+      - *notify-fail
+      - *notify-success
+
+  merge-and-sonarcloud-job:
+    executor: node
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - merge-coverage-command
       - sonarcloud/scan
       - *notify-fail
       - *notify-success
@@ -291,7 +333,6 @@ jobs:
     executor: node
     steps:
       - checkout
-      - *restore-cache
       - git-config-local-user-command
       - install-github-cli-command
       - create-develop-pr-command
@@ -302,7 +343,6 @@ jobs:
     executor: node
     steps:
       - checkout
-      - *restore-cache
       - git-config-local-user-command
       - install-github-cli-command
       - create-version-tags-command
@@ -372,6 +412,14 @@ workflows:
           requires:
             - dependencies-job
           context:
+            - SLACK
+          filters:
+            branches:
+              only: develop
+      - merge-and-sonarcloud-job:
+          requires:
+            - test-with-sonarcloud-job
+          context:
             - SONARCLOUD
             - SLACK
           filters:
@@ -388,7 +436,7 @@ workflows:
       - confirm-develop-pr-job:
           type: approval
           requires:
-            - test-with-sonarcloud-job
+            - merge-and-sonarcloud-job
             - e2e-tests-mongodb-job
           filters:
             branches:
@@ -424,6 +472,14 @@ workflows:
       - test-with-sonarcloud-job:
           requires:
             - dependencies-job
+          context:
+            - SLACK
+          filters:
+            branches:
+              only: main
+      - merge-and-sonarcloud-job:
+          requires:
+            - test-with-sonarcloud-job
           context:
             - SONARCLOUD
             - SLACK
