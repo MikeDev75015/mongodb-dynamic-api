@@ -207,9 +207,9 @@ export const server = {
     }) as unknown as Promise<Response>;
   },
   httpWithBroadcast: async <Body extends object, Response = any>(
-    method: 'post' | 'patch' | 'put' | 'delete',
+    method: 'get' | 'post' | 'patch' | 'put' | 'delete',
     path: string,
-    body: Body,
+    body: object | undefined,
     { authToken, broadcastEvent, namespace, query, timeoutMs = DEFAULT_SOCKET_TIMEOUT_MS, connectTimeoutMs = DEFAULT_SOCKET_CONNECT_TIMEOUT_MS }: HttpBroadcastOptions,
   ): Promise<{ httpResponse: Response; broadcastData: any }> => {
     verifyApp();
@@ -260,12 +260,13 @@ export const server = {
 
       waitForSocketConnect(receiver, 'Receiver', connectTimeoutMs)
         .then(() => {
-          const req = verifyApp()[method](path).query(query ?? {}).send(body).set({
+          const req = verifyApp()[method](path).query(query ?? {});
+          const reqWithBody = (method !== 'get' && body !== undefined) ? req.send(body) : req;
+          return reqWithBody.set({
             ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
             'Content-Type': 'application/json',
             'User-Agent': 'Chrome/51.0.2704.103 Safari/537.36',
           });
-          return req;
         })
         .then((response: any) => {
           httpResponseValue = response as Response;
