@@ -1,7 +1,8 @@
-import { CacheInterceptor } from '@nestjs/cache-manager';
-import { CallHandler, ExecutionContext, Injectable } from '@nestjs/common';
+import { CACHE_MANAGER, CacheInterceptor } from '@nestjs/cache-manager';
+import { CallHandler, ExecutionContext, Inject, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { HttpAdapterHost } from '@nestjs/core/helpers/http-adapter-host';
+import { Cache } from 'cache-manager';
 import { Observable } from 'rxjs';
 import { DynamicApiGlobalState } from '../interfaces';
 
@@ -13,7 +14,7 @@ export class DynamicApiCacheInterceptor extends CacheInterceptor {
   ];
 
   constructor(
-    protected readonly cacheManager: any,
+    @Inject(CACHE_MANAGER) protected readonly cacheManager: Cache,
     protected readonly reflector: Reflector,
     protected readonly httpAdapterHost: HttpAdapterHost,
     private readonly state: DynamicApiGlobalState,

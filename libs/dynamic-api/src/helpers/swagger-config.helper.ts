@@ -25,7 +25,7 @@ function buildExtraConfig(
         break;
 
       case 'servers':
-        value.forEach((server: any) => {
+        value.forEach((server: { url: string; description?: string; variables?: Record<string, { default: string; enum?: string[]; description?: string }> }) => {
           config.addServer(server.url, server.description, server.variables);
         });
         break;
@@ -39,7 +39,7 @@ function buildExtraConfig(
         break;
 
       case 'tags':
-        value.forEach((tag: any) => {
+        value.forEach((tag: { name: string; description?: string; externalDocs?: { url: string; description?: string } }) => {
           config.addTag(tag.name, tag.description, tag.externalDocs);
         });
         break;
