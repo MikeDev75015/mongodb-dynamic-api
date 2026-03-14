@@ -15,6 +15,8 @@ import {
   AUTH_GET_ACCOUNT_EVENT,
   AUTH_LOGIN_BROADCAST_EVENT,
   AUTH_LOGIN_EVENT,
+  AUTH_LOGOUT_EVENT,
+  AUTH_REFRESH_TOKEN_EVENT,
   AUTH_REGISTER_BROADCAST_EVENT,
   AUTH_REGISTER_EVENT,
   AUTH_RESET_PASSWORD_EVENT,
@@ -23,8 +25,8 @@ import {
 } from '../auth-events.constants';
 import { ChangePasswordDto } from '../dtos/change-password.dto';
 import { ResetPasswordDto } from '../dtos/reset-password.dto';
-import { JwtSocketAuthGuard, ResetPasswordGuard } from '../guards';
-import { AuthGatewayConstructor, AuthService, DynamicApiGetAccountOptions, DynamicApiLoginOptions, DynamicApiRegisterOptions, DynamicApiResetPasswordOptions, DynamicApiUpdateAccountOptions } from '../interfaces';
+import { JwtSocketAuthGuard, JwtSocketRefreshGuard, ResetPasswordGuard } from '../guards';
+import { AuthGatewayConstructor, AuthService, DynamicApiGetAccountOptions, DynamicApiLoginOptions, DynamicApiRefreshTokenOptions, DynamicApiRegisterOptions, DynamicApiResetPasswordOptions, DynamicApiUpdateAccountOptions } from '../interfaces';
 import { AuthSocketPoliciesGuardMixin } from './auth-policies-guard.mixin';
 
 function AuthGatewayMixin<Entity extends BaseEntity>(
@@ -56,7 +58,10 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
   {
     useInterceptors: getAccountUseInterceptors = [],
     broadcast: getAccountBroadcastConfig,
-  }: DynamicApiGetAccountOptions<Entity> = {}
+  }: DynamicApiGetAccountOptions<Entity> = {},
+  {
+    useInterceptors: refreshTokenUseInterceptors = [],
+  }: DynamicApiRefreshTokenOptions<Entity> = {}
 ): AuthGatewayConstructor<Entity> {
   // @ts-ignore
   class AuthSocketBodyPasswordFieldDto extends PickType(userEntity, [passwordField]) {
@@ -254,6 +259,26 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
         event: AUTH_CHANGE_PASSWORD_EVENT,
         data: await this.service.changePassword(resetPasswordToken, newPassword),
       };
+    }
+
+    @UseGuards(new JwtSocketRefreshGuard())
+    @UseInterceptors(...refreshTokenUseInterceptors)
+    @SubscribeMessage(AUTH_REFRESH_TOKEN_EVENT)
+    async refreshToken(@ConnectedSocket() socket: ExtendedSocket<Entity>) {
+      const rawToken = socket.handshake.query.refreshToken as string;
+      const result = socket.user ? await this.service.refreshToken(socket.user, rawToken) : undefined;
+
+      return { event: AUTH_REFRESH_TOKEN_EVENT, data: result };
+    }
+
+    @UseGuards(new JwtSocketRefreshGuard())
+    @SubscribeMessage(AUTH_LOGOUT_EVENT)
+    async logout(@ConnectedSocket() socket: ExtendedSocket<Entity>) {
+      if (socket.user) {
+        await this.service.logout(socket.user);
+      }
+
+      return { event: AUTH_LOGOUT_EVENT, data: undefined };
     }
   }
 
