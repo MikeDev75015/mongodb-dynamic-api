@@ -27,7 +27,7 @@ export abstract class BaseDuplicateManyService<Entity extends BaseEntity>
           this.isSoftDeletable ? { isDeleted: false } : undefined
         ),
       })
-      .lean()
+      .lean<Entity[]>()
       .exec();
 
       if (!toDuplicateList?.length) {
@@ -50,21 +50,22 @@ export abstract class BaseDuplicateManyService<Entity extends BaseEntity>
         },
       )));
       const documents = await this.model.find({ _id: { $in: duplicatedList.map(({ _id }) => _id.toString()) } })
-      .lean()
+      .lean<Entity[]>()
       .exec();
 
       if (this.callback && documents.length) {
         await Promise.all(
           documents.map(
-            (document) => this.callback(this.addDocumentId(document as Entity), this.callbackMethods),
+            (document) => this.callback(this.addDocumentId(document), this.callbackMethods),
           ),
         );
       }
 
-      return documents.map((d) => this.buildInstance(d as Entity));
-    } catch (error: any) {
-      this.handleMongoErrors(error, false);
-      this.handleDuplicateKeyError(error);
+      return documents.map((d) => this.buildInstance(d));
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      this.handleMongoErrors(err, false);
+      this.handleDuplicateKeyError(err);
     }
   }
 }

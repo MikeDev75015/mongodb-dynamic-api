@@ -35,7 +35,7 @@ export abstract class BaseDeleteOneService<Entity extends BaseEntity>
       }
 
       return plainToInstance(DeletePresenter, { deletedCount: op.deletedCount });
-    } catch (error: any) {
+    } catch (error: unknown) {
       return plainToInstance(DeletePresenter, { deletedCount: 0 });
     }
   }

@@ -36,7 +36,7 @@ export abstract class BaseCreateManyService<Entity extends BaseEntity>
       }
 
       return documents.map((d) => this.buildInstance(d as Entity));
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.handleMongoErrors(error, false);
       this.handleDuplicateKeyError(error);
     }

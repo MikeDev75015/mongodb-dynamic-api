@@ -25,7 +25,7 @@ export abstract class BaseDuplicateOneService<Entity extends BaseEntity>
           _id: id,
           ...(this.isSoftDeletable ? { isDeleted: false } : undefined),
         })
-        .lean()
+        .lean<Entity>()
         .exec();
 
       if (!toDuplicate) {
@@ -42,16 +42,17 @@ export abstract class BaseDuplicateOneService<Entity extends BaseEntity>
         }, {}),
         ...partial,
       }));
-      const document = await this.model.findOne({ _id }).lean().exec();
+      const document = await this.model.findOne({ _id }).lean<Entity>().exec();
 
       if (this.callback) {
-        await this.callback(this.addDocumentId(document as Entity), this.callbackMethods);
+        await this.callback(this.addDocumentId(document), this.callbackMethods);
       }
 
-      return this.buildInstance(document as Entity);
-    } catch (error: any) {
-      this.handleMongoErrors(error, false);
-      this.handleDuplicateKeyError(error);
+      return this.buildInstance(document);
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      this.handleMongoErrors(err, false);
+      this.handleDuplicateKeyError(err);
     }
   }
 }

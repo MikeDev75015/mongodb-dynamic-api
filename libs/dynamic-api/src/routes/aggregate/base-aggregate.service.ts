@@ -44,7 +44,7 @@ export abstract class BaseAggregateService<Entity extends BaseEntity>
       }
 
       return { list: documents.map((d) => this.buildInstance(d)), count, totalPage };
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.handleMongoErrors(error, false);
       this.handleDuplicateKeyError(error);
     }

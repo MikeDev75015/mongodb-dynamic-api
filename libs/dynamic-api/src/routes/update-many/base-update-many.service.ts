@@ -15,7 +15,7 @@ export abstract class BaseUpdateManyService<Entity extends BaseEntity>
 
   async updateMany(ids: string[], partial: Partial<Entity>): Promise<Entity[]> {
     try {
-      const toUpdateList = await this.model.find({ _id: { $in: ids } }).lean().exec();
+      const toUpdateList = await this.model.find({ _id: { $in: ids } }).lean<Entity[]>().exec();
       if (toUpdateList?.length !== ids.length) {
         this.handleDocumentNotFound();
       }
@@ -33,18 +33,18 @@ export abstract class BaseUpdateManyService<Entity extends BaseEntity>
       .lean()
       .exec();
 
-      const documents = await this.model.find({ _id: { $in: ids } }).lean().exec();
+      const documents = await this.model.find({ _id: { $in: ids } }).lean<Entity[]>().exec();
 
       if (this.callback && documents.length) {
         await Promise.all(
           documents.map(
-            (document) => this.callback(this.addDocumentId(document as Entity), this.callbackMethods),
+            (document) => this.callback(this.addDocumentId(document), this.callbackMethods),
           ),
         );
       }
 
-      return documents.map((d) => this.buildInstance(d as Entity));
-    } catch (error: any) {
+      return documents.map((d) => this.buildInstance(d));
+    } catch (error: unknown) {
       this.handleMongoErrors(error, false);
       this.handleDuplicateKeyError(error);
     }

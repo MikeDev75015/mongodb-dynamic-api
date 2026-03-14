@@ -23,17 +23,17 @@ export abstract class BaseGetManyService<Entity extends BaseEntity>
         query ?? {}
       ),
     })
-    .lean()
+    .lean<Entity[]>()
     .exec();
 
     if (this.callback && documents.length) {
       await Promise.all(
         documents.map(
-          (document) => this.callback(this.addDocumentId(document as Entity), this.callbackMethods),
+          (document) => this.callback(this.addDocumentId(document), this.callbackMethods),
         ),
       );
     }
 
-    return documents.map((d) => this.buildInstance(d as Entity));
+    return documents.map((d) => this.buildInstance(d));
   }
 }
