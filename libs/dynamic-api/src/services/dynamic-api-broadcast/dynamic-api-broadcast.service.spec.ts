@@ -62,7 +62,7 @@ describe('DynamicApiBroadcastService', () => {
         const data = [{ id: '1', role: 'user' }, { id: '2', role: 'user' }];
 
         service.broadcastFromHttp('event', data, {
-          enabled: (item: any) => item.role === 'admin',
+          enabled: (item: { id: string; role: string }) => item.role === 'admin',
         });
 
         expect(mockServer.emit).not.toHaveBeenCalled();
@@ -99,7 +99,7 @@ describe('DynamicApiBroadcastService', () => {
         ];
 
         service.broadcastFromHttp('my-event', data, {
-          enabled: (item: any) => item.role === 'admin',
+          enabled: (item: { id: string; role: string }) => item.role === 'admin',
         });
 
         expect(mockServer.emit).toHaveBeenCalledTimes(1);
@@ -114,7 +114,7 @@ describe('DynamicApiBroadcastService', () => {
         const data = [{ id: '1', role: 'admin' }];
 
         service.broadcastFromHttp('my-event', data, {
-          enabled: (item: any) => item.role === 'admin',
+          enabled: (item: { id: string; role: string }) => item.role === 'admin',
           eventName: 'admin-event',
         });
 
