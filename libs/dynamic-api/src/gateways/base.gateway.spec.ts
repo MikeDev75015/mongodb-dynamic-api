@@ -121,6 +121,7 @@ describe('BaseGateway', () => {
   describe('broadcastIfNeeded', () => {
     let mockSocket: ExtendedSocket<Entity>;
     const event = 'test-event';
+    const mockNspToEmit = jest.fn();
 
     beforeEach(() => {
       mockSocket = {
@@ -128,7 +129,14 @@ describe('BaseGateway', () => {
         broadcast: {
           emit: jest.fn(),
         },
+        nsp: {
+          to: jest.fn().mockReturnValue({ emit: mockNspToEmit }),
+        },
       } as unknown as ExtendedSocket<Entity>;
+    });
+
+    afterEach(() => {
+      jest.clearAllMocks();
     });
 
     it('should not broadcast if broadcastConfig is undefined', () => {
@@ -137,6 +145,7 @@ describe('BaseGateway', () => {
       gateway['broadcastIfNeeded'](mockSocket, event, data, undefined);
 
       expect(mockSocket.broadcast.emit).not.toHaveBeenCalled();
+      expect(mockSocket.nsp['to']).not.toHaveBeenCalled();
     });
 
     it('should not broadcast if enabled is false', () => {
@@ -148,9 +157,10 @@ describe('BaseGateway', () => {
       gateway['broadcastIfNeeded'](mockSocket, event, data, broadcastConfig);
 
       expect(mockSocket.broadcast.emit).not.toHaveBeenCalled();
+      expect(mockSocket.nsp['to']).not.toHaveBeenCalled();
     });
 
-    it('should broadcast all data if enabled is true', () => {
+    it('should broadcast all data if enabled is true (no rooms → socket.broadcast.emit)', () => {
       const data = [
         { id: '1', name: 'Entity 1' } as Entity,
         { id: '2', name: 'Entity 2' } as Entity,
@@ -163,6 +173,7 @@ describe('BaseGateway', () => {
 
       expect(mockSocket.broadcast.emit).toHaveBeenCalledTimes(1);
       expect(mockSocket.broadcast.emit).toHaveBeenCalledWith(event, data);
+      expect(mockSocket.nsp['to']).not.toHaveBeenCalled();
     });
 
     it('should broadcast with custom eventName if provided', () => {
@@ -256,6 +267,58 @@ describe('BaseGateway', () => {
         data[0],
         data[2],
       ]);
+    });
+
+    describe('rooms targeting', () => {
+      it('should emit to a static string room via socket.nsp.to()', () => {
+        const data = [{ id: '1', name: 'Entity 1' } as Entity];
+        const broadcastConfig = { enabled: true, rooms: 'room-a' };
+
+        gateway['broadcastIfNeeded'](mockSocket, event, data, broadcastConfig);
+
+        expect(mockSocket.nsp['to']).toHaveBeenCalledWith(['room-a']);
+        expect(mockNspToEmit).toHaveBeenCalledWith(event, data);
+        expect(mockSocket.broadcast.emit).not.toHaveBeenCalled();
+      });
+
+      it('should emit to multiple static rooms via socket.nsp.to()', () => {
+        const data = [{ id: '1', name: 'Entity 1' } as Entity];
+        const broadcastConfig = { enabled: true, rooms: ['room-a', 'room-b'] };
+
+        gateway['broadcastIfNeeded'](mockSocket, event, data, broadcastConfig);
+
+        expect(mockSocket.nsp['to']).toHaveBeenCalledWith(['room-a', 'room-b']);
+        expect(mockNspToEmit).toHaveBeenCalledWith(event, data);
+        expect(mockSocket.broadcast.emit).not.toHaveBeenCalled();
+      });
+
+      it('should resolve dynamic rooms from entity data and deduplicate', () => {
+        const data = [
+          { id: '1', name: 'E1', companyId: 'c1' } as Entity & { companyId: string },
+          { id: '2', name: 'E2', companyId: 'c1' } as Entity & { companyId: string },
+          { id: '3', name: 'E3', companyId: 'c2' } as Entity & { companyId: string },
+        ];
+        const broadcastConfig = {
+          enabled: true,
+          rooms: (item: Entity & { companyId: string }) => item.companyId,
+        };
+
+        gateway['broadcastIfNeeded'](mockSocket, event, data, broadcastConfig);
+
+        expect(mockSocket.nsp['to']).toHaveBeenCalledWith(['c1', 'c2']);
+        expect(mockNspToEmit).toHaveBeenCalledWith(event, data);
+        expect(mockSocket.broadcast.emit).not.toHaveBeenCalled();
+      });
+
+      it('should use custom eventName when emitting to rooms', () => {
+        const data = [{ id: '1', name: 'Entity 1' } as Entity];
+        const broadcastConfig = { enabled: true, rooms: 'room-a', eventName: 'custom-event' };
+
+        gateway['broadcastIfNeeded'](mockSocket, event, data, broadcastConfig);
+
+        expect(mockSocket.nsp['to']).toHaveBeenCalledWith(['room-a']);
+        expect(mockNspToEmit).toHaveBeenCalledWith('custom-event', data);
+      });
     });
   });
 });

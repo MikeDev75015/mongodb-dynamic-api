@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Server } from 'socket.io';
+import { resolveRooms } from '../../helpers';
 import { DynamicApiBroadcastConfig } from '../../interfaces';
 
 @Injectable()
@@ -19,7 +20,7 @@ export class DynamicApiBroadcastService {
       return;
     }
 
-    const { enabled, eventName } = broadcastConfig;
+    const { enabled, eventName, rooms } = broadcastConfig;
 
     if (typeof enabled === 'boolean' && !enabled) {
       return;
@@ -33,7 +34,14 @@ export class DynamicApiBroadcastService {
       return;
     }
 
-    DynamicApiBroadcastService.wsServer.emit(eventName || event, broadcastData);
+    const broadcastEvent = eventName || event;
+    const resolvedRooms = resolveRooms(rooms, broadcastData);
+
+    if (resolvedRooms) {
+      DynamicApiBroadcastService.wsServer.to(resolvedRooms).emit(broadcastEvent, broadcastData);
+    } else {
+      DynamicApiBroadcastService.wsServer.emit(broadcastEvent, broadcastData);
+    }
   }
 }
 
