@@ -895,6 +895,8 @@ Explore advanced features and configurations:
 | 🔐 **Authentication** | JWT dual-token auth (8 endpoints) — access + refresh tokens, cookie mode, server-side revocation | [View Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/authentication.md) |
 | 🛡️ **Authorization** | Role-based access control | [View Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/authorization.md) |
 | 📡 **WebSockets** | Socket.IO integration for routes | [View Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/websockets.md) |
+| 🗂️ **Route Configuration** | All route options: DTOs, callbacks, interceptors, etc. | [View Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/route-config.md) |
+| 🎛️ **Controller Configuration** | All `controllerOptions` and `forFeature` options | [View Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/controller-config.md) |
 
 ### Important Notes
 
