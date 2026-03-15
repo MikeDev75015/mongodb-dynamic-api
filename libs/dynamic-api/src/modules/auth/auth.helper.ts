@@ -24,10 +24,20 @@ function createLocalStrategyProvider<Entity extends BaseEntity>(
   loginField: keyof Entity,
   passwordField: keyof Entity,
   abilityPredicate: AuthAbilityPredicate | undefined,
+  customValidate?: (req: any) => Promise<Entity | null>,
+  useStrategy?: Type<any>,
 ): DynamicAPIServiceProvider {
+  if (useStrategy) {
+    return {
+      provide: localStrategyProviderName,
+      useClass: useStrategy,
+    };
+  }
+
   @Injectable()
   class LocalStrategy<Entity extends BaseEntity> extends PassportStrategy(Strategy) {
     protected abilityPredicate = abilityPredicate;
+    protected customValidate = customValidate;
 
     constructor(
       @Inject(authServiceProviderName)
@@ -36,10 +46,21 @@ function createLocalStrategyProvider<Entity extends BaseEntity>(
       super({
         usernameField: loginField as string,
         passwordField: passwordField as string,
+        passReqToCallback: true,
       });
     }
 
-    async validate(login: string, pass: string): Promise<any> {
+    async validate(req: any, login: string, pass: string): Promise<any> {
+      if (this.customValidate) {
+        const user = await this.customValidate(req);
+        if (user) {
+          if (this.abilityPredicate && !this.abilityPredicate(user)) {
+            throw new ForbiddenException('Access denied');
+          }
+          return user;
+        }
+      }
+
       const user = await this.authService.validateUser(login, pass);
       if (!user) {
         throw new UnauthorizedException('Invalid credentials');

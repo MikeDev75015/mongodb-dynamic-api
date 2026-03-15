@@ -209,7 +209,7 @@ describe('AuthModule', () => {
         );
 
         expect(spyCreateLocalStrategyProvider).toHaveBeenCalledTimes(1);
-        expect(spyCreateLocalStrategyProvider).toHaveBeenCalledWith('email', 'password', undefined);
+        expect(spyCreateLocalStrategyProvider).toHaveBeenCalledWith('email', 'password', undefined, undefined, undefined);
       });
 
       it('should have imports', () => {
@@ -285,6 +285,8 @@ describe('AuthModule', () => {
           fullOptions.login.loginField,
           fullOptions.login.passwordField,
           fullOptions.login.abilityPredicate,
+          fullOptions.login.customValidate,
+          fullOptions.login.useStrategy,
         );
 
         expect(spyCreateAuthGateway).toHaveBeenCalledTimes(1);
