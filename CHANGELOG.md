@@ -1,5 +1,20 @@
 Changelog
 
+## [4.1.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.0.0...v4.1.0) (2026-03-15)
+
+
+### gateway
+
+* **gateway:** add room-targeted broadcast support with logger + fix e2e test event names ([69e7bfd](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/69e7bfd35c37d2e4426534df6b37551bcbcce732))
+* **gateway:** replace Promise.all with forEach for socket.join/leave (non-Promise return) ([6923e00](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/6923e0080f4c8e91bd5fd9bebb8f2001616ff061))
+
+
+### auth
+
+* **auth:** add @Public() to refresh-token and logout endpoints to bypass global JWT auth guard ([028c3a1](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/028c3a156ec8ec5a1c225c175a66ee9e6910794a))
+* **auth:** add login.customValidate and login.useStrategy options to local strategy ([267ad91](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/267ad91f96e56be4da66844612ac85221658e435))
+* **auth:** register DynamicApiJwtAuthGuard as APP_GUARD in forRoot() instead of forFeature() ([cfe5dfc](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/cfe5dfcf6c4bfd9cdb6121a7202cbc01b60e98d0))
+
 ## [4.0.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v3.2.1...v4.0.0) (2026-03-14)
 
 
