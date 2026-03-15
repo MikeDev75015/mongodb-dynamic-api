@@ -24,24 +24,24 @@ function createDynamicApiBroadcastGateway(options: GatewayOptions = {}) {
     @UseFilters(new DynamicAPIWsExceptionFilter())
     @UseGuards(new JwtSocketGuard())
     @SubscribeMessage('join-rooms')
-    async joinRooms(
+    joinRooms(
       @ConnectedSocket() socket: ExtendedSocket,
       @MessageBody() { rooms }: { rooms: string | string[] },
     ) {
       const roomList = Array.isArray(rooms) ? rooms : [rooms];
-      await Promise.all(roomList.map((room) => socket.join(room)));
+      roomList.forEach((room) => socket.join(room));
       return { event: 'join-rooms', data: roomList };
     }
 
     @UseFilters(new DynamicAPIWsExceptionFilter())
     @UseGuards(new JwtSocketGuard())
     @SubscribeMessage('leave-rooms')
-    async leaveRooms(
+    leaveRooms(
       @ConnectedSocket() socket: ExtendedSocket,
       @MessageBody() { rooms }: { rooms: string | string[] },
     ) {
       const roomList = Array.isArray(rooms) ? rooms : [rooms];
-      await Promise.all(roomList.map((room) => socket.leave(room)));
+      roomList.forEach((room) => socket.leave(room));
       return { event: 'leave-rooms', data: roomList };
     }
   }
