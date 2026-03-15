@@ -270,6 +270,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
       return account;
     }
 
+    @Public()
     @ApiBearerAuth()
     @UseGuards(JwtRefreshGuard)
     @HttpCode(HttpStatus.OK)
@@ -295,6 +296,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
       return result;
     }
 
+    @Public()
     @ApiBearerAuth()
     @UseGuards(JwtRefreshGuard)
     @HttpCode(HttpStatus.NO_CONTENT)
