@@ -76,7 +76,7 @@ export class AuthModule implements NestModule {
       refreshToken,
     );
     const LocalStrategyProvider = createLocalStrategyProvider(
-      loginField, passwordField, login.abilityPredicate,
+      loginField, passwordField, login.abilityPredicate, login.customValidate, login.useStrategy,
     );
 
     const schema = buildSchemaFromEntity(userEntity);

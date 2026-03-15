@@ -83,6 +83,7 @@ describe('AuthHelper', () => {
     describe('LocalStrategy', () => {
       let strategy: any;
       let authService: any;
+      const fakeReq = {};
       const fakeLogin = 'login';
       const fakePass = 'pass';
 
@@ -100,7 +101,7 @@ describe('AuthHelper', () => {
       it('should call authService.validateUser and return user if ability predicate is undefined', async () => {
         const fakeUser = { id: 1 };
         authService.validateUser.mockResolvedValueOnce(fakeUser);
-        const result = await strategy.validate(fakeLogin, fakePass);
+        const result = await strategy.validate(fakeReq, fakeLogin, fakePass);
 
         expect(authService.validateUser).toHaveBeenCalledWith(fakeLogin, fakePass);
         expect(result).toStrictEqual(fakeUser);
@@ -110,7 +111,7 @@ describe('AuthHelper', () => {
         strategy.abilityPredicate = abilityPredicate.mockReturnValueOnce(true);
         const fakeUser = { id: 1 };
         authService.validateUser.mockResolvedValueOnce(fakeUser);
-        const result = await strategy.validate(fakeLogin, fakePass);
+        const result = await strategy.validate(fakeReq, fakeLogin, fakePass);
 
         expect(authService.validateUser).toHaveBeenCalledWith(fakeLogin, fakePass);
         expect(result).toStrictEqual(fakeUser);
@@ -121,7 +122,7 @@ describe('AuthHelper', () => {
         const fakeUser = { id: 1 };
         authService.validateUser.mockResolvedValueOnce(fakeUser);
 
-        await expect(strategy.validate(fakeLogin, fakePass))
+        await expect(strategy.validate(fakeReq, fakeLogin, fakePass))
         .rejects
         .toThrow(new ForbiddenException('Access denied'));
       });
@@ -129,9 +130,96 @@ describe('AuthHelper', () => {
       it('should throw an error if authService.validateUser failed', async () => {
         authService.validateUser.mockResolvedValueOnce(null);
 
-        await expect(strategy.validate(fakeLogin, fakePass))
+        await expect(strategy.validate(fakeReq, fakeLogin, fakePass))
         .rejects
         .toThrow(new UnauthorizedException('Invalid credentials'));
+      });
+    });
+
+    describe('LocalStrategy with customValidate', () => {
+      let strategy: any;
+      let authService: any;
+      const fakeReq = { body: { deviceToken: 'tok' } };
+      const fakeLogin = 'login';
+      const fakePass = '';
+
+      beforeEach(() => {
+        authService = { validateUser: jest.fn() };
+      });
+
+      it('should return user from customValidate without calling validateUser', async () => {
+        const fakeUser = { id: 2 };
+        const customValidate = jest.fn().mockResolvedValueOnce(fakeUser);
+        provider = createLocalStrategyProvider<UserEntity>(loginField, passwordField, undefined, customValidate);
+        strategy = new provider.useClass(authService);
+
+        const result = await strategy.validate(fakeReq, fakeLogin, fakePass);
+
+        expect(customValidate).toHaveBeenCalledWith(fakeReq);
+        expect(authService.validateUser).not.toHaveBeenCalled();
+        expect(result).toStrictEqual(fakeUser);
+      });
+
+      it('should fallback to validateUser when customValidate returns null', async () => {
+        const fakeUser = { id: 3 };
+        const customValidate = jest.fn().mockResolvedValueOnce(null);
+        authService.validateUser.mockResolvedValueOnce(fakeUser);
+        provider = createLocalStrategyProvider<UserEntity>(loginField, passwordField, undefined, customValidate);
+        strategy = new provider.useClass(authService);
+
+        const result = await strategy.validate(fakeReq, fakeLogin, fakePass);
+
+        expect(customValidate).toHaveBeenCalledWith(fakeReq);
+        expect(authService.validateUser).toHaveBeenCalledWith(fakeLogin, fakePass);
+        expect(result).toStrictEqual(fakeUser);
+      });
+
+      it('should throw ForbiddenException from customValidate user if abilityPredicate returns false', async () => {
+        const fakeUser = { id: 4 };
+        const customValidate = jest.fn().mockResolvedValueOnce(fakeUser);
+        const abilityPredicate = jest.fn().mockReturnValueOnce(false);
+        provider = createLocalStrategyProvider<UserEntity>(loginField, passwordField, abilityPredicate, customValidate);
+        strategy = new provider.useClass(authService);
+
+        await expect(strategy.validate(fakeReq, fakeLogin, fakePass))
+          .rejects
+          .toThrow(new ForbiddenException('Access denied'));
+      });
+
+      it('should throw UnauthorizedException when customValidate returns null and validateUser returns null', async () => {
+        const customValidate = jest.fn().mockResolvedValueOnce(null);
+        authService.validateUser.mockResolvedValueOnce(null);
+        provider = createLocalStrategyProvider<UserEntity>(loginField, passwordField, undefined, customValidate);
+        strategy = new provider.useClass(authService);
+
+        await expect(strategy.validate(fakeReq, fakeLogin, fakePass))
+          .rejects
+          .toThrow(new UnauthorizedException('Invalid credentials'));
+      });
+    });
+
+    describe('createLocalStrategyProvider with useStrategy', () => {
+      it('should return the provided strategy class directly', () => {
+        class CustomStrategy {}
+        const provider = createLocalStrategyProvider<UserEntity>(
+          loginField, passwordField, undefined, undefined, CustomStrategy as any,
+        );
+
+        expect(provider).toEqual({
+          provide: localStrategyProviderName,
+          useClass: CustomStrategy,
+        });
+      });
+
+      it('should ignore loginField, passwordField and abilityPredicate when useStrategy is provided', () => {
+        class CustomStrategy {}
+        const abilityPredicate = jest.fn();
+        const provider = createLocalStrategyProvider<UserEntity>(
+          loginField, passwordField, abilityPredicate, undefined, CustomStrategy as any,
+        );
+
+        expect(provider.useClass).toBe(CustomStrategy);
+        expect(abilityPredicate).not.toHaveBeenCalled();
       });
     });
   });
