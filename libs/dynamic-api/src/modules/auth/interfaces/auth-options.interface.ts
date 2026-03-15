@@ -2,6 +2,7 @@ import { ModuleMetadata, NestInterceptor, Type, ValidationPipeOptions } from '@n
 import {
   AuthAbilityPredicate,
   BroadcastAbilityPredicate,
+  BroadcastRooms,
   DynamicApiResetPasswordCallback,
   DynamicApiServiceBeforeSaveCallback,
   DynamicApiServiceCallback,
@@ -20,6 +21,7 @@ type DynamicApiAuthBroadcastConfig<Entity extends BaseEntity = any> = {
   enabled: boolean | BroadcastAbilityPredicate<Partial<Entity>>;
   eventName?: string;
   fields?: (keyof Entity)[];
+  rooms?: BroadcastRooms<Partial<Entity>>;
 };
 
 type DynamicApiLoginOptions<Entity extends BaseEntity = any> = {

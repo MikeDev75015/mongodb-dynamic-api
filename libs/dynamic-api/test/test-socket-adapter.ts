@@ -1,7 +1,9 @@
 import { IoAdapter } from '@nestjs/platform-socket.io';
-import { ServerOptions } from 'socket.io';
+import { Server, ServerOptions } from 'socket.io';
 
 export class TestSocketAdapter extends IoAdapter {
+  private ioServer: Server | null = null;
+
   createIOServer(
     port: number,
     options?: ServerOptions & {
@@ -9,22 +11,26 @@ export class TestSocketAdapter extends IoAdapter {
       server?: any;
     },
   ): any {
-    const server = super.createIOServer(port, {
+    if (this.ioServer) {
+      return this.ioServer;
+    }
+
+    this.ioServer = super.createIOServer(port, {
       ...options,
       cors: options?.cors ?? {
         origin: '*',
         methods: ['GET', 'POST'],
         credentials: false,
       },
-    });
+    }) as Server;
 
-    server.sockets.setMaxListeners(50);
+    this.ioServer.sockets.setMaxListeners(50);
 
-    server.on('connection', (socket) => {
+    this.ioServer.on('connection', (socket) => {
       socket.setMaxListeners(50);
     });
 
-    return server;
+    return this.ioServer;
   }
 }
 

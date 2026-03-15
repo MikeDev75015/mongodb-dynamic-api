@@ -4,13 +4,18 @@ import { DynamicApiBroadcastService } from './dynamic-api-broadcast.service';
 
 describe('DynamicApiBroadcastService', () => {
   let service: DynamicApiBroadcastService;
-  let mockServer: jest.Mocked<Pick<Server, 'emit'>>;
+  let mockToEmit: jest.Mock;
+  let mockServer: jest.Mocked<Pick<Server, 'emit' | 'to'>>;
 
   beforeEach(() => {
     service = new DynamicApiBroadcastService();
     // Reset the static server before each test to avoid cross-test interference
     (DynamicApiBroadcastService as unknown as { wsServer: Server | null }).wsServer = null;
-    mockServer = { emit: jest.fn() };
+    mockToEmit = jest.fn();
+    mockServer = {
+      emit: jest.fn(),
+      to: jest.fn().mockReturnValue({ emit: mockToEmit }),
+    };
   });
 
   it('should be defined', () => {
@@ -69,7 +74,7 @@ describe('DynamicApiBroadcastService', () => {
       });
     });
 
-    describe('emit cases', () => {
+    describe('emit cases (no rooms → server.emit)', () => {
       it('should emit with the event name when enabled is true', () => {
         service.setWsServer(mockServer as unknown as Server);
         const data = [{ id: '1' }];
@@ -78,6 +83,7 @@ describe('DynamicApiBroadcastService', () => {
 
         expect(mockServer.emit).toHaveBeenCalledTimes(1);
         expect(mockServer.emit).toHaveBeenCalledWith('my-event', data);
+        expect(mockServer.to).not.toHaveBeenCalled();
       });
 
       it('should emit with custom eventName when provided and enabled is true', () => {
@@ -122,6 +128,59 @@ describe('DynamicApiBroadcastService', () => {
         expect(mockServer.emit).toHaveBeenCalledWith('admin-event', [{ id: '1', role: 'admin' }]);
       });
     });
+
+    describe('emit cases with rooms → server.to()', () => {
+      it('should emit to a static string room', () => {
+        service.setWsServer(mockServer as unknown as Server);
+        const data = [{ id: '1' }];
+
+        service.broadcastFromHttp('my-event', data, { enabled: true, rooms: 'room-a' });
+
+        expect(mockServer.to).toHaveBeenCalledWith(['room-a']);
+        expect(mockToEmit).toHaveBeenCalledWith('my-event', data);
+        expect(mockServer.emit).not.toHaveBeenCalled();
+      });
+
+      it('should emit to multiple static rooms', () => {
+        service.setWsServer(mockServer as unknown as Server);
+        const data = [{ id: '1' }];
+
+        service.broadcastFromHttp('my-event', data, { enabled: true, rooms: ['room-a', 'room-b'] });
+
+        expect(mockServer.to).toHaveBeenCalledWith(['room-a', 'room-b']);
+        expect(mockToEmit).toHaveBeenCalledWith('my-event', data);
+        expect(mockServer.emit).not.toHaveBeenCalled();
+      });
+
+      it('should resolve dynamic rooms from entity data and deduplicate', () => {
+        service.setWsServer(mockServer as unknown as Server);
+        const data = [
+          { id: '1', companyId: 'c1' },
+          { id: '2', companyId: 'c1' },
+          { id: '3', companyId: 'c2' },
+        ];
+
+        service.broadcastFromHttp('my-event', data, {
+          enabled: true,
+          rooms: (item: { id: string; companyId: string }) => item.companyId,
+        });
+
+        expect(mockServer.to).toHaveBeenCalledWith(['c1', 'c2']);
+        expect(mockToEmit).toHaveBeenCalledWith('my-event', data);
+        expect(mockServer.emit).not.toHaveBeenCalled();
+      });
+
+      it('should use custom eventName when emitting to rooms', () => {
+        service.setWsServer(mockServer as unknown as Server);
+        const data = [{ id: '1' }];
+
+        service.broadcastFromHttp('my-event', data, { enabled: true, rooms: 'room-a', eventName: 'custom-event' });
+
+        expect(mockServer.to).toHaveBeenCalledWith(['room-a']);
+        expect(mockToEmit).toHaveBeenCalledWith('custom-event', data);
+      });
+    });
   });
 });
+
 

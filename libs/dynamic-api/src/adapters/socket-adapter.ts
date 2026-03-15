@@ -2,6 +2,8 @@ import { IoAdapter } from '@nestjs/platform-socket.io';
 import { Server, ServerOptions } from 'socket.io';
 
 export class SocketAdapter extends IoAdapter {
+  private ioServer: Server | null = null;
+
   createIOServer(
     port: number,
     options?: ServerOptions & {
@@ -9,6 +11,10 @@ export class SocketAdapter extends IoAdapter {
       server?: Server;
     },
   ): Server {
-    return super.createIOServer(port, { ...options, cors: true }) as Server;
+    if (!this.ioServer) {
+      this.ioServer = super.createIOServer(port, { ...options, cors: true }) as Server;
+    }
+
+    return this.ioServer;
   }
 }

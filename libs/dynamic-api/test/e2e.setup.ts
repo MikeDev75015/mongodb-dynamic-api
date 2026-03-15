@@ -33,6 +33,15 @@ type HttpBroadcastOptions = {
   connectTimeoutMs?: number;
 };
 
+type RoomsBroadcastOptions = {
+  receiverAccessToken: string;
+  rooms: string | string[];
+  broadcastEvent: string;
+  namespace?: string;
+  timeoutMs?: number;
+  connectTimeoutMs?: number;
+};
+
 const DEFAULT_SOCKET_TIMEOUT_MS = 5000;
 const DEFAULT_SOCKET_CONNECT_TIMEOUT_MS = 5000;
 
@@ -275,6 +284,175 @@ export const server = {
           tryFinalize();
         })
         .catch((error) => finalize(undefined, toError(error, 'HTTP request failed')));
+    });
+  },
+  emitWithRoomsBroadcast: async <Data, Response = any>(
+    event: string,
+    data: Data,
+    emitOptions: { accessToken?: string; namespace?: string },
+    { receiverAccessToken, rooms, broadcastEvent, namespace, timeoutMs = DEFAULT_SOCKET_TIMEOUT_MS, connectTimeoutMs = DEFAULT_SOCKET_CONNECT_TIMEOUT_MS }: RoomsBroadcastOptions,
+  ): Promise<{ response: Response; outsiderReceivedBroadcast: boolean }> => {
+    verifyApp();
+
+    return new Promise<{ response: Response; outsiderReceivedBroadcast: boolean }>((resolve, reject) => {
+      const baseUrl = getAppBaseUrl();
+      const emitter = io(baseUrl, { query: { accessToken: emitOptions.accessToken }, path: emitOptions.namespace });
+      const receiver = io(baseUrl, { query: { accessToken: receiverAccessToken }, path: namespace });
+      const outsider = io(baseUrl, { path: namespace });
+
+      let settled = false;
+      let responseReceived = false;
+      let broadcastReceived = false;
+      let outsiderReceivedBroadcast = false;
+      let responseValue: Response;
+      let timeoutRef: NodeJS.Timeout | undefined;
+
+      const cleanup = () => {
+        [emitter, receiver, outsider].forEach((s) => {
+          s.removeAllListeners();
+          s.disconnect();
+          s.close();
+        });
+      };
+
+      const finalize = (result?: { response: Response; outsiderReceivedBroadcast: boolean }, error?: Error) => {
+        if (settled) return;
+        settled = true;
+        if (timeoutRef) clearTimeout(timeoutRef);
+        cleanup();
+        if (error) { reject(error); return; }
+        resolve(result!);
+      };
+
+      const tryFinalize = () => {
+        if (responseReceived && broadcastReceived) {
+          setTimeout(() => finalize({ response: responseValue, outsiderReceivedBroadcast }), 300);
+        }
+      };
+
+      receiver.on(broadcastEvent, (receivedData) => {
+        handleSocketBroadcast({ event: broadcastEvent, data: receivedData });
+        broadcastReceived = true;
+        tryFinalize();
+      });
+
+      outsider.on(broadcastEvent, () => { outsiderReceivedBroadcast = true; });
+
+      emitter.on(event, (receivedData) => {
+        handleSocketResponse(receivedData);
+        responseValue = receivedData as Response;
+        responseReceived = true;
+        tryFinalize();
+      });
+
+      emitter.on('exception', (exception) => {
+        handleSocketException(exception);
+        responseValue = exception as Response;
+        responseReceived = true;
+        tryFinalize();
+      });
+
+      timeoutRef = setTimeout(() => {
+        finalize(undefined, new Error(
+          `emitWithRoomsBroadcast timeout after ${timeoutMs}ms (responseReceived=${responseReceived}, broadcastReceived=${broadcastReceived}, event=${event})`,
+        ));
+      }, timeoutMs);
+
+      Promise.all([
+        waitForSocketConnect(emitter, 'Emitter', connectTimeoutMs),
+        waitForSocketConnect(receiver, 'Receiver', connectTimeoutMs),
+        waitForSocketConnect(outsider, 'Outsider', connectTimeoutMs),
+      ])
+        .then(() => new Promise<void>((res, rej) => {
+          receiver.once('join-rooms', () => res());
+          receiver.once('exception', (err) => rej(new Error(`join-rooms failed: ${JSON.stringify(err)}`)));
+          receiver.emit('join-rooms', { rooms });
+        }))
+        .then(() => { emitter.emit(event, data); })
+        .catch((error) => finalize(undefined, toError(error, 'emitWithRoomsBroadcast setup failed')));
+    });
+  },
+  httpWithRoomsBroadcast: async <Body extends object, Response = any>(
+    method: 'get' | 'post' | 'patch' | 'put' | 'delete',
+    path: string,
+    body: object | undefined,
+    { receiverAccessToken, rooms, broadcastEvent, namespace, authToken, query, timeoutMs = DEFAULT_SOCKET_TIMEOUT_MS, connectTimeoutMs = DEFAULT_SOCKET_CONNECT_TIMEOUT_MS }: RoomsBroadcastOptions & { authToken?: string; query?: Record<string, any> },
+  ): Promise<{ httpResponse: Response; outsiderReceivedBroadcast: boolean }> => {
+    verifyApp();
+
+    return new Promise<{ httpResponse: Response; outsiderReceivedBroadcast: boolean }>((resolve, reject) => {
+      const baseUrl = getAppBaseUrl();
+      const receiver = io(baseUrl, { query: { accessToken: receiverAccessToken }, path: namespace });
+      const outsider = io(baseUrl, { path: namespace });
+
+      let settled = false;
+      let httpResponseReceived = false;
+      let broadcastReceived = false;
+      let outsiderReceivedBroadcast = false;
+      let httpResponseValue: Response;
+      let timeoutRef: NodeJS.Timeout | undefined;
+
+      const cleanup = () => {
+        [receiver, outsider].forEach((s) => {
+          s.removeAllListeners();
+          s.disconnect();
+          s.close();
+        });
+      };
+
+      const finalize = (result?: { httpResponse: Response; outsiderReceivedBroadcast: boolean }, error?: Error) => {
+        if (settled) return;
+        settled = true;
+        if (timeoutRef) clearTimeout(timeoutRef);
+        cleanup();
+        if (error) { reject(error); return; }
+        resolve(result!);
+      };
+
+      const tryFinalize = () => {
+        if (httpResponseReceived && broadcastReceived) {
+          setTimeout(() => finalize({ httpResponse: httpResponseValue, outsiderReceivedBroadcast }), 300);
+        }
+      };
+
+      receiver.on(broadcastEvent, (receivedData) => {
+        handleSocketBroadcast({ event: broadcastEvent, data: receivedData });
+        broadcastReceived = true;
+        tryFinalize();
+      });
+
+      outsider.on(broadcastEvent, () => { outsiderReceivedBroadcast = true; });
+
+      timeoutRef = setTimeout(() => {
+        finalize(undefined, new Error(
+          `httpWithRoomsBroadcast timeout after ${timeoutMs}ms (httpReceived=${httpResponseReceived}, broadcastReceived=${broadcastReceived}, event=${broadcastEvent})`,
+        ));
+      }, timeoutMs);
+
+      Promise.all([
+        waitForSocketConnect(receiver, 'Receiver', connectTimeoutMs),
+        waitForSocketConnect(outsider, 'Outsider', connectTimeoutMs),
+      ])
+        .then(() => new Promise<void>((res, rej) => {
+          receiver.once('join-rooms', () => res());
+          receiver.once('exception', (err) => rej(new Error(`join-rooms failed: ${JSON.stringify(err)}`)));
+          receiver.emit('join-rooms', { rooms });
+        }))
+        .then(() => {
+          const req = verifyApp()[method](path).query(query ?? {});
+          const reqWithBody = (method !== 'get' && body !== undefined) ? req.send(body) : req;
+          return reqWithBody.set({
+            ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+            'Content-Type': 'application/json',
+            'User-Agent': 'Chrome/51.0.2704.103 Safari/537.36',
+          });
+        })
+        .then((response: any) => {
+          httpResponseValue = response as Response;
+          httpResponseReceived = true;
+          tryFinalize();
+        })
+        .catch((error) => finalize(undefined, toError(error, 'httpWithRoomsBroadcast failed')));
     });
   },
   emit: async <Data, Response = any>(event: string, data?: Data, { accessToken, refreshToken, namespace, broadcastEvent, expectBroadcast = false, timeoutMs = DEFAULT_SOCKET_TIMEOUT_MS, connectTimeoutMs = DEFAULT_SOCKET_CONNECT_TIMEOUT_MS }: SocketOptions = {}): Promise<Response> => {
