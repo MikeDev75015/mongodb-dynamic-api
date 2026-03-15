@@ -164,6 +164,20 @@ describe('DynamicApiModule', () => {
         expect(DynamicApiModule.state.get('routesConfig')).toStrictEqual({ ...routesConfig, defaults });
       });
     });
+
+    it('should provide APP_GUARD with DynamicApiJwtAuthGuard factory in forRoot', () => {
+      const rootModule = DynamicApiModule.forRoot(uri);
+      const reflector = {} as Reflector;
+      const state = { isAuthEnabled: false } as DynamicApiGlobalState;
+
+      // @ts-ignore
+      const appGuardProvider = rootModule.providers?.find((p: any) => p?.provide === 'APP_GUARD');
+      expect(appGuardProvider).toBeDefined();
+      // @ts-ignore
+      expect(appGuardProvider.useFactory).toBeInstanceOf(Function);
+      // @ts-ignore
+      expect(appGuardProvider.useFactory(reflector, state)).toBeInstanceOf(DynamicApiJwtAuthGuard);
+    });
   });
 
   describe('forFeature', () => {
@@ -1075,14 +1089,8 @@ describe('DynamicApiModule', () => {
         const module = await DynamicApiModule.forFeature(options);
 
         // @ts-ignore
-        expect(module.providers[1].provide).toStrictEqual('APP_GUARD');
-        // @ts-ignore
-        expect(module.providers[1].useFactory).toBeInstanceOf(Function);
-        // @ts-ignore
-        expect(module.providers[1].useFactory(
-          reflector,
-          state,
-        )).toBeInstanceOf(DynamicApiJwtAuthGuard);
+        const appGuardProvider = module.providers?.find((p: any) => p?.provide === 'APP_GUARD');
+        expect(appGuardProvider).toBeUndefined();
       });
     });
   });

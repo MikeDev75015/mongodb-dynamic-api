@@ -79,6 +79,18 @@ export class DynamicApiModule {
           ] : []
         ),
       ],
+      providers: [
+        {
+          provide: APP_GUARD,
+          inject: [Reflector, DYNAMIC_API_GLOBAL_STATE],
+          useFactory: (
+            reflector: Reflector,
+            state: DynamicApiGlobalState,
+          ) => {
+            return new DynamicApiJwtAuthGuard(reflector, state);
+          },
+        },
+      ],
       exports: [DynamicApiConfigModule],
     };
   }
@@ -205,16 +217,6 @@ export class DynamicApiModule {
                 state: DynamicApiGlobalState,
               ) => {
                 return new DynamicApiCacheInterceptor(cacheManager, reflector, httpAdapterHost, state);
-              },
-            },
-            {
-              provide: APP_GUARD,
-              inject: [Reflector, DYNAMIC_API_GLOBAL_STATE],
-              useFactory: (
-                reflector: Reflector,
-                state: DynamicApiGlobalState,
-              ) => {
-                return new DynamicApiJwtAuthGuard(reflector, state);
               },
             },
             ...(
