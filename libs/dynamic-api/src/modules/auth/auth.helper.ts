@@ -24,7 +24,7 @@ function createLocalStrategyProvider<Entity extends BaseEntity>(
   loginField: keyof Entity,
   passwordField: keyof Entity,
   abilityPredicate: AuthAbilityPredicate | undefined,
-  customValidate?: <Entity>(req: any) => Promise<Entity | null>,
+  customValidate?: (req: any) => Promise<Entity | null>,
   useStrategy?: Type<any>,
 ): DynamicAPIServiceProvider {
   if (useStrategy) {
@@ -35,7 +35,7 @@ function createLocalStrategyProvider<Entity extends BaseEntity>(
   }
 
   @Injectable()
-  class LocalStrategy<Entity extends BaseEntity> extends PassportStrategy(Strategy) {
+  class LocalStrategy extends PassportStrategy(Strategy) {
     protected abilityPredicate = abilityPredicate;
     protected customValidate = customValidate;
 
