@@ -146,14 +146,38 @@ function AuthControllerMixin<Entity extends BaseEntity>(
       @Optional() protected readonly jwtService?: JwtService,
     ) {}
 
+    private extractUserFromToken(req: { headers?: Record<string, string> }): Entity | undefined {
+      if (!this.jwtService) {
+        return undefined;
+      }
+
+      const token = req.headers?.authorization?.split(' ')[1];
+      if (!token) {
+        return undefined;
+      }
+
+      try {
+        const decoded = this.jwtService.decode(token);
+        if (!decoded || typeof decoded === 'string') {
+          return undefined;
+        }
+
+        const { iat, exp, ...userPayload } = decoded as Record<string, unknown>;
+        return userPayload as unknown as Entity;
+      } catch {
+        return undefined;
+      }
+    }
+
     @ApiBearerAuth()
     @UseGuards(JwtAuthGuard)
     @HttpCode(HttpStatus.OK)
     @ApiOkResponse({ type: AuthUserPresenter })
     @UseInterceptors(...getAccountUseInterceptors)
     @Get('account')
-    async getAccount(@Request() req: { user: Entity }) {
-      const account = await this.service.getAccount(req.user);
+    async getAccount(@Request() req: { user: Entity; headers: Record<string, string> }) {
+      const user = this.extractUserFromToken(req) ?? req.user;
+      const account = await this.service.getAccount(user);
 
       if (getAccountBroadcastConfig) {
         const broadcastData = buildAuthBroadcastData(account, getAccountBroadcastConfig.fields);
@@ -253,10 +277,11 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     @UseInterceptors(...updateAccountUseInterceptors)
     @Patch('account')
     async updateAccount(
-      @Request() req: { user: Entity },
+      @Request() req: { user: Entity; headers: Record<string, string> },
       @Body() body: AuthUpdateAccountDto,
     ) {
-      const account = await this.service.updateAccount(req.user, body);
+      const user = this.extractUserFromToken(req) ?? req.user;
+      const account = await this.service.updateAccount(user, body);
 
       if (updateAccountBroadcastConfig) {
         const broadcastData = buildAuthBroadcastData(account, updateAccountBroadcastConfig.fields);

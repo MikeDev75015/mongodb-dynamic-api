@@ -100,7 +100,27 @@ describe('AuthControllerMixin', () => {
   });
 
   describe('getAccount', () => {
-    it('should call service getAccount', async () => {
+    it('should decode JWT from authorization header and call service getAccount with decoded user', async () => {
+      const AuthController = AuthControllerMixin(
+        TestEntity,
+        { loginField: 'loginField', passwordField: 'passwordField' },
+        undefined,
+        undefined,
+        undefined,
+      );
+      const decodedUser = { id: 'decoded-id', loginField: 'decoded-login', iat: 1, exp: 9999 };
+      jwtService.decode.mockReturnValueOnce(decodedUser);
+      const controller = new AuthController(service, undefined, jwtService);
+
+      await controller.getAccount({ user: new TestEntity(), headers: { authorization: 'Bearer fake-token' } });
+
+      expect(jwtService.decode).toHaveBeenCalledWith('fake-token');
+      expect(service.getAccount).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'decoded-id', loginField: 'decoded-login' }),
+      );
+    });
+
+    it('should fall back to req.user when jwtService is not available', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
         { loginField: 'loginField', passwordField: 'passwordField' },
@@ -111,14 +131,85 @@ describe('AuthControllerMixin', () => {
       const controller = new AuthController(service);
       const user = new TestEntity();
 
-      await controller.getAccount({ user });
+      await controller.getAccount({ user, headers: { authorization: 'Bearer fake-token' } });
+
+      expect(service.getAccount).toHaveBeenCalledWith(user);
+    });
+
+    it('should fall back to req.user when authorization header is missing', async () => {
+      const AuthController = AuthControllerMixin(
+        TestEntity,
+        { loginField: 'loginField', passwordField: 'passwordField' },
+        undefined,
+        undefined,
+        undefined,
+      );
+      const controller = new AuthController(service, undefined, jwtService);
+      const user = new TestEntity();
+
+      await controller.getAccount({ user, headers: {} as Record<string, string> });
+
+      expect(service.getAccount).toHaveBeenCalledWith(user);
+    });
+
+    it('should fall back to req.user when jwtService.decode returns null', async () => {
+      const AuthController = AuthControllerMixin(
+        TestEntity,
+        { loginField: 'loginField', passwordField: 'passwordField' },
+        undefined,
+        undefined,
+        undefined,
+      );
+      jwtService.decode.mockReturnValueOnce(null);
+      const controller = new AuthController(service, undefined, jwtService);
+      const user = new TestEntity();
+
+      await controller.getAccount({ user, headers: { authorization: 'Bearer bad-token' } });
+
+      expect(service.getAccount).toHaveBeenCalledWith(user);
+    });
+
+    it('should fall back to req.user when jwtService.decode throws', async () => {
+      const AuthController = AuthControllerMixin(
+        TestEntity,
+        { loginField: 'loginField', passwordField: 'passwordField' },
+        undefined,
+        undefined,
+        undefined,
+      );
+      jwtService.decode.mockImplementationOnce(() => { throw new Error('decode error'); });
+      const controller = new AuthController(service, undefined, jwtService);
+      const user = new TestEntity();
+
+      await controller.getAccount({ user, headers: { authorization: 'Bearer bad-token' } });
 
       expect(service.getAccount).toHaveBeenCalledWith(user);
     });
   });
 
   describe('updateAccount', () => {
-    it('should call service updateAccount', async () => {
+    it('should decode JWT from authorization header and call service updateAccount with decoded user', async () => {
+      const AuthController = AuthControllerMixin(
+        TestEntity,
+        { loginField: 'loginField', passwordField: 'passwordField' },
+        undefined,
+        undefined,
+        undefined,
+      );
+      const decodedUser = { id: 'decoded-id', loginField: 'decoded-login', iat: 1, exp: 9999 };
+      jwtService.decode.mockReturnValueOnce(decodedUser);
+      const controller = new AuthController(service, undefined, jwtService);
+
+      await controller.updateAccount({ user: new TestEntity(), headers: { authorization: 'Bearer fake-token' } }, {});
+
+      expect(jwtService.decode).toHaveBeenCalledWith('fake-token');
+      expect(service.updateAccount).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'decoded-id', loginField: 'decoded-login' }),
+        {},
+      );
+    });
+
+    it('should fall back to req.user when jwtService is not available', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
         { loginField: 'loginField', passwordField: 'passwordField' },
@@ -129,7 +220,7 @@ describe('AuthControllerMixin', () => {
       const controller = new AuthController(service);
       const user = new TestEntity();
 
-      await controller.updateAccount({ user }, {});
+      await controller.updateAccount({ user, headers: { authorization: 'Bearer fake-token' } }, {});
 
       expect(service.updateAccount).toHaveBeenCalledWith(user, {});
     });
@@ -494,7 +585,7 @@ describe('AuthControllerMixin', () => {
         );
         const controller = new AuthController(service, broadcastService, jwtService);
 
-        await controller.getAccount({ user: fakeUser });
+        await controller.getAccount({ user: fakeUser, headers: { authorization: 'Bearer fake-token' } });
 
         expect(broadcastService.broadcastFromHttp).toHaveBeenCalledWith(
           'auth-get-account-broadcast',
@@ -514,7 +605,7 @@ describe('AuthControllerMixin', () => {
         );
         const controller = new AuthController(service, broadcastService, jwtService);
 
-        await controller.getAccount({ user: fakeUser });
+        await controller.getAccount({ user: fakeUser, headers: { authorization: 'Bearer fake-token' } });
 
         expect(broadcastService.broadcastFromHttp).toHaveBeenCalledWith(
           'auth-get-account-broadcast',
@@ -534,7 +625,7 @@ describe('AuthControllerMixin', () => {
         );
         const controller = new AuthController(service, broadcastService, jwtService);
 
-        await controller.getAccount({ user: fakeUser });
+        await controller.getAccount({ user: fakeUser, headers: { authorization: 'Bearer fake-token' } });
 
         expect(broadcastService.broadcastFromHttp).toHaveBeenCalledWith(
           'custom-get-account',
@@ -554,7 +645,7 @@ describe('AuthControllerMixin', () => {
         );
         const controller = new AuthController(service, broadcastService, jwtService);
 
-        await controller.getAccount({ user: fakeUser });
+        await controller.getAccount({ user: fakeUser, headers: { authorization: 'Bearer fake-token' } });
 
         expect(broadcastService.broadcastFromHttp).not.toHaveBeenCalled();
       });
@@ -571,7 +662,7 @@ describe('AuthControllerMixin', () => {
         );
         const controller = new AuthController(service, broadcastService, jwtService);
 
-        await controller.updateAccount({ user: fakeUser }, {});
+        await controller.updateAccount({ user: fakeUser, headers: { authorization: 'Bearer fake-token' } }, {});
 
         expect(broadcastService.broadcastFromHttp).toHaveBeenCalledWith(
           'auth-update-account-broadcast',
@@ -590,7 +681,7 @@ describe('AuthControllerMixin', () => {
         );
         const controller = new AuthController(service, broadcastService, jwtService);
 
-        await controller.updateAccount({ user: fakeUser }, {});
+        await controller.updateAccount({ user: fakeUser, headers: { authorization: 'Bearer fake-token' } }, {});
 
         expect(broadcastService.broadcastFromHttp).toHaveBeenCalledWith(
           'auth-update-account-broadcast',
@@ -609,7 +700,7 @@ describe('AuthControllerMixin', () => {
         );
         const controller = new AuthController(service, broadcastService, jwtService);
 
-        await controller.updateAccount({ user: fakeUser }, {});
+        await controller.updateAccount({ user: fakeUser, headers: { authorization: 'Bearer fake-token' } }, {});
 
         expect(broadcastService.broadcastFromHttp).toHaveBeenCalledWith(
           'custom-update-account',
@@ -628,7 +719,7 @@ describe('AuthControllerMixin', () => {
         );
         const controller = new AuthController(service, broadcastService, jwtService);
 
-        await controller.updateAccount({ user: fakeUser }, {});
+        await controller.updateAccount({ user: fakeUser, headers: { authorization: 'Bearer fake-token' } }, {});
 
         expect(broadcastService.broadcastFromHttp).not.toHaveBeenCalled();
       });

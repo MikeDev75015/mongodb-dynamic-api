@@ -9,8 +9,8 @@ import { AuthService, LoginResponse } from './auth-service.interface';
 interface AuthController<Entity extends BaseEntity> {
   login<Body>(req: { user: Entity }, body: Body, res: Response): Promise<LoginResponse>;
   register<Body>(body: Body, res: Response): Promise<LoginResponse>;
-  getAccount(req: { user: Entity }): Promise<Partial<Entity>>;
-  updateAccount<Body>(req: { user: Entity }, body: Body): Promise<Entity>;
+  getAccount(req: { user: Entity; headers: Record<string, string> }): Promise<Partial<Entity>>;
+  updateAccount<Body>(req: { user: Entity; headers: Record<string, string> }, body: Body): Promise<Entity>;
   resetPassword(body: ResetPasswordDto): Promise<void>;
   changePassword(body: ChangePasswordDto): Promise<void>;
   refreshToken(req: { user: Entity; headers: Record<string, string>; cookies: Record<string, string> }, res: Response): Promise<LoginResponse>;
