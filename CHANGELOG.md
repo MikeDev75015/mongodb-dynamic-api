@@ -1,5 +1,12 @@
 Changelog
 
+## [4.1.1](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.1.0...v4.1.1) (2026-03-16)
+
+
+### auth
+
+* **auth:** remove shadowing Entity generic from customValidate and LocalStrategy ([b077101](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/b077101839ed16b3d29b0c56f1e2aae007f233c9))
+
 ## [4.1.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.0.0...v4.1.0) (2026-03-15)
 
 
