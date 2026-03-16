@@ -1,5 +1,7 @@
-import { UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { PassportStrategy } from '@nestjs/passport';
 import mongoose, { Connection } from 'mongoose';
+import { Strategy } from 'passport-local';
 import { BcryptService, DynamicApiModule } from '../../src';
 import { closeTestingApp, server } from '../e2e.setup';
 import 'dotenv/config';
@@ -118,6 +120,235 @@ describe('DynamicApiModule forRoot - POST /auth/login with login options (e2e)',
 
       expect(status).toBe(200);
       expect(body).toEqual({ id: expect.any(String), username: 'admin', role: 'admin', isVerified: true });
+    });
+  });
+
+});
+
+describe('DynamicApiModule forRoot - POST /auth/login with customValidate (e2e)', () => {
+  const User = createLoginUserEntity();
+  type User = InstanceType<typeof User>;
+
+  const admin = LOGIN_ADMIN;
+  const user = LOGIN_USER;
+
+  beforeEach(() => {
+    DynamicApiModule.state['resetState']();
+  });
+
+  afterEach(async () => {
+    await closeTestingApp(mongoose.connections);
+  });
+
+  describe('when customValidate returns a user', () => {
+    beforeEach(async () => {
+      const bcryptService = new BcryptService();
+
+      const fixtures = async (_: Connection) => {
+        const model = await getModelFromEntity(User);
+        await model.insertMany([
+          { ...admin, pass: await bcryptService.hashPassword(admin.pass) },
+          { ...user, pass: await bcryptService.hashPassword(user.pass) },
+        ]);
+      };
+
+      await initModule({
+        useAuth: {
+          userEntity: User,
+          login: {
+            loginField: 'username',
+            passwordField: 'pass',
+            additionalFields: ['role', 'isVerified'],
+            customValidate: async (req) => {
+              const deviceToken = req.body?.deviceToken;
+              if (!deviceToken) {
+                return null;
+              }
+
+              // Simulate device-token lookup: if the token matches, return a fake user
+              if (deviceToken === 'valid-device-token') {
+                return {
+                  id: 'device-user-id',
+                  username: 'device-user',
+                  role: 'admin',
+                  isVerified: true,
+                } as any;
+              }
+
+              return null;
+            },
+          },
+        },
+      }, fixtures);
+    });
+
+    it('should login via customValidate without password check when device token is valid', async () => {
+      const { body, status } = await server.post('/auth/login', {
+        username: 'any',
+        pass: 'any',
+        deviceToken: 'valid-device-token',
+      });
+
+      expect(status).toBe(200);
+      expect(body).toHaveProperty('accessToken');
+    });
+
+    it('should fall back to normal password validation when customValidate returns null', async () => {
+      const { username, pass } = admin;
+      const { body, status } = await server.post('/auth/login', { username, pass });
+
+      expect(status).toBe(200);
+      expect(body).toHaveProperty('accessToken');
+    });
+
+    it('should return 401 when customValidate returns null and password is wrong', async () => {
+      const { body, status } = await server.post('/auth/login', {
+        username: admin.username,
+        pass: 'wrong-password',
+      });
+
+      expect(status).toBe(401);
+      expect(body).toEqual({
+        error: 'Unauthorized',
+        message: 'Invalid credentials',
+        statusCode: 401,
+      });
+    });
+  });
+
+  describe('when customValidate is combined with abilityPredicate', () => {
+    beforeEach(async () => {
+      const bcryptService = new BcryptService();
+
+      const fixtures = async (_: Connection) => {
+        const model = await getModelFromEntity(User);
+        await model.insertMany([
+          { ...admin, pass: await bcryptService.hashPassword(admin.pass) },
+        ]);
+      };
+
+      await initModule({
+        useAuth: {
+          userEntity: User,
+          login: {
+            loginField: 'username',
+            passwordField: 'pass',
+            abilityPredicate: (u: User) => u.role === 'admin',
+            customValidate: async (req) => {
+              const deviceToken = req.body?.deviceToken;
+              if (deviceToken === 'client-device') {
+                return {
+                  id: 'client-id',
+                  username: 'client-device-user',
+                  role: 'client',
+                  isVerified: true,
+                } as any;
+              }
+              return null;
+            },
+          },
+        },
+      }, fixtures);
+    });
+
+    it('should return 403 when customValidate user is rejected by abilityPredicate', async () => {
+      const { body, status } = await server.post('/auth/login', {
+        username: 'any',
+        pass: 'any',
+        deviceToken: 'client-device',
+      });
+
+      expect(status).toBe(403);
+      expect(body).toEqual({
+        error: 'Forbidden',
+        message: 'Access denied',
+        statusCode: 403,
+      });
+    });
+  });
+});
+
+describe('DynamicApiModule forRoot - POST /auth/login with useStrategy (e2e)', () => {
+  const User = createLoginUserEntity();
+  type User = InstanceType<typeof User>;
+
+  const admin = LOGIN_ADMIN;
+
+  beforeEach(() => {
+    DynamicApiModule.state['resetState']();
+  });
+
+  afterEach(async () => {
+    await closeTestingApp(mongoose.connections);
+  });
+
+  describe('when a custom Passport strategy is provided', () => {
+    beforeEach(async () => {
+      const bcryptService = new BcryptService();
+
+      const fixtures = async (_: Connection) => {
+        const model = await getModelFromEntity(User);
+        await model.insertMany([
+          { ...admin, pass: await bcryptService.hashPassword(admin.pass) },
+        ]);
+      };
+
+      @Injectable()
+      class CustomLocalStrategy extends PassportStrategy(Strategy, 'local') {
+        constructor(
+          @Inject('DynamicApiAuthService')
+          private readonly authService: any,
+        ) {
+          super({ usernameField: 'username', passwordField: 'pass' });
+        }
+
+        async validate(username: string, pass: string): Promise<any> {
+          const user = await this.authService.validateUser(username, pass);
+          if (!user) {
+            throw new UnauthorizedException('Custom strategy: invalid credentials');
+          }
+
+          if (user.role !== 'admin') {
+            throw new ForbiddenException('Custom strategy: admins only');
+          }
+
+          return user;
+        }
+      }
+
+      await initModule({
+        useAuth: {
+          userEntity: User,
+          login: {
+            loginField: 'username',
+            passwordField: 'pass',
+            additionalFields: ['role', 'isVerified'],
+            useStrategy: CustomLocalStrategy,
+          },
+        },
+      }, fixtures);
+    });
+
+    it('should login successfully using the custom strategy', async () => {
+      const { username, pass } = admin;
+      const { body, status } = await server.post('/auth/login', { username, pass });
+
+      expect(status).toBe(200);
+      expect(body).toHaveProperty('accessToken');
+    });
+
+    it('should return 401 when custom strategy rejects credentials', async () => {
+      const { body, status } = await server.post('/auth/login', {
+        username: 'unknown',
+        pass: 'wrong',
+      });
+
+      expect(status).toBe(401);
+      expect(body).toEqual({
+        error: 'Unauthorized',
+        message: 'Custom strategy: invalid credentials',
+        statusCode: 401,
+      });
     });
   });
 });
