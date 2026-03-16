@@ -17,6 +17,7 @@ Add WebSocket support to your API to make your routes accessible via Socket.IO i
   - [Broadcasting Events](#broadcasting-events)
     - [Broadcasting for CRUD Routes](#broadcasting-for-crud-routes)
     - [Broadcasting for Auth Routes](#broadcasting-for-auth-routes)
+    - [Room-Targeted Broadcasting](#room-targeted-broadcasting)
 - [Available Events](#available-events)
   - [Authentication Events](#authentication-events-1)
 - [Authentication with WebSockets](#authentication-with-websockets)
@@ -286,6 +287,15 @@ The `broadcast` option accepts an object with the following properties:
 
 - `eventName` (optional): Custom event name for the broadcast. If not specified, uses the same event name pattern as the route (`{route-type}-{displayed-name}`).
 
+- `rooms` (optional): Target specific Socket.IO rooms instead of broadcasting to all connected clients. Can be:
+  - `string` — a single static room name (e.g., `'admin-room'`)
+  - `string[]` — multiple static room names (e.g., `['room-a', 'room-b']`)
+  - `(data: ResponseData) => string | string[]` — a function called **per entity** that dynamically resolves room(s) from the entity data. All resolved rooms are deduplicated.
+
+  When `rooms` is set, only clients that have **joined** those rooms (via the `join-rooms` event) will receive the broadcast. When `rooms` is not set, all connected clients receive the broadcast (default behavior).
+
+  See [Room-Targeted Broadcasting](#room-targeted-broadcasting) for full details and examples.
+
 **Special Note for Delete Routes:**
 
 For `DeleteOne` and `DeleteMany` routes, the broadcasted data contains only the `id` of the deleted entity/entities, not the full entity data (since the entity has been deleted). The `BroadcastAbilityPredicate` receives a minimal object: `{ id: string }`.
@@ -480,6 +490,339 @@ DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
 - ❌ `resetPassword` / `changePassword` — not supported
 
 > See the [Broadcasting Auth Events](./authentication.md#broadcasting-auth-events) section in the Authentication documentation for full details, including how to filter fields and the data source for each action.
+
+### Room-Targeted Broadcasting
+
+By default, broadcasts are sent to **all** connected WebSocket clients. With the `rooms` option, you can restrict broadcasts to only the clients that have joined specific [Socket.IO rooms](https://socket.io/docs/v4/rooms/). This is useful when different groups of clients care about different subsets of data (e.g., per-tenant, per-category, per-project).
+
+#### How Rooms Work
+
+1. **Clients join rooms** by emitting `join-rooms` (requires authentication).
+2. **Server broadcasts to rooms** — when `rooms` is configured on a route's `broadcast`, only sockets in the resolved rooms receive the event.
+3. **Clients leave rooms** by emitting `leave-rooms` (requires authentication).
+
+If `rooms` is **not set**, the broadcast falls back to the default behavior (all connected clients).
+
+#### Joining and Leaving Rooms
+
+The broadcast gateway exposes two events for room management. **Both require authentication** (JWT token):
+
+| Event | Payload | Response | Description |
+|-------|---------|----------|-------------|
+| `join-rooms` | `{ rooms: string \| string[] }` | `string[]` — list of joined rooms | Adds the socket to one or more rooms |
+| `leave-rooms` | `{ rooms: string \| string[] }` | `string[]` — list of left rooms | Removes the socket from one or more rooms |
+
+**Client example — joining and leaving rooms:**
+
+```typescript
+import { io } from 'socket.io-client';
+
+const socket = io('http://localhost:3000', {
+  auth: { token: 'my-jwt-access-token' },
+});
+
+// Join a single room
+socket.emit('join-rooms', { rooms: 'electronics' }, (response) => {
+  console.log('Joined rooms:', response);
+  // response.data = ['electronics']
+});
+
+// Join multiple rooms at once
+socket.emit('join-rooms', { rooms: ['electronics', 'gadgets'] }, (response) => {
+  console.log('Joined rooms:', response);
+  // response.data = ['electronics', 'gadgets']
+});
+
+// Leave a room
+socket.emit('leave-rooms', { rooms: 'electronics' }, (response) => {
+  console.log('Left rooms:', response);
+  // response.data = ['electronics']
+});
+
+// ⚠️ Without a valid JWT token, an 'Unauthorized' exception is thrown
+socket.emit('join-rooms', { rooms: 'some-room' });
+// → exception event: { message: 'Unauthorized' }
+```
+
+#### `BroadcastRooms` Type
+
+```typescript
+type BroadcastRooms<T extends object> = string | string[] | ((data: T) => string | string[]);
+```
+
+| Form | Description | Example |
+|------|-------------|---------|
+| `string` | A single static room name — all broadcasts go to this room | `'admin-room'` |
+| `string[]` | Multiple static room names | `['room-a', 'room-b']` |
+| `(data: T) => string \| string[]` | A function called **per entity** in the broadcast payload. Returns the room(s) to target. All results are flattened and deduplicated. | `(item) => item.category` |
+
+#### Static Rooms
+
+Use a fixed room name when all broadcasts for a route should go to the same room, regardless of the entity data:
+
+```typescript
+DynamicApiModule.forFeature({
+  entity: Product,
+  controllerOptions: { path: 'products' },
+  routes: [
+    {
+      type: 'CreateOne',
+      broadcast: {
+        enabled: true,
+        rooms: 'products-room', // All CreateOne broadcasts go to 'products-room'
+      },
+    },
+    {
+      type: 'DeleteOne',
+      broadcast: {
+        enabled: true,
+        rooms: ['watchers', 'inventory-managers'], // Broadcast to multiple rooms
+      },
+    },
+  ],
+})
+```
+
+**Client:**
+
+```typescript
+// Client A — joins the room, will receive broadcasts
+socket.emit('join-rooms', { rooms: 'products-room' }, () => {
+  console.log('Ready to receive product broadcasts');
+});
+
+socket.on('create-one-product', (data) => {
+  console.log('New product (room broadcast):', data);
+});
+
+// Client B — did NOT join 'products-room', will NOT receive the broadcast
+socket.on('create-one-product', (data) => {
+  // ❌ This listener is never called because Client B is not in the room
+});
+```
+
+#### Dynamic Rooms
+
+Use a function to resolve the target room(s) from the entity data at broadcast time. This is ideal when different entities should be broadcast to different rooms:
+
+```typescript
+@Schema({ collection: 'products' })
+class Product extends BaseEntity {
+  @Prop({ type: String, required: true })
+  name: string;
+
+  @Prop({ type: String })
+  category?: string; // 'electronics', 'clothing', 'food', etc.
+}
+
+DynamicApiModule.forFeature({
+  entity: Product,
+  controllerOptions: { path: 'products' },
+  routes: [
+    {
+      type: 'CreateOne',
+      webSocket: true,
+      broadcast: {
+        enabled: true,
+        // Room is resolved from the created entity's category
+        rooms: (product: Product) => product.category ?? 'uncategorized',
+      },
+    },
+    {
+      type: 'UpdateOne',
+      broadcast: {
+        enabled: true,
+        // Can return multiple rooms
+        rooms: (product: Product) => ['all-products', `category-${product.category}`],
+      },
+    },
+  ],
+})
+```
+
+**Client:**
+
+```typescript
+// Client subscribes to the 'electronics' category
+socket.emit('join-rooms', { rooms: 'electronics' }, () => {
+  console.log('Watching electronics');
+});
+
+socket.on('create-one-product', (data) => {
+  console.log('New electronics product:', data);
+  // ✅ Only received if the created product has category === 'electronics'
+});
+
+// Another client subscribes to 'clothing'
+socket.emit('join-rooms', { rooms: 'clothing' }, () => {
+  console.log('Watching clothing');
+});
+// This client will NOT receive broadcasts for electronics products
+```
+
+#### Dynamic Rooms with Multiple Entities
+
+For routes that handle multiple entities (`CreateMany`, `UpdateMany`, `DuplicateMany`, `DeleteMany`), the `rooms` function is called **once per entity**. All resolved rooms are **deduplicated** before broadcasting:
+
+```typescript
+{
+  type: 'CreateMany',
+  broadcast: {
+    enabled: true,
+    rooms: (product: Product) => product.category ?? 'unknown',
+  },
+}
+
+// If CreateMany creates:
+//   [{ name: 'Laptop', category: 'electronics' }, { name: 'T-Shirt', category: 'clothing' }]
+// Resolved rooms = ['electronics', 'clothing'] (deduplicated)
+// The broadcast is sent to BOTH rooms with the full data array
+```
+
+#### Combining `rooms` with `enabled` Predicate
+
+The `enabled` predicate is evaluated **before** rooms are resolved. Only entities that pass the `enabled` check are included in the broadcast payload, and rooms are resolved from **those filtered entities**:
+
+```typescript
+{
+  type: 'UpdateMany',
+  broadcast: {
+    // Step 1: Only published products pass the filter
+    enabled: (product, user) => product.status === 'published',
+    // Step 2: Rooms are resolved from the filtered products only
+    rooms: (product: Product) => product.category ?? 'general',
+    eventName: 'products-published',
+  },
+}
+```
+
+#### Rooms for Auth Routes
+
+Auth broadcast also supports `rooms`:
+
+```typescript
+DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
+  useAuth: {
+    userEntity: User,
+    login: {
+      additionalFields: ['role', 'department'],
+      broadcast: {
+        enabled: true,
+        fields: ['id', 'email', 'role', 'department'],
+        rooms: (user) => `department-${user.department}`, // Broadcast login only to same department
+      },
+    },
+    updateAccount: {
+      broadcast: {
+        enabled: true,
+        fields: ['id', 'email', 'name'],
+        rooms: 'admin-dashboard', // Static room for admin watchers
+      },
+    },
+  },
+})
+```
+
+#### Complete Example: Room-Targeted Broadcasting
+
+**Server configuration:**
+
+```typescript
+// src/items/item.entity.ts
+@Schema({ collection: 'items' })
+class Item extends BaseEntity {
+  @Prop({ type: String, required: true })
+  name: string;
+
+  @Prop({ type: String })
+  category?: string;
+}
+
+// src/app.module.ts
+DynamicApiModule.forFeature({
+  entity: Item,
+  controllerOptions: { path: 'items', apiTag: 'Item', isPublic: true },
+  routes: [
+    // WS route + static room
+    {
+      type: 'CreateOne',
+      webSocket: true,
+      broadcast: { enabled: true, rooms: 'items-room' },
+    },
+    // WS route + dynamic room resolved from entity
+    {
+      type: 'UpdateOne',
+      webSocket: true,
+      broadcast: {
+        enabled: true,
+        rooms: (item: Item) => item.category ?? 'unknown',
+      },
+    },
+    // HTTP-only route + static room
+    {
+      type: 'DuplicateOne',
+      broadcast: { enabled: true, rooms: 'items-room' },
+    },
+    // HTTP-only route + dynamic room
+    {
+      type: 'ReplaceOne',
+      broadcast: {
+        enabled: true,
+        rooms: (item: Item) => item.category ?? 'unknown',
+      },
+    },
+  ],
+})
+```
+
+**Client integration:**
+
+```typescript
+import { io } from 'socket.io-client';
+
+const socket = io('http://localhost:3000', {
+  auth: { token: accessToken },
+});
+
+// 1. Join the static room
+socket.emit('join-rooms', { rooms: 'items-room' }, (res) => {
+  console.log('Joined:', res.data); // ['items-room']
+});
+
+// 2. Join a dynamic room (matching a category)
+socket.emit('join-rooms', { rooms: 'electronics' }, (res) => {
+  console.log('Joined:', res.data); // ['electronics']
+});
+
+// 3. Listen for broadcasts
+socket.on('create-one-item', (data) => {
+  console.log('New item (static room):', data);
+  // ✅ Received because we joined 'items-room'
+});
+
+socket.on('update-one-item', (data) => {
+  console.log('Updated item (dynamic room):', data);
+  // ✅ Received only if the updated item has category === 'electronics'
+});
+
+// 4. Create an item via WS — broadcast goes to 'items-room'
+socket.emit('create-one-item', { name: 'Keyboard', category: 'electronics' }, (res) => {
+  console.log('Created:', res.data);
+});
+
+// 5. Or create via HTTP — broadcast still goes to 'items-room'
+await fetch('http://localhost:3000/items', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ name: 'Mouse', category: 'electronics' }),
+});
+
+// 6. Later, leave the room
+socket.emit('leave-rooms', { rooms: 'items-room' }, (res) => {
+  console.log('Left:', res.data); // ['items-room']
+});
+// After leaving, this client no longer receives 'create-one-item' broadcasts
+```
 
 ---
 

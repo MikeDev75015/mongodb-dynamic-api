@@ -134,6 +134,7 @@ DynamicApiModule.forRoot('mongodb-uri', {
         enabled: boolean | ((data: Partial<Entity>, user?: any) => boolean);
         eventName?: string;                   // Default: 'auth-login-broadcast'
         fields?: (keyof Entity)[];            // Fields to include (default: all)
+        rooms?: string | string[] | ((data: Partial<Entity>) => string | string[]); // Target rooms
       };
       /**
        * Optional async function called before the Passport local strategy validates credentials.
@@ -156,6 +157,7 @@ DynamicApiModule.forRoot('mongodb-uri', {
         enabled: boolean | ((data: Partial<Entity>, user?: any) => boolean);
         eventName?: string;                   // Default: 'auth-get-account-broadcast'
         fields?: (keyof Entity)[];            // Fields to include (default: all)
+        rooms?: string | string[] | ((data: Partial<Entity>) => string | string[]); // Target rooms
       };
     },
     
@@ -171,6 +173,7 @@ DynamicApiModule.forRoot('mongodb-uri', {
         enabled: boolean | ((data: Partial<Entity>, user?: any) => boolean);
         eventName?: string;                   // Default: 'auth-register-broadcast'
         fields?: (keyof Entity)[];            // Fields to include (default: all)
+        rooms?: string | string[] | ((data: Partial<Entity>) => string | string[]); // Target rooms
       };
     },
     
@@ -185,6 +188,7 @@ DynamicApiModule.forRoot('mongodb-uri', {
         enabled: boolean | ((data: Partial<Entity>, user?: any) => boolean);
         eventName?: string;                   // Default: 'auth-update-account-broadcast'
         fields?: (keyof Entity)[];            // Fields to include (default: all)
+        rooms?: string | string[] | ((data: Partial<Entity>) => string | string[]); // Target rooms
       };
     },
     
@@ -1085,6 +1089,7 @@ type AuthBroadcastConfig<Entity> = {
   enabled: boolean | BroadcastAbilityPredicate<Partial<Entity>>;
   eventName?: string;
   fields?: (keyof Entity)[];
+  rooms?: BroadcastRooms<Partial<Entity>>;
 };
 ```
 
@@ -1093,6 +1098,7 @@ type AuthBroadcastConfig<Entity> = {
 | `enabled` | `boolean \| (data, user?) => boolean` | ✅ Yes | `true` = always broadcast · `false` = never broadcast · function = conditional broadcast evaluated with the data about to be broadcast |
 | `eventName` | `string` | ❌ No | Custom broadcast event name. Defaults to the standard name (see table below) |
 | `fields` | `(keyof Entity)[]` | ❌ No | List of fields to include in the broadcast payload. If omitted or empty, **all available fields** from the data source are broadcast |
+| `rooms` | `string \| string[] \| (data) => string \| string[]` | ❌ No | Target specific Socket.IO rooms. If set, only clients that joined the specified room(s) receive the broadcast. If omitted, all connected clients receive it. See [Room-Targeted Broadcasting](./websockets.md#room-targeted-broadcasting) |
 
 ### Default Broadcast Event Names
 
@@ -1229,6 +1235,64 @@ DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
   },
 })
 ```
+
+#### Room-Targeted Auth Broadcasts
+
+You can restrict auth broadcasts to specific Socket.IO rooms using `rooms`. Clients must have joined the target room via the `join-rooms` event to receive the broadcast:
+
+```typescript
+DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
+  useAuth: {
+    userEntity: User,
+    login: {
+      additionalFields: ['role', 'department'],
+      broadcast: {
+        enabled: true,
+        fields: ['id', 'email', 'role', 'department'],
+        // Dynamic room — broadcast login events only to the user's department
+        rooms: (user) => `department-${user.department}`,
+      },
+    },
+    register: {
+      broadcast: {
+        enabled: true,
+        fields: ['id', 'email'],
+        rooms: 'admin-dashboard', // Static room — only admin dashboard clients see registrations
+      },
+    },
+    updateAccount: {
+      broadcast: {
+        enabled: true,
+        fields: ['id', 'email', 'name'],
+        // Broadcast to multiple static rooms
+        rooms: ['admin-dashboard', 'user-directory'],
+      },
+    },
+  },
+})
+```
+
+**Client-side with rooms:**
+
+```typescript
+const socket = io('http://localhost:3000', {
+  auth: { token: accessToken },
+});
+
+// Admin joins the admin-dashboard room
+socket.emit('join-rooms', { rooms: 'admin-dashboard' }, (res) => {
+  console.log('Joined:', res.data); // ['admin-dashboard']
+});
+
+// Now this client receives registration broadcasts
+socket.on('auth-register-broadcast', (data) => {
+  console.log('New user registered:', data); // [{ id, email }]
+});
+
+// A regular user who did NOT join 'admin-dashboard' will NOT see registrations
+```
+
+> For full details on room management (`join-rooms`, `leave-rooms`, static vs dynamic rooms), see the [Room-Targeted Broadcasting](./websockets.md#room-targeted-broadcasting) section in the WebSockets documentation.
 
 ### Client-Side: Listening for Broadcast Events
 
