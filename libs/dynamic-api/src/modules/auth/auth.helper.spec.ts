@@ -198,6 +198,77 @@ describe('AuthHelper', () => {
       });
     });
 
+    describe('LocalStrategy authenticate override with customValidate', () => {
+      let strategy: any;
+      let authService: any;
+
+      beforeEach(() => {
+        authService = { validateUser: jest.fn() };
+      });
+
+      it('should bypass passport-local missing credentials check and call success when customValidate returns a user', async () => {
+        const fakeUser = { id: 5, login: 'device-user' };
+        const customValidate = jest.fn().mockResolvedValueOnce(fakeUser);
+        provider = createLocalStrategyProvider<UserEntity>(loginField, passwordField, undefined, customValidate);
+        strategy = new provider.useClass(authService);
+
+        const successFn = jest.fn();
+        const errorFn = jest.fn();
+        strategy.success = successFn;
+        strategy.error = errorFn;
+
+        // Request with NO login/password fields at all (passwordless flow)
+        const req = { body: { deviceToken: 'valid-token' } };
+        strategy.authenticate(req);
+
+        // Wait for async
+        await new Promise((r) => setImmediate(r));
+
+        expect(customValidate).toHaveBeenCalledWith(req);
+        expect(authService.validateUser).not.toHaveBeenCalled();
+        expect(successFn).toHaveBeenCalledWith(fakeUser);
+        expect(errorFn).not.toHaveBeenCalled();
+      });
+
+      it('should bypass passport-local missing credentials check and call error when customValidate returns null and validateUser returns null', async () => {
+        const customValidate = jest.fn().mockResolvedValueOnce(null);
+        authService.validateUser.mockResolvedValueOnce(null);
+        provider = createLocalStrategyProvider<UserEntity>(loginField, passwordField, undefined, customValidate);
+        strategy = new provider.useClass(authService);
+
+        const successFn = jest.fn();
+        const errorFn = jest.fn();
+        strategy.success = successFn;
+        strategy.error = errorFn;
+
+        const req = { body: { deviceToken: 'unknown-token' } };
+        strategy.authenticate(req);
+
+        await new Promise((r) => setImmediate(r));
+
+        expect(customValidate).toHaveBeenCalledWith(req);
+        expect(authService.validateUser).toHaveBeenCalledWith('', '');
+        expect(successFn).not.toHaveBeenCalled();
+        expect(errorFn).toHaveBeenCalledWith(expect.any(UnauthorizedException));
+      });
+
+      it('should use default passport-local authenticate when customValidate is not defined', () => {
+        provider = createLocalStrategyProvider<UserEntity>(loginField, passwordField, undefined);
+        strategy = new provider.useClass(authService);
+
+        const superAuthenticateSpy = jest.spyOn(
+          Object.getPrototypeOf(Object.getPrototypeOf(strategy)),
+          'authenticate',
+        ).mockImplementation(() => {});
+        const req = { body: { [loginField]: 'user', [passwordField]: 'pass' } };
+
+        strategy.authenticate(req);
+
+        expect(superAuthenticateSpy).toHaveBeenCalledWith(req, undefined);
+        superAuthenticateSpy.mockRestore();
+      });
+    });
+
     describe('createLocalStrategyProvider with useStrategy', () => {
       it('should return the provided strategy class directly', () => {
         class CustomStrategy {}

@@ -193,6 +193,26 @@ describe('DynamicApiModule forRoot - POST /auth/login with customValidate (e2e)'
       expect(body).toHaveProperty('accessToken');
     });
 
+    it('should login via customValidate even when username and password are missing from request body', async () => {
+      const { body, status } = await server.post('/auth/login', {
+        deviceToken: 'valid-device-token',
+      });
+
+      expect(status).toBe(200);
+      expect(body).toHaveProperty('accessToken');
+    });
+
+    it('should login via customValidate when password is empty', async () => {
+      const { body, status } = await server.post('/auth/login', {
+        username: 'any',
+        pass: '',
+        deviceToken: 'valid-device-token',
+      });
+
+      expect(status).toBe(200);
+      expect(body).toHaveProperty('accessToken');
+    });
+
     it('should fall back to normal password validation when customValidate returns null', async () => {
       const { username, pass } = admin;
       const { body, status } = await server.post('/auth/login', { username, pass });
