@@ -1,4 +1,7 @@
 {
+  "git": {
+    "commitMessage": "chore(release): ${version}"
+  },
   "github": {
     "tokenRef": "GH_TOKEN"
   },
