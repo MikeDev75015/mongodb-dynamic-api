@@ -1,4 +1,4 @@
-[Back to README](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md)
+[Back to README](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README.md)
 
 ---
 
@@ -87,7 +87,7 @@ DynamicApiModule.forFeature({
 })
 ```
 
-> 📚 See [Route Configuration](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/route-config.md) for all route-level options.
+> 📚 See [Route Configuration](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/route-config.md) for all route-level options.
 
 ---
 
@@ -262,7 +262,7 @@ controllerOptions: {
 // → GET /v1/products, POST /v1/products, etc.
 ```
 
-> 📚 See [Versioning guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/versioning.md) for full setup.
+> 📚 See [Versioning guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/versioning.md) for full setup.
 
 ---
 
@@ -324,7 +324,7 @@ Common options:
 | `skipMissingProperties` | `boolean` | Skip validation on missing properties |
 | `groups` | `string[]` | Validation groups to use |
 
-> 📚 See [Validation guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/validation.md) for full details.
+> 📚 See [Validation guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/validation.md) for full details.
 
 ---
 
@@ -368,7 +368,7 @@ controllerOptions: {
 - Return `true` to allow access, `false` to throw a `403 Forbidden`.
 - A route-level `abilityPredicate` overrides the controller-level predicate for that specific route.
 
-> 📚 See [Authorization guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/authorization.md) for full details.
+> 📚 See [Authorization guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/authorization.md) for full details.
 
 ---
 
