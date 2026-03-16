@@ -50,6 +50,26 @@ function createLocalStrategyProvider<Entity extends BaseEntity>(
       });
     }
 
+    /**
+     * Override passport-local's authenticate to bypass its built-in
+     * "Missing credentials" check when customValidate is defined.
+     * passport-local rejects requests with falsy username/password
+     * BEFORE calling the verify callback, which prevents customValidate
+     * from ever being reached in passwordless flows.
+     */
+    authenticate(req: any, options?: any) {
+      if (!this.customValidate) {
+        return super.authenticate(req, options);
+      }
+
+      const login = req.body?.[loginField as string] ?? '';
+      const pass = req.body?.[passwordField as string] ?? '';
+
+      this.validate(req, login, pass)
+        .then((user) => this.success(user))
+        .catch((err) => this.error(err));
+    }
+
     async validate(req: any, login: string, pass: string): Promise<any> {
       let user = this.customValidate ? await this.customValidate(req) : null;
 
