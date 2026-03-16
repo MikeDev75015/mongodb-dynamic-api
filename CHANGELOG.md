@@ -1,5 +1,12 @@
 Changelog
 
+## [4.1.2](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.1.1...v4.1.2) (2026-03-16)
+
+
+### auth
+
+* **auth:** bypass passport-local missing credentials check when customValidate is defined ([6274c6d](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/6274c6d0f3a8251289582dbd59f42d78c34408ac))
+
 ## [4.1.1](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.1.0...v4.1.1) (2026-03-16)
 
 
