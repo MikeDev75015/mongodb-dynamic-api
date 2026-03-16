@@ -1,4 +1,4 @@
-[Back to README](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md)
+[Back to README](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README.md)
 
 ---
 
@@ -661,7 +661,7 @@ async function getUser(id: string) {
 
 ---
 
-[Back to README](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README.md)
+[Back to README](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README.md)
 
 
 

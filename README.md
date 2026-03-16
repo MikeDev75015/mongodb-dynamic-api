@@ -84,7 +84,7 @@ npm install --save mongodb-dynamic-api
 > - **`refreshToken.refreshTokenField`** — entity field storing the bcrypt hash (enables server-side revocation)
 > - **`refreshToken.useCookie`** — send/read refresh token via httpOnly cookie (`cookie-parser` auto-registered)
 >
-> 📖 **Full migration guide:** [README/authentication.md → Migration Guide (v3 → v4)](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/authentication.md#migration-guide-v3--v4)
+> 📖 **Full migration guide:** [README/authentication.md → Migration Guide (v3 → v4)](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/authentication.md#migration-guide-v3--v4)
 
 ---
 
@@ -234,7 +234,7 @@ export class User extends BaseEntity {
 > - `BaseEntity` provides `id`, `createdAt`, and `updatedAt` fields automatically
 > - Timestamps are **automatically enabled** - no need to add `timestamps: true` in `@Schema()`
 > - `_id` and `__v` are automatically excluded from JSON responses
-> - See [Entities documentation](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/entities.md) for more details
+> - See [Entities documentation](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/entities.md) for more details
 
 ### Step 3: Create a Feature Module
 
@@ -871,7 +871,7 @@ export class User extends BaseEntity {
 }
 ```
 
-> 📚 **Learn More:** See [Schema Options](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/schema-options.md) and [Validation](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/validation.md) guides.
+> 📚 **Learn More:** See [Schema Options](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/schema-options.md) and [Validation](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/validation.md) guides.
 
 ---
 
@@ -881,22 +881,22 @@ Explore advanced features and configurations:
 
 ### Core Concepts
 
-- **[Entities](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/entities.md)** - Learn about BaseEntity and SoftDeletableEntity (timestamps auto-enabled)
-- **[Schema Options](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/schema-options.md)** - Configure indexes, hooks with options (document/query), and custom initialization
+- **[Entities](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/entities.md)** - Learn about BaseEntity and SoftDeletableEntity (timestamps auto-enabled)
+- **[Schema Options](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/schema-options.md)** - Configure indexes, hooks with options (document/query), and custom initialization
 
 ### Optional Features (All Dependencies Included)
 
 | Feature | Description | Documentation |
 |---------|-------------|---------------|
-| 📚 **Swagger UI** | Auto-generated OpenAPI documentation | [View Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/swagger-ui.md) |
-| 🔄 **Versioning** | URI-based API versioning | [View Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/versioning.md) |
-| ✅ **Validation** | Request validation with class-validator | [View Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/validation.md) |
-| ⚡ **Caching** | Global caching with auto-invalidation | [View Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/caching.md) |
-| 🔐 **Authentication** | JWT dual-token auth (8 endpoints) — access + refresh tokens, cookie mode, server-side revocation | [View Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/authentication.md) |
-| 🛡️ **Authorization** | Role-based access control | [View Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/authorization.md) |
-| 📡 **WebSockets** | Socket.IO integration for routes | [View Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/websockets.md) |
-| 🗂️ **Route Configuration** | All route options: DTOs, callbacks, interceptors, etc. | [View Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/route-config.md) |
-| 🎛️ **Controller Configuration** | All `controllerOptions` and `forFeature` options | [View Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/develop/README/controller-config.md) |
+| 📚 **Swagger UI** | Auto-generated OpenAPI documentation | [View Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/swagger-ui.md) |
+| 🔄 **Versioning** | URI-based API versioning | [View Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/versioning.md) |
+| ✅ **Validation** | Request validation with class-validator | [View Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/validation.md) |
+| ⚡ **Caching** | Global caching with auto-invalidation | [View Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/caching.md) |
+| 🔐 **Authentication** | JWT dual-token auth (8 endpoints) — access + refresh tokens, cookie mode, server-side revocation | [View Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/authentication.md) |
+| 🛡️ **Authorization** | Role-based access control | [View Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/authorization.md) |
+| 📡 **WebSockets** | Socket.IO integration for routes | [View Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/websockets.md) |
+| 🗂️ **Route Configuration** | All route options: DTOs, callbacks, interceptors, etc. | [View Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/route-config.md) |
+| 🎛️ **Controller Configuration** | All `controllerOptions` and `forFeature` options | [View Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/controller-config.md) |
 
 ### Important Notes
 
