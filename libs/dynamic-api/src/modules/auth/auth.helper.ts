@@ -24,7 +24,7 @@ function createLocalStrategyProvider<Entity extends BaseEntity>(
   loginField: keyof Entity,
   passwordField: keyof Entity,
   abilityPredicate: AuthAbilityPredicate | undefined,
-  customValidate?: (req: any) => Promise<Entity | null>,
+  customValidate?: <Entity>(req: any) => Promise<Entity | null>,
   useStrategy?: Type<any>,
 ): DynamicAPIServiceProvider {
   if (useStrategy) {
@@ -51,17 +51,12 @@ function createLocalStrategyProvider<Entity extends BaseEntity>(
     }
 
     async validate(req: any, login: string, pass: string): Promise<any> {
-      if (this.customValidate) {
-        const user = await this.customValidate(req);
-        if (user) {
-          if (this.abilityPredicate && !this.abilityPredicate(user)) {
-            throw new ForbiddenException('Access denied');
-          }
-          return user;
-        }
+      let user = this.customValidate ? await this.customValidate(req) : null;
+
+      if (!user) {
+        user = await this.authService.validateUser(login, pass);
       }
 
-      const user = await this.authService.validateUser(login, pass);
       if (!user) {
         throw new UnauthorizedException('Invalid credentials');
       }
