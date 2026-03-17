@@ -359,11 +359,11 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 }
 ```
 
-> **🔒 Security Note:** The `id` used to fetch the account is **derived exclusively from the JWT access token** (`req.user`). The server decodes the token, extracts `sub` (mapped to `id`), then performs `findOne({ _id: id })` against the database. This means:
+> **🔒 Security Note:** The `id` used to fetch the account is **derived exclusively from the JWT access token** (`req.user`). After verifying the token, the server reads `id` from the JWT payload and performs `findOne({ _id: id })` against the database. This means:
 >
-> - A user **cannot** access another user's account by manipulating request parameters — the `_id` always comes from the signed token.
+> - A user **cannot** access another user's account by manipulating request parameters — the `_id` always comes from the signed token payload.
 > - If the JWT has been tampered with, verification fails and the request is rejected with `401 Unauthorized`.
- > - There is **no mixing of accounts**: the returned data always belongs to the token owner.
+> - There is **no mixing of accounts**: the returned data always belongs to the token owner.
 
 ### 4. Update Account
 
