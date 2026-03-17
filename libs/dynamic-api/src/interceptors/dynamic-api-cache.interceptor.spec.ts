@@ -81,7 +81,7 @@ describe('DynamicApiCacheInterceptor', () => {
       expect(interceptor.isRequestCacheable(context)).toBe(true);
     });
 
-    it('should return false if auth is enabled and path starts with /auth', () => {
+    it('should return false if auth is enabled and path contains /auth/', () => {
       state.isGlobalCacheEnabled = true;
       state.isAuthEnabled = true;
       const context = {
@@ -96,7 +96,52 @@ describe('DynamicApiCacheInterceptor', () => {
       expect(interceptor.isRequestCacheable(context)).toBe(false);
     });
 
-    it('should return true if auth is not enabled and path starts with /auth', () => {
+    it('should return false if auth is enabled and path contains /auth/ with global prefix', () => {
+      state.isGlobalCacheEnabled = true;
+      state.isAuthEnabled = true;
+      const context = {
+        switchToHttp: () => ({
+          getRequest: () => ({
+            method: 'GET',
+            url: '/api/auth/account',
+          }),
+        }),
+      } as unknown as ExecutionContext;
+
+      expect(interceptor.isRequestCacheable(context)).toBe(false);
+    });
+
+    it('should return false if auth is enabled and path contains /auth/ with URI versioning', () => {
+      state.isGlobalCacheEnabled = true;
+      state.isAuthEnabled = true;
+      const context = {
+        switchToHttp: () => ({
+          getRequest: () => ({
+            method: 'GET',
+            url: '/v1/auth/account',
+          }),
+        }),
+      } as unknown as ExecutionContext;
+
+      expect(interceptor.isRequestCacheable(context)).toBe(false);
+    });
+
+    it('should return false if auth is enabled and path contains /auth/ with prefix and versioning', () => {
+      state.isGlobalCacheEnabled = true;
+      state.isAuthEnabled = true;
+      const context = {
+        switchToHttp: () => ({
+          getRequest: () => ({
+            method: 'GET',
+            url: '/api/v1/auth/login',
+          }),
+        }),
+      } as unknown as ExecutionContext;
+
+      expect(interceptor.isRequestCacheable(context)).toBe(false);
+    });
+
+    it('should return true if auth is not enabled and path contains /auth/', () => {
       state.isGlobalCacheEnabled = true;
       state.isAuthEnabled = false;
       const context = {
@@ -104,6 +149,21 @@ describe('DynamicApiCacheInterceptor', () => {
           getRequest: () => ({
             method: 'GET',
             url: '/auth/account',
+          }),
+        }),
+      } as unknown as ExecutionContext;
+
+      expect(interceptor.isRequestCacheable(context)).toBe(true);
+    });
+
+    it('should return true for paths that contain auth but not as a segment', () => {
+      state.isGlobalCacheEnabled = true;
+      state.isAuthEnabled = true;
+      const context = {
+        switchToHttp: () => ({
+          getRequest: () => ({
+            method: 'GET',
+            url: '/authors',
           }),
         }),
       } as unknown as ExecutionContext;
@@ -134,7 +194,7 @@ describe('DynamicApiCacheInterceptor', () => {
       });
     });
 
-    it('should return next.handle() if auth is enabled and path starts with /auth', (done) => {
+    it('should return next.handle() if auth is enabled and path contains /auth/', (done) => {
       state.isGlobalCacheEnabled = true;
       state.isAuthEnabled = true;
       const context = {
