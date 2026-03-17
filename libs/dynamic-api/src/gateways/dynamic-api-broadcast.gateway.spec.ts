@@ -2,6 +2,7 @@ import { createMock } from '@golevelup/ts-jest';
 import { Server } from 'socket.io';
 import { DynamicAPIWsExceptionFilter } from '../filters';
 import { JwtSocketGuard } from '../guards';
+import { DynamicApiWsConfigStore } from '../helpers/ws-config.store';
 import { ExtendedSocket } from '../interfaces';
 import { DynamicApiBroadcastService } from '../services';
 import { createDynamicApiBroadcastGateway } from './dynamic-api-broadcast.gateway';
@@ -134,6 +135,52 @@ describe('createDynamicApiBroadcastGateway', () => {
       expect(mockSocket.leave).toHaveBeenCalledWith('room-a');
       expect(mockSocket.leave).toHaveBeenCalledWith('room-b');
       expect(result).toEqual({ event: 'leave-rooms', data: ['room-a', 'room-b'] });
+    });
+  });
+
+  describe('debug logging', () => {
+    afterEach(() => {
+      DynamicApiWsConfigStore.reset();
+    });
+
+    it('should log joinRooms when debug is true', () => {
+      DynamicApiWsConfigStore.debug = true;
+      const GatewayClass = createDynamicApiBroadcastGateway();
+      const gateway = new GatewayClass(mockBroadcastService);
+      const spyLog = jest.spyOn(gateway['logger'], 'log').mockImplementation(() => {});
+      const mockSocket = { id: 'sock-1', join: jest.fn() } as unknown as ExtendedSocket;
+
+      gateway.joinRooms(mockSocket, { rooms: ['room-x'] });
+
+      expect(spyLog).toHaveBeenCalledWith(
+        expect.stringContaining('[WS] joinRooms'),
+      );
+    });
+
+    it('should log leaveRooms when debug is true', () => {
+      DynamicApiWsConfigStore.debug = true;
+      const GatewayClass = createDynamicApiBroadcastGateway();
+      const gateway = new GatewayClass(mockBroadcastService);
+      const spyLog = jest.spyOn(gateway['logger'], 'log').mockImplementation(() => {});
+      const mockSocket = { id: 'sock-2', leave: jest.fn() } as unknown as ExtendedSocket;
+
+      gateway.leaveRooms(mockSocket, { rooms: 'room-y' });
+
+      expect(spyLog).toHaveBeenCalledWith(
+        expect.stringContaining('[WS] leaveRooms'),
+      );
+    });
+
+    it('should not log joinRooms when debug is false', () => {
+      DynamicApiWsConfigStore.debug = false;
+      const GatewayClass = createDynamicApiBroadcastGateway();
+      const gateway = new GatewayClass(mockBroadcastService);
+      const spyLog = jest.spyOn(gateway['logger'], 'log').mockImplementation(() => {});
+      const mockSocket = { id: 'sock-3', join: jest.fn() } as unknown as ExtendedSocket;
+
+      gateway.joinRooms(mockSocket, { rooms: ['room-x'] });
+
+      expect(spyLog).not.toHaveBeenCalled();
     });
   });
 });

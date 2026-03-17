@@ -10,3 +10,4 @@ export * from './socket-config.helper';
 export * from './swagger-config.helper';
 export * from './validation-config.helper';
 export * from './versioning-config.helper';
+export * from './ws-config.store';
