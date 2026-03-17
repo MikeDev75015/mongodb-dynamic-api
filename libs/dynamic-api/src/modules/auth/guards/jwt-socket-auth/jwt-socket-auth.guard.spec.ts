@@ -61,5 +61,31 @@ describe('JwtSocketAuthGuard', () => {
 
       expect(socket.user).toStrictEqual(fakeUser);
     });
+
+    it('should set user to socket when token is provided via auth.token', async () => {
+      const fakeUser = { id: 'id' };
+      context.getArgs.mockReturnValue([socket]);
+      socket.handshake.query = {};
+      socket.handshake.auth = { token: 'authToken' };
+      verifyAsyncSpy.mockResolvedValue({ ...fakeUser, iat: 1, exp: 2 });
+
+      await guard.canActivate(context);
+
+      expect(socket.user).toStrictEqual(fakeUser);
+      expect(verifyAsyncSpy).toHaveBeenCalledWith('authToken', expect.any(Object));
+    });
+
+    it('should prefer auth.token over query.accessToken', async () => {
+      const fakeUser = { id: 'id' };
+      context.getArgs.mockReturnValue([socket]);
+      socket.handshake.query = { accessToken: 'queryToken' };
+      socket.handshake.auth = { token: 'authToken' };
+      verifyAsyncSpy.mockResolvedValue({ ...fakeUser, iat: 1, exp: 2 });
+
+      await guard.canActivate(context);
+
+      expect(socket.user).toStrictEqual(fakeUser);
+      expect(verifyAsyncSpy).toHaveBeenCalledWith('authToken', expect.any(Object));
+    });
   });
 });

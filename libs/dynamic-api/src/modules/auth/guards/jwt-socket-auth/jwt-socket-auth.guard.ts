@@ -27,7 +27,8 @@ export class JwtSocketAuthGuard implements CanActivate {
   }
 
   protected getAccessTokenFromSocketQuery(socket: ExtendedSocket): string {
-    const accessToken = socket.handshake.query.accessToken as string;
+    const accessToken = socket.handshake.auth?.token
+      ?? socket.handshake.query?.accessToken as string;
 
     if (!accessToken) {
       throw new WsException('Unauthorized');

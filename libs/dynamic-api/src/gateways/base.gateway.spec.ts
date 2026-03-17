@@ -98,6 +98,42 @@ describe('BaseGateway', () => {
 
       expect(socket.user).toEqual(fakeUser);
     });
+
+    it('should set the user to the socket when token is provided via auth.token', () => {
+      socket.handshake.query = {};
+      socket.handshake.auth = { token: accessToken };
+      const isPublic = false;
+      const fakeUser = { id: 'id', name: 'name' };
+      jest.spyOn(DynamicApiModule.state, 'get').mockReturnValue(true);
+      jest.spyOn(jwtService, 'verify').mockReturnValue({
+        iat: Date.now() / 1000,
+        exp: Date.now() / 1000 + 1000,
+        ...fakeUser,
+      });
+
+      gateway['addUserToSocket'](socket, isPublic);
+
+      expect(socket.user).toEqual(fakeUser);
+    });
+
+    it('should prefer auth.token over query.accessToken', () => {
+      const authToken = 'authToken';
+      socket.handshake.query = { accessToken };
+      socket.handshake.auth = { token: authToken };
+      const isPublic = false;
+      const fakeUser = { id: 'id', name: 'name' };
+      jest.spyOn(DynamicApiModule.state, 'get').mockReturnValue(true);
+      const verifySpy = jest.spyOn(jwtService, 'verify').mockReturnValue({
+        iat: Date.now() / 1000,
+        exp: Date.now() / 1000 + 1000,
+        ...fakeUser,
+      });
+
+      gateway['addUserToSocket'](socket, isPublic);
+
+      expect(verifySpy).toHaveBeenCalledWith(authToken, expect.any(Object));
+      expect(socket.user).toEqual(fakeUser);
+    });
   });
 
   describe('isValidManyBody', () => {
