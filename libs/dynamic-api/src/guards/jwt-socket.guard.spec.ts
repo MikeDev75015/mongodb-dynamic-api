@@ -14,9 +14,10 @@ describe('JwtSocketGuard', () => {
     email: 'user@mail.co',
   };
   const query = {};
+  const auth = {};
   const socket = createMock<Socket>({
     id: 'test-socket-id',
-    handshake: { query },
+    handshake: { query, auth },
   });
   const context = createMock<ExecutionContext>({
     getArgs: () => [socket],
@@ -36,6 +37,8 @@ describe('JwtSocketGuard', () => {
   describe('isPublic is false', () => {
     beforeEach(() => {
       guard = new JwtSocketGuard();
+      query['accessToken'] = undefined;
+      auth['token'] = undefined;
     });
 
     it('should be defined', () => {
@@ -50,7 +53,7 @@ describe('JwtSocketGuard', () => {
       expect(typeof guard.canActivate).toBe('function');
     });
 
-    it('should allow access with valid JWT', async () => {
+    it('should allow access with valid JWT via query.accessToken', async () => {
       const accessToken = 'valid.jwt.token';
       query['accessToken'] = accessToken;
       const verifyAsyncSpy = jest.spyOn(JwtService.prototype, 'verifyAsync').mockResolvedValueOnce({
@@ -61,6 +64,40 @@ describe('JwtSocketGuard', () => {
 
       expect(result).toBe(true);
       expect(verifyAsyncSpy).toHaveBeenCalledWith(accessToken, {
+        secret: 'jwtSecret',
+        ignoreExpiration: false,
+      });
+    });
+
+    it('should allow access with valid JWT via auth.token', async () => {
+      const accessToken = 'valid.jwt.token.from.auth';
+      auth['token'] = accessToken;
+      const verifyAsyncSpy = jest.spyOn(JwtService.prototype, 'verifyAsync').mockResolvedValueOnce({
+        user,
+      });
+
+      const result = await guard.canActivate(context);
+
+      expect(result).toBe(true);
+      expect(verifyAsyncSpy).toHaveBeenCalledWith(accessToken, {
+        secret: 'jwtSecret',
+        ignoreExpiration: false,
+      });
+    });
+
+    it('should prefer auth.token over query.accessToken', async () => {
+      const authToken = 'auth.token.value';
+      const queryToken = 'query.token.value';
+      auth['token'] = authToken;
+      query['accessToken'] = queryToken;
+      const verifyAsyncSpy = jest.spyOn(JwtService.prototype, 'verifyAsync').mockResolvedValueOnce({
+        user,
+      });
+
+      const result = await guard.canActivate(context);
+
+      expect(result).toBe(true);
+      expect(verifyAsyncSpy).toHaveBeenCalledWith(authToken, {
         secret: 'jwtSecret',
         ignoreExpiration: false,
       });

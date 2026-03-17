@@ -20,7 +20,8 @@ export abstract class BaseGateway<Entity extends BaseEntity> {
       return;
     }
 
-    const accessToken = socket.handshake.query.accessToken as string;
+    const accessToken = (socket.handshake.auth?.token
+      ?? socket.handshake.query?.accessToken) as string;
     let verified: Partial<Entity> & { iat: number; exp: number; };
 
     if (accessToken) {
