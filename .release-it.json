@@ -1,6 +1,6 @@
 {
   "git": {
-    "commitMessage": "chore(release): ${version}"
+    "commitMessage": "chore(release): ${version} [skip ci]"
   },
   "github": {
     "tokenRef": "GH_TOKEN"
