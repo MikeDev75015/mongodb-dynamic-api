@@ -30,6 +30,7 @@ Each route in `DynamicApiModule.forFeature` can be finely configured through the
   - [DynamicApiCallbackMethods](#dynamicapicallbackmethods)
 - [Other Options](#other-options)
   - [isPublic](#ispublic)
+  - [disableCache](#disablecache)
   - [description](#description)
   - [version](#version)
   - [subPath](#subpath)
@@ -82,6 +83,7 @@ interface DynamicAPIRouteConfig<Entity extends BaseEntity> {
 
   // Behavior
   isPublic?: boolean;                                     // Bypass authentication
+  disableCache?: boolean;                                 // Disable cache for this route
   description?: string;                                   // Swagger operation summary
   version?: string;                                       // API version (e.g., '1', '2')
   subPath?: string;                                       // Additional path segment
@@ -583,6 +585,31 @@ routes: [
 ```
 
 > Also configurable at the controller level via `controllerOptions.isPublic`.
+
+---
+
+### disableCache
+
+Disables caching for this specific **read** route (GetMany, GetOne, Aggregate). When set to `true`, the response will never be cached. When set to `false`, it explicitly re-enables caching even if the controller has `disableCache: true`.
+
+Has no effect on write routes (POST, PUT, PATCH, DELETE) — they are never cached, only auto-purge.
+
+```typescript
+routes: [
+  {
+    type: 'GetMany',
+    disableCache: true, // This list is never cached
+  },
+  {
+    type: 'GetOne',
+    // disableCache not set → inherits controller setting (or default: enabled)
+  },
+]
+```
+
+> Also configurable at the controller level via `controllerOptions.disableCache`. Route-level takes precedence.
+>
+> 📚 See [Caching guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/caching.md) for full details on priority resolution and cache purge.
 
 ---
 

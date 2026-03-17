@@ -26,6 +26,7 @@
   - [apiTag](#apitag)
   - [version](#version)
   - [isPublic](#ispublic)
+  - [disableCache](#disablecache)
   - [validationPipeOptions](#validationpipeoptions)
   - [abilityPredicates](#abilitypredicates)
   - [routesConfig](#routesconfig)
@@ -192,6 +193,9 @@ interface DynamicApiControllerOptions<Entity extends BaseEntity> {
   // Authentication
   isPublic?: boolean;
 
+  // Caching
+  disableCache?: boolean;
+
   // Validation
   validationPipeOptions?: ValidationPipeOptions;
 
@@ -290,6 +294,34 @@ routes: [
   { type: 'DeleteOne', isPublic: false }, // 🔒 Protected (overrides controller)
 ]
 ```
+
+---
+
+### disableCache
+
+**Optional.** When set to `true`, caching is disabled for **all read routes** (GetMany, GetOne, Aggregate) in this controller. Write operations will not auto-purge the cache, and the manual purge endpoint (`DELETE /{path}/cache`) will not be generated.
+
+A route-level `disableCache` takes precedence over this setting.
+
+```typescript
+// Disable cache for the entire feature
+controllerOptions: {
+  path: 'orders',
+  disableCache: true, // No caching on any read route
+}
+
+// Mix cached and uncached routes
+controllerOptions: {
+  path: 'products',
+  disableCache: true,       // Default: no cache
+},
+routes: [
+  { type: 'GetMany' },     // ❌ Not cached (inherits controller setting)
+  { type: 'GetOne', disableCache: false }, // ✅ Cached (overrides controller)
+]
+```
+
+> 📚 See [Caching guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/caching.md) for full details on cache control, auto-purge, and the manual purge endpoint.
 
 ---
 
@@ -448,6 +480,7 @@ When the same option is available at multiple levels, the following priority app
 | Option | Route level | Controller level | Global (`forRoot`) |
 |---|:---:|:---:|:---:|
 | `isPublic` | ✅ highest | ✅ | ❌ |
+| `disableCache` | ✅ highest | ✅ | ✅ (`useGlobalCache`) |
 | `version` | ✅ highest | ✅ | ❌ |
 | `validationPipeOptions` | ✅ highest | ✅ | ❌ |
 | `abilityPredicate` | ✅ highest | ✅ (`abilityPredicates`) | ❌ |
@@ -577,6 +610,7 @@ DynamicApiModule.forFeature({
     apiTag: 'Products',
     version: '1',
     isPublic: false,
+    disableCache: false, // Cache enabled (default) — auto-purge on write + manual purge endpoint
     validationPipeOptions: { whitelist: true, transform: true },
     useInterceptors: [LoggingInterceptor],
     abilityPredicates: [
