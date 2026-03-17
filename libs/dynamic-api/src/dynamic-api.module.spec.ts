@@ -207,6 +207,7 @@ describe('DynamicApiModule', () => {
         routeType: 'fake-route-type' as RouteType,
         description: 'fake-description',
         isPublic: false,
+        disableCache: false,
         abilityPredicate: undefined,
         displayedName: 'fake-displayed-name',
         event: 'fake-event',
