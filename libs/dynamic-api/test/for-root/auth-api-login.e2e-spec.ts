@@ -391,3 +391,90 @@ describe('DynamicApiModule forRoot - POST /auth/login with useStrategy (e2e)', (
   });
 });
 
+describe('DynamicApiModule forRoot - POST /auth/login with two users each retrieves own account (e2e)', () => {
+  const User = createLoginUserEntity();
+  type User = InstanceType<typeof User>;
+
+  const userA = { username: 'alice', pass: 'alice-pass', role: 'admin' as const, isVerified: true };
+  const userB = { username: 'bob', pass: 'bob-pass', role: 'user' as const, isVerified: true };
+
+  beforeEach(() => {
+    DynamicApiModule.state['resetState']();
+  });
+
+  afterEach(async () => {
+    await closeTestingApp(mongoose.connections);
+  });
+
+  beforeEach(async () => {
+    const bcryptService = new BcryptService();
+
+    const fixtures = async (_: Connection) => {
+      const model = await getModelFromEntity(User);
+      await model.insertMany([
+        { ...userA, pass: await bcryptService.hashPassword(userA.pass) },
+        { ...userB, pass: await bcryptService.hashPassword(userB.pass) },
+      ]);
+    };
+
+    await initModule({
+      useAuth: {
+        userEntity: User,
+        login: {
+          loginField: 'username',
+          passwordField: 'pass',
+          additionalFields: ['role', 'isVerified'],
+        },
+      },
+    }, fixtures);
+  });
+
+  it('should return each user their own account when two users login', async () => {
+    // Login user A
+    const { body: bodyA, status: statusA } = await server.post('/auth/login', {
+      username: userA.username,
+      pass: userA.pass,
+    });
+    expect(statusA).toBe(200);
+    expect(bodyA).toHaveProperty('accessToken');
+
+    // Login user B
+    const { body: bodyB, status: statusB } = await server.post('/auth/login', {
+      username: userB.username,
+      pass: userB.pass,
+    });
+    expect(statusB).toBe(200);
+    expect(bodyB).toHaveProperty('accessToken');
+
+    // Fetch account for user A
+    const { body: accountA, status: accountStatusA } = await server.get(
+      '/auth/account',
+      { headers: { Authorization: `Bearer ${bodyA.accessToken}` } },
+    );
+    expect(accountStatusA).toBe(200);
+    expect(accountA).toEqual({
+      id: expect.any(String),
+      username: 'alice',
+      role: 'admin',
+      isVerified: true,
+    });
+
+    // Fetch account for user B
+    const { body: accountB, status: accountStatusB } = await server.get(
+      '/auth/account',
+      { headers: { Authorization: `Bearer ${bodyB.accessToken}` } },
+    );
+    expect(accountStatusB).toBe(200);
+    expect(accountB).toEqual({
+      id: expect.any(String),
+      username: 'bob',
+      role: 'user',
+      isVerified: true,
+    });
+
+    // Ensure both accounts are distinct
+    expect(accountA.id).not.toEqual(accountB.id);
+    expect(accountA.username).not.toEqual(accountB.username);
+  });
+});
+
