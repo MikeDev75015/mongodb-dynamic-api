@@ -32,13 +32,15 @@ export class DynamicApiCacheInterceptor extends CacheInterceptor {
     return super.intercept(context, next);
   }
 
+  private static readonly AUTH_PATH_PATTERN = /\/auth(\/|$|\?)/;
+
   isRequestCacheable(context: ExecutionContext): boolean {
     const req = context.switchToHttp().getRequest();
     return (
       this.state.isGlobalCacheEnabled &&
       this.allowedMethods.includes(req.method) &&
       !this.excludePaths.includes(req.url) &&
-      !(this.state.isAuthEnabled && req.url.startsWith('/auth'))
+      !(this.state.isAuthEnabled && DynamicApiCacheInterceptor.AUTH_PATH_PATTERN.test(req.url))
     );
   }
 }
