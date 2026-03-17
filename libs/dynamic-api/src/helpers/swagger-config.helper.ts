@@ -4,111 +4,49 @@ import * as fs from 'node:fs';
 import { DynamicAPISwaggerExtraConfig, DynamicAPISwaggerOptions } from '../interfaces';
 import jsonFile from '../version.json';
 
+type ExtraConfigHandler = (config: DocumentBuilder, value: any) => void;
+
+const extraConfigHandlers: Record<string, ExtraConfigHandler> = {
+  termsOfService: (config, value) => config.setTermsOfService(value),
+  contact: (config, value) => config.setContact(value.name, value.url, value.email),
+  license: (config, value) => config.setLicense(value.name, value.url),
+  servers: (config, value) =>
+    value.forEach((server: { url: string; description?: string; variables?: Record<string, { default: string; enum?: string[]; description?: string }> }) =>
+      config.addServer(server.url, server.description, server.variables),
+    ),
+  externalDocs: (config, value) => config.setExternalDoc(value.description, value.url),
+  basePath: (config, value) => config.setBasePath(value),
+  tags: (config, value) =>
+    value.forEach((tag: { name: string; description?: string; externalDocs?: { url: string; description?: string } }) =>
+      config.addTag(tag.name, tag.description, tag.externalDocs),
+    ),
+  extensions: (config, value) =>
+    Object.keys(value).forEach((extensionKey) => config.addExtension(extensionKey, value[extensionKey])),
+  security: (config, value) =>
+    Object.keys(value).forEach((securityKey) => config.addSecurity(securityKey, value[securityKey])),
+  globalParameters: (config, value) => config.addGlobalParameters(...value),
+  securityRequirements: (config, value) =>
+    Object.keys(value).forEach((securityKey) => config.addSecurityRequirements(securityKey, value[securityKey])),
+  bearerAuth: (config, value) =>
+    typeof value === 'boolean' && value ? config.addBearerAuth() : config.addBearerAuth(value),
+  oAuth2: (config, value) =>
+    typeof value === 'boolean' && value ? config.addOAuth2() : config.addOAuth2(value),
+  apiKey: (config, value) =>
+    typeof value === 'boolean' && value ? config.addApiKey() : config.addApiKey(value),
+  basicAuth: (config, value) =>
+    typeof value === 'boolean' && value ? config.addBasicAuth() : config.addBasicAuth(value),
+  cookieAuth: (config, value) =>
+    typeof value === 'boolean' && value
+      ? config.addCookieAuth()
+      : config.addCookieAuth(value.cookieName, value.options, value.securityName),
+};
+
 function buildExtraConfig(
   config: DocumentBuilder,
   swaggerConfig: DynamicAPISwaggerExtraConfig,
 ): void {
   Object.keys(swaggerConfig).forEach((key) => {
-    const value = swaggerConfig[key];
-
-    switch (key) {
-      case 'termsOfService':
-        config.setTermsOfService(value);
-        break;
-
-      case 'contact':
-        config.setContact(value.name, value.url, value.email);
-        break;
-
-      case 'license':
-        config.setLicense(value.name, value.url);
-        break;
-
-      case 'servers':
-        value.forEach((server: { url: string; description?: string; variables?: Record<string, { default: string; enum?: string[]; description?: string }> }) => {
-          config.addServer(server.url, server.description, server.variables);
-        });
-        break;
-
-      case 'externalDocs':
-        config.setExternalDoc(value.description, value.url);
-        break;
-
-      case 'basePath':
-        config.setBasePath(value);
-        break;
-
-      case 'tags':
-        value.forEach((tag: { name: string; description?: string; externalDocs?: { url: string; description?: string } }) => {
-          config.addTag(tag.name, tag.description, tag.externalDocs);
-        });
-        break;
-
-      case 'extensions':
-        Object.keys(value).forEach((extensionKey) => {
-          config.addExtension(extensionKey, value[extensionKey]);
-        });
-        break;
-
-      case 'security':
-        Object.keys(value).forEach((securityKey) => {
-          config.addSecurity(securityKey, value[securityKey]);
-        });
-        break;
-
-      case 'globalParameters':
-        config.addGlobalParameters(...value);
-        break;
-
-      case 'securityRequirements':
-        Object.keys(value).forEach((securityKey) => {
-          config.addSecurityRequirements(securityKey, value[securityKey]);
-        });
-        break;
-
-      case 'bearerAuth':
-        if (typeof value === 'boolean' && value) {
-          config.addBearerAuth();
-        } else {
-          config.addBearerAuth(value);
-        }
-        break;
-
-      case 'oAuth2':
-        if (typeof value === 'boolean' && value) {
-          config.addOAuth2();
-        } else {
-          config.addOAuth2(value);
-        }
-        break;
-
-      case 'apiKey':
-        if (typeof value === 'boolean' && value) {
-          config.addApiKey();
-        } else {
-          config.addApiKey(value);
-        }
-        break;
-
-      case 'basicAuth':
-        if (typeof value === 'boolean' && value) {
-          config.addBasicAuth();
-        } else {
-          config.addBasicAuth(value);
-        }
-        break;
-
-      case 'cookieAuth':
-        if (typeof value === 'boolean' && value) {
-          config.addCookieAuth();
-        } else {
-          config.addCookieAuth(value.cookieName, value.options, value.securityName);
-        }
-        break;
-
-      default:
-        break;
-    }
+    extraConfigHandlers[key]?.(config, swaggerConfig[key]);
   });
 }
 
