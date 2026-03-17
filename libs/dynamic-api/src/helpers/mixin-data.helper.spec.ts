@@ -193,4 +193,32 @@ describe('getMixinData', () => {
     expect(result).toBeDefined();
     expect(result.routeType).toEqual('UpdateOne');
   });
+
+  it('should use route-level disableCache when it is a boolean', () => {
+    const result = getMixinData(
+      TestEntity,
+      { ...controllerOptions, disableCache: undefined },
+      {
+        type: 'GetMany',
+        ...routeConfig,
+        disableCache: true,
+      },
+    );
+
+    expect(result.disableCache).toBe(true);
+  });
+
+  it('should use controller-level disableCache when route-level is not a boolean', () => {
+    const result = getMixinData(
+      TestEntity,
+      { ...controllerOptions, disableCache: true },
+      {
+        type: 'GetMany',
+        ...routeConfig,
+        disableCache: undefined,
+      },
+    );
+
+    expect(result.disableCache).toBe(true);
+  });
 });
