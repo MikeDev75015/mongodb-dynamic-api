@@ -68,6 +68,24 @@ describe('DynamicApiModule forRoot - POST /auth/login with login options (e2e)',
     });
   });
 
+  describe('login alias', () => {
+    it('should login successfully when using "login" alias instead of the configured loginField', async () => {
+      const { username, pass } = admin;
+      const { body, status } = await server.post('/auth/login', { login: username, pass });
+
+      expect(status).toBe(200);
+      expect(body).toHaveProperty('accessToken');
+    });
+
+    it('should not overwrite the configured loginField when both loginField and "login" alias are provided', async () => {
+      const { username, pass } = admin;
+      const { body, status } = await server.post('/auth/login', { username, login: 'wrong@test.com', pass });
+
+      expect(status).toBe(200);
+      expect(body).toHaveProperty('accessToken');
+    });
+  });
+
   describe('passwordField', () => {
     it('should throw an unauthorized exception if passwordField is missing', async () => {
       const { body, status } = await server.post('/auth/login', { username: 'unit' });
