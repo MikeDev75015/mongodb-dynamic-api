@@ -1,5 +1,6 @@
-import { Param, Type, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Param, SetMetadata, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
+import { DISABLE_CACHE_KEY } from '../../decorators';
 import { EntityParam } from '../../dtos';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
@@ -19,6 +20,7 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
     displayedName,
     description,
     isPublic,
+    disableCache,
     abilityPredicate,
   } = getMixinData(
     entity,
@@ -67,6 +69,7 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(GetOnePoliciesGuard)
     @UseInterceptors(...useInterceptors)
+    @SetMetadata(DISABLE_CACHE_KEY, disableCache)
     async getOne(@Param('id') id: string) {
       const entity = await this.service.getOne(id);
 

@@ -1,5 +1,6 @@
-import { Query, Type, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Query, SetMetadata, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
+import { DISABLE_CACHE_KEY } from '../../decorators';
 import { EntityQuery } from '../../dtos';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
@@ -19,6 +20,7 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
     displayedName,
     description,
     isPublic,
+    disableCache,
     abilityPredicate,
   } = getMixinData(
     entity,
@@ -78,6 +80,7 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(GetManyPoliciesGuard)
     @UseInterceptors(...useInterceptors)
+    @SetMetadata(DISABLE_CACHE_KEY, disableCache)
     async getMany(@Query() query: GetManyQuery) {
       const list = await this.service.getMany(query ?? {});
 
