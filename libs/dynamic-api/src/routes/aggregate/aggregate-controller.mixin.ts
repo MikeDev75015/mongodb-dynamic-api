@@ -1,6 +1,7 @@
-import { BadRequestException, Query, Type, UseGuards, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Query, SetMetadata, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { RouteDecoratorsBuilder } from '../../builders';
+import { DISABLE_CACHE_KEY } from '../../decorators';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { Aggregatable, DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin } from '../../mixins';
@@ -20,6 +21,7 @@ function AggregateControllerMixin<Entity extends BaseEntity>(
     displayedName,
     description,
     isPublic,
+    disableCache,
     abilityPredicate,
   } = getMixinData(
     entity,
@@ -83,6 +85,7 @@ function AggregateControllerMixin<Entity extends BaseEntity>(
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(AggregatePoliciesGuard)
     @UseInterceptors(...useInterceptors)
+    @SetMetadata(DISABLE_CACHE_KEY, disableCache)
     async aggregate(@Query() query: AggregateQuery) {
       const toPipeline = (
         AggregateQuery as Aggregatable<AggregateQuery>
