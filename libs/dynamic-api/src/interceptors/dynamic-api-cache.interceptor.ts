@@ -37,7 +37,8 @@ export class DynamicApiCacheInterceptor extends CacheInterceptor {
     return (
       this.state.isGlobalCacheEnabled &&
       this.allowedMethods.includes(req.method) &&
-      !this.excludePaths.includes(req.url)
+      !this.excludePaths.includes(req.url) &&
+      !(this.state.isAuthEnabled && req.url.startsWith('/auth'))
     );
   }
 }
