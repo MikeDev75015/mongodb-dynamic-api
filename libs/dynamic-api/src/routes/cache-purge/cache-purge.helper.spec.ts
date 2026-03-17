@@ -55,6 +55,30 @@ describe('createCachePurgeController', () => {
     expect(mockClear).toHaveBeenCalledTimes(1);
     expect(result).toEqual({ purged: true });
   });
+
+  it('should apply Public decorator when isPublic is true', () => {
+    jest.spyOn(DynamicApiModule.state, 'get').mockReturnValue(false);
+
+    const Controller = createCachePurgeController(
+      FakeEntity as any,
+      { path: 'fakes', isPublic: true } as any,
+    );
+
+    expect(Controller).toBeDefined();
+    expect(Controller.name).toBe('CachePurgeFakeEntityController');
+  });
+
+  it('should apply ApiBearerAuth decorator when isAuthEnabled is true and isPublic is falsy', () => {
+    jest.spyOn(DynamicApiModule.state, 'get').mockReturnValue(true);
+
+    const Controller = createCachePurgeController(
+      FakeEntity as any,
+      { path: 'fakes' } as any,
+    );
+
+    expect(Controller).toBeDefined();
+    expect(Controller.name).toBe('CachePurgeFakeEntityController');
+  });
 });
 
 

@@ -1093,6 +1093,16 @@ describe('DynamicApiModule', () => {
         const appGuardProvider = module.providers?.find((p: any) => p?.provide === 'APP_GUARD');
         expect(appGuardProvider).toBeUndefined();
       });
+
+      it('should not include cache purge controller when controllerOptions.disableCache is true', async () => {
+        const options = buildDynamicApiModuleOptionsMock({
+          controllerOptions: { path: 'fake-path', disableCache: true },
+        });
+
+        const module = await DynamicApiModule.forFeature(options);
+
+        expect(module.controllers).toEqual([]);
+      });
     });
   });
 });
