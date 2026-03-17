@@ -1,5 +1,28 @@
 Changelog
 
+## [4.2.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.1.2...v4.2.0) (2026-03-17)
+
+
+### socket-adapter
+
+* **socket-adapter:** safely access error properties with instanceof check ([c243d2b](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/c243d2b9af0cfc3449a796b708d7bc0bb4e8d7e1))
+
+
+### auth
+
+* **auth:** add login alias for the login field ([b15c0a0](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/b15c0a055a9673139d8e94447df9587fbedf3f1e))
+* **auth:** decode JWT from Authorization header instead of relying on req.user ([e648aed](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/e648aed05575a1b6271388cf8ed91e37e61c4bb0))
+
+
+### websockets
+
+* **websockets:** add options object, onConnection hook and debug mode to enableDynamicAPIWebSockets ([d643ca6](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/d643ca640be54997cf61a0cc1faa74e73cd73ab5))
+
+
+### ws-guards
+
+* **ws-guards:** support auth.token in WebSocket guards ([12168a9](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/12168a950ea3040e3e359c5589604b6aceaae250))
+
 ## [4.1.2](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.1.1...v4.1.2) (2026-03-16)
 
 
