@@ -167,10 +167,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
   protected async deleteManyDocuments<T extends BaseEntity>(entity: Type<T>, ids: string[]): Promise<DeleteResult> {
     const model = await DynamicApiGlobalStateService.getEntityModel(entity);
 
-    const paths = Object.getOwnPropertyNames(model.schema.paths);
-    const isSoftDeletable = paths.includes('deletedAt') && paths.includes('isDeleted');
-
-    if (isSoftDeletable) {
+    if (this.isModelSoftDeletable(model)) {
       const result = await model.updateMany(
         { _id: { $in: ids } },
         { isDeleted: true, deletedAt: new Date() },
@@ -184,10 +181,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
   protected async deleteOneDocument<T extends BaseEntity>(entity: Type<T>, id: string): Promise<DeleteResult> {
     const model = await DynamicApiGlobalStateService.getEntityModel(entity);
 
-    const paths = Object.getOwnPropertyNames(model.schema.paths);
-    const isSoftDeletable = paths.includes('deletedAt') && paths.includes('isDeleted');
-
-    if (isSoftDeletable) {
+    if (this.isModelSoftDeletable(model)) {
       const result = await model.updateOne(
         { _id: id },
         { isDeleted: true, deletedAt: new Date() },
@@ -252,22 +246,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
       );
     }
 
-    if (!reThrow) {
-      return;
-    }
-
-    if (error instanceof HttpException) {
-      throw error;
-    }
-
-    let errorMessage: string;
-    if (error instanceof Error) {
-      errorMessage = error.message;
-    } else {
-      const errRecord = error as Record<string, unknown>;
-      errorMessage = typeof errRecord.message === 'string' ? errRecord.message : JSON.stringify(error);
-    }
-    throw new ServiceUnavailableException(errorMessage);
+    this.rethrowOrWrapError(error, reThrow);
   }
 
   protected handleMongoErrors(error: unknown, reThrow = true) {
@@ -281,6 +260,23 @@ export abstract class BaseService<Entity extends BaseEntity> {
       throw new BadRequestException(errorDetails?.length ? errorDetails : ['Invalid payload']);
     }
 
+    this.rethrowOrWrapError(error, reThrow);
+  }
+
+  protected handleDocumentNotFound() {
+    throw new NotFoundException('Document not found');
+  }
+
+  protected addDocumentId<T extends BaseEntity>(document: T): T {
+    return { ...document, id: document._id.toString() } as T;
+  }
+
+  private isModelSoftDeletable<T>(model: Model<T>): boolean {
+    const paths = Object.getOwnPropertyNames(model.schema.paths);
+    return paths.includes('deletedAt') && paths.includes('isDeleted');
+  }
+
+  private rethrowOrWrapError(error: unknown, reThrow: boolean): void {
     if (!reThrow) {
       return;
     }
@@ -297,13 +293,5 @@ export abstract class BaseService<Entity extends BaseEntity> {
       errorMessage = typeof errRecord.message === 'string' ? errRecord.message : JSON.stringify(error);
     }
     throw new ServiceUnavailableException(errorMessage);
-  }
-
-  protected handleDocumentNotFound() {
-    throw new NotFoundException('Document not found');
-  }
-
-  protected addDocumentId<T extends BaseEntity>(document: T): T {
-    return { ...document, id: document._id.toString() } as T;
   }
 }
