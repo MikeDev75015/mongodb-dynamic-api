@@ -115,7 +115,14 @@ describe('DynamicApiCacheInterceptor', () => {
   describe('intercept', () => {
     it('should return next.handle() if global cache is disabled', (done) => {
       state.isGlobalCacheEnabled = false;
-      const context = {} as unknown as ExecutionContext;
+      const context = {
+        switchToHttp: () => ({
+          getRequest: () => ({
+            method: 'GET',
+            url: '/users',
+          }),
+        }),
+      } as unknown as ExecutionContext;
       const next = { handle: () => of('handled') } as CallHandler;
       jest.spyOn(CacheInterceptor.prototype, 'intercept').mockResolvedValue(of('intercepted'));
 
@@ -127,9 +134,38 @@ describe('DynamicApiCacheInterceptor', () => {
       });
     });
 
-    it('should return super.intercept() if global cache is enabled', (done) => {
+    it('should return next.handle() if auth is enabled and path starts with /auth', (done) => {
       state.isGlobalCacheEnabled = true;
-      const context = {} as unknown as ExecutionContext;
+      state.isAuthEnabled = true;
+      const context = {
+        switchToHttp: () => ({
+          getRequest: () => ({
+            method: 'GET',
+            url: '/auth/account',
+          }),
+        }),
+      } as unknown as ExecutionContext;
+      const next = { handle: () => of('handled') } as CallHandler;
+      jest.spyOn(CacheInterceptor.prototype, 'intercept').mockResolvedValue(of('intercepted'));
+
+      interceptor.intercept(context, next).then((obs) => {
+        obs.subscribe((result) => {
+          expect(result).toBe('handled');
+          done();
+        });
+      });
+    });
+
+    it('should return super.intercept() if global cache is enabled and request is cacheable', (done) => {
+      state.isGlobalCacheEnabled = true;
+      const context = {
+        switchToHttp: () => ({
+          getRequest: () => ({
+            method: 'GET',
+            url: '/users',
+          }),
+        }),
+      } as unknown as ExecutionContext;
       const next = { handle: () => of('handled') } as CallHandler;
       jest.spyOn(CacheInterceptor.prototype, 'intercept').mockResolvedValue(of('intercepted'));
 
