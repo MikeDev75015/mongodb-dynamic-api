@@ -11,6 +11,7 @@ import { DynamicApiWebSocketOptions } from './dynamic-api-web-socket.interface';
 interface DynamicApiRouteConfig<Entity extends BaseEntity> {
   type: RouteType;
   isPublic?: boolean;
+  disableCache?: boolean;
   description?: string;
   version?: string;
   subPath?: string;

@@ -8,6 +8,7 @@ interface DynamicApiControllerOptions<Entity extends BaseEntity> {
   apiTag?: string;
   version?: string;
   isPublic?: boolean;
+  disableCache?: boolean;
   validationPipeOptions?: ValidationPipeOptions;
   abilityPredicates?: ControllerAbilityPredicate<Entity>[];
   routesConfig?: Partial<RoutesConfig>;
