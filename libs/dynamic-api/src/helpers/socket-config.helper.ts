@@ -60,7 +60,10 @@ function enableDynamicAPIWebSockets(
       console.warn('\nTo fix the MaxListenersExceededWarning, you can increase the maxListeners');
       console.warn('by passing the value to the enableDynamicAPIWebSockets function as the second argument:\n');
       console.warn('>>> enableDynamicAPIWebSockets(app, { maxListeners: 15 });\n\n');
-      process.exit(1);
+      throw new Error(
+        'MaxListenersExceededWarning: too many listeners. '
+        + 'Increase maxListeners via enableDynamicAPIWebSockets(app, { maxListeners: <value> }).',
+      );
     }
   });
 
