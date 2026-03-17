@@ -315,6 +315,8 @@ Authenticate and receive a JWT token.
 }
 ```
 
+> **💡 Alias:** You can send `login` instead of the configured `loginField` name. For example, `{ "login": "john.doe@example.com", "password": "..." }` is equivalent to `{ "email": "john.doe@example.com", "password": "..." }` when `loginField` is `'email'`. MDA maps `body.login` → `body[loginField]` automatically if `body[loginField]` is not already present.
+
 **Response (200 OK):**
 ```json
 {
@@ -356,6 +358,12 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
   "updatedAt": "2026-02-21T10:30:00.000Z"
 }
 ```
+
+> **🔒 Security Note:** The `id` used to fetch the account is **derived exclusively from the JWT access token** (`req.user`). The server decodes the token, extracts `sub` (mapped to `id`), then performs `findOne({ _id: id })` against the database. This means:
+>
+> - A user **cannot** access another user's account by manipulating request parameters — the `_id` always comes from the signed token.
+> - If the JWT has been tampered with, verification fails and the request is rejected with `401 Unauthorized`.
+ > - There is **no mixing of accounts**: the returned data always belongs to the token owner.
 
 ### 4. Update Account
 
@@ -629,6 +637,43 @@ customValidate?: (req: Request) => Promise<Entity | null>
 - Receives the full Express `Request` object.
 - Return a `User` entity to authenticate immediately (no password check).
 - Return `null` to fall through to the standard `validateUser(login, password)` logic.
+
+#### Return `null` = Fallback to Standard Validation
+
+When `customValidate` returns `null`, MDA proceeds **exactly** as if `customValidate` was not defined — it calls `validateUser(login, password)` with the credentials from the request body. This means you can use `customValidate` as an **optional fast-path** without preventing normal password login:
+
+```typescript
+customValidate: async (req) => {
+  const deviceToken = req.headers['x-device-token'] as string;
+  if (!deviceToken) return null; // ← null = fall through to email/password
+
+  return DeviceTokenService.findUserByToken(deviceToken);
+},
+```
+
+#### `req.body` Shape and the `login` Alias
+
+Inside `customValidate`, `req.body` contains the raw JSON body sent by the client. Typically this includes the configured `loginField` and `passwordField`:
+
+```typescript
+// With default loginField='email', passwordField='password':
+// req.body = { email: 'john@example.com', password: 'secret' }
+
+// With loginField='username':
+// req.body = { username: 'john', password: 'secret' }
+```
+
+**`body.login` alias:** Clients can send `{ login: 'john@example.com', password: 'secret' }` instead of `{ email: 'john@example.com', password: 'secret' }`. Before `customValidate` (and before Passport's own `validate`) is called, MDA automatically maps `req.body.login` → `req.body[loginField]` if `body[loginField]` is not already present. This makes the API more user-friendly when the login field name varies between deployments:
+
+```typescript
+// Client sends: { login: 'john@example.com', password: 'secret' }
+// MDA rewrites to: { email: 'john@example.com', login: 'john@example.com', password: 'secret' }
+// → customValidate receives req.body.email = 'john@example.com'
+```
+
+#### Bypassing Passport's "Missing credentials" Error
+
+Passport-local normally rejects requests with a `401 Unauthorized` ("Missing credentials") if `username` or `password` are falsy in the body — **before** calling the `validate` callback. When `customValidate` is defined, MDA overrides Passport's `authenticate` method to skip this check, ensuring `customValidate` is always reached even when the body is empty or lacks credentials. This is critical for passwordless flows (e.g., device tokens, magic links) where `email`/`password` may not be present at all.
 
 **Example — Magic-link / device token login:**
 
