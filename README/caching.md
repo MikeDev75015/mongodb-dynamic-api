@@ -4,13 +4,20 @@
 
 # Caching
 
-Smart caching is enabled by default for all routes, using NestJS's in-memory cache store. The module automatically manages cache invalidation to ensure data consistency.
+Smart caching is enabled by default for all **read** routes (GET / Aggregate), using NestJS's in-memory cache store. The module automatically manages cache invalidation to ensure data consistency.
 
 ## 📋 Table of Contents
 
 - [Quick Start](#quick-start)
 - [How It Works](#how-it-works)
 - [Configuration Options](#configuration-options)
+  - [Global Configuration](#global-configuration)
+  - [Feature-Level Configuration](#feature-level-configuration)
+  - [Route-Level Configuration](#route-level-configuration)
+  - [Priority Resolution](#priority-resolution)
+- [Cache Purge](#cache-purge)
+  - [Auto-Purge on Write Operations](#auto-purge-on-write-operations)
+  - [Manual Purge Endpoint](#manual-purge-endpoint)
 - [Cache Strategies](#cache-strategies)
 - [Best Practices](#best-practices)
 - [Examples](#examples)
@@ -40,7 +47,8 @@ export class AppModule {}
 **Default Settings:**
 - TTL (Time to Live): 60000ms (1 minute)
 - Max Items: 100
-- Auto-invalidation on write operations
+- Auto-invalidation on write operations (POST, PUT, PATCH, DELETE)
+- Cache applies only to read routes (GetMany, GetOne, Aggregate)
 
 ### Custom Configuration
 
@@ -67,6 +75,15 @@ DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
 
 The caching system operates with the following logic:
 
+### What Is Cached?
+
+Cache **only** applies to **read** operations:
+- **GetMany** — `GET /{path}`
+- **GetOne** — `GET /{path}/:id`
+- **Aggregate** — `GET /{path}/aggregate` _(or custom sub-path)_
+
+Write operations (POST, PUT, PATCH, DELETE) are **never cached**, but they **automatically purge** the cache after success.
+
 ### Cache Flow
 
 1. **First GET Request** → 200 Response (Cache Miss)
@@ -79,8 +96,9 @@ The caching system operates with the following logic:
    - Returns `304 Not Modified`
    - Much faster response time
 
-3. **Write Operation** (POST/PUT/PATCH/DELETE)
-   - Cache is automatically invalidated
+3. **Write Operation** (POST/PUT/PATCH/DELETE) → Auto-Purge
+   - Operation executes normally
+   - **Cache is automatically purged** after success
    - Ensures data consistency
 
 4. **Next GET Request** → 200 Response (Cache Refreshed)
@@ -99,8 +117,8 @@ GET /users → 304 Not Modified (5ms)
 # Third request - still cached
 GET /users → 304 Not Modified (5ms)
 
-# Write operation - cache invalidated
-POST /users → 201 Created
+# Write operation - cache auto-purged after success
+POST /users → 201 Created  ← cache purged!
 
 # Next request - cache refreshed
 GET /users → 200 OK (100ms)
@@ -115,7 +133,7 @@ GET /users → 304 Not Modified (5ms)
 
 ### Global Configuration
 
-Configure caching at the root level (this is the ONLY level where cache can be configured):
+Configure caching at the root level:
 
 ```typescript
 DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
@@ -134,44 +152,221 @@ DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
+| `useGlobalCache` | boolean | true | Enable/disable cache globally |
 | `ttl` | number | 60000 | Time to live in milliseconds |
 | `max` | number | 100 | Maximum number of items in cache |
 | `store` | string\|Keyv\|Keyv[] | 'memory' | Cache storage manager (see [Different stores](https://docs.nestjs.com/techniques/caching#different-stores)) |
 | `excludePaths` | string[] | [] | Paths to exclude from caching |
 | `isCacheableValue` | function | - | Custom function to determine if a value should be cached |
 
-### Disable Global Cache
+### Feature-Level Configuration
+
+Disable cache for an entire feature using `disableCache` in `controllerOptions`:
 
 ```typescript
-DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
-  useGlobalCache: false, // Disable caching globally
+// src/orders/orders.module.ts
+@Module({
+  imports: [
+    DynamicApiModule.forFeature({
+      entity: Order,
+      controllerOptions: {
+        path: 'orders',
+        disableCache: true, // ← Disable cache for ALL read routes of this feature
+      },
+    }),
+  ],
 })
+export class OrdersModule {}
 ```
 
-### Exclude Specific Paths
+When `disableCache: true` is set at the feature level:
+- All GetMany, GetOne, and Aggregate routes of this feature will **not be cached**
+- Write operations will **not auto-purge** the cache (no need since nothing is cached)
+- The **manual purge endpoint** will **not be generated** for this feature
 
-Useful for health checks, metrics, or real-time endpoints:
+### Route-Level Configuration
+
+Disable cache for a specific route using `disableCache` in the route config:
 
 ```typescript
-DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
-  cacheOptions: {
-    excludePaths: [
-      '/health',
-      '/metrics', 
-      '/live-data',
-      '/auth/login',
-    ],
-  },
+// src/products/products.module.ts
+@Module({
+  imports: [
+    DynamicApiModule.forFeature({
+      entity: Product,
+      controllerOptions: {
+        path: 'products',
+        // Cache is enabled at feature level (default)
+      },
+      routes: [
+        {
+          type: 'GetMany',
+          disableCache: true, // ← Disable cache only for GetMany
+        },
+        {
+          type: 'GetOne',
+          // Cache remains enabled (default)
+        },
+        { type: 'CreateOne' },
+        { type: 'UpdateOne' },
+        { type: 'DeleteOne' },
+      ],
+    }),
+  ],
 })
+export class ProductsModule {}
 ```
 
-**Note:** Cache configuration is ONLY available at the global level (`forRoot`). There is no controller-level or route-level cache configuration.
+In this example:
+- `GET /products` → **Not cached** (disableCache: true on GetMany)
+- `GET /products/:id` → **Cached** (default)
+- `POST /products` → Auto-purges cache after success
+- `PATCH /products/:id` → Auto-purges cache after success
+- `DELETE /products/:id` → Auto-purges cache after success
+
+### Re-enable Cache at Route Level
+
+You can also **re-enable** cache on a specific route when the feature disables it:
+
+```typescript
+@Module({
+  imports: [
+    DynamicApiModule.forFeature({
+      entity: Product,
+      controllerOptions: {
+        path: 'products',
+        disableCache: true, // ← Cache disabled for all routes
+      },
+      routes: [
+        {
+          type: 'GetMany',
+          // Cache disabled (inherited from controller)
+        },
+        {
+          type: 'GetOne',
+          disableCache: false, // ← Re-enable cache for this route only
+        },
+        { type: 'CreateOne' },
+      ],
+    }),
+  ],
+})
+export class ProductsModule {}
+```
+
+In this example:
+- `GET /products` → **Not cached** (inherited from controller)
+- `GET /products/:id` → **Cached** (route overrides controller)
+
+### Priority Resolution
+
+The `disableCache` option follows a **route > controller > global** priority:
+
+| Route `disableCache` | Controller `disableCache` | Global `useGlobalCache` | Result |
+|:-----:|:-----:|:-----:|--------|
+| _not set_ | _not set_ | `true` (default) | ✅ Cache **enabled** |
+| _not set_ | _not set_ | `false` | ❌ Cache **disabled** |
+| _not set_ | `true` | `true` | ❌ Cache **disabled** |
+| _not set_ | `false` | `true` | ✅ Cache **enabled** |
+| `true` | _not set_ | `true` | ❌ Cache **disabled** |
+| `true` | `false` | `true` | ❌ Cache **disabled** (route wins) |
+| `false` | `true` | `true` | ✅ Cache **enabled** (route wins) |
+| _any_ | _any_ | `false` | ❌ Cache **disabled** (global off = all off) |
+
+> **Note:** `disableCache` only applies to **read** routes (GetMany, GetOne, Aggregate). Write operations never cache, they only auto-purge.
+
+> **Note:** When `useGlobalCache: false`, cache is completely disabled regardless of any other setting.
+
+---
+
+## Cache Purge
+
+### Auto-Purge on Write Operations
+
+When cache is globally enabled, **every write operation** automatically purges the entire cache after success. This ensures that cached GET responses always reflect the latest data.
+
+Affected operations:
+- `POST` (CreateOne, CreateMany)
+- `PUT` (ReplaceOne)
+- `PATCH` (UpdateOne, UpdateMany)
+- `DELETE` (DeleteOne, DeleteMany)
+- `POST` (DuplicateOne, DuplicateMany)
+
+```bash
+# Cache is populated
+GET /products       → 200 OK (cached)
+GET /products/:id   → 200 OK (cached)
+
+# A write operation purges all cache
+PATCH /products/:id → 200 OK  ← entire cache purged!
+
+# Next reads fetch fresh data
+GET /products       → 200 OK (fresh from DB)
+GET /products/:id   → 200 OK (fresh from DB)
+```
+
+### Manual Purge Endpoint
+
+When cache is enabled for a feature, a **`DELETE /{path}/cache`** endpoint is **automatically generated**. This allows you to manually purge the cache at any time.
+
+```bash
+# Manually purge cache for products
+DELETE /products/cache → { "purged": true }
+```
+
+**When is the endpoint generated?**
+
+| `useGlobalCache` | Controller `disableCache` | Endpoint Generated? |
+|:-:|:-:|:-:|
+| `true` (default) | _not set_ or `false` | ✅ Yes |
+| `true` | `true` | ❌ No |
+| `false` | _any_ | ❌ No |
+
+The endpoint:
+- Appears in **Swagger UI** under the same tag as the feature
+- Respects **authentication**: protected by JWT when auth is enabled, or public when the feature's `isPublic: true`
+- Returns `{ "purged": true }` on success
+
+#### Example: Swagger Integration
+
+```typescript
+@Module({
+  imports: [
+    DynamicApiModule.forFeature({
+      entity: Product,
+      controllerOptions: {
+        path: 'products',
+        apiTag: 'Products',
+      },
+    }),
+  ],
+})
+export class ProductsModule {}
+```
+
+This will generate the following endpoint in Swagger:
+- **`DELETE /products/cache`** — _Purge cache for Products_
+
+#### Example: No Purge Endpoint
+
+```typescript
+@Module({
+  imports: [
+    DynamicApiModule.forFeature({
+      entity: Order,
+      controllerOptions: {
+        path: 'orders',
+        disableCache: true, // ← cache disabled → NO purge endpoint
+      },
+    }),
+  ],
+})
+export class OrdersModule {}
+```
 
 ---
 
 ## Cache Strategies
-
-Since cache is configured globally, you need to plan your strategy based on your application's overall needs.
 
 ### Strategy 1: Balanced Caching (Recommended)
 
@@ -205,23 +400,43 @@ DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
 
 **Use Case:** Content sites, catalogs, documentation, blogs
 
-### Strategy 3: Selective Caching
+### Strategy 3: Selective Caching with disableCache
 
-For applications requiring real-time data on some endpoints:
+For applications requiring fine-grained control per feature/route:
 
 ```typescript
+// Global: cache enabled with default TTL
 DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
   cacheOptions: {
-    ttl: 60000, // 1 minute default
+    ttl: 60000,
     max: 200,
-    excludePaths: [
-      '/live-data',      // Real-time endpoints
-      '/stock-prices',   // Frequently changing data
-      '/notifications',  // User-specific data
-      '/transactions',   // Critical financial data
-      '/auth/*',         // All auth endpoints
-    ],
   },
+})
+
+// Products: cache enabled (default) — rarely updated
+DynamicApiModule.forFeature({
+  entity: Product,
+  controllerOptions: { path: 'products' },
+})
+
+// Orders: cache disabled — frequently changing, critical data
+DynamicApiModule.forFeature({
+  entity: Order,
+  controllerOptions: {
+    path: 'orders',
+    disableCache: true,
+  },
+})
+
+// Users: cache enabled, but not for GetMany
+DynamicApiModule.forFeature({
+  entity: User,
+  controllerOptions: { path: 'users' },
+  routes: [
+    { type: 'GetMany', disableCache: true }, // User list changes frequently
+    { type: 'GetOne' },                       // Individual user cached
+    { type: 'UpdateOne' },
+  ],
 })
 ```
 
@@ -268,39 +483,52 @@ DynamicApiModule.forRoot(uri, {
 
 // Real-Time Content (very short or no cache)
 // Examples: live data, stock prices, chat messages
-// Use excludePaths to exclude specific endpoints
-DynamicApiModule.forRoot(uri, {
-  cacheOptions: {
-    ttl: 60000,
-    excludePaths: ['/live-data', '/stock-prices'],
-  },
-})
-
-// Critical Operations (no cache)
-// Examples: transactions, payments, authentication
-DynamicApiModule.forRoot(uri, {
-  cacheOptions: {
-    excludePaths: ['/transactions', '/payments', '/auth/*'],
+// Use disableCache at feature or route level
+DynamicApiModule.forFeature({
+  entity: LiveData,
+  controllerOptions: {
+    path: 'live-data',
+    disableCache: true, // No cache for real-time features
   },
 })
 ```
 
-### 2. Use excludePaths for Real-Time Endpoints
+### 2. Use disableCache Instead of excludePaths
 
-Instead of disabling cache globally, exclude specific paths:
+Prefer `disableCache` over `excludePaths` for feature-specific cache control:
 
 ```typescript
-// ✅ Good - Cache most endpoints, exclude real-time ones
-DynamicApiModule.forRoot(uri, {
-  cacheOptions: {
-    ttl: 60000,
-    excludePaths: ['/live-feed', '/notifications', '/chat'],
+// ✅ Good - Fine-grained control per feature/route
+DynamicApiModule.forFeature({
+  entity: Order,
+  controllerOptions: {
+    path: 'orders',
+    disableCache: true,
   },
 })
 
-// ❌ Avoid - Disabling cache completely
+// ✅ Also good - Disable cache only on specific routes
+DynamicApiModule.forFeature({
+  entity: User,
+  controllerOptions: { path: 'users' },
+  routes: [
+    { type: 'GetMany', disableCache: true },
+    { type: 'GetOne' },
+  ],
+})
+
+// ⚠️ Use excludePaths for non-dynamic-api paths (health, metrics, etc.)
 DynamicApiModule.forRoot(uri, {
-  useGlobalCache: false,
+  cacheOptions: {
+    excludePaths: ['/health', '/metrics'],
+  },
+})
+
+// ❌ Avoid - Using excludePaths for dynamic-api features
+DynamicApiModule.forRoot(uri, {
+  cacheOptions: {
+    excludePaths: ['/orders', '/orders/*'], // Use disableCache instead
+  },
 })
 ```
 
@@ -353,23 +581,7 @@ DynamicApiModule.forRoot(uri, {
 })
 ```
 
-### 4. Consider Cache Size
-
-```typescript
-// Balance between memory usage and performance
-DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
-  cacheOptions: {
-    ttl: 300000,
-    max: 1000, // Adjust based on available memory
-  },
-})
-
-// Calculate approximate memory usage:
-// max * average_response_size = total_cache_memory
-// Example: 1000 items * 10KB = 10MB
-```
-
-### 5. Production Configuration
+### 6. Production Configuration
 
 ```typescript
 // .env
@@ -394,7 +606,7 @@ DynamicApiModule.forRoot(process.env.MONGODB_URI, {
 
 ## Examples
 
-### Complete Caching Setup
+### Complete Application Setup
 
 ```typescript
 // src/app.module.ts
@@ -404,6 +616,7 @@ import { DynamicApiModule } from 'mongodb-dynamic-api';
 import { UsersModule } from './users/users.module';
 import { ProductsModule } from './products/products.module';
 import { OrdersModule } from './orders/orders.module';
+import { StatsModule } from './stats/stats.module';
 
 @Module({
   imports: [
@@ -413,72 +626,146 @@ import { OrdersModule } from './orders/orders.module';
       cacheOptions: {
         ttl: 60000,  // Default 1 minute
         max: 200,    // Default 200 items
+        excludePaths: ['/health'],
       },
     }),
     UsersModule,
     ProductsModule,
     OrdersModule,
+    StatsModule,
   ],
 })
 export class AppModule {}
+```
 
+### Feature with Default Cache (enabled)
+
+```typescript
 // src/products/products.module.ts
+// Cache is enabled by default → all GET routes cached, auto-purge on write, purge endpoint available
 @Module({
   imports: [
     DynamicApiModule.forFeature({
       entity: Product,
       controllerOptions: {
         path: 'products',
-        cacheOptions: {
-          ttl: 300000, // 5 minutes - products don't change often
-          max: 100,
-        },
+        apiTag: 'Products',
       },
     }),
   ],
 })
 export class ProductsModule {}
+// Generated endpoints:
+// GET    /products         → cached ✅
+// GET    /products/:id     → cached ✅
+// POST   /products         → auto-purges cache
+// PATCH  /products/:id     → auto-purges cache
+// DELETE /products/:id     → auto-purges cache
+// DELETE /products/cache   → manual purge endpoint ✅
+```
 
-// src/users/users.module.ts
-@Module({
-  imports: [
-    DynamicApiModule.forFeature({
-      entity: User,
-      controllerOptions: {
-        path: 'users',
-        cacheOptions: {
-          ttl: 120000, // 2 minutes - user data is dynamic
-          max: 50,
-        },
-      },
-    }),
-  ],
-})
-export class UsersModule {}
+### Feature with Cache Disabled
 
+```typescript
 // src/orders/orders.module.ts
+// Cache completely disabled for this feature — no caching, no purge endpoint
 @Module({
   imports: [
     DynamicApiModule.forFeature({
       entity: Order,
       controllerOptions: {
         path: 'orders',
+        apiTag: 'Orders',
+        disableCache: true, // ← disable cache for all routes of this feature
+      },
+    }),
+  ],
+})
+export class OrdersModule {}
+// Generated endpoints:
+// GET    /orders           → NOT cached ❌
+// GET    /orders/:id       → NOT cached ❌
+// POST   /orders           → no purge (nothing to purge)
+// PATCH  /orders/:id       → no purge
+// DELETE /orders/:id       → no purge
+// DELETE /orders/cache     → NOT generated ❌
+```
+
+### Feature with Mixed Route-Level Control
+
+```typescript
+// src/users/users.module.ts
+// Cache enabled at feature level, but disabled for specific routes
+@Module({
+  imports: [
+    DynamicApiModule.forFeature({
+      entity: User,
+      controllerOptions: {
+        path: 'users',
+        apiTag: 'Users',
       },
       routes: [
         {
           type: 'GetMany',
-          cacheOptions: { ttl: 0 }, // No cache for orders list
+          disableCache: true, // ← user list changes frequently, disable cache
         },
         {
           type: 'GetOne',
-          cacheOptions: { ttl: 30000 }, // 30 seconds for individual order
+          // cache enabled (default) — individual user profile is stable
+        },
+        { type: 'CreateOne' },
+        { type: 'UpdateOne' },
+        { type: 'DeleteOne' },
+      ],
+    }),
+  ],
+})
+export class UsersModule {}
+// Generated endpoints:
+// GET    /users            → NOT cached ❌ (disableCache: true)
+// GET    /users/:id        → cached ✅
+// POST   /users            → auto-purges cache
+// PATCH  /users/:id        → auto-purges cache
+// DELETE /users/:id        → auto-purges cache
+// DELETE /users/cache      → manual purge endpoint ✅ (feature cache is enabled)
+```
+
+### Feature with Cache Disabled at Controller but Re-enabled on One Route
+
+```typescript
+// src/stats/stats.module.ts
+@Module({
+  imports: [
+    DynamicApiModule.forFeature({
+      entity: Stat,
+      controllerOptions: {
+        path: 'stats',
+        apiTag: 'Stats',
+        disableCache: true, // ← disable cache for all routes
+      },
+      routes: [
+        {
+          type: 'GetMany',
+          // cache disabled (inherited from controller)
+        },
+        {
+          type: 'Aggregate',
+          disableCache: false, // ← re-enable cache for this expensive aggregation
         },
       ],
     }),
   ],
 })
-export class OrdersModule {}
+export class StatsModule {}
+// Generated endpoints:
+// GET    /stats            → NOT cached ❌ (inherited from controller)
+// GET    /stats/aggregate  → cached ✅ (route overrides controller)
+// DELETE /stats/cache      → NOT generated ❌ (controller disableCache: true)
 ```
+
+> **Note:** The manual purge endpoint is generated based on the **controller-level** `disableCache` value.
+> If `disableCache: true` at controller level, no purge endpoint is generated — even if some routes re-enable cache.
+> This is by design: if most routes are uncached, you probably don't need a manual purge endpoint.
 
 ### Redis Cache Integration
 
@@ -533,6 +820,7 @@ DynamicApiModule.forRoot(uri, {
 |----------|--------------|------------|-------------|
 | Simple GET | 50-100ms | 5-10ms | 10x faster |
 | Complex Query | 200-500ms | 5-10ms | 40x faster |
+| Aggregate | 300-1000ms | 5-10ms | 60x faster |
 | High Load | Varies | Consistent | Stable |
 
 ### Cache Hit Rate Targets
@@ -545,6 +833,45 @@ If your hit rate is low:
 - Increase TTL duration
 - Review cache size limits
 - Check if data changes too frequently
+- Use `disableCache` on volatile routes instead of globally disabling cache
+
+---
+
+## API Reference
+
+### Interfaces
+
+#### `DynamicApiControllerOptions`
+
+```typescript
+interface DynamicApiControllerOptions<Entity> {
+  path: string;
+  apiTag?: string;
+  version?: string;
+  isPublic?: boolean;
+  disableCache?: boolean; // ← Disable cache for all read routes of this feature
+  // ...other options
+}
+```
+
+#### `DynamicApiRouteConfig`
+
+```typescript
+interface DynamicApiRouteConfig<Entity> {
+  type: RouteType;
+  isPublic?: boolean;
+  disableCache?: boolean; // ← Disable cache for this specific route
+  // ...other options
+}
+```
+
+### Cache Purge Endpoint
+
+| Method | Path | Response | Description |
+|--------|------|----------|-------------|
+| `DELETE` | `/{path}/cache` | `{ "purged": true }` | Purges all cached entries |
+
+> Only generated when `useGlobalCache: true` **and** controller `disableCache` is not `true`.
 
 ---
 
@@ -553,6 +880,8 @@ If your hit rate is low:
 - ✅ **[Validation](./validation.md)** - Validate request data
 - 🔐 **[Authentication](./authentication.md)** - Setup JWT authentication
 - 📚 **[Swagger UI](./swagger-ui.md)** - API documentation
+- ⚙️ **[Controller Config](./controller-config.md)** - Controller options
+- 🛣️ **[Route Config](./route-config.md)** - Route options
 
 ---
 
@@ -565,10 +894,4 @@ If your hit rate is low:
 ---
 
 [Back to README](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README.md)
-
-
-
-
-
-
 
