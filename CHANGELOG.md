@@ -1,5 +1,19 @@
 Changelog
 
+## [4.3.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.2.1...v4.3.0) (2026-03-17)
+
+
+### cache
+
+* **cache:** add auto-generated cache purge endpoint per feature ([9504506](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/95045067862a25a4f6dbb1b7331b5c53d231235d))
+* **cache:** add DisableCache decorator and metadata key ([cf2b074](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/cf2b074de08e7c652c5a8ace789029126f1fada9))
+* **cache:** add disableCache option to controller and route interfaces ([935279b](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/935279bc40039e509c711ca13c2c45a72989f4b8))
+* **cache:** apply disableCache metadata on read route controller mixins ([948ea95](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/948ea9510ee3cc00a5b9e2750cb5b075130fb128))
+* **cache:** bypass cache directly in intercept() for non-cacheable requests ([d822e49](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/d822e499a64e69748cf6cc39047ecb86a43cea74))
+* **cache:** check disableCache metadata and auto-purge on write operations ([2cb3e14](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/2cb3e14e5feb04274ede45f8cd3790a17aafa9ab))
+* **cache:** exclude auth routes from cache regardless of global prefix or versioning ([062810c](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/062810cc1f9a4e77248daf29b78415ea8524121a))
+* **cache:** resolve disableCache in getMixinData with route > controller priority ([2bf58a1](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/2bf58a17c3a13fc5a560579195eba15f3a04f3f5))
+
 ## [4.2.1](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.2.0...v4.2.1) (2026-03-17)
 
 
