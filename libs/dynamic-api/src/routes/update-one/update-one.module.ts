@@ -7,6 +7,7 @@ import { BaseEntity } from '../../models';
 import { DynamicApiBroadcastService } from '../../services';
 import { createUpdateOneController, createUpdateOneGateway, createUpdateOneServiceProvider } from './update-one.helper';
 
+/** @deprecated Internal API — will be removed from public exports in v5. */
 @Module({})
 export class UpdateOneModule {
   static forFeature<Entity extends BaseEntity>(

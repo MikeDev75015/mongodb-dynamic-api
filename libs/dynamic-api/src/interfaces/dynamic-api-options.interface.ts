@@ -8,6 +8,7 @@ import { RoutesConfig } from './dynamic-api-global-state.interface';
 import { DynamicAPIRouteConfig } from './dynamic-api-route-config.interface';
 import { DynamicApiWebSocketOptions } from './dynamic-api-web-socket.interface';
 
+/** @deprecated Internal API — will be removed from public exports in v5. */
 const DYNAMIC_API_GLOBAL_STATE = Symbol('DYNAMIC_API_GLOBAL_STATE');
 
 interface DynamicApiForRootOptions<Entity extends BaseEntity = any> {

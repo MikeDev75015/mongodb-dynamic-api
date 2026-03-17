@@ -1,6 +1,7 @@
 import { lowerCase } from 'lodash';
 import { RouteType } from '../interfaces';
 
+/** @deprecated Internal API — will be removed from public exports in v5. */
 function getDefaultRouteDescription(routeType: RouteType, entityName: string): string {
   const contentName = lowerCase(entityName);
 

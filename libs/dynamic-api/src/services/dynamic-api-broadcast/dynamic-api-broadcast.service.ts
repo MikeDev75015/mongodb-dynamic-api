@@ -4,6 +4,7 @@ import { resolveRooms } from '../../helpers';
 import { DynamicApiBroadcastConfig } from '../../interfaces';
 
 @Injectable()
+/** @deprecated Internal API — will be removed from public exports in v5. */
 export class DynamicApiBroadcastService {
   private static wsServer: Server | null = null;
 

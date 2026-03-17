@@ -7,6 +7,7 @@ import { Observable } from 'rxjs';
 import { DynamicApiGlobalState } from '../interfaces';
 
 @Injectable()
+/** @deprecated Internal API — will be removed from public exports in v5. */
 export class DynamicApiCacheInterceptor extends CacheInterceptor {
   private readonly excludePaths = [
     '/',

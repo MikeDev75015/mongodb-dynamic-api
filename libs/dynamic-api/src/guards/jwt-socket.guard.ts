@@ -6,6 +6,7 @@ import { Socket } from 'socket.io';
 import { DynamicApiModule } from '../dynamic-api.module';
 import { MongoDBDynamicApiLogger } from '../logger';
 
+/** @deprecated Internal API — will be removed from public exports in v5. */
 export class JwtSocketGuard implements CanActivate {
   private readonly logger = new MongoDBDynamicApiLogger(JwtSocketGuard.name);
 

@@ -11,6 +11,7 @@ import {
   createCreateManyServiceProvider,
 } from './create-many.helper';
 
+/** @deprecated Internal API — will be removed from public exports in v5. */
 @Module({})
 export class CreateManyModule {
   static forFeature<Entity extends BaseEntity>(

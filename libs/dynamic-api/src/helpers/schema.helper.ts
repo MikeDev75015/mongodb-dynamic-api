@@ -9,6 +9,7 @@ import { DynamicAPISchemaOptionsInterface, queryByRouteTypeMap } from '../interf
  * It uses the DynamicAPISchemaOptions metadata attached to the entity class to configure the schema.
  * @param {Type} entity - The entity class to build the schema from.
  * @returns {Schema} - The built Mongoose schema.
+ * @deprecated Internal API — will be removed from public exports in v5.
  */
 function buildSchemaFromEntity<Entity>(
   entity: Type<Entity>,

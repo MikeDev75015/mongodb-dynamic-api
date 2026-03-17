@@ -6,6 +6,7 @@ import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiWebSocket
 import { BaseEntity } from '../../models';
 import { createGetManyController, createGetManyGateway, createGetManyServiceProvider } from './get-many.helper';
 
+/** @deprecated Internal API — will be removed from public exports in v5. */
 @Module({})
 export class GetManyModule {
   static forFeature<Entity extends BaseEntity>(

@@ -11,6 +11,7 @@ const logLevelsDictionary: Record<MongoDBDynamicApiLoggerMethod, MongoDBDynamicA
   error: ['ERROR', 'WARN', 'INFO', 'DEBUG'],
 }
 
+/** @deprecated Internal API — will be removed from public exports in v5. */
 export class MongoDBDynamicApiLogger extends Logger {
   private readonly isEnabled: boolean = !!process.env.MONGODB_DYNAMIC_API_LOGGER;
   private readonly logLevel: MongoDBDynamicApiLogLevel = (process.env.MONGODB_DYNAMIC_API_LOGGER || 'ERROR') as MongoDBDynamicApiLogLevel;

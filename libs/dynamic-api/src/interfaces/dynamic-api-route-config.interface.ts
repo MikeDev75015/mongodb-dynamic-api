@@ -8,7 +8,7 @@ import { DynamicApiServiceBeforeSaveCallback } from './dynamic-api-service-befor
 import { DynamicApiServiceCallback } from './dynamic-api-service-callback.interface';
 import { DynamicApiWebSocketOptions } from './dynamic-api-web-socket.interface';
 
-interface DynamicAPIRouteConfig<Entity extends BaseEntity> {
+interface DynamicApiRouteConfig<Entity extends BaseEntity> {
   type: RouteType;
   isPublic?: boolean;
   description?: string;
@@ -26,4 +26,9 @@ interface DynamicAPIRouteConfig<Entity extends BaseEntity> {
   useInterceptors?: Type<NestInterceptor>[];
 }
 
-export { DynamicAPIRouteConfig };
+/**
+ * @deprecated Use `DynamicApiRouteConfig` instead. Will be removed in v5.
+ */
+type DynamicAPIRouteConfig<Entity extends BaseEntity> = DynamicApiRouteConfig<Entity>;
+
+export { DynamicApiRouteConfig, DynamicAPIRouteConfig };

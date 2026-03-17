@@ -1,8 +1,13 @@
 import { Type } from '@nestjs/common';
 
-interface DynamicAPIServiceProvider {
+interface DynamicApiServiceProvider {
   provide: string;
   useClass: Type;
 }
 
-export type { DynamicAPIServiceProvider };
+/**
+ * @deprecated Use `DynamicApiServiceProvider` instead. Will be removed in v5.
+ */
+type DynamicAPIServiceProvider = DynamicApiServiceProvider;
+
+export type { DynamicApiServiceProvider, DynamicAPIServiceProvider };

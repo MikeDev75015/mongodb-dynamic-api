@@ -6,6 +6,7 @@ interface ExtendedSocket<Entity extends BaseEntity = any> extends Socket {
   user?: Entity;
 }
 
+/** @deprecated Internal API — will be removed from public exports in v5. */
 type GatewayResponse<Data> = Promise<{ event: string; data: Data }>;
 
 type GatewayOptions = GatewayMetadata;

@@ -11,6 +11,7 @@ import {
   createDuplicateManyServiceProvider,
 } from './duplicate-many.helper';
 
+/** @deprecated Internal API — will be removed from public exports in v5. */
 @Module({})
 export class DuplicateManyModule {
   static forFeature<Entity extends BaseEntity>(

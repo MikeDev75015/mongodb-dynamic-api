@@ -6,7 +6,7 @@ import {
   ServerVariableObject,
 } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
 
-type DynamicAPISwaggerExtraConfig = {
+type DynamicApiSwaggerExtraConfig = {
   termsOfService?: string;
   contact?: {
     name: string;
@@ -53,14 +53,24 @@ type DynamicAPISwaggerExtraConfig = {
   } | boolean;
 };
 
-type DynamicAPISwaggerOptions = {
+type DynamicApiSwaggerOptions = {
   title?: string;
   description?: string;
   version?: string;
   path?: string;
   jsonFilePath?: string;
-  swaggerExtraConfig?: DynamicAPISwaggerExtraConfig;
+  swaggerExtraConfig?: DynamicApiSwaggerExtraConfig;
   swaggerDocumentOptions?: SwaggerDocumentOptions;
 }
 
-export { DynamicAPISwaggerOptions, DynamicAPISwaggerExtraConfig };
+/**
+ * @deprecated Use `DynamicApiSwaggerExtraConfig` instead. Will be removed in v5.
+ */
+type DynamicAPISwaggerExtraConfig = DynamicApiSwaggerExtraConfig;
+
+/**
+ * @deprecated Use `DynamicApiSwaggerOptions` instead. Will be removed in v5.
+ */
+type DynamicAPISwaggerOptions = DynamicApiSwaggerOptions;
+
+export { DynamicApiSwaggerOptions, DynamicApiSwaggerExtraConfig, DynamicAPISwaggerOptions, DynamicAPISwaggerExtraConfig };
