@@ -43,7 +43,8 @@ export class SocketAdapter extends IoAdapter {
           socket.user = user;
         } catch (e) {
           if (debug) {
-            this.logger.warn(`JWT verification failed for socket ${socket.id}: ${e.message}`);
+            const message = e instanceof Error ? e.message : String(e);
+            this.logger.warn(`JWT verification failed for socket ${socket.id}: ${message}`);
           }
         }
       }
@@ -57,7 +58,9 @@ export class SocketAdapter extends IoAdapter {
       const result = onConnection(socket, user);
       if (result instanceof Promise) {
         result.catch((err) => {
-          this.logger.error(`onConnection hook error for socket ${socket.id}: ${err.message}`, err.stack);
+          const message = err instanceof Error ? err.message : String(err);
+          const stack = err instanceof Error ? err.stack : undefined;
+          this.logger.error(`onConnection hook error for socket ${socket.id}: ${message}`, stack);
         });
       }
     }
