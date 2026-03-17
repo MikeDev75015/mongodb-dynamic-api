@@ -9,8 +9,21 @@ import { MongoDBDynamicApiLogger } from '../logger';
 /** @deprecated Internal API — will be removed from public exports in v5. */
 export class JwtSocketGuard implements CanActivate {
   private readonly logger = new MongoDBDynamicApiLogger(JwtSocketGuard.name);
+  private _jwtService: JwtService | undefined;
 
   constructor(protected readonly isPublic = false) {}
+
+  private get jwtService(): JwtService {
+    if (!this._jwtService) {
+      this._jwtService = new JwtService({
+        secret: DynamicApiModule.state.get('jwtSecret'),
+        signOptions: {
+          expiresIn: DynamicApiModule.state.get('jwtExpirationTime'),
+        },
+      });
+    }
+    return this._jwtService;
+  }
 
   public async canActivate(context: ExecutionContext): Promise<boolean> {
     const [socket] = context.getArgs();
@@ -57,15 +70,8 @@ export class JwtSocketGuard implements CanActivate {
   private async extractUserFromToken(accessToken: string): Promise<unknown> {
     this.logger.debug('extractUserFromToken', { accessToken: !!accessToken });
 
-    const jwtService = new JwtService({
-      secret: DynamicApiModule.state.get('jwtSecret'),
-      signOptions: {
-        expiresIn: DynamicApiModule.state.get('jwtExpirationTime'),
-      },
-    });
-
     try {
-      const { iat, exp, ...user } = await jwtService.verifyAsync(accessToken, {
+      const { iat, exp, ...user } = await this.jwtService.verifyAsync(accessToken, {
         secret: DynamicApiModule.state.get('jwtSecret'),
         ignoreExpiration: false,
       });
