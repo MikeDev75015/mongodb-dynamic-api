@@ -3,7 +3,8 @@ import { CallHandler, ExecutionContext, Inject, Injectable } from '@nestjs/commo
 import { Reflector } from '@nestjs/core';
 import { HttpAdapterHost } from '@nestjs/core/helpers/http-adapter-host';
 import { Cache } from 'cache-manager';
-import { Observable } from 'rxjs';
+import { Observable, tap } from 'rxjs';
+import { DISABLE_CACHE_KEY } from '../decorators';
 import { DynamicApiGlobalState } from '../interfaces';
 
 @Injectable()
@@ -25,7 +26,22 @@ export class DynamicApiCacheInterceptor extends CacheInterceptor {
   }
 
   public intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<any>> {
-    if (!this.state.isGlobalCacheEnabled || !this.isRequestCacheable(context)) {
+    if (!this.state.isGlobalCacheEnabled) {
+      return Promise.resolve(next.handle());
+    }
+
+    const req = context.switchToHttp().getRequest();
+    const isWriteOperation = !this.allowedMethods.includes(req.method);
+
+    if (isWriteOperation) {
+      return Promise.resolve(
+        next.handle().pipe(
+          tap(() => { this.cacheManager.clear(); }),
+        ),
+      );
+    }
+
+    if (!this.isRequestCacheable(context)) {
       return Promise.resolve(next.handle());
     }
 
@@ -35,6 +51,11 @@ export class DynamicApiCacheInterceptor extends CacheInterceptor {
   private static readonly AUTH_PATH_PATTERN = /\/auth(\/|$|\?)/;
 
   isRequestCacheable(context: ExecutionContext): boolean {
+    const disableCache = this.reflector.get<boolean>(DISABLE_CACHE_KEY, context.getHandler());
+    if (disableCache === true) {
+      return false;
+    }
+
     const req = context.switchToHttp().getRequest();
     return (
       this.state.isGlobalCacheEnabled &&
