@@ -1,5 +1,10 @@
 Changelog
 
+## [4.2.1](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.2.0...v4.2.1) (2026-03-17)
+
+
+* exclude all /auth routes from global HTTP cache when auth is enabled ([bb55a93](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/bb55a93ab7b8faadf56d5591dfdb9df06d595ac4))
+
 ## [4.2.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.1.2...v4.2.0) (2026-03-17)
 
 
