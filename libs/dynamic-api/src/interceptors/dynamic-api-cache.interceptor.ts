@@ -25,7 +25,7 @@ export class DynamicApiCacheInterceptor extends CacheInterceptor {
   }
 
   public intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<any>> {
-    if (!this.state.isGlobalCacheEnabled) {
+    if (!this.state.isGlobalCacheEnabled || !this.isRequestCacheable(context)) {
       return Promise.resolve(next.handle());
     }
 
