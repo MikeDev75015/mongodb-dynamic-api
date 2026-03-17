@@ -1,4 +1,5 @@
 export * from './aggregate';
+export * from './cache-purge';
 export * from './create-many';
 export * from './create-one';
 export * from './delete-many';
