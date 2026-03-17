@@ -459,11 +459,13 @@ workflows:
           filters:
             branches:
               only: develop
+
+  cd-develop-pr-workflow:
+    when:
+      equal: [ << pipeline.git.branch >>, develop ]
+    jobs:
       - confirm-develop-pr-job:
           type: approval
-          requires:
-            - merge-and-sonarcloud-job
-            - e2e-tests-mongodb-job
           filters:
             branches:
               only: develop
