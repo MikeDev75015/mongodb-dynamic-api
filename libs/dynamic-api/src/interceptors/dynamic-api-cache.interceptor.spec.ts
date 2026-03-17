@@ -80,6 +80,36 @@ describe('DynamicApiCacheInterceptor', () => {
 
       expect(interceptor.isRequestCacheable(context)).toBe(true);
     });
+
+    it('should return false if auth is enabled and path starts with /auth', () => {
+      state.isGlobalCacheEnabled = true;
+      state.isAuthEnabled = true;
+      const context = {
+        switchToHttp: () => ({
+          getRequest: () => ({
+            method: 'GET',
+            url: '/auth/account',
+          }),
+        }),
+      } as unknown as ExecutionContext;
+
+      expect(interceptor.isRequestCacheable(context)).toBe(false);
+    });
+
+    it('should return true if auth is not enabled and path starts with /auth', () => {
+      state.isGlobalCacheEnabled = true;
+      state.isAuthEnabled = false;
+      const context = {
+        switchToHttp: () => ({
+          getRequest: () => ({
+            method: 'GET',
+            url: '/auth/account',
+          }),
+        }),
+      } as unknown as ExecutionContext;
+
+      expect(interceptor.isRequestCacheable(context)).toBe(true);
+    });
   });
 
   describe('intercept', () => {
