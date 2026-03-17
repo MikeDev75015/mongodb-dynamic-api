@@ -1,4 +1,4 @@
-import { DynamicAPISchemaOptionsInterface } from '../interfaces';
+import { DynamicApiSchemaOptionsInterface } from '../interfaces';
 
 /**
  * Metadata key for storing schema options
@@ -7,14 +7,14 @@ import { DynamicAPISchemaOptionsInterface } from '../interfaces';
 const DYNAMIC_API_SCHEMA_OPTIONS_METADATA = 'dynamic-api-module:schema-options';
 
 /**
- * DynamicAPISchemaOptions is a decorator that attaches metadata to a class.
+ * DynamicApiSchemaOptions is a decorator that attaches metadata to a class.
  * The metadata includes options for defining indexes and hooks on a Mongoose schema.
  *
- * @param {DynamicAPISchemaOptionsInterface} options - The options for configuring the schema.
+ * @param {DynamicApiSchemaOptionsInterface} options - The options for configuring the schema.
  * @returns {ClassDecorator} - A class decorator that attaches the provided schema options as metadata to the target class.
  */
-function DynamicAPISchemaOptions(
-  options: DynamicAPISchemaOptionsInterface,
+function DynamicApiSchemaOptions(
+  options: DynamicApiSchemaOptionsInterface,
 ): ClassDecorator {
   return (target: object) => {
     Reflect.defineMetadata(
@@ -25,4 +25,9 @@ function DynamicAPISchemaOptions(
   };
 }
 
-export { DYNAMIC_API_SCHEMA_OPTIONS_METADATA, DynamicAPISchemaOptions };
+/**
+ * @deprecated Use `DynamicApiSchemaOptions` instead. Will be removed in v5.
+ */
+const DynamicAPISchemaOptions = DynamicApiSchemaOptions;
+
+export { DYNAMIC_API_SCHEMA_OPTIONS_METADATA, DynamicApiSchemaOptions, DynamicAPISchemaOptions };

@@ -67,6 +67,7 @@ function enableDynamicAPIWebSockets(
   app.useWebSocketAdapter(new SocketAdapter(app));
 }
 
+/** @deprecated Internal API — will be removed from public exports in v5. */
 function initializeConfigFromOptions(options?: DynamicApiWebSocketOptions): GatewayOptions | undefined {
   if (!options) {
     return;

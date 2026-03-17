@@ -112,6 +112,7 @@ function buildExtraConfig(
   });
 }
 
+/** @deprecated Internal API — will be removed from public exports in v5. */
 function enableDynamicAPISwagger(
   app: INestApplication,
   options?: DynamicAPISwaggerOptions,

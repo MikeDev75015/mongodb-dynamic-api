@@ -7,6 +7,7 @@ import { pascalCase } from '../../helpers';
 import { DynamicApiDecoratorBuilder, RouteType } from '../../interfaces';
 import { BaseEntity } from '../../models';
 
+/** @deprecated Internal API — will be removed from public exports in v5. */
 class RouteDecoratorsBuilder<Entity extends BaseEntity> implements DynamicApiDecoratorBuilder<Entity> {
   private readonly responseRouteTypeIsArray: RouteType[] = [
     'GetMany',

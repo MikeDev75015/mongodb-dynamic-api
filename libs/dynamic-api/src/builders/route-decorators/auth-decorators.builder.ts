@@ -4,6 +4,7 @@ import { Public } from '../../decorators';
 import { DynamicApiDecoratorBuilder } from '../../interfaces';
 import { JwtAuthGuard } from '../../modules';
 
+/** @deprecated Internal API — will be removed from public exports in v5. */
 class AuthDecoratorsBuilder implements DynamicApiDecoratorBuilder<any> {
   constructor(
     private readonly isProtected: boolean | undefined,

@@ -7,6 +7,7 @@ import { MongoDBDynamicApiLogger } from '../logger';
 import { BaseEntity } from '../models';
 import { BaseService } from '../services';
 
+/** @deprecated Internal API — will be removed from public exports in v5. */
 abstract class BasePoliciesGuard<Entity extends BaseEntity> extends BaseService<Entity> implements CanActivate {
   protected routeType: RouteType;
   protected entity: Type<Entity>;
@@ -40,6 +41,7 @@ abstract class BasePoliciesGuard<Entity extends BaseEntity> extends BaseService<
   }
 }
 
+/** @deprecated Internal API — will be removed from public exports in v5. */
 abstract class BaseSocketPoliciesGuard<Entity extends BaseEntity> extends BaseService<Entity> implements CanActivate {
   protected routeType: RouteType;
   protected abilityPredicate: AbilityPredicate<Entity> | undefined;

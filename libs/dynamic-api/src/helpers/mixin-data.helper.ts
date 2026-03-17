@@ -10,6 +10,7 @@ import { BaseEntity } from '../models';
 import { getPredicateFromControllerAbilityPredicates } from './controller-ability-predicates.helper';
 import { getDisplayedName } from './format.helper';
 
+/** @deprecated Internal API — will be removed from public exports in v5. */
 function getMixinData<Entity extends BaseEntity>(
   entity: Type<Entity>,
   {

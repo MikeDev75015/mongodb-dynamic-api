@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
+/** @deprecated Internal API — will be removed from public exports in v5. */
 export class BcryptService {
   private readonly saltOrRounds = 10;
 

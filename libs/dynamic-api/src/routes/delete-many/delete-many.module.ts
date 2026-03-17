@@ -11,6 +11,7 @@ import {
   createDeleteManyServiceProvider,
 } from './delete-many.helper';
 
+/** @deprecated Internal API — will be removed from public exports in v5. */
 @Module({})
 export class DeleteManyModule {
   static forFeature<Entity extends BaseEntity>(

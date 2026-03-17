@@ -56,7 +56,7 @@ export const queryByRouteTypeMap: Map<HookEvent, { query: MongoDBQuery, softDele
  * @property {{ fields: IndexDefinition; options?: IndexOptions }[]} indexes - Optional array of index definitions.
  * @property {SchemaHook[]} hooks - Optional array of schema hooks.
  */
-interface DynamicAPISchemaOptionsInterface {
+interface DynamicApiSchemaOptionsInterface {
   indexes?: {
     fields: IndexDefinition;
     options?: IndexOptions;
@@ -65,4 +65,9 @@ interface DynamicAPISchemaOptionsInterface {
   customInit?: (schema: Schema) => void;
 }
 
-export type { SchemaHook, DynamicAPISchemaOptionsInterface };
+/**
+ * @deprecated Use `DynamicApiSchemaOptionsInterface` instead. Will be removed in v5.
+ */
+type DynamicAPISchemaOptionsInterface = DynamicApiSchemaOptionsInterface;
+
+export type { SchemaHook, DynamicApiSchemaOptionsInterface, DynamicAPISchemaOptionsInterface };

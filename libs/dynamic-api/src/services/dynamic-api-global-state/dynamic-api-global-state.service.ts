@@ -3,6 +3,7 @@ import { Connection, createConnection, Model, Schema } from 'mongoose';
 import { BehaviorSubject } from 'rxjs';
 import { DynamicApiGlobalState, EntitySchemas } from '../../interfaces';
 
+/** @deprecated Internal API — will be removed from public exports in v5. */
 export class DynamicApiGlobalStateService {
   private static readonly initialized$ = new BehaviorSubject<boolean>(false);
   private static readonly entitySchemas$  = new BehaviorSubject<EntitySchemas>({});

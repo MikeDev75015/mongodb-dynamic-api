@@ -9,6 +9,7 @@ import {
   createGetOneServiceProvider,
 } from './get-one.helper';
 
+/** @deprecated Internal API — will be removed from public exports in v5. */
 @Module({})
 export class GetOneModule {
   static forFeature<Entity extends BaseEntity>(

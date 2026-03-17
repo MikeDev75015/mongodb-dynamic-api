@@ -5,6 +5,7 @@ import {
 } from '../interfaces';
 import { BaseEntity } from '../models';
 
+/** @deprecated Internal API — will be removed from public exports in v5. */
 function getPredicateFromControllerAbilityPredicates<Entity extends BaseEntity>(
   controllerAbilityPredicates: ControllerAbilityPredicate<Entity>[],
   route: RouteType): AbilityPredicate<Entity> {

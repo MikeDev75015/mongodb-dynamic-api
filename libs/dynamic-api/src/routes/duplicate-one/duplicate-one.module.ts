@@ -11,6 +11,7 @@ import {
   createDuplicateOneServiceProvider,
 } from './duplicate-one.helper';
 
+/** @deprecated Internal API — will be removed from public exports in v5. */
 @Module({})
 export class DuplicateOneModule {
   static forFeature<Entity extends BaseEntity>(

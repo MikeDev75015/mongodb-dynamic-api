@@ -8,6 +8,8 @@ import { BroadcastRooms } from '../interfaces';
  *   flattened and deduplicated.
  *
  * Returns `undefined` when `rooms` is not defined (caller should fall back to global broadcast).
+ *
+ * @deprecated Internal API — will be removed from public exports in v5.
  */
 function resolveRooms<T extends object>(
   rooms: BroadcastRooms<T> | undefined,

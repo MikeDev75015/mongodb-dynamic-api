@@ -10,6 +10,7 @@ import {
   createAggregateServiceProvider,
 } from './aggregate.helper';
 
+/** @deprecated Internal API — will be removed from public exports in v5. */
 @Module({})
 export class AggregateModule {
   static forFeature<Entity extends BaseEntity>(

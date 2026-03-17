@@ -13,6 +13,7 @@ import {
 } from '../interfaces';
 import { BaseEntity } from '../models';
 
+/** @deprecated Internal API — will be removed from public exports in v5. */
 function RoutePoliciesGuardMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   routeType: RouteType,
@@ -47,6 +48,7 @@ function RoutePoliciesGuardMixin<Entity extends BaseEntity>(
   return RoutePoliciesGuard;
 }
 
+/** @deprecated Internal API — will be removed from public exports in v5. */
 function SocketPoliciesGuardMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   routeType: RouteType,
