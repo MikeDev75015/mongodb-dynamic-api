@@ -16,6 +16,7 @@ function getMixinData<Entity extends BaseEntity>(
   {
     apiTag,
     isPublic: isPublicController,
+    disableCache: disableCacheController,
     abilityPredicates: controllerAbilityPredicates,
   }: DynamicApiControllerOptions<Entity>,
   {
@@ -23,6 +24,7 @@ function getMixinData<Entity extends BaseEntity>(
     subPath,
     description,
     isPublic: isPublicRoute,
+    disableCache: disableCacheRoute,
     abilityPredicate: routeAbilityPredicate,
     eventName,
   }: DynamicAPIRouteConfig<Entity>,
@@ -32,6 +34,7 @@ function getMixinData<Entity extends BaseEntity>(
   displayedName: string;
   description: string;
   isPublic: boolean;
+  disableCache: boolean;
   abilityPredicate: AbilityPredicate<Entity>;
   event: string;
 } {
@@ -46,6 +49,15 @@ function getMixinData<Entity extends BaseEntity>(
     isPublic = false;
   }
 
+  let disableCache: boolean;
+  if (typeof disableCacheRoute === 'boolean') {
+    disableCache = disableCacheRoute;
+  } else if (typeof disableCacheController === 'boolean') {
+    disableCache = disableCacheController;
+  } else {
+    disableCache = false;
+  }
+
   const abilityPredicate = routeAbilityPredicate ?? getPredicateFromControllerAbilityPredicates(
     controllerAbilityPredicates,
     routeType,
@@ -58,6 +70,7 @@ function getMixinData<Entity extends BaseEntity>(
     displayedName,
     description,
     isPublic,
+    disableCache,
     abilityPredicate,
     event,
   };
