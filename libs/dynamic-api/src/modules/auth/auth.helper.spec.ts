@@ -269,6 +269,69 @@ describe('AuthHelper', () => {
       });
     });
 
+    describe('LocalStrategy authenticate login alias normalization', () => {
+      let strategy: any;
+      let authService: any;
+      const aliasLoginField = 'nickname';
+
+      beforeEach(() => {
+        authService = { validateUser: jest.fn() };
+      });
+
+      it('should map body.login to body[loginField] when loginField is not present', () => {
+        const provider = createLocalStrategyProvider<UserEntity>(aliasLoginField, passwordField, undefined);
+        strategy = new provider.useClass(authService);
+
+        const superAuthenticateSpy = jest.spyOn(
+          Object.getPrototypeOf(Object.getPrototypeOf(strategy)),
+          'authenticate',
+        ).mockImplementation(() => {});
+        const req = { body: { login: 'user@test.com', [passwordField]: 'secret' } };
+
+        strategy.authenticate(req);
+
+        expect(req.body[aliasLoginField]).toBe('user@test.com');
+        expect(superAuthenticateSpy).toHaveBeenCalledWith(req, undefined);
+        superAuthenticateSpy.mockRestore();
+      });
+
+      it('should not overwrite body[loginField] when it is already present even if body.login is set', () => {
+        const provider = createLocalStrategyProvider<UserEntity>(aliasLoginField, passwordField, undefined);
+        strategy = new provider.useClass(authService);
+
+        const superAuthenticateSpy = jest.spyOn(
+          Object.getPrototypeOf(Object.getPrototypeOf(strategy)),
+          'authenticate',
+        ).mockImplementation(() => {});
+        const req = { body: { [aliasLoginField]: 'original', login: 'alias', [passwordField]: 'secret' } };
+
+        strategy.authenticate(req);
+
+        expect(req.body[aliasLoginField]).toBe('original');
+        superAuthenticateSpy.mockRestore();
+      });
+
+      it('should map body.login to body[loginField] in customValidate path', async () => {
+        const fakeUser = { id: 10 };
+        const customValidate = jest.fn().mockResolvedValueOnce(fakeUser);
+        const provider = createLocalStrategyProvider<UserEntity>(aliasLoginField, passwordField, undefined, customValidate);
+        strategy = new provider.useClass(authService);
+
+        const successFn = jest.fn();
+        const errorFn = jest.fn();
+        strategy.success = successFn;
+        strategy.error = errorFn;
+
+        const req = { body: { login: 'alias@test.com', [passwordField]: 'secret' } };
+        strategy.authenticate(req);
+
+        await new Promise((r) => setImmediate(r));
+
+        expect(req.body[aliasLoginField]).toBe('alias@test.com');
+        expect(successFn).toHaveBeenCalledWith(fakeUser);
+      });
+    });
+
     describe('createLocalStrategyProvider with useStrategy', () => {
       it('should return the provided strategy class directly', () => {
         class CustomStrategy {}

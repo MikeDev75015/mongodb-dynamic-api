@@ -74,7 +74,13 @@ function AuthControllerMixin<Entity extends BaseEntity>(
   class AuthLoginDto extends IntersectionType(
     PickType(userEntity, [loginField]),
     AuthBodyPasswordFieldDto,
-  ) {}
+  ) {
+    @ApiProperty({
+      required: false,
+      description: `Alias for the "${String(loginField)}" field. You may send "login" instead of "${String(loginField)}" to authenticate.`,
+    })
+    login?: string;
+  }
 
   const additionalMandatoryFields: (keyof Entity)[] = [];
   const additionalOptionalFields: (keyof Entity)[] = [];

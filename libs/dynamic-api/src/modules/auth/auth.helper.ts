@@ -58,6 +58,10 @@ function createLocalStrategyProvider<Entity extends BaseEntity>(
      * from ever being reached in passwordless flows.
      */
     authenticate(req: any, options?: any) {
+      if (!req.body?.[loginField as string] && req.body?.login != null) {
+        req.body[loginField as string] = req.body.login;
+      }
+
       if (!this.customValidate) {
         return super.authenticate(req, options);
       }
