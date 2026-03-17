@@ -2,6 +2,7 @@ import { createMock } from '@golevelup/ts-jest';
 import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
 import { DynamicApiModule } from '../dynamic-api.module';
+import { DynamicApiWsConfigStore } from '../helpers/ws-config.store';
 import { ExtendedSocket } from '../interfaces';
 import { BaseEntity } from '../models';
 import { BaseGateway } from './base.gateway';
@@ -354,6 +355,36 @@ describe('BaseGateway', () => {
 
         expect(mockSocket.nsp['to']).toHaveBeenCalledWith(['room-a']);
         expect(mockNspToEmit).toHaveBeenCalledWith('custom-event', data);
+      });
+    });
+
+    describe('debug logging', () => {
+      afterEach(() => {
+        DynamicApiWsConfigStore.reset();
+      });
+
+      it('should log event and rooms when debug is true', () => {
+        DynamicApiWsConfigStore.debug = true;
+        const spyLog = jest.spyOn(gateway['logger'], 'log').mockImplementation(() => {});
+        const data = [{ id: '1', name: 'Entity 1' } as Entity];
+        const broadcastConfig = { enabled: true, rooms: 'room-a' };
+
+        gateway['broadcastIfNeeded'](mockSocket, event, data, broadcastConfig);
+
+        expect(spyLog).toHaveBeenCalledWith(
+          expect.stringContaining('[WS] broadcastIfNeeded'),
+        );
+      });
+
+      it('should not log when debug is false', () => {
+        DynamicApiWsConfigStore.debug = false;
+        const spyLog = jest.spyOn(gateway['logger'], 'log').mockImplementation(() => {});
+        const data = [{ id: '1', name: 'Entity 1' } as Entity];
+        const broadcastConfig = { enabled: true };
+
+        gateway['broadcastIfNeeded'](mockSocket, event, data, broadcastConfig);
+
+        expect(spyLog).not.toHaveBeenCalled();
       });
     });
   });

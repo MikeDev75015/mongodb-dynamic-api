@@ -12,4 +12,22 @@ type GatewayOptions = GatewayMetadata;
 
 type DynamicApiWebSocketOptions = GatewayOptions | boolean;
 
-export type { DynamicApiWebSocketOptions, ExtendedSocket, GatewayOptions, GatewayResponse };
+/**
+ * Options object accepted by the new `enableDynamicAPIWebSockets(app, options)` overload.
+ */
+interface DynamicApiWebSocketSetupOptions {
+  /** Maximum number of event listeners (defaults to 10). */
+  maxListeners?: number;
+  /** Hook called on every new socket connection after JWT verification. */
+  onConnection?: (socket: ExtendedSocket, user?: any) => void | Promise<void>;
+  /** When `true`, gateways and the socket adapter will emit debug logs. */
+  debug?: boolean;
+}
+
+export type {
+  DynamicApiWebSocketOptions,
+  DynamicApiWebSocketSetupOptions,
+  ExtendedSocket,
+  GatewayOptions,
+  GatewayResponse,
+};

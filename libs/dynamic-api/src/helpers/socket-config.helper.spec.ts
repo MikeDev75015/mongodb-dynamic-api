@@ -2,9 +2,14 @@ import { INestApplication } from '@nestjs/common';
 import * as Adapter from '../adapters/socket-adapter';
 import { GatewayOptions } from '../interfaces';
 import { enableDynamicAPIWebSockets, initializeConfigFromOptions } from './socket-config.helper';
+import { DynamicApiWsConfigStore } from './ws-config.store';
 
 jest.mock('../adapters/socket-adapter', () => ({
   SocketAdapter: jest.fn(),
+}));
+
+jest.mock('../dynamic-api.module', () => ({
+  DynamicApiModule: { state: { get: jest.fn().mockReturnValue('test-jwt-secret') } },
 }));
 
 describe('SocketConfigHelper', () => {
@@ -16,15 +21,40 @@ describe('SocketConfigHelper', () => {
 
   beforeEach(() => {
     spySocketAdapter = jest.spyOn(Adapter, 'SocketAdapter');
+    DynamicApiWsConfigStore.reset();
+    jest.clearAllMocks();
   });
 
   describe('enableDynamicAPIWebSockets', () => {
-    it('should call app.useWebSocketAdapter', () => {
+    it('should call app.useWebSocketAdapter with no options', () => {
       enableDynamicAPIWebSockets(fakeApp);
 
       expect(fakeApp.useWebSocketAdapter).toHaveBeenCalledTimes(1);
       expect(spySocketAdapter).toHaveBeenCalledTimes(1);
       expect(spySocketAdapter).toHaveBeenCalledWith(fakeApp);
+      expect(DynamicApiWsConfigStore.debug).toBe(false);
+      expect(DynamicApiWsConfigStore.onConnection).toBeUndefined();
+    });
+
+    it('should accept an options object and populate the config store', () => {
+      const onConnection = jest.fn();
+      enableDynamicAPIWebSockets(fakeApp, { maxListeners: 20, onConnection, debug: true });
+
+      expect(fakeApp.useWebSocketAdapter).toHaveBeenCalledTimes(1);
+      expect(DynamicApiWsConfigStore.debug).toBe(true);
+      expect(DynamicApiWsConfigStore.onConnection).toBe(onConnection);
+      expect(DynamicApiWsConfigStore.jwtSecret).toBe('test-jwt-secret');
+    });
+
+    it('should accept a number (deprecated) and warn', () => {
+      const spyConsoleWarn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+      enableDynamicAPIWebSockets(fakeApp, 50);
+
+      expect(spyConsoleWarn).toHaveBeenCalledWith(
+        expect.stringContaining('Passing a number to enableDynamicAPIWebSockets is deprecated'),
+      );
+      expect(fakeApp.useWebSocketAdapter).toHaveBeenCalledTimes(1);
     });
 
     it('should exit on MaxListenersExceededWarning error', () => {
@@ -39,12 +69,15 @@ describe('SocketConfigHelper', () => {
         process.emit('warning', fakeError as unknown as Error);
       });
 
-      enableDynamicAPIWebSockets(fakeApp, 50);
+      enableDynamicAPIWebSockets(fakeApp, { maxListeners: 50 });
 
       expect(fakeApp.useWebSocketAdapter).toHaveBeenCalledTimes(1);
-      expect(spyConsoleWarn).toHaveBeenNthCalledWith(1, '\nTo fix the MaxListenersExceededWarning, you can increase the maxListeners');
-      expect(spyConsoleWarn).toHaveBeenNthCalledWith(2, 'by passing the value to the enableDynamicAPIWebSockets function as the second argument:\n');
-      expect(spyConsoleWarn).toHaveBeenNthCalledWith(3, '>>> enableDynamicAPIWebSockets(app, 15);\n\n');
+      expect(spyConsoleWarn).toHaveBeenCalledWith(
+        '\nTo fix the MaxListenersExceededWarning, you can increase the maxListeners',
+      );
+      expect(spyConsoleWarn).toHaveBeenCalledWith(
+        '>>> enableDynamicAPIWebSockets(app, { maxListeners: 15 });\n\n',
+      );
       expect(spyProcessExit).toHaveBeenNthCalledWith(1, 1);
     });
   });

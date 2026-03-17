@@ -4,6 +4,7 @@ import { isEmpty } from 'lodash';
 import { ManyEntityQuery } from '../dtos';
 import { DynamicApiModule } from '../dynamic-api.module';
 import { resolveRooms } from '../helpers';
+import { DynamicApiWsConfigStore } from '../helpers/ws-config.store';
 import { DynamicApiBroadcastConfig, ExtendedSocket } from '../interfaces';
 import { MongoDBDynamicApiLogger } from '../logger';
 import { BaseEntity } from '../models';
@@ -83,6 +84,14 @@ export abstract class BaseGateway<Entity extends BaseEntity> {
 
     const broadcastEvent = eventName || event;
     const resolvedRooms = resolveRooms(rooms, broadcastData);
+
+    if (DynamicApiWsConfigStore.debug) {
+      this.logger.log(
+        `[WS] broadcastIfNeeded – event=${broadcastEvent}, rooms=${
+          resolvedRooms ? JSON.stringify(resolvedRooms) : 'all'
+        }, items=${broadcastData.length}`,
+      );
+    }
 
     if (resolvedRooms) {
       const nsp = socket.nsp;
