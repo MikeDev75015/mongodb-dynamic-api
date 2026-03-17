@@ -49,15 +49,20 @@ abstract class BaseSocketPoliciesGuard<Entity extends BaseEntity> extends BaseSe
   protected queryToPipeline?: (query: unknown) => PipelineStage[];
   protected isPublic: boolean | undefined;
 
-  private logger: MongoDBDynamicApiLogger;
+  private _logger: MongoDBDynamicApiLogger | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
     super(model);
+  }
 
+  private get logger(): MongoDBDynamicApiLogger {
+    if (!this._logger) {
+      this._logger = new MongoDBDynamicApiLogger(`SocketPoliciesGuard-${this.routeType}-${this.entity?.name}`);
+    }
+    return this._logger;
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    this.logger = new MongoDBDynamicApiLogger(`SocketPoliciesGuard-${this.routeType}-${this.entity?.name}`);
 
     const [socket, data, _, _event] = context.getArgs();
     this.logger.debug('canActivate', {
