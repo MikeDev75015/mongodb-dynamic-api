@@ -186,7 +186,7 @@ commands:
           command: gh pr merge << parameters.branch >> -R ${GH_OWNER}/${GH_REPO} --auto -r -d
 
   create-develop-pr-command:
-    description: "Create PR from develop to main on Github"
+    description: "Run release-it, push release commit to develop and create PR to main on Github"
     steps:
       - run:
           name: Checkout to develop
@@ -194,6 +194,12 @@ commands:
       - run:
           name: Pull develop
           command: git pull https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git develop
+      - run:
+          name: Run release-it to prepare release commit
+          command: npm run auto-release
+      - run:
+          name: Push release commit to develop
+          command: git push https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git develop
       - run:
           name: Create a pull request from develop to main
           command: |
@@ -352,6 +358,7 @@ jobs:
     executor: node
     steps:
       - checkout
+      - *restore-cache
       - git-config-local-user-command
       - install-github-cli-command
       - create-develop-pr-command
