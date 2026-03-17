@@ -21,6 +21,8 @@ Add WebSocket support to your API to make your routes accessible via Socket.IO i
 - [Available Events](#available-events)
   - [Authentication Events](#authentication-events-1)
 - [Authentication with WebSockets](#authentication-with-websockets)
+- [Server-Side Room Assignment (onConnection)](#server-side-room-assignment-onconnection)
+- [Debug Mode](#debug-mode)
 - [Client Integration](#client-integration)
 - [Best Practices](#best-practices)
 - [Examples](#examples)
@@ -42,9 +44,9 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   
-  // Enable WebSocket support
+  // Enable WebSocket support (recommended form — options object)
   // ⚠️ Also required if you use broadcast-only (no webSocket: true on routes)
-  enableDynamicAPIWebSockets(app);
+  enableDynamicAPIWebSockets(app, { debug: true });
   
   await app.listen(3000);
   console.log('🚀 HTTP Server: http://localhost:3000');
@@ -54,6 +56,15 @@ bootstrap();
 ```
 
 > **Note:** `enableDynamicAPIWebSockets(app)` is required whenever you use **any** WebSocket feature — including broadcasting after HTTP calls — even if no route has `webSocket: true`.
+
+> **⚠️ Deprecated:** The numeric overload `enableDynamicAPIWebSockets(app, 50)` is deprecated and will be removed in v5. Use the options-object form instead:
+> ```typescript
+> // ❌ Deprecated
+> enableDynamicAPIWebSockets(app, 50);
+>
+> // ✅ Recommended
+> enableDynamicAPIWebSockets(app, { maxListeners: 50 });
+> ```
 
 ### Enable WebSockets Globally
 
@@ -1161,7 +1172,9 @@ export const authService = {
 
 ### Authenticating WebSocket Connections
 
-To access protected routes via WebSocket, send the JWT token with the connection:
+To access protected routes via WebSocket, send the JWT token with the connection. Two transport methods are supported:
+
+**✅ Recommended — `auth.token` (Socket.IO handshake `auth` object):**
 
 ```typescript
 import { io } from 'socket.io-client';
@@ -1170,7 +1183,7 @@ const token = localStorage.getItem('accessToken');
 
 const socket = io('http://localhost:3000', {
   auth: {
-    token: token, // Send JWT token with connection
+    token: token, // ✅ Recommended: send JWT token via the auth object
   },
 });
 
@@ -1179,6 +1192,132 @@ socket.emit('auth-get-account', {}, (response) => {
   console.log('Current user:', response.data);
 });
 ```
+
+**⚠️ Deprecated — `query.accessToken` (query string):**
+
+```typescript
+import { io } from 'socket.io-client';
+
+const token = localStorage.getItem('accessToken');
+
+// ⚠️ Deprecated — will be removed in v5
+const socket = io('http://localhost:3000', {
+  query: {
+    accessToken: token,
+  },
+});
+```
+
+> **Note:** The server resolves the token as `socket.handshake.auth.token ?? socket.handshake.query.accessToken`. The `query` method is supported for backward compatibility but exposes the token in URLs and server logs. Always prefer the `auth` object.
+
+---
+
+## Server-Side Room Assignment (onConnection)
+
+The `onConnection` hook lets you run custom logic every time a new WebSocket connection is established — **after** JWT verification. This is ideal for automatically assigning sockets to rooms based on the authenticated user, setting up per-user subscriptions, or logging connections.
+
+**Signature:**
+
+```typescript
+onConnection?: (socket: ExtendedSocket, user?: any) => void | Promise<void>;
+```
+
+- `socket` — the Socket.IO socket instance (extended with `socket.user` if a valid JWT was provided).
+- `user` — the decoded JWT payload (`undefined` if the socket connected without a valid token).
+
+### Example: Auto-join user-specific rooms
+
+```typescript
+// src/main.ts
+import { NestFactory } from '@nestjs/core';
+import { enableDynamicAPIWebSockets } from 'mongodb-dynamic-api';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+
+  enableDynamicAPIWebSockets(app, {
+    debug: true,
+    onConnection: (socket, user) => {
+      if (user) {
+        // Auto-join the user to their personal room
+        socket.join('user-' + user.id);
+
+        // Join a role-based room
+        if (user.role) {
+          socket.join('role-' + user.role);
+        }
+      }
+    },
+  });
+
+  await app.listen(3000);
+}
+bootstrap();
+```
+
+With this setup, you can target broadcasts to specific users or roles using the `rooms` option on your routes:
+
+```typescript
+DynamicApiModule.forFeature({
+  entity: Notification,
+  controllerOptions: { path: 'notifications' },
+  routes: [
+    {
+      type: 'CreateOne',
+      broadcast: {
+        enabled: true,
+        // Broadcast to the targeted user's personal room
+        rooms: (notification) => 'user-' + notification.targetUserId,
+      },
+    },
+  ],
+})
+```
+
+### Example: Async onConnection with logging
+
+```typescript
+enableDynamicAPIWebSockets(app, {
+  onConnection: async (socket, user) => {
+    if (!user) {
+      return; // Anonymous connection — skip room assignment
+    }
+
+    // Async operation: fetch user groups from DB and join rooms
+    const groups = await GroupService.findGroupsByUser(user.id);
+    groups.forEach((group) => socket.join('group-' + group.id));
+  },
+});
+```
+
+> **Note:** If the `onConnection` callback returns a `Promise` that rejects, the error is caught and logged by the adapter — it will **not** disconnect the socket.
+
+---
+
+## Debug Mode
+
+Enable debug mode to get detailed logs from the WebSocket layer. This is useful during development to trace connection events, broadcasts, and room operations.
+
+### Enabling Debug Mode
+
+```typescript
+enableDynamicAPIWebSockets(app, { debug: true });
+```
+
+### What is logged
+
+When `debug: true`, the following events produce log output:
+
+| Component | Log Example | When |
+|-----------|-------------|------|
+| **SocketAdapter** | `[WS] connection – socket=abc123, user=507f...` | Every new socket connection |
+| **SocketAdapter** | `JWT verification failed for socket abc123: jwt expired` | JWT token is invalid or expired |
+| **BroadcastGateway** | `[WS] joinRooms – socket=abc123, rooms=["electronics"]` | Client joins rooms |
+| **BroadcastGateway** | `[WS] leaveRooms – socket=abc123, rooms=["electronics"]` | Client leaves rooms |
+| **BaseGateway** | `[WS] broadcastIfNeeded – event=create-one-product, rooms=["shop"], items=1` | A broadcast is emitted |
+
+> **Tip:** Keep `debug: false` (or omit it) in production to avoid excessive logging.
 
 ---
 
@@ -1928,8 +2067,10 @@ Configure max listeners for the WebSocket server:
 
 ```typescript
 // In main.ts
-enableDynamicAPIWebSockets(app, 50); // Max 50 listeners per event
+enableDynamicAPIWebSockets(app, { maxListeners: 50 }); // Max 50 listeners per event
 ```
+
+> **⚠️ Deprecated:** `enableDynamicAPIWebSockets(app, 50)` still works but will be removed in v5.
 
 ### Event Throttling
 
