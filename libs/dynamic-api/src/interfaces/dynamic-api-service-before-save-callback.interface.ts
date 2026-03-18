@@ -49,7 +49,7 @@ type BeforeSaveCallback<Entity extends BaseEntity, Context = Record<string, unkn
 ) => Promise<Partial<Entity>>;
 
 type BeforeSaveListCallback<Entity extends BaseEntity, Context = Record<string, unknown>> = (
-  entity: Entity | undefined,
+  entities: Entity[] | undefined,
   context: Context,
   methods: CallbackMethods,
 ) => Promise<Partial<Entity>[]>;
@@ -65,6 +65,12 @@ type BeforeSaveDeleteManyCallback<Entity extends BaseEntity, Context = Record<st
   context: Context,
   methods: CallbackMethods,
 ) => Promise<void>;
+
+type AnyBeforeSaveCallback<Entity extends BaseEntity> =
+  | BeforeSaveCallback<Entity>
+  | BeforeSaveListCallback<Entity>
+  | BeforeSaveDeleteCallback<Entity>
+  | BeforeSaveDeleteManyCallback<Entity>;
 
 // --- Deprecated aliases ---
 /** @deprecated Use `BeforeSaveCreateContext` instead. Will be removed in v5. */
@@ -95,6 +101,7 @@ type DynamicApiServiceBeforeSaveDeleteCallback<Entity extends BaseEntity, Contex
 type DynamicApiServiceBeforeSaveDeleteManyCallback<Entity extends BaseEntity, Context = Record<string, unknown>> = BeforeSaveDeleteManyCallback<Entity, Context>;
 
 export type {
+  AnyBeforeSaveCallback,
   BeforeSaveCallback,
   BeforeSaveListCallback,
   BeforeSaveDeleteCallback,
