@@ -1,4 +1,4 @@
-import { pick } from 'lodash';
+import { pick } from '../../helpers';
 import { BaseEntity } from '../../models';
 
 function buildAuthBroadcastData<Entity extends BaseEntity>(

@@ -1,4 +1,4 @@
-import { lowerCase } from 'lodash';
+import { lowerCase } from './lodash.helper';
 import { RouteType } from '../interfaces';
 
 /** @deprecated Internal API — will be removed from public exports in v5. */
