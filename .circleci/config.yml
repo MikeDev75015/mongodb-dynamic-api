@@ -16,6 +16,10 @@ aliases:
     run:
       name: Install dependencies
       command: npm ci
+  - &audit-deps
+    run:
+      name: Audit dependencies
+      command: npm audit --audit-level=high || true
   - &restore-cache
     restore_cache:
       keys:
@@ -262,6 +266,7 @@ jobs:
       - *update-npm-version
       - *restore-cache
       - *install-deps
+      - *audit-deps
       - *save-cache
 
   build-job:
