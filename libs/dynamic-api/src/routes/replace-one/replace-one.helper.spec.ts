@@ -23,7 +23,7 @@ describe('ReplaceOneHelper', () => {
 
   describe('createReplaceOneServiceProvider', () => {
     it('should return ReplaceOne provider', () => {
-      const { provide, useClass } = createReplaceOneServiceProvider(entity, displayedName, '1', undefined);
+      const { provide, useClass } = createReplaceOneServiceProvider(entity, displayedName, '1', undefined, undefined);
       const service = new useClass(model);
 
       expect(provide).toBe(`ReplaceOne${displayedName}V1Service`);

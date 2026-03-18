@@ -25,7 +25,7 @@ describe('UpdateManyHelper', () => {
 
   describe('createUpdateManyServiceProvider', () => {
     it('should return UpdateMany provider', () => {
-      const { provide, useClass } = createUpdateManyServiceProvider(entity, displayedName, '1', undefined);
+      const { provide, useClass } = createUpdateManyServiceProvider(entity, displayedName, '1', undefined, undefined);
       const service = new useClass(model);
 
       expect(provide).toBe(`UpdateMany${displayedName}V1Service`);

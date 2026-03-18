@@ -23,7 +23,7 @@ describe('DuplicateManyHelper', () => {
 
   describe('createDuplicateManyServiceProvider', () => {
     it('should return DuplicateMany provider', () => {
-      const { provide, useClass } = createDuplicateManyServiceProvider(entity, displayedName, '1', undefined);
+      const { provide, useClass } = createDuplicateManyServiceProvider(entity, displayedName, '1', undefined, undefined);
       const service = new useClass(model);
 
       expect(provide).toBe(`DuplicateMany${displayedName}V1Service`);
