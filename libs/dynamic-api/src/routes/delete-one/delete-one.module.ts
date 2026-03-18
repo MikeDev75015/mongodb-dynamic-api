@@ -36,7 +36,7 @@ export class DeleteOneModule {
       version,
       validationPipeOptions,
     );
-    const ServiceProvider = createDeleteOneServiceProvider(entity, displayedName, version);
+    const ServiceProvider = createDeleteOneServiceProvider(entity, displayedName, version, routeConfig.callback, routeConfig.beforeSaveCallback as any);
 
     const hasBroadcast = !!routeConfig.broadcast;
     const gatewayOptions = webSocket
