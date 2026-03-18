@@ -1,6 +1,6 @@
 import { cloneDeep } from 'lodash';
 import { Model } from 'mongoose';
-import { DynamicApiServiceBeforeSaveCallback, DynamicApiServiceBeforeSaveUpdateContext, DynamicApiServiceCallback } from '../../interfaces';
+import { BeforeSaveCallback, BeforeSaveUpdateContext, AfterSaveCallback } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseService } from '../../services';
 import { UpdateOneService } from './update-one-service.interface';
@@ -8,12 +8,12 @@ import { UpdateOneService } from './update-one-service.interface';
 export abstract class BaseUpdateOneService<Entity extends BaseEntity>
   extends BaseService<Entity>
   implements UpdateOneService<Entity> {
-  protected readonly beforeSaveCallback: DynamicApiServiceBeforeSaveCallback<
+  protected readonly beforeSaveCallback: BeforeSaveCallback<
     Entity,
-    DynamicApiServiceBeforeSaveUpdateContext<Entity>
+    BeforeSaveUpdateContext<Entity>
   > | undefined;
 
-  protected readonly callback: DynamicApiServiceCallback<Entity> | undefined;
+  protected readonly callback: AfterSaveCallback<Entity> | undefined;
 
   protected constructor(
     protected readonly model: Model<Entity>,

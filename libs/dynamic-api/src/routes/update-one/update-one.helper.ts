@@ -18,8 +18,8 @@ import { provideName } from '../../helpers';
 import {
   DynamicApiControllerOptions,
   DynamicAPIRouteConfig,
-  DynamicApiServiceBeforeSaveCallback,
-  DynamicApiServiceCallback,
+  BeforeSaveCallback,
+  AfterSaveCallback,
   DynamicAPIServiceProvider,
   GatewayOptions,
 } from '../../interfaces';
@@ -36,8 +36,8 @@ function createUpdateOneServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
   displayedName: string,
   version: string | undefined,
-  callback: DynamicApiServiceCallback<Entity> | undefined,
-  beforeSaveCallback: DynamicApiServiceBeforeSaveCallback<Entity> | undefined,
+  callback: AfterSaveCallback<Entity> | undefined,
+  beforeSaveCallback: BeforeSaveCallback<Entity> | undefined,
 ): DynamicAPIServiceProvider {
   class UpdateOneService extends BaseUpdateOneService<Entity> {
     protected readonly entity = entity;

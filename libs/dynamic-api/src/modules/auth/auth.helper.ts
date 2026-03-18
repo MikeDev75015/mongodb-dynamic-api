@@ -9,7 +9,7 @@ import { Strategy } from 'passport-local';
 import { ValidatorPipe } from '../../decorators';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { DynamicAPIWsExceptionFilter } from '../../filters';
-import { AuthAbilityPredicate, DynamicApiServiceCallback, DynamicAPIServiceProvider, GatewayOptions } from '../../interfaces';
+import { AuthAbilityPredicate, AfterSaveCallback, DynamicAPIServiceProvider, GatewayOptions } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BcryptService, DynamicApiBroadcastService } from '../../services';
 import { AuthControllerConstructor, AuthGatewayConstructor, AuthService, DynamicApiGetAccountOptions, DynamicApiLoginOptions, DynamicApiRefreshTokenOptions, DynamicApiRegisterOptions, DynamicApiResetPasswordOptions, DynamicApiUpdateAccountOptions } from './interfaces';
@@ -102,7 +102,7 @@ function createLocalStrategyProvider<Entity extends BaseEntity>(
 function createAuthServiceProvider<Entity extends BaseEntity>(
   userEntity: Type<Entity>,
   { loginField, passwordField, additionalFields = [], callback: loginCallback }: DynamicApiLoginOptions<Entity>,
-  getAccountCallback: DynamicApiServiceCallback<Entity> | undefined,
+  getAccountCallback: AfterSaveCallback<Entity> | undefined,
   register: DynamicApiRegisterOptions<Entity> | undefined,
   resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined,
   updateAccount: DynamicApiUpdateAccountOptions<Entity> | undefined,

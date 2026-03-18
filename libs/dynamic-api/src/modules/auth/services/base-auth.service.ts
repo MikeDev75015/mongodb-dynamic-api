@@ -2,7 +2,7 @@ import { BadRequestException, ForbiddenException, Type, UnauthorizedException } 
 import { JwtService } from '@nestjs/jwt';
 import { randomUUID } from 'node:crypto';
 import { Model, UpdateQuery, UpdateWithAggregationPipeline } from 'mongoose';
-import { DynamicApiResetPasswordCallbackMethods, DynamicApiServiceBeforeSaveCallback, DynamicApiServiceCallback } from '../../../interfaces';
+import { DynamicApiResetPasswordCallbackMethods, BeforeSaveCallback, AfterSaveCallback } from '../../../interfaces';
 import { MongoDBDynamicApiLogger } from '../../../logger';
 import { BaseEntity } from '../../../models';
 import { BaseService, BcryptService } from '../../../services';
@@ -14,12 +14,12 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
   protected loginField = 'email' as keyof Entity;
   protected passwordField = 'password' as keyof Entity;
   protected additionalRequestFields: (keyof Entity)[] = [];
-  protected beforeRegisterCallback: DynamicApiServiceBeforeSaveCallback<Entity>;
-  protected registerCallback: DynamicApiServiceCallback<Entity> | undefined;
-  protected beforeUpdateAccountCallback: DynamicApiServiceBeforeSaveCallback<Entity>;
-  protected updateAccountCallback: DynamicApiServiceCallback<Entity> | undefined;
-  protected loginCallback: DynamicApiServiceCallback<Entity> | undefined;
-  protected getAccountCallback: DynamicApiServiceCallback<Entity> | undefined;
+  protected beforeRegisterCallback: BeforeSaveCallback<Entity>;
+  protected registerCallback: AfterSaveCallback<Entity> | undefined;
+  protected beforeUpdateAccountCallback: BeforeSaveCallback<Entity>;
+  protected updateAccountCallback: AfterSaveCallback<Entity> | undefined;
+  protected loginCallback: AfterSaveCallback<Entity> | undefined;
+  protected getAccountCallback: AfterSaveCallback<Entity> | undefined;
   protected resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined;
   protected refreshTokenField: keyof Entity | undefined;
 

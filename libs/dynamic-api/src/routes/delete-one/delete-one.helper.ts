@@ -18,6 +18,8 @@ import { provideName } from '../../helpers';
 import {
   DynamicApiControllerOptions,
   DynamicAPIRouteConfig,
+  BeforeSaveDeleteCallback,
+  AfterSaveCallback,
   DynamicAPIServiceProvider,
   GatewayOptions,
 } from '../../interfaces';
@@ -34,9 +36,13 @@ function createDeleteOneServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
   displayedName: string,
   version: string | undefined,
+  callback: AfterSaveCallback<Entity> | undefined,
+  beforeSaveCallback: BeforeSaveDeleteCallback<Entity> | undefined,
 ): DynamicAPIServiceProvider {
   class DeleteOneService extends BaseDeleteOneService<Entity> {
     protected readonly entity = entity;
+    protected readonly beforeSaveCallback = beforeSaveCallback;
+    protected readonly callback = callback;
 
     constructor(
       @InjectModel(

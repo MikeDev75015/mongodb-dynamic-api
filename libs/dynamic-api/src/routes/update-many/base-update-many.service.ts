@@ -1,5 +1,10 @@
+import { cloneDeep } from 'lodash';
 import { Model } from 'mongoose';
-import { DynamicApiServiceCallback } from '../../interfaces';
+import {
+  BeforeSaveCallback,
+  BeforeSaveUpdateManyContext,
+  AfterSaveCallback,
+} from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseService } from '../../services';
 import { UpdateManyService } from './update-many-service.interface';
@@ -7,7 +12,11 @@ import { UpdateManyService } from './update-many-service.interface';
 export abstract class BaseUpdateManyService<Entity extends BaseEntity>
   extends BaseService<Entity>
   implements UpdateManyService<Entity> {
-  protected readonly callback: DynamicApiServiceCallback<Entity> | undefined;
+  protected readonly beforeSaveCallback: BeforeSaveCallback<
+    Entity,
+    BeforeSaveUpdateManyContext<Entity>
+  > | undefined;
+  protected readonly callback: AfterSaveCallback<Entity> | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
     super(model);
@@ -20,6 +29,14 @@ export abstract class BaseUpdateManyService<Entity extends BaseEntity>
         this.handleDocumentNotFound();
       }
 
+      const update = this.beforeSaveCallback
+        ? await this.beforeSaveCallback(
+          undefined,
+          { ids, update: cloneDeep(partial) },
+          this.callbackMethods,
+        )
+        : partial;
+
       await this.model
       .updateMany(
         {
@@ -28,7 +45,7 @@ export abstract class BaseUpdateManyService<Entity extends BaseEntity>
             this.isSoftDeletable ? { isDeleted: false } : undefined
           ),
         },
-        partial,
+        update,
       )
       .lean()
       .exec();

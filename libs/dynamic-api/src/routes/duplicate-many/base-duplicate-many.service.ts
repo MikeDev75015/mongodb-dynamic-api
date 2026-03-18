@@ -1,7 +1,12 @@
 import { Type } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
+import { cloneDeep } from 'lodash';
 import { Model } from 'mongoose';
-import { DynamicApiServiceCallback } from '../../interfaces';
+import {
+  BeforeSaveDuplicateManyContext,
+  BeforeSaveListCallback,
+  AfterSaveCallback,
+} from '../../interfaces';
 import { baseEntityKeysToExclude } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { BaseService } from '../../services';
@@ -12,7 +17,11 @@ export abstract class BaseDuplicateManyService<Entity extends BaseEntity>
   implements DuplicateManyService<Entity> {
   protected readonly entity: Type<Entity>;
 
-  protected readonly callback: DynamicApiServiceCallback<Entity> | undefined;
+  protected readonly beforeSaveCallback: BeforeSaveListCallback<
+    Entity,
+    BeforeSaveDuplicateManyContext<Entity>
+  > | undefined;
+  protected readonly callback: AfterSaveCallback<Entity> | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
     super(model);
@@ -34,20 +43,30 @@ export abstract class BaseDuplicateManyService<Entity extends BaseEntity>
         this.handleDocumentNotFound();
       }
 
-      const duplicatedList = await this.model.create(toDuplicateList.map((d) => plainToInstance(
-        this.entity,
-        {
-          ...Object.entries(d).reduce((acc, [key, value]) => {
-            if ((
-              baseEntityKeysToExclude() as string[]
-            ).includes(key)) {
-              return acc;
-            }
+      const baseDataList = toDuplicateList.map((d) => ({
+        ...Object.entries(d).reduce((acc, [key, value]) => {
+          if ((
+            baseEntityKeysToExclude() as string[]
+          ).includes(key)) {
+            return acc;
+          }
 
-            return { ...acc, [key]: value };
-          }, {}),
-          ...partial,
-        },
+          return { ...acc, [key]: value };
+        }, {}),
+        ...partial,
+      }));
+
+      const toCreateList = this.beforeSaveCallback
+        ? await this.beforeSaveCallback(
+          undefined,
+          { ids, override: partial ? cloneDeep(partial) : undefined },
+          this.callbackMethods,
+        )
+        : baseDataList;
+
+      const duplicatedList = await this.model.create(toCreateList.map((d) => plainToInstance(
+        this.entity,
+        d,
       )));
       const documents = await this.model.find({ _id: { $in: duplicatedList.map(({ _id }) => _id.toString()) } })
       .lean<Entity[]>()
