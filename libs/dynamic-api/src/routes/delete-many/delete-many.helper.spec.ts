@@ -23,7 +23,7 @@ describe('DeleteManyHelper', () => {
 
   describe('createDeleteManyServiceProvider', () => {
     it('should return DeleteMany provider', () => {
-      const { provide, useClass } = createDeleteManyServiceProvider(entity, displayedName, '1');
+      const { provide, useClass } = createDeleteManyServiceProvider(entity, displayedName, '1', undefined, undefined);
       const service = new useClass(model);
 
       expect(provide).toBe(`DeleteMany${displayedName}V1Service`);
