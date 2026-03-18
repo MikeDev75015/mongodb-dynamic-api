@@ -4,8 +4,8 @@ import { AbilityPredicate } from './dynamic-api-ability.interface';
 import { DynamicApiBroadcastConfig } from './dynamic-api-broadcast-config.interface';
 import { DTOsBundle } from './dynamic-api-route-dtos-bundle.type';
 import { RouteType } from './dynamic-api-route-type.type';
-import { DynamicApiServiceBeforeSaveCallback } from './dynamic-api-service-before-save-callback.interface';
-import { DynamicApiServiceCallback } from './dynamic-api-service-callback.interface';
+import { BeforeSaveCallback } from './dynamic-api-service-before-save-callback.interface';
+import { AfterSaveCallback } from './dynamic-api-service-callback.interface';
 import { DynamicApiWebSocketOptions } from './dynamic-api-web-socket.interface';
 
 interface DynamicApiRouteConfig<Entity extends BaseEntity> {
@@ -18,8 +18,8 @@ interface DynamicApiRouteConfig<Entity extends BaseEntity> {
   dTOs?: DTOsBundle;
   validationPipeOptions?: ValidationPipeOptions;
   abilityPredicate?: AbilityPredicate<Entity>;
-  beforeSaveCallback?: DynamicApiServiceBeforeSaveCallback<Entity>;
-  callback?: DynamicApiServiceCallback<Entity>;
+  beforeSaveCallback?: BeforeSaveCallback<Entity>;
+  callback?: AfterSaveCallback<Entity>;
   webSocket?: DynamicApiWebSocketOptions;
   eventName?: string;
   broadcast?: DynamicApiBroadcastConfig<Entity>;

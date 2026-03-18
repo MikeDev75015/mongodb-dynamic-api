@@ -4,7 +4,7 @@ import { FilterQuery, UpdateQuery, UpdateWithAggregationPipeline } from 'mongoos
 import { BaseEntity } from '../models';
 import { DeleteResult, UpdateResult } from './dynamic-api-route-response.type';
 
-type DynamicApiCallbackMethods = {
+type CallbackMethods = {
   findManyDocuments<T>(entity: Type<T>, query: FilterQuery<T>): Promise<T[]>;
   findOneDocument<T>(entity: Type<T>, query: FilterQuery<T>): Promise<T | undefined>;
   createManyDocuments<T>(entity: Type<T>, data: Partial<T>[]): Promise<T[]>;
@@ -22,10 +22,16 @@ type DynamicApiCallbackMethods = {
   aggregateDocuments<T>(entity: Type<T>, pipeline: PipelineStage[]): Promise<T[]>
 };
 
-type DynamicApiServiceCallback<Entity extends BaseEntity> = (
+/** @deprecated Use `CallbackMethods` instead. Will be removed in v5. */
+type DynamicApiCallbackMethods = CallbackMethods;
+
+type AfterSaveCallback<Entity extends BaseEntity> = (
   entity: Entity,
-  methods: DynamicApiCallbackMethods,
+  methods: CallbackMethods,
 ) => Promise<void>;
+
+/** @deprecated Use `AfterSaveCallback` instead. Will be removed in v5. */
+type DynamicApiServiceCallback<Entity extends BaseEntity> = AfterSaveCallback<Entity>;
 
 type DynamicApiResetPasswordCallbackMethods<Entity extends BaseEntity, UpdateBy = 'userId'> = {
   findUserByEmail: () => Promise<Entity>;
@@ -40,8 +46,10 @@ type DynamicApiResetPasswordCallback<Entity extends BaseEntity> = (
 ) => Promise<void>;
 
 export type {
+  AfterSaveCallback,
   DynamicApiServiceCallback,
   DynamicApiResetPasswordCallback,
   DynamicApiCallbackMethods,
   DynamicApiResetPasswordCallbackMethods,
+  CallbackMethods,
 };
