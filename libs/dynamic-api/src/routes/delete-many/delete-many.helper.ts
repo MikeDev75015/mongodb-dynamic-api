@@ -18,7 +18,7 @@ import { provideName } from '../../helpers';
 import {
   DynamicApiControllerOptions,
   DynamicAPIRouteConfig,
-  BeforeSaveDeleteCallback,
+  BeforeSaveDeleteManyCallback,
   AfterSaveCallback,
   DynamicAPIServiceProvider,
   GatewayOptions,
@@ -35,7 +35,7 @@ function createDeleteManyServiceProvider<Entity extends BaseEntity>(
   displayedName: string,
   version: string | undefined,
   callback: AfterSaveCallback<Entity> | undefined,
-  beforeSaveCallback: BeforeSaveDeleteCallback<Entity> | undefined,
+  beforeSaveCallback: BeforeSaveDeleteManyCallback<Entity> | undefined,
 ): DynamicAPIServiceProvider {
   class DeleteManyService extends BaseDeleteManyService<Entity> {
     protected readonly entity = entity;
