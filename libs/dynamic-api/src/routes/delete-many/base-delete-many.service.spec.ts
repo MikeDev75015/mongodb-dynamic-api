@@ -3,7 +3,7 @@ import { Model } from 'mongoose';
 import { DeletePresenter } from '../../dtos';
 import {
   CallbackMethods,
-  BeforeSaveDeleteCallback,
+  BeforeSaveDeleteManyCallback,
   AfterSaveCallback,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
@@ -22,7 +22,7 @@ class TestService extends BaseDeleteManyService<TestEntity> {
 type InternalService = {
   callback: AfterSaveCallback<TestEntity> | undefined;
   callbackMethods: CallbackMethods;
-  beforeSaveCallback: BeforeSaveDeleteCallback<TestEntity> | undefined;
+  beforeSaveCallback: BeforeSaveDeleteManyCallback<TestEntity> | undefined;
 };
 
 const internal = (svc: TestService) => svc as unknown as InternalService;
@@ -152,7 +152,7 @@ describe('BaseDeleteManyService', () => {
 
     expect(beforeSaveCallback).toHaveBeenCalledTimes(1);
     expect(beforeSaveCallback).toHaveBeenCalledWith(
-      undefined,
+      documents,
       { ids },
       internal(service).callbackMethods,
     );
