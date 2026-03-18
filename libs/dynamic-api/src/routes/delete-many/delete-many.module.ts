@@ -36,7 +36,7 @@ export class DeleteManyModule {
       version,
       validationPipeOptions,
     );
-    const ServiceProvider = createDeleteManyServiceProvider(entity, displayedName, version);
+    const ServiceProvider = createDeleteManyServiceProvider(entity, displayedName, version, routeConfig.callback, routeConfig.beforeSaveCallback as any);
 
     const hasBroadcast = !!routeConfig.broadcast;
     const gatewayOptions = webSocket

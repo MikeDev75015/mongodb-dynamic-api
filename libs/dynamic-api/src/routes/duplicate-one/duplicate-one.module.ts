@@ -36,7 +36,7 @@ export class DuplicateOneModule {
       version,
       validationPipeOptions,
     );
-    const ServiceProvider = createDuplicateOneServiceProvider(entity, displayedName, version, routeConfig.callback);
+    const ServiceProvider = createDuplicateOneServiceProvider(entity, displayedName, version, routeConfig.callback, routeConfig.beforeSaveCallback);
 
     const hasBroadcast = !!routeConfig.broadcast;
     const gatewayOptions = webSocket

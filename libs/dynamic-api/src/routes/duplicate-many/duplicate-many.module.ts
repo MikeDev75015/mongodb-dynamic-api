@@ -36,7 +36,7 @@ export class DuplicateManyModule {
       version,
       validationPipeOptions,
     );
-    const ServiceProvider = createDuplicateManyServiceProvider(entity, displayedName, version, routeConfig.callback);
+    const ServiceProvider = createDuplicateManyServiceProvider(entity, displayedName, version, routeConfig.callback, routeConfig.beforeSaveCallback as any);
 
     const hasBroadcast = !!routeConfig.broadcast;
     const gatewayOptions = webSocket

@@ -36,7 +36,7 @@ export class ReplaceOneModule {
       version,
       validationPipeOptions,
     );
-    const ServiceProvider = createReplaceOneServiceProvider(entity, displayedName, version, routeConfig.callback);
+    const ServiceProvider = createReplaceOneServiceProvider(entity, displayedName, version, routeConfig.callback, routeConfig.beforeSaveCallback);
 
     const hasBroadcast = !!routeConfig.broadcast;
     const gatewayOptions = webSocket
