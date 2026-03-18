@@ -1,5 +1,22 @@
 Changelog
 
+## [4.4.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.3.0...v4.4.0) (2026-03-18)
+
+
+* pass existing entities to BeforeSaveListCallback in DuplicateMany and UpdateMany ([77b6872](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/77b6872e6852eb3199bae0f313f6ef20f101d815))
+* update BeforeSaveListCallback to receive entities list and add AnyBeforeSaveCallback union type ([8b422b2](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/8b422b2821a660d6ce1dde01bfe470d6e3ce5275))
+
+
+### interfaces
+
+* **interfaces:** add BeforeSaveDeleteManyCallback type for delete-many route ([ce1d707](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/ce1d7076b23c63de74e4b6e7ae44044e63d917a8))
+* **interfaces:** add short aliases for callback types and deprecate verbose names ([aa6467f](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/aa6467f839a753770e40ebeaf0c742b11b67e3da))
+
+
+### routes
+
+* **routes:** pass beforeSaveCallback from routeConfig to service providers ([3d4ee6d](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/3d4ee6dd0103c9f9b797dc616da516f949e61eae))
+
 ## [4.3.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.2.1...v4.3.0) (2026-03-17)
 
 
