@@ -1,7 +1,7 @@
 import { Model } from 'mongoose';
 import {
   CallbackMethods,
-  BeforeSaveCallback,
+  BeforeSaveListCallback,
   AfterSaveCallback,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
@@ -20,7 +20,7 @@ class TestService extends BaseUpdateManyService<TestEntity> {
 type InternalService = {
   callback: AfterSaveCallback<TestEntity> | undefined;
   callbackMethods: CallbackMethods;
-  beforeSaveCallback: BeforeSaveCallback<TestEntity> | undefined;
+  beforeSaveCallback: BeforeSaveListCallback<TestEntity> | undefined;
 };
 
 const internal = (svc: TestService) => svc as unknown as InternalService;
@@ -40,6 +40,7 @@ describe('BaseUpdateManyService', () => {
     modelMock = {
       find: jest.fn(() => ({ lean: jest.fn(() => ({ exec })) })),
       updateMany: jest.fn(() => ({ lean: jest.fn(() => ({ exec: jest.fn().mockResolvedValueOnce([]) })) })),
+      findByIdAndUpdate: jest.fn(() => ({ lean: jest.fn(() => ({ exec: jest.fn().mockResolvedValueOnce({}) })) })),
     } as unknown as Model<TestEntity>;
 
     return new TestService(modelMock);
@@ -108,20 +109,35 @@ describe('BaseUpdateManyService', () => {
       );
     });
 
-    it('should call beforeSaveCallback if it is defined', async () => {
+    it('should call beforeSaveCallback if it is defined and use findByIdAndUpdate per entity', async () => {
       const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedDocuments);
       service = initService(exec);
       jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
-      const beforeSaveCallback = jest.fn(() => Promise.resolve({ name: 'updated' }));
+      const beforeSaveCallback = jest.fn(() => Promise.resolve([{ name: 'updated' }, { name: 'updated' }]));
       internal(service).beforeSaveCallback = beforeSaveCallback;
       await service.updateMany(ids, { name: 'updated' } as Partial<TestEntity>);
 
       expect(beforeSaveCallback).toHaveBeenCalledTimes(1);
       expect(beforeSaveCallback).toHaveBeenCalledWith(
-        undefined,
+        documents,
         { ids, update: { name: 'updated' } },
         internal(service).callbackMethods,
       );
+
+      expect(modelMock.findByIdAndUpdate).toHaveBeenCalledTimes(2);
+      expect(modelMock.findByIdAndUpdate).toHaveBeenNthCalledWith(
+        1,
+        documents[0]._id,
+        { name: 'updated' },
+        { new: true },
+      );
+      expect(modelMock.findByIdAndUpdate).toHaveBeenNthCalledWith(
+        2,
+        documents[1]._id,
+        { name: 'updated' },
+        { new: true },
+      );
+      expect(modelMock.updateMany).not.toHaveBeenCalled();
     });
   });
 });
