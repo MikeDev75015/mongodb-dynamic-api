@@ -27,7 +27,7 @@ Each route in `DynamicApiModule.forFeature` can be finely configured through the
 - [Callbacks](#callbacks)
   - [beforeSaveCallback](#beforesavecallback)
   - [callback](#callback)
-  - [DynamicApiCallbackMethods](#dynamicapicallbackmethods)
+  - [CallbackMethods](#callbackmethods)
 - [Other Options](#other-options)
   - [isPublic](#ispublic)
   - [disableCache](#disablecache)
@@ -94,8 +94,8 @@ interface DynamicAPIRouteConfig<Entity extends BaseEntity> {
   abilityPredicate?: (entity: Entity, user: any) => boolean;
 
   // Callbacks
-  beforeSaveCallback?: DynamicApiServiceBeforeSaveCallback<Entity>;
-  callback?: DynamicApiServiceCallback<Entity>;
+  beforeSaveCallback?: BeforeSaveCallback<Entity>;
+  callback?: AfterSaveCallback<Entity>;
 
   // Interceptors
   useInterceptors?: Type<NestInterceptor>[];
@@ -436,32 +436,158 @@ Callbacks let you hook into the lifecycle of a service operation, either **befor
 
 Executed **before a document is saved** to the database. Use it to transform or enrich the data.
 
-**Signature:**
+There are **four callback signatures** depending on the route type:
+
+#### BeforeSaveCallback (single-document write routes)
+
+Used by: `CreateOne`, `UpdateOne`, `ReplaceOne`, `DuplicateOne`
 
 ```typescript
-type DynamicApiServiceBeforeSaveCallback<Entity, Context> = (
+type BeforeSaveCallback<Entity, Context> = (
   entity: Entity | undefined,  // Existing document (undefined on create)
   context: Context,            // Operation context (see below)
-  methods: DynamicApiCallbackMethods,
+  methods: CallbackMethods,
 ) => Promise<Partial<Entity>>;
 ```
 
-**Context for `CreateOne` / `CreateMany`:**
+#### BeforeSaveListCallback (multi-document write routes)
+
+Used by: `CreateMany`, `UpdateMany`, `DuplicateMany`
 
 ```typescript
-type DynamicApiServiceBeforeSaveCreateContext<Entity> = {
-  toCreate: Partial<Entity>; // The data about to be created
+type BeforeSaveListCallback<Entity, Context> = (
+  entity: Entity | undefined,
+  context: Context,
+  methods: CallbackMethods,
+) => Promise<Partial<Entity>[]>;
+```
+
+#### BeforeSaveDeleteCallback (single-document delete route)
+
+Used by: `DeleteOne`
+
+```typescript
+type BeforeSaveDeleteCallback<Entity, Context> = (
+  entity: Entity | undefined,  // Existing document if found
+  context: Context,
+  methods: CallbackMethods,
+) => Promise<void>;
+```
+
+#### BeforeSaveDeleteManyCallback (multi-document delete route)
+
+Used by: `DeleteMany`
+
+```typescript
+type BeforeSaveDeleteManyCallback<Entity, Context> = (
+  entities: Entity[],          // Found documents to delete
+  context: Context,
+  methods: CallbackMethods,
+) => Promise<void>;
+```
+
+#### Context types
+
+Each route type receives a specific context object:
+
+**`CreateOne`:**
+
+```typescript
+type BeforeSaveCreateContext<Entity> = {
+  toCreate: Partial<Entity>;
 };
 ```
 
-**Context for `UpdateOne` / `UpdateMany`:**
+**`CreateMany`:**
 
 ```typescript
-type DynamicApiServiceBeforeSaveUpdateContext<Entity> = {
-  id: string;               // The document ID being updated
-  update: Partial<Entity>;  // The update data
+type BeforeSaveCreateManyContext<Entity> = {
+  toCreate: Partial<Entity>[];
 };
 ```
+
+**`UpdateOne`:**
+
+```typescript
+type BeforeSaveUpdateContext<Entity> = {
+  id: string;
+  update: Partial<Entity>;
+};
+```
+
+**`UpdateMany`:**
+
+```typescript
+type BeforeSaveUpdateManyContext<Entity> = {
+  ids: string[];
+  update: Partial<Entity>;
+};
+```
+
+**`ReplaceOne`:**
+
+```typescript
+type BeforeSaveReplaceContext<Entity> = {
+  id: string;
+  replacement: Partial<Entity>;
+};
+```
+
+**`DeleteOne`:**
+
+```typescript
+type BeforeSaveDeleteContext = {
+  id: string;
+};
+```
+
+**`DeleteMany`:**
+
+```typescript
+type BeforeSaveDeleteManyContext = {
+  ids: string[];
+};
+```
+
+**`DuplicateOne`:**
+
+```typescript
+type BeforeSaveDuplicateContext<Entity> = {
+  id: string;
+  override?: Partial<Entity>;
+};
+```
+
+**`DuplicateMany`:**
+
+```typescript
+type BeforeSaveDuplicateManyContext<Entity> = {
+  ids: string[];
+  override?: Partial<Entity>;
+};
+```
+
+> **💡 Note:** All these types are exported from `mongodb-dynamic-api` and can be imported directly.
+
+#### Deprecated aliases
+
+The following verbose names are still exported for backward compatibility but are **deprecated** and will be removed in v5:
+
+| Deprecated name | Replacement |
+|---|---|
+| `DynamicApiServiceBeforeSaveCallback` | `BeforeSaveCallback` |
+| `DynamicApiServiceBeforeSaveListCallback` | `BeforeSaveListCallback` |
+| `DynamicApiServiceBeforeSaveDeleteCallback` | `BeforeSaveDeleteCallback` |
+| `DynamicApiServiceBeforeSaveDeleteManyCallback` | `BeforeSaveDeleteManyCallback` |
+| `DynamicApiServiceBeforeSaveCreateContext` | `BeforeSaveCreateContext` |
+| `DynamicApiServiceBeforeSaveCreateManyContext` | `BeforeSaveCreateManyContext` |
+| `DynamicApiServiceBeforeSaveUpdateContext` | `BeforeSaveUpdateContext` |
+| `DynamicApiServiceBeforeSaveUpdateManyContext` | `BeforeSaveUpdateManyContext` |
+| `DynamicApiServiceBeforeSaveReplaceContext` | `BeforeSaveReplaceContext` |
+| `DynamicApiServiceBeforeSaveDeleteContext` | `BeforeSaveDeleteContext` |
+| `DynamicApiServiceBeforeSaveDeleteManyContext` | `BeforeSaveDeleteManyContext` |
+| `DynamicApiServiceBeforeSaveDuplicateContext` | `BeforeSaveDuplicateContext` |
+| `DynamicApiServiceBeforeSaveDuplicateManyContext` | `BeforeSaveDuplicateManyContext` |
 
 **Example — Hash a password before saving:**
 
@@ -475,7 +601,7 @@ DynamicApiModule.forFeature({
     {
       type: 'CreateOne',
       beforeSaveCallback: async (entity, context, methods) => {
-        const { toCreate } = context as { toCreate: Partial<User> };
+        const { toCreate } = context as BeforeSaveCreateContext<User>;
         if (toCreate.password) {
           toCreate.password = await bcrypt.hash(toCreate.password, 10);
         }
@@ -485,7 +611,7 @@ DynamicApiModule.forFeature({
     {
       type: 'UpdateOne',
       beforeSaveCallback: async (entity, context, methods) => {
-        const { update } = context as { id: string; update: Partial<User> };
+        const { update } = context as BeforeSaveUpdateContext<User>;
         if (update.password) {
           update.password = await bcrypt.hash(update.password, 10);
         }
@@ -505,11 +631,13 @@ Executed **after a successful operation** (save, delete, etc.). Use it to trigge
 **Signature:**
 
 ```typescript
-type DynamicApiServiceCallback<Entity> = (
+type AfterSaveCallback<Entity> = (
   entity: Entity,
-  methods: DynamicApiCallbackMethods,
+  methods: CallbackMethods,
 ) => Promise<void>;
 ```
+
+> **💡 Note:** The deprecated alias `DynamicApiServiceCallback` is still exported for backward compatibility but will be removed in v5. Use `AfterSaveCallback` instead.
 
 **Example — Send a notification after creation:**
 
@@ -537,12 +665,12 @@ DynamicApiModule.forFeature({
 
 ---
 
-### DynamicApiCallbackMethods
+### CallbackMethods
 
 Both `beforeSaveCallback` and `callback` receive a `methods` object with database helpers:
 
 ```typescript
-type DynamicApiCallbackMethods = {
+type CallbackMethods = {
   findManyDocuments<T>(entity: Type<T>, query: FilterQuery<T>): Promise<T[]>;
   findOneDocument<T>(entity: Type<T>, query: FilterQuery<T>): Promise<T | undefined>;
   createManyDocuments<T>(entity: Type<T>, data: Partial<T>[]): Promise<T[]>;
@@ -562,6 +690,8 @@ type DynamicApiCallbackMethods = {
   aggregateDocuments<T>(entity: Type<T>, pipeline: PipelineStage[]): Promise<T[]>;
 };
 ```
+
+> **💡 Note:** The deprecated alias `DynamicApiCallbackMethods` is still exported for backward compatibility but will be removed in v5. Use `CallbackMethods` instead.
 
 ---
 
@@ -895,7 +1025,7 @@ import {
           abilityPredicate: (product, user) =>
             product.ownerId === user.id || user.role === 'admin',
           beforeSaveCallback: async (entity, context, methods) => {
-            const { update } = context as { id: string; update: Partial<Product> };
+            const { update } = context as BeforeSaveUpdateContext<Product>;
             // Normalize price before saving
             if (update.price) {
               update.price = Math.round(update.price * 100) / 100;
