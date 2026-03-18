@@ -1,5 +1,6 @@
 export * from './controller-ability-predicates.helper';
 export * from './format.helper';
+export * from './lodash.helper';
 export * from './mixin-data.helper';
 export * from './repository.helper';
 export * from './resolve-rooms.helper';
