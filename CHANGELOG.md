@@ -1,5 +1,12 @@
 Changelog
 
+## [4.5.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.4.0...v4.5.0) (2026-03-18)
+
+
+### helpers
+
+* **helpers:** add native lodash replacement helper with tests ([2964ad2](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/2964ad2b88ae990fcbf48851168c28ac69ddf9b7))
+
 ## [4.4.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.3.0...v4.4.0) (2026-03-18)
 
 
