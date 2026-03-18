@@ -60,6 +60,12 @@ type BeforeSaveDeleteCallback<Entity extends BaseEntity, Context = Record<string
   methods: CallbackMethods,
 ) => Promise<void>;
 
+type BeforeSaveDeleteManyCallback<Entity extends BaseEntity, Context = Record<string, unknown>> = (
+  entities: Entity[],
+  context: Context,
+  methods: CallbackMethods,
+) => Promise<void>;
+
 // --- Deprecated aliases ---
 /** @deprecated Use `BeforeSaveCreateContext` instead. Will be removed in v5. */
 type DynamicApiServiceBeforeSaveCreateContext<Entity extends BaseEntity> = BeforeSaveCreateContext<Entity>;
@@ -85,11 +91,14 @@ type DynamicApiServiceBeforeSaveCallback<Entity extends BaseEntity, Context = Re
 type DynamicApiServiceBeforeSaveListCallback<Entity extends BaseEntity, Context = Record<string, unknown>> = BeforeSaveListCallback<Entity, Context>;
 /** @deprecated Use `BeforeSaveDeleteCallback` instead. Will be removed in v5. */
 type DynamicApiServiceBeforeSaveDeleteCallback<Entity extends BaseEntity, Context = Record<string, unknown>> = BeforeSaveDeleteCallback<Entity, Context>;
+/** @deprecated Use `BeforeSaveDeleteManyCallback` instead. Will be removed in v5. */
+type DynamicApiServiceBeforeSaveDeleteManyCallback<Entity extends BaseEntity, Context = Record<string, unknown>> = BeforeSaveDeleteManyCallback<Entity, Context>;
 
 export type {
   BeforeSaveCallback,
   BeforeSaveListCallback,
   BeforeSaveDeleteCallback,
+  BeforeSaveDeleteManyCallback,
   BeforeSaveCreateContext,
   BeforeSaveCreateManyContext,
   BeforeSaveUpdateContext,
@@ -102,6 +111,7 @@ export type {
   DynamicApiServiceBeforeSaveCallback,
   DynamicApiServiceBeforeSaveListCallback,
   DynamicApiServiceBeforeSaveDeleteCallback,
+  DynamicApiServiceBeforeSaveDeleteManyCallback,
   DynamicApiServiceBeforeSaveCreateContext,
   DynamicApiServiceBeforeSaveCreateManyContext,
   DynamicApiServiceBeforeSaveUpdateContext,
