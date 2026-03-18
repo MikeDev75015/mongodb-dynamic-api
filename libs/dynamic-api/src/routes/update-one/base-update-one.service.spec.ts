@@ -1,8 +1,8 @@
 import { Model } from 'mongoose';
 import {
-  DynamicApiCallbackMethods,
-  DynamicApiServiceBeforeSaveCallback,
-  DynamicApiServiceCallback,
+  CallbackMethods,
+  BeforeSaveCallback,
+  AfterSaveCallback,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseUpdateOneService } from './base-update-one.service';
@@ -18,9 +18,9 @@ class TestService extends BaseUpdateOneService<TestEntity> {
 }
 
 type InternalService = {
-  callback: DynamicApiServiceCallback<TestEntity> | undefined;
-  callbackMethods: DynamicApiCallbackMethods;
-  beforeSaveCallback: DynamicApiServiceBeforeSaveCallback<TestEntity> | undefined;
+  callback: AfterSaveCallback<TestEntity> | undefined;
+  callbackMethods: CallbackMethods;
+  beforeSaveCallback: BeforeSaveCallback<TestEntity> | undefined;
 };
 
 const internal = (svc: TestService) => svc as unknown as InternalService;
@@ -99,7 +99,7 @@ describe('BaseUpdateOneService', () => {
         jest.fn().mockResolvedValueOnce(document),
       );
       jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
-      const beforeSaveCallback = jest.fn().mockResolvedValue({}) as DynamicApiServiceBeforeSaveCallback<TestEntity>;
+      const beforeSaveCallback = jest.fn().mockResolvedValue({}) as BeforeSaveCallback<TestEntity>;
       internal(service).beforeSaveCallback = beforeSaveCallback;
       await service.updateOne(document._id, { name: updatedDocument.name } as Partial<TestEntity>);
 

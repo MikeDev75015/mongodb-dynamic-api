@@ -1,8 +1,8 @@
 import { Model } from 'mongoose';
 import {
-  DynamicApiCallbackMethods,
-  DynamicApiServiceBeforeSaveCallback,
-  DynamicApiServiceCallback,
+  CallbackMethods,
+  BeforeSaveCallback,
+  AfterSaveCallback,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseCreateOneService } from './base-create-one.service';
@@ -18,9 +18,9 @@ class TestService extends BaseCreateOneService<TestEntity> {
 }
 
 type InternalService = {
-  callback: DynamicApiServiceCallback<TestEntity> | undefined;
-  callbackMethods: DynamicApiCallbackMethods;
-  beforeSaveCallback: DynamicApiServiceBeforeSaveCallback<TestEntity> | undefined;
+  callback: AfterSaveCallback<TestEntity> | undefined;
+  callbackMethods: CallbackMethods;
+  beforeSaveCallback: BeforeSaveCallback<TestEntity> | undefined;
 };
 
 const internal = (svc: TestService) => svc as unknown as InternalService;

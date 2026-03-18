@@ -1,5 +1,9 @@
 import { Model } from 'mongoose';
-import { DynamicApiCallbackMethods, DynamicApiServiceCallback } from '../../interfaces';
+import {
+  CallbackMethods,
+  BeforeSaveListCallback,
+  AfterSaveCallback,
+} from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseDuplicateManyService } from './base-duplicate-many.service';
 
@@ -14,8 +18,9 @@ class TestService extends BaseDuplicateManyService<TestEntity> {
 }
 
 type InternalService = {
-  callback: DynamicApiServiceCallback<TestEntity> | undefined;
-  callbackMethods: DynamicApiCallbackMethods;
+  callback: AfterSaveCallback<TestEntity> | undefined;
+  callbackMethods: CallbackMethods;
+  beforeSaveCallback: BeforeSaveListCallback<TestEntity> | undefined;
 };
 
 const internal = (svc: TestService) => svc as unknown as InternalService;
@@ -89,6 +94,22 @@ describe('BaseDuplicateManyService', () => {
       expect(callback).toHaveBeenNthCalledWith(
         2,
         { ...duplicatedDocuments[1], id: duplicatedDocuments[1]._id },
+        internal(service).callbackMethods,
+      );
+    });
+
+    it('should call beforeSaveCallback if it is defined', async () => {
+      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(duplicatedDocuments);
+      service = initService(exec, duplicatedDocuments);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const beforeSaveCallback = jest.fn(() => Promise.resolve([{ name: 'test 1' }, { name: 'test 2' }]));
+      internal(service).beforeSaveCallback = beforeSaveCallback;
+      await service.duplicateMany(ids, undefined);
+
+      expect(beforeSaveCallback).toHaveBeenCalledTimes(1);
+      expect(beforeSaveCallback).toHaveBeenCalledWith(
+        undefined,
+        { ids, override: undefined },
         internal(service).callbackMethods,
       );
     });

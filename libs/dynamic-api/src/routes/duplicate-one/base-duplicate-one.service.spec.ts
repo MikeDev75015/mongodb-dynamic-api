@@ -1,5 +1,9 @@
 import { Model } from 'mongoose';
-import { DynamicApiCallbackMethods, DynamicApiServiceCallback } from '../../interfaces';
+import {
+  CallbackMethods,
+  BeforeSaveCallback,
+  AfterSaveCallback,
+} from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseDuplicateOneService } from './base-duplicate-one.service';
 
@@ -14,8 +18,9 @@ class TestService extends BaseDuplicateOneService<TestEntity> {
 }
 
 type InternalService = {
-  callback: DynamicApiServiceCallback<TestEntity> | undefined;
-  callbackMethods: DynamicApiCallbackMethods;
+  callback: AfterSaveCallback<TestEntity> | undefined;
+  callbackMethods: CallbackMethods;
+  beforeSaveCallback: BeforeSaveCallback<TestEntity> | undefined;
 };
 
 const internal = (svc: TestService) => svc as unknown as InternalService;
@@ -77,6 +82,22 @@ describe('BaseDuplicateOneService', () => {
 
       expect(callback).toHaveBeenCalledWith(
         { ...duplicatedDocument, id: duplicatedDocument._id },
+        internal(service).callbackMethods,
+      );
+    });
+
+    it('should call beforeSaveCallback if it is defined', async () => {
+      const exec = jest.fn().mockResolvedValueOnce(document).mockResolvedValueOnce(duplicatedDocument);
+      service = initService(exec, duplicatedDocument);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const beforeSaveCallback = jest.fn(() => Promise.resolve({ name: 'test' }));
+      internal(service).beforeSaveCallback = beforeSaveCallback;
+      await service.duplicateOne(document._id, undefined);
+
+      expect(beforeSaveCallback).toHaveBeenCalledTimes(1);
+      expect(beforeSaveCallback).toHaveBeenCalledWith(
+        { ...document, id: document._id },
+        { id: document._id, override: undefined },
         internal(service).callbackMethods,
       );
     });
