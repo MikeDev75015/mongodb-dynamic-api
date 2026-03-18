@@ -94,7 +94,7 @@ interface DynamicAPIRouteConfig<Entity extends BaseEntity> {
   abilityPredicate?: (entity: Entity, user: any) => boolean;
 
   // Callbacks
-  beforeSaveCallback?: BeforeSaveCallback<Entity>;
+  beforeSaveCallback?: AnyBeforeSaveCallback<Entity>;
   callback?: AfterSaveCallback<Entity>;
 
   // Interceptors
@@ -456,7 +456,7 @@ Used by: `CreateMany`, `UpdateMany`, `DuplicateMany`
 
 ```typescript
 type BeforeSaveListCallback<Entity, Context> = (
-  entity: Entity | undefined,
+  entities: Entity[] | undefined,  // Existing documents (undefined on CreateMany, entities before modification on UpdateMany/DuplicateMany)
   context: Context,
   methods: CallbackMethods,
 ) => Promise<Partial<Entity>[]>;
