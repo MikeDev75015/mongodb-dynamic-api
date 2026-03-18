@@ -3,7 +3,7 @@ import { Model } from 'mongoose';
 import { DeletePresenter } from '../../dtos';
 import {
   DeleteResult,
-  BeforeSaveDeleteCallback,
+  BeforeSaveDeleteManyCallback,
   BeforeSaveDeleteManyContext,
   AfterSaveCallback,
 } from '../../interfaces';
@@ -15,7 +15,7 @@ export abstract class BaseDeleteManyService<Entity extends BaseEntity>
   extends BaseService<Entity>
   implements DeleteManyService<Entity>
 {
-  protected readonly beforeSaveCallback: BeforeSaveDeleteCallback<
+  protected readonly beforeSaveCallback: BeforeSaveDeleteManyCallback<
     Entity,
     BeforeSaveDeleteManyContext
   > | undefined;
@@ -37,7 +37,7 @@ export abstract class BaseDeleteManyService<Entity extends BaseEntity>
 
       if (this.beforeSaveCallback) {
         await this.beforeSaveCallback(
-          undefined,
+          documents,
           { ids },
           this.callbackMethods,
         );
