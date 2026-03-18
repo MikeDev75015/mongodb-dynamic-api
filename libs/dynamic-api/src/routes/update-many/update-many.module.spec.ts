@@ -51,7 +51,7 @@ describe('UpdateManyModule', () => {
       expect(spyCreateUpdateManyController)
       .toHaveBeenCalledWith(Entity, fakeDisplayedName, controllerOptions, routeConfig, version, validationPipeOptions);
       expect(spyCreateUpdateManyServiceProvider)
-      .toHaveBeenCalledWith(Entity, fakeDisplayedName, version, routeConfigCallback);
+      .toHaveBeenCalledWith(Entity, fakeDisplayedName, version, routeConfigCallback, routeConfig.beforeSaveCallback);
     });
 
     it('should return a DynamicModule with gateway', () => {
@@ -75,7 +75,7 @@ describe('UpdateManyModule', () => {
       expect(spyCreateUpdateManyController)
       .toHaveBeenCalledWith(Entity, fakeDisplayedName, controllerOptions, routeConfig, version, validationPipeOptions);
       expect(spyCreateUpdateManyServiceProvider)
-      .toHaveBeenCalledWith(Entity, fakeDisplayedName, version, routeConfigCallback);
+      .toHaveBeenCalledWith(Entity, fakeDisplayedName, version, routeConfigCallback, routeConfig.beforeSaveCallback);
       expect(spyCreateUpdateManyGateway)
       .toHaveBeenCalledWith(
         Entity,
