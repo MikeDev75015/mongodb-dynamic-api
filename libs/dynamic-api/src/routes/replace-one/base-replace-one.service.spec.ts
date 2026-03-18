@@ -1,5 +1,9 @@
 import { Model } from 'mongoose';
-import { DynamicApiCallbackMethods, DynamicApiServiceCallback } from '../../interfaces';
+import {
+  CallbackMethods,
+  BeforeSaveCallback,
+  AfterSaveCallback,
+} from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseReplaceOneService } from './base-replace-one.service';
 
@@ -14,8 +18,9 @@ class TestService extends BaseReplaceOneService<TestEntity> {
 }
 
 type InternalService = {
-  callback: DynamicApiServiceCallback<TestEntity> | undefined;
-  callbackMethods: DynamicApiCallbackMethods;
+  callback: AfterSaveCallback<TestEntity> | undefined;
+  callbackMethods: CallbackMethods;
+  beforeSaveCallback: BeforeSaveCallback<TestEntity> | undefined;
 };
 
 const internal = (svc: TestService) => svc as unknown as InternalService;
@@ -27,10 +32,13 @@ describe('BaseReplaceOneService', () => {
   const document = { _id: 'ObjectId', __v: 1, name: 'test' };
   const replacedDocument = { ...document, _id: 'ReplacedObjectId', name: 'replaced' };
 
-  const initService = (exec = jest.fn()) => {
+  const initService = (findOneExec = jest.fn(), findOneAndReplaceExec = jest.fn()) => {
     modelMock = {
+      findOne: jest.fn(() => ({
+        lean: jest.fn(() => ({ exec: findOneExec })),
+      })),
       findOneAndReplace: jest.fn(() => ({
-        lean: jest.fn(() => ({ exec })),
+        lean: jest.fn(() => ({ exec: findOneAndReplaceExec })),
       })),
     } as unknown as Model<TestEntity>;
 
@@ -53,7 +61,10 @@ describe('BaseReplaceOneService', () => {
     });
 
     it('should call model.findOneAndReplace and return the new document', async () => {
-      service = initService(jest.fn().mockResolvedValueOnce(replacedDocument));
+      service = initService(
+        jest.fn().mockResolvedValueOnce(document),
+        jest.fn().mockResolvedValueOnce(replacedDocument),
+      );
       jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -71,7 +82,10 @@ describe('BaseReplaceOneService', () => {
     });
 
     it('should call callback if it is defined', async () => {
-      service = initService(jest.fn().mockResolvedValueOnce(replacedDocument));
+      service = initService(
+        jest.fn().mockResolvedValueOnce(document),
+        jest.fn().mockResolvedValueOnce(replacedDocument),
+      );
       jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       const callback = jest.fn(() => Promise.resolve());
       internal(service).callback = callback;
@@ -79,6 +93,24 @@ describe('BaseReplaceOneService', () => {
 
       expect(callback).toHaveBeenCalledWith(
         { ...replacedDocument, id: replacedDocument._id },
+        internal(service).callbackMethods,
+      );
+    });
+
+    it('should call beforeSaveCallback if it is defined', async () => {
+      service = initService(
+        jest.fn().mockResolvedValueOnce(document),
+        jest.fn().mockResolvedValueOnce(replacedDocument),
+      );
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const beforeSaveCallback = jest.fn(() => Promise.resolve({ name: replacedDocument.name }));
+      internal(service).beforeSaveCallback = beforeSaveCallback;
+      await service.replaceOne(document._id, { name: replacedDocument.name } as Partial<TestEntity>);
+
+      expect(beforeSaveCallback).toHaveBeenCalledTimes(1);
+      expect(beforeSaveCallback).toHaveBeenCalledWith(
+        { ...document, id: document._id },
+        { id: document._id, replacement: { name: replacedDocument.name } },
         internal(service).callbackMethods,
       );
     });

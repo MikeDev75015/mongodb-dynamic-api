@@ -1,6 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { Model } from 'mongoose';
-import { DynamicApiCallbackMethods, DynamicApiServiceCallback } from '../../interfaces';
+import { CallbackMethods, AfterSaveCallback } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseGetOneService } from './base-get-one.service';
 
@@ -15,8 +15,8 @@ class TestService extends BaseGetOneService<TestEntity> {
 }
 
 type InternalService = {
-  callback: DynamicApiServiceCallback<TestEntity> | undefined;
-  callbackMethods: DynamicApiCallbackMethods;
+  callback: AfterSaveCallback<TestEntity> | undefined;
+  callbackMethods: CallbackMethods;
 };
 
 const internal = (svc: TestService) => svc as unknown as InternalService;

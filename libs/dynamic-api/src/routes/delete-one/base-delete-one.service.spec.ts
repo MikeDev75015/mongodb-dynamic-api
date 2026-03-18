@@ -1,31 +1,54 @@
 import { plainToInstance } from 'class-transformer';
 import { Model } from 'mongoose';
 import { DeletePresenter } from '../../dtos';
+import {
+  CallbackMethods,
+  BeforeSaveDeleteCallback,
+  AfterSaveCallback,
+} from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseDeleteOneService } from './base-delete-one.service';
 
+class TestEntity extends BaseEntity {
+  name: string;
+}
+
+class TestService extends BaseDeleteOneService<TestEntity> {
+  constructor(protected readonly _: Model<TestEntity>) {
+    super(_);
+  }
+}
+
+type InternalService = {
+  callback: AfterSaveCallback<TestEntity> | undefined;
+  callbackMethods: CallbackMethods;
+  beforeSaveCallback: BeforeSaveDeleteCallback<TestEntity> | undefined;
+};
+
+const internal = (svc: TestService) => svc as unknown as InternalService;
+
 describe('BaseDeleteOneService', () => {
-  let service: BaseDeleteOneService<BaseEntity>;
-  let modelMock: Model<BaseEntity>;
+  let service: TestService;
+  let modelMock: Model<TestEntity>;
   const id = 'ObjectId';
+  const document = { _id: id, __v: 1, name: 'test' };
   const deleted = { deletedCount: 1 };
   let presenter: DeletePresenter;
 
-  const initService = () => {
+  const initService = (findOneResult: object | null = document) => {
     modelMock = {
+      findOne: jest.fn(() => ({
+        lean: jest.fn(() => ({
+          exec: jest.fn(() => Promise.resolve(findOneResult)),
+        })),
+      })),
       deleteOne: jest.fn(() => ({
         exec: jest.fn(() => Promise.resolve({ deletedCount: 1 })),
       })),
       updateOne: jest.fn(() => ({
         exec: jest.fn(() => Promise.resolve({ modifiedCount: 1 })),
       })),
-    } as unknown as Model<BaseEntity>;
-
-    class TestService extends BaseDeleteOneService<BaseEntity> {
-      constructor(protected readonly _: Model<BaseEntity>) {
-        super(_);
-      }
-    }
+    } as unknown as Model<TestEntity>;
 
     return new TestService(modelMock);
   }
@@ -85,5 +108,34 @@ describe('BaseDeleteOneService', () => {
 
       await expect(service.deleteOne(id)).resolves.toStrictEqual(presenter);
     });
+  });
+
+  it('should call callback if it is defined', async () => {
+    service = initService();
+    jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+    const callback = jest.fn(() => Promise.resolve());
+    internal(service).callback = callback;
+    await service.deleteOne(id);
+
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(callback).toHaveBeenCalledWith(
+      { ...document, id: document._id },
+      internal(service).callbackMethods,
+    );
+  });
+
+  it('should call beforeSaveCallback if it is defined', async () => {
+    service = initService();
+    jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+    const beforeSaveCallback = jest.fn(() => Promise.resolve());
+    internal(service).beforeSaveCallback = beforeSaveCallback;
+    await service.deleteOne(id);
+
+    expect(beforeSaveCallback).toHaveBeenCalledTimes(1);
+    expect(beforeSaveCallback).toHaveBeenCalledWith(
+      { ...document, id: document._id },
+      { id },
+      internal(service).callbackMethods,
+    );
   });
 });

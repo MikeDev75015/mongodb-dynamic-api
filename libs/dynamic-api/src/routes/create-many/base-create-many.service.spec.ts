@@ -1,11 +1,35 @@
 import { Model } from 'mongoose';
+import {
+  CallbackMethods,
+  BeforeSaveListCallback,
+  AfterSaveCallback,
+} from '../../interfaces';
+import { BaseEntity } from '../../models';
 import { BaseCreateManyService } from './base-create-many.service';
 
-describe('BaseCreateManyService', () => {
-  let service: any;
-  let modelMock: Model<any>;
+class TestEntity extends BaseEntity {
+  name: string;
+}
 
-  const toCreate = { name: 'test' };
+class TestService extends BaseCreateManyService<TestEntity> {
+  constructor(protected readonly _: Model<TestEntity>) {
+    super(_);
+  }
+}
+
+type InternalService = {
+  callback: AfterSaveCallback<TestEntity> | undefined;
+  callbackMethods: CallbackMethods;
+  beforeSaveCallback: BeforeSaveListCallback<TestEntity> | undefined;
+};
+
+const internal = (svc: TestService) => svc as unknown as InternalService;
+
+describe('BaseCreateManyService', () => {
+  let service: TestService;
+  let modelMock: Model<TestEntity>;
+
+  const toCreate = { name: 'test' } as Partial<TestEntity>;
   const created = { _id: 'ObjectId', __v: 1, name: 'test' };
 
   const initService = (documents: any[] = []) => {
@@ -14,13 +38,7 @@ describe('BaseCreateManyService', () => {
       find: jest.fn().mockReturnThis(),
       lean: jest.fn().mockReturnThis(),
       exec: jest.fn().mockResolvedValue(documents),
-    } as unknown as Model<any>;
-
-    class TestService extends BaseCreateManyService<any> {
-      constructor(protected readonly _: Model<any>) {
-        super(_);
-      }
-    }
+    } as unknown as Model<TestEntity>;
 
     return new TestService(modelMock);
   }
@@ -45,10 +63,10 @@ describe('BaseCreateManyService', () => {
     it('should call callback if it is defined', async () => {
       service = initService([created]);
       const callback = jest.fn(() => Promise.resolve());
-      service.callback = callback;
+      internal(service).callback = callback;
       await service.createMany([toCreate]);
 
-      expect(callback).toHaveBeenCalledWith({ ...created, id: created._id }, service.callbackMethods);
+      expect(callback).toHaveBeenCalledWith({ ...created, id: created._id }, internal(service).callbackMethods);
     });
 
     it('should throw an error if the document already exists', async () => {
@@ -68,6 +86,20 @@ describe('BaseCreateManyService', () => {
       (modelMock.create as jest.Mock).mockRejectedValue(new Error('create error'));
 
       await expect(service.createMany([toCreate])).rejects.toThrow('create error');
+    });
+
+    it('should call beforeSaveCallback if it is defined', async () => {
+      service = initService([created]);
+      const beforeSaveCallback = jest.fn(() => Promise.resolve([toCreate]));
+      internal(service).beforeSaveCallback = beforeSaveCallback;
+      await service.createMany([toCreate]);
+
+      expect(beforeSaveCallback).toHaveBeenCalledTimes(1);
+      expect(beforeSaveCallback).toHaveBeenCalledWith(
+        undefined,
+        { toCreate: [toCreate] },
+        internal(service).callbackMethods,
+      );
     });
   });
 });

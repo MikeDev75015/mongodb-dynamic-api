@@ -1,7 +1,7 @@
 import { Type } from '@nestjs/common';
 import { PipelineStage } from 'mongodb-pipeline-builder';
 import { Model, ObjectId } from 'mongoose';
-import { DynamicApiServiceCallback } from '../../interfaces';
+import { AfterSaveCallback } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseAggregateService } from './base-aggregate.service';
 
@@ -12,7 +12,7 @@ describe('BaseAggregateService', () => {
 
   class TestService extends BaseAggregateService<Entity> {
     protected entity: Type<Entity>;
-    protected callback: DynamicApiServiceCallback<Entity> | undefined;
+    protected callback: AfterSaveCallback<Entity> | undefined;
 
     constructor(protected readonly _: Model<Entity>) {
       super(_);
