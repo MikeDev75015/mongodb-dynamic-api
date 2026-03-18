@@ -1,5 +1,5 @@
 import { Model } from 'mongoose';
-import { DynamicApiServiceCallback } from '../../interfaces';
+import { AfterSaveCallback } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseService } from '../../services';
 import { GetOneService } from './get-one-service.interface';
@@ -7,7 +7,7 @@ import { GetOneService } from './get-one-service.interface';
 export abstract class BaseGetOneService<Entity extends BaseEntity>
   extends BaseService<Entity>
   implements GetOneService<Entity> {
-  protected readonly callback: DynamicApiServiceCallback<Entity> | undefined;
+  protected readonly callback: AfterSaveCallback<Entity> | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
     super(model);

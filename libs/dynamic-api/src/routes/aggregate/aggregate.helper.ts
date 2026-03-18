@@ -17,7 +17,7 @@ import { provideName } from '../../helpers';
 import {
   DynamicApiControllerOptions,
   DynamicAPIRouteConfig,
-  DynamicApiServiceCallback,
+  AfterSaveCallback,
   DynamicAPIServiceProvider, GatewayOptions,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
@@ -32,7 +32,7 @@ function createAggregateServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
   displayedName: string,
   version: string | undefined,
-  callback: DynamicApiServiceCallback<Entity> | undefined,
+  callback: AfterSaveCallback<Entity> | undefined,
 ): DynamicAPIServiceProvider {
   class AggregateService extends BaseAggregateService<Entity> {
     protected readonly entity = entity;

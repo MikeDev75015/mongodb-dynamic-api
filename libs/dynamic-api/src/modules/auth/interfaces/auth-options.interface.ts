@@ -5,8 +5,8 @@ import {
   BroadcastAbilityPredicate,
   BroadcastRooms,
   DynamicApiResetPasswordCallback,
-  DynamicApiServiceBeforeSaveCallback,
-  DynamicApiServiceCallback,
+  BeforeSaveCallback,
+  AfterSaveCallback,
   DynamicApiWebSocketOptions,
 } from '../../../interfaces';
 import { BaseEntity } from '../../../models';
@@ -28,7 +28,7 @@ type DynamicApiAuthBroadcastConfig<Entity extends BaseEntity = any> = {
 type DynamicApiLoginOptions<Entity extends BaseEntity = any> = {
   loginField?: keyof Entity;
   passwordField?: keyof Entity;
-  callback?: DynamicApiServiceCallback<Entity>;
+  callback?: AfterSaveCallback<Entity>;
   abilityPredicate?: AuthAbilityPredicate;
   additionalFields?: (keyof Entity)[];
   useInterceptors?: Type<NestInterceptor>[];
@@ -47,14 +47,14 @@ type DynamicApiLoginOptions<Entity extends BaseEntity = any> = {
 }
 
 type DynamicApiGetAccountOptions<Entity extends BaseEntity = any> = {
-  callback?: DynamicApiServiceCallback<Entity>;
+  callback?: AfterSaveCallback<Entity>;
   useInterceptors?: Type<NestInterceptor>[];
   broadcast?: DynamicApiAuthBroadcastConfig<Entity>;
 };
 
 type DynamicApiRegisterOptions<Entity extends BaseEntity = any> = {
-  beforeSaveCallback?: DynamicApiServiceBeforeSaveCallback<Entity>;
-  callback?: DynamicApiServiceCallback<Entity>;
+  beforeSaveCallback?: BeforeSaveCallback<Entity>;
+  callback?: AfterSaveCallback<Entity>;
   protected?: boolean;
   abilityPredicate?: AuthAbilityPredicate;
   additionalFields?: (keyof Entity | { name: keyof Entity; required?: boolean })[];
@@ -63,8 +63,8 @@ type DynamicApiRegisterOptions<Entity extends BaseEntity = any> = {
 };
 
 type DynamicApiUpdateAccountOptions<Entity extends BaseEntity = any> = {
-  beforeSaveCallback?: DynamicApiServiceBeforeSaveCallback<Entity>;
-  callback?: DynamicApiServiceCallback<Entity>;
+  beforeSaveCallback?: BeforeSaveCallback<Entity>;
+  callback?: AfterSaveCallback<Entity>;
   abilityPredicate?: AuthAbilityPredicate;
   additionalFieldsToExclude?: (keyof Entity)[];
   useInterceptors?: Type<NestInterceptor>[];
@@ -74,10 +74,10 @@ type DynamicApiUpdateAccountOptions<Entity extends BaseEntity = any> = {
 type DynamicApiResetPasswordOptions<Entity extends BaseEntity = any> = {
   emailField?: keyof Entity | string;
   expirationInMinutes?: number;
-  beforeChangePasswordCallback?: DynamicApiServiceBeforeSaveCallback<Entity>;
+  beforeChangePasswordCallback?: BeforeSaveCallback<Entity>;
   resetPasswordCallback?: DynamicApiResetPasswordCallback<Entity>;
   resetPasswordUseInterceptors?: Type<NestInterceptor>[];
-  changePasswordCallback?: DynamicApiServiceCallback<Entity>;
+  changePasswordCallback?: AfterSaveCallback<Entity>;
   changePasswordAbilityPredicate?: AuthAbilityPredicate;
   changePasswordUseInterceptors?: Type<NestInterceptor>[];
 };

@@ -2,9 +2,9 @@ import { plainToInstance } from 'class-transformer';
 import { cloneDeep } from 'lodash';
 import { Model } from 'mongoose';
 import {
-  DynamicApiServiceBeforeSaveCallback,
-  DynamicApiServiceBeforeSaveCreateContext,
-  DynamicApiServiceCallback,
+  BeforeSaveCallback,
+  BeforeSaveCreateContext,
+  AfterSaveCallback,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseService } from '../../services';
@@ -14,11 +14,11 @@ export abstract class BaseCreateOneService<Entity extends BaseEntity>
   extends BaseService<Entity>
   implements CreateOneService<Entity>
 {
-  protected readonly beforeSaveCallback: DynamicApiServiceBeforeSaveCallback<
+  protected readonly beforeSaveCallback: BeforeSaveCallback<
     Entity,
-    DynamicApiServiceBeforeSaveCreateContext<Entity>
+    BeforeSaveCreateContext<Entity>
   > | undefined;
-  protected readonly callback: DynamicApiServiceCallback<Entity> | undefined;
+  protected readonly callback: AfterSaveCallback<Entity> | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
     super(model);

@@ -1,7 +1,7 @@
 import { Type } from '@nestjs/common';
 import { GetPagingResult, GetResult, PipelineStage } from 'mongodb-pipeline-builder';
 import { Model } from 'mongoose';
-import { DynamicApiServiceCallback } from '../../interfaces';
+import { AfterSaveCallback } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseService } from '../../services';
 import { AggregateService } from './aggregate-service.interface';
@@ -11,7 +11,7 @@ export abstract class BaseAggregateService<Entity extends BaseEntity>
   implements AggregateService<Entity>
 {
   protected readonly entity: Type<Entity>;
-  protected readonly callback: DynamicApiServiceCallback<Entity> | undefined;
+  protected readonly callback: AfterSaveCallback<Entity> | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
     super(model);

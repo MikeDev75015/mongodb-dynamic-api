@@ -1,7 +1,12 @@
 import { Type } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
+import { cloneDeep } from 'lodash';
 import { Model } from 'mongoose';
-import { DynamicApiServiceCallback } from '../../interfaces';
+import {
+  BeforeSaveCreateManyContext,
+  BeforeSaveListCallback,
+  AfterSaveCallback,
+} from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseService } from '../../services';
 import { CreateManyService } from './create-many-service.interface';
@@ -11,7 +16,11 @@ export abstract class BaseCreateManyService<Entity extends BaseEntity>
   implements CreateManyService<Entity> {
   protected readonly entity: Type<Entity>;
 
-  protected readonly callback: DynamicApiServiceCallback<Entity> | undefined;
+  protected readonly beforeSaveCallback: BeforeSaveListCallback<
+    Entity,
+    BeforeSaveCreateManyContext<Entity>
+  > | undefined;
+  protected readonly callback: AfterSaveCallback<Entity> | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
     super(model);
@@ -19,8 +28,16 @@ export abstract class BaseCreateManyService<Entity extends BaseEntity>
 
   async createMany(partials: Partial<Entity>[]): Promise<Entity[]> {
     try {
+      const toCreate = this.beforeSaveCallback
+        ? await this.beforeSaveCallback(
+          undefined,
+          { toCreate: cloneDeep(partials) },
+          this.callbackMethods,
+        )
+        : partials;
+
       const created = await this.model.create(
-        partials.map((p) => plainToInstance(this.entity, p)),
+        toCreate.map((p) => plainToInstance(this.entity, p)),
       );
       const documents = await this.model
       .find({ _id: { $in: created.map(({ _id }) => _id.toString()) } })

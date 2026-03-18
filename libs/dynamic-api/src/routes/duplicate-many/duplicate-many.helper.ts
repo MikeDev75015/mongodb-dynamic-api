@@ -18,7 +18,8 @@ import { provideName } from '../../helpers';
 import {
   DynamicApiControllerOptions,
   DynamicAPIRouteConfig,
-  DynamicApiServiceCallback,
+  BeforeSaveListCallback,
+  AfterSaveCallback,
   DynamicAPIServiceProvider,
   GatewayOptions,
 } from '../../interfaces';
@@ -35,10 +36,12 @@ function createDuplicateManyServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
   displayedName: string,
   version: string | undefined,
-  callback: DynamicApiServiceCallback<Entity> | undefined,
+  callback: AfterSaveCallback<Entity> | undefined,
+  beforeSaveCallback: BeforeSaveListCallback<Entity> | undefined,
 ): DynamicAPIServiceProvider {
   class DuplicateManyService extends BaseDuplicateManyService<Entity> {
     protected readonly entity = entity;
+    protected readonly beforeSaveCallback = beforeSaveCallback;
     protected readonly callback = callback;
 
     constructor(
