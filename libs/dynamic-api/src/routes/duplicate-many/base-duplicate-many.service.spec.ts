@@ -108,7 +108,7 @@ describe('BaseDuplicateManyService', () => {
 
       expect(beforeSaveCallback).toHaveBeenCalledTimes(1);
       expect(beforeSaveCallback).toHaveBeenCalledWith(
-        undefined,
+        documents,
         { ids, override: undefined },
         internal(service).callbackMethods,
       );

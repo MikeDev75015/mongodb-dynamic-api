@@ -1,7 +1,7 @@
 import { cloneDeep } from 'lodash';
 import { Model } from 'mongoose';
 import {
-  BeforeSaveCallback,
+  BeforeSaveListCallback,
   BeforeSaveUpdateManyContext,
   AfterSaveCallback,
 } from '../../interfaces';
@@ -12,7 +12,7 @@ import { UpdateManyService } from './update-many-service.interface';
 export abstract class BaseUpdateManyService<Entity extends BaseEntity>
   extends BaseService<Entity>
   implements UpdateManyService<Entity> {
-  protected readonly beforeSaveCallback: BeforeSaveCallback<
+  protected readonly beforeSaveCallback: BeforeSaveListCallback<
     Entity,
     BeforeSaveUpdateManyContext<Entity>
   > | undefined;
@@ -29,26 +29,39 @@ export abstract class BaseUpdateManyService<Entity extends BaseEntity>
         this.handleDocumentNotFound();
       }
 
-      const update = this.beforeSaveCallback
-        ? await this.beforeSaveCallback(
-          undefined,
+      if (this.beforeSaveCallback) {
+        const updates = await this.beforeSaveCallback(
+          toUpdateList,
           { ids, update: cloneDeep(partial) },
           this.callbackMethods,
-        )
-        : partial;
+        );
 
-      await this.model
-      .updateMany(
-        {
-          _id: { $in: ids },
-          ...(
-            this.isSoftDeletable ? { isDeleted: false } : undefined
+        await Promise.all(
+          updates.map((update, index) =>
+            this.model
+            .findByIdAndUpdate(
+              toUpdateList[index]._id,
+              update,
+              { new: true },
+            )
+            .lean()
+            .exec(),
           ),
-        },
-        update,
-      )
-      .lean()
-      .exec();
+        );
+      } else {
+        await this.model
+        .updateMany(
+          {
+            _id: { $in: ids },
+            ...(
+              this.isSoftDeletable ? { isDeleted: false } : undefined
+            ),
+          },
+          partial,
+        )
+        .lean()
+        .exec();
+      }
 
       const documents = await this.model.find({ _id: { $in: ids } }).lean<Entity[]>().exec();
 

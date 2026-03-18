@@ -58,7 +58,7 @@ export abstract class BaseDuplicateManyService<Entity extends BaseEntity>
 
       const toCreateList = this.beforeSaveCallback
         ? await this.beforeSaveCallback(
-          undefined,
+          toDuplicateList,
           { ids, override: partial ? cloneDeep(partial) : undefined },
           this.callbackMethods,
         )
