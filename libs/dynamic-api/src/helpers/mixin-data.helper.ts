@@ -1,5 +1,5 @@
 import { Type } from '@nestjs/common';
-import { kebabCase } from 'lodash';
+import { kebabCase } from './lodash.helper';
 import {
   AbilityPredicate,
   DynamicApiControllerOptions,

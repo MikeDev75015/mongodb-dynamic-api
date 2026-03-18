@@ -1,4 +1,4 @@
-import { camelCase, upperFirst } from 'lodash';
+import { camelCase, upperFirst } from './lodash.helper';
 import { RouteType } from '../interfaces';
 import { addVersionSuffix } from './versioning-config.helper';
 

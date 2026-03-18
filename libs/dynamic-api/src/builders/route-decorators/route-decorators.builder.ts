@@ -1,9 +1,8 @@
 import { Delete, Get, Patch, Post, Put, Type } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
-import { keys, lowerCase, lowerFirst, upperFirst } from 'lodash';
 import { Public } from '../../decorators';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { pascalCase } from '../../helpers';
+import { lowerCase, lowerFirst, pascalCase, upperFirst } from '../../helpers';
 import { DynamicApiDecoratorBuilder, RouteType } from '../../interfaces';
 import { BaseEntity } from '../../models';
 
@@ -36,7 +35,7 @@ class RouteDecoratorsBuilder<Entity extends BaseEntity> implements DynamicApiDec
   ) {}
 
   public build() {
-    const [paramKey] = this.dTOs.param ? keys(new this.dTOs.param()) : [];
+    const [paramKey] = this.dTOs.param ? Object.keys(new this.dTOs.param()) : [];
 
     return [
       ...this.getRouteDecorators(paramKey),

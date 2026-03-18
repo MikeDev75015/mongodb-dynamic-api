@@ -1,7 +1,6 @@
 import { BadRequestException, Body, Optional, Type, UseGuards, UseInterceptors } from '@nestjs/common';
-import { isEmpty } from 'lodash';
 import { RouteDecoratorsBuilder } from '../../builders';
-import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
+import { addVersionSuffix, getMixinData, isEmpty, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';

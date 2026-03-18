@@ -1,9 +1,8 @@
 import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
-import { isEmpty } from 'lodash';
 import { ManyEntityQuery } from '../dtos';
 import { DynamicApiModule } from '../dynamic-api.module';
-import { resolveRooms } from '../helpers';
+import { isEmpty, resolveRooms } from '../helpers';
 import { DynamicApiWsConfigStore } from '../helpers/ws-config.store';
 import { DynamicApiBroadcastConfig, ExtendedSocket } from '../interfaces';
 import { MongoDBDynamicApiLogger } from '../logger';

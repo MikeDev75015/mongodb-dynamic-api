@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
-import { isEmpty } from 'lodash';
+import { isEmpty } from '../helpers';
 import { Socket } from 'socket.io';
 import { DynamicApiModule } from '../dynamic-api.module';
 import { MongoDBDynamicApiLogger } from '../logger';

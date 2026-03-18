@@ -1,4 +1,4 @@
-import { cloneDeep } from 'lodash';
+import { cloneDeep } from '../../helpers';
 import { Model } from 'mongoose';
 import { BeforeSaveCallback, BeforeSaveUpdateContext, AfterSaveCallback } from '../../interfaces';
 import { BaseEntity } from '../../models';
