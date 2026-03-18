@@ -60,9 +60,9 @@ function splitWords(str: string): string[] {
   }
 
   return str
-    .replace(/([a-z\d])([A-Z])/g, '$1 $2')
-    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
-    .replace(/[^a-zA-Z\d\s]/g, ' ')
+    .replaceAll(/([a-z\d])([A-Z])/g, '$1 $2')
+    .replaceAll(/(?<=[A-Z])(?=[A-Z][a-z])/g, ' ')
+    .replaceAll(/[^a-zA-Z\d\s]/g, ' ')
     .trim()
     .split(/\s+/)
     .filter(Boolean);
