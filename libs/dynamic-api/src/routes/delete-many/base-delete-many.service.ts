@@ -25,7 +25,7 @@ export abstract class BaseDeleteManyService<Entity extends BaseEntity>
     super(model);
   }
 
-  async deleteMany(ids: string[]): Promise<DeletePresenter> {
+  async deleteMany(ids: string[], user?: unknown): Promise<DeletePresenter> {
     try {
       const documents = await this.model
         .find({
@@ -40,6 +40,7 @@ export abstract class BaseDeleteManyService<Entity extends BaseEntity>
           documents,
           { ids },
           this.callbackMethods,
+          user,
         );
       }
 
@@ -64,7 +65,7 @@ export abstract class BaseDeleteManyService<Entity extends BaseEntity>
       if (this.callback && documents?.length) {
         await Promise.all(
           documents.map(
-            (document) => this.callback(this.addDocumentId(document), this.callbackMethods),
+            (document) => this.callback(this.addDocumentId(document), this.callbackMethods, user),
           ),
         );
       }

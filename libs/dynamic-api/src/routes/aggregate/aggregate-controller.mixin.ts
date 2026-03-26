@@ -1,4 +1,4 @@
-import { BadRequestException, Query, SetMetadata, Type, UseGuards, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Query, Request, SetMetadata, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { DISABLE_CACHE_KEY } from '../../decorators';
@@ -86,7 +86,7 @@ function AggregateControllerMixin<Entity extends BaseEntity>(
     @UseGuards(AggregatePoliciesGuard)
     @UseInterceptors(...useInterceptors)
     @SetMetadata(DISABLE_CACHE_KEY, disableCache)
-    async aggregate(@Query() query: AggregateQuery) {
+    async aggregate(@Query() query: AggregateQuery, @Request() req?: any) {
       const toPipeline = (
         AggregateQuery as Aggregatable<AggregateQuery>
       ).toPipeline;
@@ -101,7 +101,7 @@ function AggregateControllerMixin<Entity extends BaseEntity>(
         throw new BadRequestException('Invalid pipeline, no stages found');
       }
 
-      const { list, count, totalPage } = await this.service.aggregate(pipelineBuilt);
+      const { list, count, totalPage } = await this.service.aggregate(pipelineBuilt, req?.user);
 
       const fromAggregate = (
         AggregatePresenter as Mappable<Entity>

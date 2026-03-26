@@ -81,7 +81,7 @@ function CreateOneGatewayMixin<Entity extends BaseEntity>(
         CreateOneData as Mappable<Entity>
       ).toEntity;
 
-      const entity = await this.service.createOne(toEntity ? toEntity(body) : body as Partial<Entity>);
+      const entity = await this.service.createOne(toEntity ? toEntity(body) : body as Partial<Entity>, socket?.user);
 
       const fromEntity = (
         CreateOneResponse as Mappable<Entity>

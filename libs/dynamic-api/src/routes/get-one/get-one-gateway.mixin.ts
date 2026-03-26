@@ -73,7 +73,7 @@ function GetOneGatewayMixin<Entity extends BaseEntity>(
         throw new WsException('Invalid request body');
       }
 
-      const entity = await this.service.getOne(body.id);
+      const entity = await this.service.getOne(body.id, _socket?.user);
 
       const fromEntity = (
         GetOneResponse as Mappable<Entity>

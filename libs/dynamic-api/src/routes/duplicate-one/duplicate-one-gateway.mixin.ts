@@ -91,6 +91,7 @@ function DuplicateOneGatewayMixin<Entity extends BaseEntity>(
       const entity = await this.service.duplicateOne(
         id,
         !isEmpty(data) && toEntity ? toEntity(data) : data as Partial<Entity>,
+        socket?.user,
       );
 
       const fromEntity = (

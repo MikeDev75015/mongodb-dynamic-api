@@ -3,7 +3,7 @@ import { DynamicApiBroadcastService } from '../../services';
 import { CreateOneService } from './create-one-service.interface';
 
 interface CreateOneController<Entity extends BaseEntity, Response = any> {
-  createOne<Body>(body: Body): Promise<Entity | Response>;
+  createOne<Body>(body: Body, req?: any): Promise<Entity | Response>;
 }
 
 type CreateOneControllerConstructor<Entity extends BaseEntity> = new (

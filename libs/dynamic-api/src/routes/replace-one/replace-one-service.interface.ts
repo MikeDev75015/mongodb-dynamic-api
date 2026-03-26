@@ -1,7 +1,7 @@
 import { BaseEntity } from '../../models';
 
 interface ReplaceOneService<Entity extends BaseEntity> {
-  replaceOne(id: string, partial: Partial<Entity>): Promise<Entity>;
+  replaceOne(id: string, partial: Partial<Entity>, user?: unknown): Promise<Entity>;
 }
 
 export type { ReplaceOneService };

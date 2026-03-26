@@ -24,22 +24,23 @@ export abstract class BaseCreateOneService<Entity extends BaseEntity>
     super(model);
   }
 
-  async createOne(partial: Partial<Entity>): Promise<Entity> {
+  async createOne(partial: Partial<Entity>, user?: unknown): Promise<Entity> {
     try {
       const toCreate = this.beforeSaveCallback
         ? await this.beforeSaveCallback(
           undefined,
           { toCreate: cloneDeep(partial) },
           this.callbackMethods,
+          user,
         )
-        : partial;
+        : cloneDeep(partial);
 
       const { _id } = await this.model.create(plainToInstance(this.entity, toCreate));
 
       const document = await this.model.findOne({ _id }).lean<Entity>().exec();
 
       if (this.callback) {
-        await this.callback(this.addDocumentId(document), this.callbackMethods);
+        await this.callback(this.addDocumentId(document), this.callbackMethods, user);
       }
 
       return this.buildInstance(document);

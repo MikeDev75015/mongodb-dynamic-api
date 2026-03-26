@@ -1,4 +1,4 @@
-import { Body, Optional, Query, Type, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Optional, Query, Request, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { addVersionSuffix, getMixinData, isEmpty, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
@@ -79,7 +79,7 @@ function DuplicateManyControllerMixin<Entity extends BaseEntity>(
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(DuplicateManyPoliciesGuard)
     @UseInterceptors(...useInterceptors)
-    async duplicateMany(@Query('ids') ids: string[], @Body() body?: DuplicateManyBody) {
+    async duplicateMany(@Query('ids') ids: string[], @Body() body?: DuplicateManyBody, @Request() req?: any) {
       if (!ids?.length) {
         throw new Error('Invalid query');
       }
@@ -91,6 +91,7 @@ function DuplicateManyControllerMixin<Entity extends BaseEntity>(
       const list = await this.service.duplicateMany(
         ids,
         !isEmpty(body) && toEntity ? toEntity(body) : body as Partial<Entity>,
+        req?.user,
       );
 
       const fromEntities = (

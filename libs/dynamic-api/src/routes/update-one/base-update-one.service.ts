@@ -21,7 +21,7 @@ export abstract class BaseUpdateOneService<Entity extends BaseEntity>
     super(model);
   }
 
-  async updateOne(id: string, partial: Partial<Entity>): Promise<Entity> {
+  async updateOne(id: string, partial: Partial<Entity>, user?: unknown): Promise<Entity> {
     try {
       const document = await this.model
       .findOne({
@@ -42,8 +42,9 @@ export abstract class BaseUpdateOneService<Entity extends BaseEntity>
           this.addDocumentId(document),
           { id, update: cloneDeep(partial) },
           this.callbackMethods,
+          user,
         )
-        : partial;
+        : cloneDeep(partial);
 
       const updatedDocument = await this.model
       .findOneAndUpdate(
@@ -55,7 +56,7 @@ export abstract class BaseUpdateOneService<Entity extends BaseEntity>
       .exec();
 
       if (this.callback) {
-        await this.callback(this.addDocumentId(updatedDocument), this.callbackMethods);
+        await this.callback(this.addDocumentId(updatedDocument), this.callbackMethods, user);
       }
 
       return this.buildInstance(updatedDocument);

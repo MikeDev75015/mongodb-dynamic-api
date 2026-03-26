@@ -8,7 +8,7 @@ type AggregateServiceResponse<Entity extends BaseEntity> = {
 };
 
 interface AggregateService<Entity extends BaseEntity> {
-  aggregate(pipeline: PipelineStage[]): Promise<AggregateServiceResponse<Entity>>;
+  aggregate(pipeline: PipelineStage[], user?: unknown): Promise<AggregateServiceResponse<Entity>>;
 }
 
 export type { AggregateService, AggregateServiceResponse };

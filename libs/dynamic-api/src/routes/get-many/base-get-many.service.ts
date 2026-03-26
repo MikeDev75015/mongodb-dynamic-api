@@ -13,7 +13,7 @@ export abstract class BaseGetManyService<Entity extends BaseEntity>
     super(model);
   }
 
-  async getMany(query?: object): Promise<Entity[]> {
+  async getMany(query?: object, user?: unknown): Promise<Entity[]> {
     const documents = await this.model
     .find({
       ...(
@@ -29,7 +29,7 @@ export abstract class BaseGetManyService<Entity extends BaseEntity>
     if (this.callback && documents.length) {
       await Promise.all(
         documents.map(
-          (document) => this.callback(this.addDocumentId(document), this.callbackMethods),
+          (document) => this.callback(this.addDocumentId(document), this.callbackMethods, user),
         ),
       );
     }

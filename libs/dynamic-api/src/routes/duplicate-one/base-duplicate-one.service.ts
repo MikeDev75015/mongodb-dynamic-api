@@ -27,7 +27,7 @@ export abstract class BaseDuplicateOneService<Entity extends BaseEntity>
     super(model);
   }
 
-  async duplicateOne(id: string, partial: Partial<Entity> | undefined): Promise<Entity> {
+  async duplicateOne(id: string, partial: Partial<Entity> | undefined, user?: unknown): Promise<Entity> {
     try {
       const toDuplicate = await this.model
         .findOne({
@@ -57,6 +57,7 @@ export abstract class BaseDuplicateOneService<Entity extends BaseEntity>
           this.addDocumentId(toDuplicate),
           { id, override: partial ? cloneDeep(partial) : undefined },
           this.callbackMethods,
+          user,
         )
         : baseData;
 
@@ -64,7 +65,7 @@ export abstract class BaseDuplicateOneService<Entity extends BaseEntity>
       const document = await this.model.findOne({ _id }).lean<Entity>().exec();
 
       if (this.callback) {
-        await this.callback(this.addDocumentId(document), this.callbackMethods);
+        await this.callback(this.addDocumentId(document), this.callbackMethods, user);
       }
 
       return this.buildInstance(document);

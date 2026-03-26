@@ -13,7 +13,7 @@ export abstract class BaseGetOneService<Entity extends BaseEntity>
     super(model);
   }
 
-  async getOne(id: string): Promise<Entity> {
+  async getOne(id: string, user?: unknown): Promise<Entity> {
     try {
       const document = await this.model
       .findOne({
@@ -30,7 +30,7 @@ export abstract class BaseGetOneService<Entity extends BaseEntity>
       }
 
       if (this.callback) {
-        await this.callback(this.addDocumentId(document), this.callbackMethods);
+        await this.callback(this.addDocumentId(document), this.callbackMethods, user);
       }
 
       return this.buildInstance(document);

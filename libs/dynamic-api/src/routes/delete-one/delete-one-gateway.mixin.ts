@@ -73,7 +73,7 @@ function DeleteOneGatewayMixin<Entity extends BaseEntity>(
         throw new WsException('Invalid request body');
       }
 
-      const deleteResult = await this.service.deleteOne(body.id);
+      const deleteResult = await this.service.deleteOne(body.id, socket?.user);
 
       const fromDeleteResult = (
         DeleteOneResponse as Mappable<Entity>

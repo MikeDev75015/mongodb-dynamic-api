@@ -7,7 +7,7 @@ type CreateManyBody<T = any> = {
 };
 
 interface CreateManyController<Entity extends BaseEntity, Response = any> {
-  createMany(body: CreateManyBody<Entity>): Promise<(Entity | Response)[]>;
+  createMany(body: CreateManyBody<Entity>, req?: any): Promise<(Entity | Response)[]>;
 }
 
 type CreateManyControllerConstructor<Entity extends BaseEntity> = new (

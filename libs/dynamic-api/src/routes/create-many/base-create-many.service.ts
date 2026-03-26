@@ -26,15 +26,16 @@ export abstract class BaseCreateManyService<Entity extends BaseEntity>
     super(model);
   }
 
-  async createMany(partials: Partial<Entity>[]): Promise<Entity[]> {
+  async createMany(partials: Partial<Entity>[], user?: unknown): Promise<Entity[]> {
     try {
       const toCreate = this.beforeSaveCallback
         ? await this.beforeSaveCallback(
           undefined,
           { toCreate: cloneDeep(partials) },
           this.callbackMethods,
+          user,
         )
-        : partials;
+        : cloneDeep(partials);
 
       const created = await this.model.create(
         toCreate.map((p) => plainToInstance(this.entity, p)),
@@ -47,7 +48,7 @@ export abstract class BaseCreateManyService<Entity extends BaseEntity>
       if (this.callback && documents.length) {
         await Promise.all(
           documents.map(
-            (document) => this.callback(this.addDocumentId(document as Entity), this.callbackMethods),
+            (document) => this.callback(this.addDocumentId(document as Entity), this.callbackMethods, user),
           ),
         );
       }
