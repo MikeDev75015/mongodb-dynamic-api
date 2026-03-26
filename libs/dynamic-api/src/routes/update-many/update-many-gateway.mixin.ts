@@ -92,7 +92,7 @@ function UpdateManyGatewayMixin<Entity extends BaseEntity>(
         UpdateManyData as Mappable<Entity>
       ).toEntity;
 
-      const list = await this.service.updateMany(ids, toEntity ? toEntity(data) : data as Partial<Entity>);
+      const list = await this.service.updateMany(ids, toEntity ? toEntity(data) : data as Partial<Entity>, socket?.user);
 
       const fromEntities = (
         UpdateManyResponse as Mappable<Entity>

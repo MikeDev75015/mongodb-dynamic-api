@@ -3,7 +3,7 @@ import { DynamicApiBroadcastService } from '../../services';
 import { UpdateManyService } from './update-many-service.interface';
 
 interface UpdateManyController<Entity extends BaseEntity, Body = any, Response = any> {
-  updateMany(ids: string[], partial: Body): Promise<(Entity | Response)[]>;
+  updateMany(ids: string[], partial: Body, req?: any): Promise<(Entity | Response)[]>;
 }
 
 type UpdateManyControllerConstructor<Entity extends BaseEntity> = new (

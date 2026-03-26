@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Optional, Type, UseGuards, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Optional, Request, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { addVersionSuffix, getMixinData, isEmpty, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
@@ -77,7 +77,7 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(CreateManyPoliciesGuard)
     @UseInterceptors(...useInterceptors)
-    async createMany(@Body() body: CreateManyBody) {
+    async createMany(@Body() body: CreateManyBody, @Request() req?: any) {
       if (!(
         'list' in body &&
         Array.isArray(body.list) &&
@@ -93,7 +93,7 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
         CreateManyBody as Mappable<Entity>
       ).toEntities;
 
-      const list = await this.service.createMany(toEntities ? toEntities(body) : toCreateList);
+      const list = await this.service.createMany(toEntities ? toEntities(body) : toCreateList, req?.user);
 
       const fromEntities = (
         CreateManyPresenter as Mappable<Entity>

@@ -3,7 +3,7 @@ import { DynamicApiBroadcastService } from '../../services';
 import { ReplaceOneService } from './replace-one-service.interface';
 
 interface ReplaceOneController<Entity extends BaseEntity, Body = any, Response = any> {
-  replaceOne(id: string, body: Body): Promise<Entity | Response>;
+  replaceOne(id: string, body: Body, req?: any): Promise<Entity | Response>;
 }
 
 type ReplaceOneControllerConstructor<Entity extends BaseEntity> = new (

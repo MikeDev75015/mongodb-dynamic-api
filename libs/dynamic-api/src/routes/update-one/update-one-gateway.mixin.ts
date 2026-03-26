@@ -88,7 +88,7 @@ function UpdateOneGatewayMixin<Entity extends BaseEntity>(
         UpdateOneData as Mappable<Entity>
       ).toEntity;
 
-      const entity = await this.service.updateOne(id, toEntity ? toEntity(data) : data as Partial<Entity>);
+      const entity = await this.service.updateOne(id, toEntity ? toEntity(data) : data as Partial<Entity>, socket?.user);
 
       const fromEntity = (
         UpdateOneResponse as Mappable<Entity>

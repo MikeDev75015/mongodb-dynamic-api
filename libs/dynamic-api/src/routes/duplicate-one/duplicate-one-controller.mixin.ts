@@ -1,4 +1,4 @@
-import { Body, Optional, Param, Type, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Optional, Param, Request, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityParam } from '../../dtos';
 import { addVersionSuffix, getMixinData, isEmpty, provideName, RouteDecoratorsHelper } from '../../helpers';
@@ -81,7 +81,7 @@ function DuplicateOneControllerMixin<Entity extends BaseEntity>(
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(DuplicateOnePoliciesGuard)
     @UseInterceptors(...useInterceptors)
-    async duplicateOne(@Param('id') id: string, @Body() body?: DuplicateOneBody) {
+    async duplicateOne(@Param('id') id: string, @Body() body?: DuplicateOneBody, @Request() req?: any) {
       const toEntity = (
         DuplicateOneBody as Mappable<Entity>
       ).toEntity;
@@ -89,6 +89,7 @@ function DuplicateOneControllerMixin<Entity extends BaseEntity>(
       const entity = await this.service.duplicateOne(
         id,
         !isEmpty(body) && toEntity ? toEntity(body) : body as Partial<Entity>,
+        req?.user,
       );
 
       const fromEntity = (

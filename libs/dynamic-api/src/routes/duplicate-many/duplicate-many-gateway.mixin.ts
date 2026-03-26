@@ -91,6 +91,7 @@ function DuplicateManyGatewayMixin<Entity extends BaseEntity>(
       const list = await this.service.duplicateMany(
         ids,
         !isEmpty(data) && toEntity ? toEntity(data) : data as Partial<Entity>,
+        socket?.user,
       );
 
       const fromEntities = (

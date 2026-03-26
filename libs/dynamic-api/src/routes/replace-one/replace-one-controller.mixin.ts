@@ -1,4 +1,4 @@
-import { Body, Optional, Param, Type, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Optional, Param, Request, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityParam } from '../../dtos';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
@@ -81,12 +81,12 @@ function ReplaceOneControllerMixin<Entity extends BaseEntity>(
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(ReplaceOnePoliciesGuard)
     @UseInterceptors(...useInterceptors)
-    async replaceOne(@Param('id') id: string, @Body() body: ReplaceOneBody) {
+    async replaceOne(@Param('id') id: string, @Body() body: ReplaceOneBody, @Request() req?: any) {
       const toEntity = (
         ReplaceOneBody as Mappable<Entity>
       ).toEntity;
 
-      const entity = await this.service.replaceOne(id, toEntity ? toEntity(body) : body as Partial<Entity>);
+      const entity = await this.service.replaceOne(id, toEntity ? toEntity(body) : body as Partial<Entity>, req?.user);
 
       const fromEntity = (
         ReplaceOnePresenter as Mappable<Entity>

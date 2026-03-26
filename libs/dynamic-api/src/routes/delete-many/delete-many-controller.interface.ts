@@ -5,7 +5,7 @@ import { DynamicApiBroadcastService } from '../../services';
 import { DeleteManyService } from './delete-many-service.interface';
 
 interface DeleteManyController<_Entity extends BaseEntity, Response = any> {
-  deleteMany(query: ManyEntityQuery): Promise<DeleteResult | Response>;
+  deleteMany(query: ManyEntityQuery, req?: any): Promise<DeleteResult | Response>;
 }
 
 type DeleteManyControllerConstructor<Entity extends BaseEntity> = new (

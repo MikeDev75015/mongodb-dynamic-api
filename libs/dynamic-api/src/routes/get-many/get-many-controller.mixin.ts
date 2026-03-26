@@ -1,4 +1,4 @@
-import { Query, SetMetadata, Type, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Query, Request, SetMetadata, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { DISABLE_CACHE_KEY } from '../../decorators';
 import { EntityQuery } from '../../dtos';
@@ -81,8 +81,8 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
     @UseGuards(GetManyPoliciesGuard)
     @UseInterceptors(...useInterceptors)
     @SetMetadata(DISABLE_CACHE_KEY, disableCache)
-    async getMany(@Query() query: GetManyQuery) {
-      const list = await this.service.getMany(query ?? {});
+    async getMany(@Query() query: GetManyQuery, @Request() req?: any) {
+      const list = await this.service.getMany(query ?? {}, req?.user);
 
       const fromEntities = (
         GetManyPresenter as Mappable<Entity>

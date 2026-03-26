@@ -1,4 +1,4 @@
-import { Body, Optional, Query, Type, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Optional, Query, Request, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { addVersionSuffix, getMixinData, isEmpty, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
@@ -79,7 +79,7 @@ function UpdateManyControllerMixin<Entity extends BaseEntity>(
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(UpdateManyPoliciesGuard)
     @UseInterceptors(...useInterceptors)
-    async updateMany(@Query('ids') ids: string[], @Body() body: UpdateManyBody) {
+    async updateMany(@Query('ids') ids: string[], @Body() body: UpdateManyBody, @Request() req?: any) {
       if (!ids?.length) {
         throw new Error('Invalid query');
       }
@@ -92,7 +92,7 @@ function UpdateManyControllerMixin<Entity extends BaseEntity>(
         UpdateManyBody as Mappable<Entity>
       ).toEntity;
 
-      const list = await this.service.updateMany(ids, toEntity ? toEntity(body) : body as Partial<Entity>);
+      const list = await this.service.updateMany(ids, toEntity ? toEntity(body) : body as Partial<Entity>, req?.user);
 
       const fromEntities = (
         UpdateManyPresenter as Mappable<Entity>

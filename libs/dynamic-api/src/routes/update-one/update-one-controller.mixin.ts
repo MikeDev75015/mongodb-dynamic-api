@@ -1,4 +1,4 @@
-import { Body, Optional, Param, Type, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Optional, Param, Request, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityParam } from '../../dtos';
 import { addVersionSuffix, getMixinData, isEmpty, provideName, RouteDecoratorsHelper } from '../../helpers';
@@ -81,7 +81,7 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(UpdateOnePoliciesGuard)
     @UseInterceptors(...useInterceptors)
-    async updateOne(@Param('id') id: string, @Body() body: UpdateOneBody) {
+    async updateOne(@Param('id') id: string, @Body() body: UpdateOneBody, @Request() req?: any) {
       if (isEmpty(body)) {
         throw new Error('Invalid request body');
       }
@@ -90,7 +90,7 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
         UpdateOneBody as Mappable<Entity>
       ).toEntity;
 
-      const entity = await this.service.updateOne(id, toEntity ? toEntity(body) : body as Partial<Entity>);
+      const entity = await this.service.updateOne(id, toEntity ? toEntity(body) : body as Partial<Entity>, req?.user);
 
       const fromEntity = (
         UpdateOnePresenter as Mappable<Entity>

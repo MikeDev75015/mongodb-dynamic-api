@@ -3,7 +3,7 @@ import { DynamicApiBroadcastService } from '../../services';
 import { DuplicateOneService } from './duplicate-one-service.interface';
 
 interface DuplicateOneController<Entity extends BaseEntity, Body = any, Response = any> {
-  duplicateOne(id: string, body?: Body): Promise<Entity | Response>;
+  duplicateOne(id: string, body?: Body, req?: any): Promise<Entity | Response>;
 }
 
 type DuplicateOneControllerConstructor<Entity extends BaseEntity> = new (

@@ -26,7 +26,7 @@ export abstract class BaseReplaceOneService<Entity extends BaseEntity>
     super(model);
   }
 
-  async replaceOne(id: string, partial: Partial<Entity>): Promise<Entity> {
+  async replaceOne(id: string, partial: Partial<Entity>, user?: unknown): Promise<Entity> {
     try {
       const existingDocument = await this.model
       .findOne({
@@ -47,8 +47,9 @@ export abstract class BaseReplaceOneService<Entity extends BaseEntity>
           this.addDocumentId(existingDocument),
           { id, replacement: cloneDeep(partial) },
           this.callbackMethods,
+          user,
         )
-        : partial;
+        : cloneDeep(partial);
 
       const document = await this.model
       .findOneAndReplace(
@@ -67,7 +68,7 @@ export abstract class BaseReplaceOneService<Entity extends BaseEntity>
       }
 
       if (this.callback) {
-        await this.callback(this.addDocumentId(document), this.callbackMethods);
+        await this.callback(this.addDocumentId(document), this.callbackMethods, user);
       }
 
       return this.buildInstance(document);

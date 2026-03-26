@@ -75,7 +75,7 @@ function GetManyGatewayMixin<Entity extends BaseEntity>(
       @ConnectedSocket() _socket: ExtendedSocket<Entity>,
       @MessageBody() body: GetManyData,
     ) {
-      const list = await this.service.getMany(body);
+      const list = await this.service.getMany(body, _socket?.user);
 
       const fromEntities = (
         GetManyResponse as Mappable<Entity>

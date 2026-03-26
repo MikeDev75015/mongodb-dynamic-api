@@ -1,4 +1,4 @@
-import { Param, SetMetadata, Type, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Param, Request, SetMetadata, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { DISABLE_CACHE_KEY } from '../../decorators';
 import { EntityParam } from '../../dtos';
@@ -70,8 +70,8 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
     @UseGuards(GetOnePoliciesGuard)
     @UseInterceptors(...useInterceptors)
     @SetMetadata(DISABLE_CACHE_KEY, disableCache)
-    async getOne(@Param('id') id: string) {
-      const entity = await this.service.getOne(id);
+    async getOne(@Param('id') id: string, @Request() req?: any) {
+      const entity = await this.service.getOne(id, req?.user);
 
       const fromEntity = (
         GetOnePresenter as Mappable<Entity>

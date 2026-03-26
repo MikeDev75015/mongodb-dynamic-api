@@ -17,7 +17,7 @@ export abstract class BaseAggregateService<Entity extends BaseEntity>
     super(model);
   }
 
-  async aggregate(pipeline: PipelineStage[]): Promise<{ list: Entity[]; count: number; totalPage: number; }> {
+  async aggregate(pipeline: PipelineStage[], user?: unknown): Promise<{ list: Entity[]; count: number; totalPage: number; }> {
     try {
       let documents: Entity[];
       let count: number;
@@ -38,7 +38,7 @@ export abstract class BaseAggregateService<Entity extends BaseEntity>
       if (this.callback && documents.length) {
         await Promise.all(
           documents.map(
-            (document) => this.callback(this.addDocumentId(document), this.callbackMethods),
+            (document) => this.callback(this.addDocumentId(document), this.callbackMethods, user),
           ),
         );
       }

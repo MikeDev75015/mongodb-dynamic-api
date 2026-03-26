@@ -96,7 +96,7 @@ function CreateManyGatewayMixin<Entity extends BaseEntity>(
         CreateManyData as Mappable<Entity>
       ).toEntities;
 
-      const list = await this.service.createMany(toEntities ? toEntities(body) : toCreateList);
+      const list = await this.service.createMany(toEntities ? toEntities(body) : toCreateList, socket?.user);
 
       const fromEntities = (
         CreateManyResponse as Mappable<Entity>

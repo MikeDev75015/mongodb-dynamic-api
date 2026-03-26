@@ -25,7 +25,7 @@ export abstract class BaseDeleteOneService<Entity extends BaseEntity>
     super(model);
   }
 
-  async deleteOne(id: string): Promise<DeletePresenter> {
+  async deleteOne(id: string, user?: unknown): Promise<DeletePresenter> {
     try {
       const document = await this.model
         .findOne({
@@ -40,6 +40,7 @@ export abstract class BaseDeleteOneService<Entity extends BaseEntity>
           document ? this.addDocumentId(document) : undefined,
           { id },
           this.callbackMethods,
+          user,
         );
       }
 
@@ -62,7 +63,7 @@ export abstract class BaseDeleteOneService<Entity extends BaseEntity>
       }
 
       if (this.callback && document) {
-        await this.callback(this.addDocumentId(document), this.callbackMethods);
+        await this.callback(this.addDocumentId(document), this.callbackMethods, user);
       }
 
       return plainToInstance(DeletePresenter, { deletedCount: op.deletedCount });

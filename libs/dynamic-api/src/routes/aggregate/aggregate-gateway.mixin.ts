@@ -98,7 +98,7 @@ function AggregateGatewayMixin<Entity extends BaseEntity>(
         throw new WsException('Query DTO must have toPipeline static method');
       }
 
-      const { list, count, totalPage } = await this.service.aggregate(toPipeline(plainToInstance(AggregateData, data)));
+      const { list, count, totalPage } = await this.service.aggregate(toPipeline(plainToInstance(AggregateData, data)), _socket?.user);
 
       const fromAggregate = (
         AggregateResponse as Mappable<Entity>

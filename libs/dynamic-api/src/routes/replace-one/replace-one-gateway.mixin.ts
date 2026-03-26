@@ -88,7 +88,7 @@ function ReplaceOneGatewayMixin<Entity extends BaseEntity>(
         ReplaceOneData as Mappable<Entity>
       ).toEntity;
 
-      const entity = await this.service.replaceOne(id, toEntity ? toEntity(data) : data as Partial<Entity>);
+      const entity = await this.service.replaceOne(id, toEntity ? toEntity(data) : data as Partial<Entity>, socket?.user);
 
       const fromEntity = (
         ReplaceOneResponse as Mappable<Entity>

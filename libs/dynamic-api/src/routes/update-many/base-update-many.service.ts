@@ -22,7 +22,7 @@ export abstract class BaseUpdateManyService<Entity extends BaseEntity>
     super(model);
   }
 
-  async updateMany(ids: string[], partial: Partial<Entity>): Promise<Entity[]> {
+  async updateMany(ids: string[], partial: Partial<Entity>, user?: unknown): Promise<Entity[]> {
     try {
       const toUpdateList = await this.model.find({ _id: { $in: ids } }).lean<Entity[]>().exec();
       if (toUpdateList?.length !== ids.length) {
@@ -34,6 +34,7 @@ export abstract class BaseUpdateManyService<Entity extends BaseEntity>
           toUpdateList,
           { ids, update: cloneDeep(partial) },
           this.callbackMethods,
+          user,
         );
 
         await Promise.all(
@@ -68,7 +69,7 @@ export abstract class BaseUpdateManyService<Entity extends BaseEntity>
       if (this.callback && documents.length) {
         await Promise.all(
           documents.map(
-            (document) => this.callback(this.addDocumentId(document), this.callbackMethods),
+            (document) => this.callback(this.addDocumentId(document), this.callbackMethods, user),
           ),
         );
       }
