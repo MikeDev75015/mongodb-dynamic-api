@@ -24,9 +24,9 @@ Each route in `DynamicApiModule.forFeature` can be finely configured through the
   - [Mappable Interface](#mappable-interface)
   - [Aggregatable Interface](#aggregatable-interface)
   - [DTO Compatibility by Route Type](#dto-compatibility-by-route-type)
-- [Callbacks](#callbacks)
+- [Callbacks](#callbacks) — [📚 Full Callbacks Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/callbacks.md)
   - [beforeSaveCallback](#beforesavecallback)
-  - [callback](#callback)
+  - [callback (afterSave)](#callback-aftersave)
   - [CallbackMethods](#callbackmethods)
 - [Other Options](#other-options)
   - [isPublic](#ispublic)
@@ -430,169 +430,35 @@ DynamicApiModule.forFeature({
 
 ## Callbacks
 
-Callbacks let you hook into the lifecycle of a service operation, either **before saving** (to transform data) or **after the operation** (to trigger side effects).
+Callbacks let you hook into the lifecycle of a service operation, either **before saving** (to transform data) or **after the operation** (to trigger side effects). Both callbacks receive the **authenticated user** when auth is enabled.
+
+> 📚 **Full documentation:** See the dedicated [**Callbacks guide**](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/callbacks.md) for complete reference, all signatures, typed contexts, user access, and real-world examples.
+
+### Quick Reference
+
+| Property | Hook point | Purpose |
+|---|---|---|
+| `beforeSaveCallback` | Before the DB write | Transform / enrich / validate data |
+| `callback` | After a successful operation | Side effects (audit, notification, cross-collection write) |
 
 ### beforeSaveCallback
 
-Executed **before a document is saved** to the database. Use it to transform or enrich the data.
+Four signatures depending on the route type:
 
-There are **four callback signatures** depending on the route type:
+| Callback type | Used by | Returns |
+|---|---|---|
+| `BeforeSaveCallback<E, Context, User>` | `CreateOne`, `UpdateOne`, `ReplaceOne`, `DuplicateOne` | `Partial<E>` |
+| `BeforeSaveListCallback<E, Context, User>` | `CreateMany`, `UpdateMany`, `DuplicateMany` | `Partial<E>[]` |
+| `BeforeSaveDeleteCallback<E, Context, User>` | `DeleteOne` | `void` |
+| `BeforeSaveDeleteManyCallback<E, Context, User>` | `DeleteMany` | `void` |
 
-#### BeforeSaveCallback (single-document write routes)
-
-Used by: `CreateOne`, `UpdateOne`, `ReplaceOne`, `DuplicateOne`
-
-```typescript
-type BeforeSaveCallback<Entity, Context> = (
-  entity: Entity | undefined,  // Existing document (undefined on create)
-  context: Context,            // Operation context (see below)
-  methods: CallbackMethods,
-) => Promise<Partial<Entity>>;
-```
-
-#### BeforeSaveListCallback (multi-document write routes)
-
-Used by: `CreateMany`, `UpdateMany`, `DuplicateMany`
-
-```typescript
-type BeforeSaveListCallback<Entity, Context> = (
-  entities: Entity[] | undefined,  // Existing documents (undefined on CreateMany, entities before modification on UpdateMany/DuplicateMany)
-  context: Context,
-  methods: CallbackMethods,
-) => Promise<Partial<Entity>[]>;
-```
-
-#### BeforeSaveDeleteCallback (single-document delete route)
-
-Used by: `DeleteOne`
-
-```typescript
-type BeforeSaveDeleteCallback<Entity, Context> = (
-  entity: Entity | undefined,  // Existing document if found
-  context: Context,
-  methods: CallbackMethods,
-) => Promise<void>;
-```
-
-#### BeforeSaveDeleteManyCallback (multi-document delete route)
-
-Used by: `DeleteMany`
-
-```typescript
-type BeforeSaveDeleteManyCallback<Entity, Context> = (
-  entities: Entity[],          // Found documents to delete
-  context: Context,
-  methods: CallbackMethods,
-) => Promise<void>;
-```
-
-#### Context types
-
-Each route type receives a specific context object:
-
-**`CreateOne`:**
-
-```typescript
-type BeforeSaveCreateContext<Entity> = {
-  toCreate: Partial<Entity>;
-};
-```
-
-**`CreateMany`:**
-
-```typescript
-type BeforeSaveCreateManyContext<Entity> = {
-  toCreate: Partial<Entity>[];
-};
-```
-
-**`UpdateOne`:**
-
-```typescript
-type BeforeSaveUpdateContext<Entity> = {
-  id: string;
-  update: Partial<Entity>;
-};
-```
-
-**`UpdateMany`:**
-
-```typescript
-type BeforeSaveUpdateManyContext<Entity> = {
-  ids: string[];
-  update: Partial<Entity>;
-};
-```
-
-**`ReplaceOne`:**
-
-```typescript
-type BeforeSaveReplaceContext<Entity> = {
-  id: string;
-  replacement: Partial<Entity>;
-};
-```
-
-**`DeleteOne`:**
-
-```typescript
-type BeforeSaveDeleteContext = {
-  id: string;
-};
-```
-
-**`DeleteMany`:**
-
-```typescript
-type BeforeSaveDeleteManyContext = {
-  ids: string[];
-};
-```
-
-**`DuplicateOne`:**
-
-```typescript
-type BeforeSaveDuplicateContext<Entity> = {
-  id: string;
-  override?: Partial<Entity>;
-};
-```
-
-**`DuplicateMany`:**
-
-```typescript
-type BeforeSaveDuplicateManyContext<Entity> = {
-  ids: string[];
-  override?: Partial<Entity>;
-};
-```
-
-> **💡 Note:** All these types are exported from `mongodb-dynamic-api` and can be imported directly.
-
-#### Deprecated aliases
-
-The following verbose names are still exported for backward compatibility but are **deprecated** and will be removed in v5:
-
-| Deprecated name | Replacement |
-|---|---|
-| `DynamicApiServiceBeforeSaveCallback` | `BeforeSaveCallback` |
-| `DynamicApiServiceBeforeSaveListCallback` | `BeforeSaveListCallback` |
-| `DynamicApiServiceBeforeSaveDeleteCallback` | `BeforeSaveDeleteCallback` |
-| `DynamicApiServiceBeforeSaveDeleteManyCallback` | `BeforeSaveDeleteManyCallback` |
-| `DynamicApiServiceBeforeSaveCreateContext` | `BeforeSaveCreateContext` |
-| `DynamicApiServiceBeforeSaveCreateManyContext` | `BeforeSaveCreateManyContext` |
-| `DynamicApiServiceBeforeSaveUpdateContext` | `BeforeSaveUpdateContext` |
-| `DynamicApiServiceBeforeSaveUpdateManyContext` | `BeforeSaveUpdateManyContext` |
-| `DynamicApiServiceBeforeSaveReplaceContext` | `BeforeSaveReplaceContext` |
-| `DynamicApiServiceBeforeSaveDeleteContext` | `BeforeSaveDeleteContext` |
-| `DynamicApiServiceBeforeSaveDeleteManyContext` | `BeforeSaveDeleteManyContext` |
-| `DynamicApiServiceBeforeSaveDuplicateContext` | `BeforeSaveDuplicateContext` |
-| `DynamicApiServiceBeforeSaveDuplicateManyContext` | `BeforeSaveDuplicateManyContext` |
+Each route provides a typed context (`BeforeSaveCreateContext`, `BeforeSaveUpdateContext`, etc.) and the authenticated `user` as the last parameter. The `User` generic defaults to `unknown` — pass your user entity type for full type safety (see [Callbacks guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/callbacks.md#typing-the-user-parameter)).
 
 **Example — Hash a password before saving:**
 
 ```typescript
 import * as bcrypt from 'bcrypt';
+import { BeforeSaveCallback, BeforeSaveCreateContext } from 'mongodb-dynamic-api';
 
 DynamicApiModule.forFeature({
   entity: User,
@@ -600,7 +466,7 @@ DynamicApiModule.forFeature({
   routes: [
     {
       type: 'CreateOne',
-      beforeSaveCallback: async (entity, context, methods) => {
+      beforeSaveCallback: async (_entity, context, _methods, user) => {
         const { toCreate } = context as BeforeSaveCreateContext<User>;
         if (toCreate.password) {
           toCreate.password = await bcrypt.hash(toCreate.password, 10);
@@ -608,66 +474,60 @@ DynamicApiModule.forFeature({
         return toCreate;
       },
     },
-    {
-      type: 'UpdateOne',
-      beforeSaveCallback: async (entity, context, methods) => {
-        const { update } = context as BeforeSaveUpdateContext<User>;
-        if (update.password) {
-          update.password = await bcrypt.hash(update.password, 10);
-        }
-        return update;
-      },
-    },
   ],
 })
 ```
 
----
-
-### callback
-
-Executed **after a successful operation** (save, delete, etc.). Use it to trigger side effects like sending notifications or invalidating a cache.
-
-**Signature:**
+### callback (afterSave)
 
 ```typescript
-type AfterSaveCallback<Entity> = (
+type AfterSaveCallback<Entity, User = unknown> = (
   entity: Entity,
   methods: CallbackMethods,
+  user?: User,
 ) => Promise<void>;
 ```
 
-> **💡 Note:** The deprecated alias `DynamicApiServiceCallback` is still exported for backward compatibility but will be removed in v5. Use `AfterSaveCallback` instead.
+Available on **all** route types (including `GetOne` and `GetMany`). For list routes, called **once per entity**. The `User` generic defaults to `unknown` — pass your user entity type for full type safety.
 
-**Example — Send a notification after creation:**
+**Example — Audit log with typed user:**
 
 ```typescript
+import { AfterSaveCallback } from 'mongodb-dynamic-api';
+
 DynamicApiModule.forFeature({
   entity: Order,
   controllerOptions: { path: 'orders' },
   routes: [
     {
       type: 'CreateOne',
-      callback: async (order, methods) => {
-        // Send confirmation email
-        await sendOrderConfirmation(order.id, order.userEmail);
-
-        // Create a notification document in another collection
-        await methods.createOneDocument(Notification, {
-          userId: order.userId,
-          message: `Order ${order.id} confirmed`,
+      callback: async (order, methods, user?) => {
+        const u = user as UserEntity | undefined;
+        await methods.createOneDocument(AuditLog, {
+          action: 'OrderCreated',
+          entityId: order.id,
+          performedBy: u?.email ?? 'anonymous',
         });
       },
     },
   ],
 })
-```
 
----
+// Or with the User generic for full type safety:
+const onOrderCreated: AfterSaveCallback<Order, UserEntity> =
+  async (order, methods, user) => {
+    // user is UserEntity | undefined — no cast needed
+    await methods.createOneDocument(AuditLog, {
+      action: 'OrderCreated',
+      entityId: order.id,
+      performedBy: user?.email ?? 'anonymous',
+    });
+  };
+```
 
 ### CallbackMethods
 
-Both `beforeSaveCallback` and `callback` receive a `methods` object with database helpers:
+Both `beforeSaveCallback` and `callback` receive a `methods` object with database helpers for **any collection**:
 
 ```typescript
 type CallbackMethods = {
@@ -691,7 +551,7 @@ type CallbackMethods = {
 };
 ```
 
-> **💡 Note:** The deprecated alias `DynamicApiCallbackMethods` is still exported for backward compatibility but will be removed in v5. Use `CallbackMethods` instead.
+> 📚 See the [**Callbacks guide**](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/callbacks.md) for typed contexts per route, authenticated user access in HTTP & WebSocket, ownership stamping, audit trails, and more examples.
 
 ---
 
