@@ -71,10 +71,10 @@ type BeforeSaveDeleteManyCallback<Entity extends BaseEntity, Context = Record<st
 ) => Promise<void>;
 
 type AnyBeforeSaveCallback<Entity extends BaseEntity, User = unknown> =
-  | BeforeSaveCallback<Entity, any, User>
-  | BeforeSaveListCallback<Entity, any, User>
-  | BeforeSaveDeleteCallback<Entity, any, User>
-  | BeforeSaveDeleteManyCallback<Entity, any, User>;
+  | BeforeSaveCallback<Entity, unknown, User>
+  | BeforeSaveListCallback<Entity, unknown, User>
+  | BeforeSaveDeleteCallback<Entity, unknown, User>
+  | BeforeSaveDeleteManyCallback<Entity, unknown, User>;
 
 // --- Deprecated aliases ---
 /** @deprecated Use `BeforeSaveCreateContext` instead. Will be removed in v5. */
