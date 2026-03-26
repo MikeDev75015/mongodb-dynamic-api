@@ -70,7 +70,7 @@ describe('UpdateManyHelper', () => {
 
       expect(spyServiceUpdateMany).toHaveBeenCalledWith(['test', 'test2'], {
         unit: 'test',
-      });
+      }, undefined);
     });
   });
 

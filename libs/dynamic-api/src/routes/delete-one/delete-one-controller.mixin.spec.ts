@@ -47,7 +47,17 @@ describe('DeleteOneControllerMixin', () => {
 
     await expect(controller.deleteOne(query)).resolves.toEqual(fakeDeleteResult);
     expect(service.deleteOne).toHaveBeenCalledTimes(1);
-    expect(service.deleteOne).toHaveBeenCalledWith(query);
+    expect(service.deleteOne).toHaveBeenCalledWith(query, undefined);
+  });
+
+  it('should pass user from request to service.deleteOne', async () => {
+    controller = initController();
+    const query = 'fake-id';
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+
+    await expect(controller.deleteOne(query, { user: fakeUser })).resolves.toEqual(fakeDeleteResult);
+    expect(service.deleteOne).toHaveBeenCalledTimes(1);
+    expect(service.deleteOne).toHaveBeenCalledWith(query, fakeUser);
   });
 
   it('should map response to presenter', async () => {
@@ -64,6 +74,6 @@ describe('DeleteOneControllerMixin', () => {
 
     await expect(controller.deleteOne(query)).resolves.toEqual({ isDeleted: true });
     expect(service.deleteOne).toHaveBeenCalledTimes(1);
-    expect(service.deleteOne).toHaveBeenCalledWith(query);
+    expect(service.deleteOne).toHaveBeenCalledWith(query, undefined);
   });
 });

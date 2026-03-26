@@ -106,7 +106,32 @@ describe('AggregateGatewayMixin', () => {
       data: [fakeEntity],
     });
 
-    expect(service.aggregate).toHaveBeenCalledWith([{ $match: { name: data.name } }]);
+    expect(service.aggregate).toHaveBeenCalledWith([{ $match: { name: data.name } }], undefined);
+  });
+
+  it('should pass user from socket to service.aggregate', async () => {
+    AggregateGateway = AggregateGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      { ...routeConfig, dTOs: { query: DataWithStatic } },
+    );
+
+    const aggregateGateway = new AggregateGateway(service, jwtService);
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+    const socketWithUser = { user: fakeUser } as unknown as ExtendedSocket<TestEntity>;
+
+    service.aggregate.mockResolvedValueOnce({
+      list: [fakeEntity],
+      count: 1,
+      totalPage: 1,
+    });
+
+    await expect(aggregateGateway.aggregate(socketWithUser, data)).resolves.toEqual({
+      event: 'aggregate-test-entity',
+      data: [fakeEntity],
+    });
+
+    expect(service.aggregate).toHaveBeenCalledWith([{ $match: { name: data.name } }], fakeUser);
   });
 
   it('should use eventName from routeConfig if provided', async () => {
@@ -190,6 +215,6 @@ describe('AggregateGatewayMixin', () => {
       event: 'aggregate-test-entity',
       data: expectedResponse,
     });
-    expect(service.aggregate).toHaveBeenCalledWith([{ $match: { name: data.name } }]);
+    expect(service.aggregate).toHaveBeenCalledWith([{ $match: { name: data.name } }], undefined);
   });
 });

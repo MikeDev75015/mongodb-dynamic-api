@@ -101,11 +101,36 @@ describe('BaseUpdateManyService', () => {
         1,
         { ...updatedDocuments[0], id: updatedDocuments[0]._id },
         internal(service).callbackMethods,
+        undefined,
       );
       expect(callback).toHaveBeenNthCalledWith(
         2,
         { ...updatedDocuments[1], id: updatedDocuments[1]._id },
         internal(service).callbackMethods,
+        undefined,
+      );
+    });
+
+    it('should pass user to callback if it is defined', async () => {
+      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedDocuments);
+      service = initService(exec);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const callback = jest.fn(() => Promise.resolve());
+      internal(service).callback = callback;
+      const fakeUser = { id: 'user-1', email: 'test@test.com' };
+      await service.updateMany(ids, { name: 'updated' } as Partial<TestEntity>, fakeUser);
+
+      expect(callback).toHaveBeenNthCalledWith(
+        1,
+        { ...updatedDocuments[0], id: updatedDocuments[0]._id },
+        internal(service).callbackMethods,
+        fakeUser,
+      );
+      expect(callback).toHaveBeenNthCalledWith(
+        2,
+        { ...updatedDocuments[1], id: updatedDocuments[1]._id },
+        internal(service).callbackMethods,
+        fakeUser,
       );
     });
 
@@ -122,6 +147,7 @@ describe('BaseUpdateManyService', () => {
         documents,
         { ids, update: { name: 'updated' } },
         internal(service).callbackMethods,
+        undefined,
       );
 
       expect(modelMock.findByIdAndUpdate).toHaveBeenCalledTimes(2);
@@ -138,6 +164,24 @@ describe('BaseUpdateManyService', () => {
         { new: true },
       );
       expect(modelMock.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('should pass user to beforeSaveCallback if it is defined', async () => {
+      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedDocuments);
+      service = initService(exec);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const beforeSaveCallback = jest.fn(() => Promise.resolve([{ name: 'updated' }, { name: 'updated' }]));
+      internal(service).beforeSaveCallback = beforeSaveCallback;
+      const fakeUser = { id: 'user-1', email: 'test@test.com' };
+      await service.updateMany(ids, { name: 'updated' } as Partial<TestEntity>, fakeUser);
+
+      expect(beforeSaveCallback).toHaveBeenCalledTimes(1);
+      expect(beforeSaveCallback).toHaveBeenCalledWith(
+        documents,
+        { ids, update: { name: 'updated' } },
+        internal(service).callbackMethods,
+        fakeUser,
+      );
     });
   });
 });

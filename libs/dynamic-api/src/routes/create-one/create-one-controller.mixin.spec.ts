@@ -49,7 +49,17 @@ describe('CreateOneControllerMixin', () => {
 
     await expect(controller.createOne(body)).resolves.toEqual(fakeEntity);
     expect(service.createOne).toHaveBeenCalledTimes(1);
-    expect(service.createOne).toHaveBeenCalledWith(body);
+    expect(service.createOne).toHaveBeenCalledWith(body, undefined);
+  });
+
+  it('should pass user from request to service.createOne', async () => {
+    controller = initController();
+    const body = { name: 'test' };
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+
+    await expect(controller.createOne(body, { user: fakeUser })).resolves.toEqual(fakeEntity);
+    expect(service.createOne).toHaveBeenCalledTimes(1);
+    expect(service.createOne).toHaveBeenCalledWith(body, fakeUser);
   });
 
   it('should map body to entity if body dto has toEntity method', async () => {
@@ -67,7 +77,7 @@ describe('CreateOneControllerMixin', () => {
 
     await expect(controller.createOne(body)).resolves.toEqual(fakeEntity);
     expect(service.createOne).toHaveBeenCalledTimes(1);
-    expect(service.createOne).toHaveBeenCalledWith(expectedArg);
+    expect(service.createOne).toHaveBeenCalledWith(expectedArg, undefined);
   });
 
   it('should map entity to response if presenter dto has fromEntity method', async () => {
@@ -86,6 +96,6 @@ describe('CreateOneControllerMixin', () => {
 
     await expect(controller.createOne(body)).resolves.toEqual(presenter);
     expect(service.createOne).toHaveBeenCalledTimes(1);
-    expect(service.createOne).toHaveBeenCalledWith(body);
+    expect(service.createOne).toHaveBeenCalledWith(body, undefined);
   });
 });

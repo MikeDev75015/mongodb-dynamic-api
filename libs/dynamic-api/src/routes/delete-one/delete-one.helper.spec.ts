@@ -62,7 +62,7 @@ describe('DeleteOneHelper', () => {
 
       await controller.deleteOne('test');
 
-      expect(spyServiceDeleteOne).toHaveBeenCalledWith('test');
+      expect(spyServiceDeleteOne).toHaveBeenCalledWith('test', undefined);
     });
   });
 

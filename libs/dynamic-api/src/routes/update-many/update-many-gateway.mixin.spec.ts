@@ -76,7 +76,28 @@ describe('UpdateManyGatewayMixin', () => {
       data: [fakeEntity],
     });
 
-    expect(service.updateMany).toHaveBeenCalledWith(body.ids, { field1: 'test' });
+    expect(service.updateMany).toHaveBeenCalledWith(body.ids, { field1: 'test' }, undefined);
+  });
+
+  it('should pass user from socket to service.updateMany', async () => {
+    UpdateManyGateway = UpdateManyGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      routeConfig,
+    );
+
+    const updateManyGateway = new UpdateManyGateway(service, jwtService);
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+    const socketWithUser = { user: fakeUser } as unknown as ExtendedSocket<TestEntity>;
+
+    service.updateMany.mockResolvedValueOnce([fakeEntity]);
+
+    await expect(updateManyGateway.updateMany(socketWithUser, body)).resolves.toEqual({
+      event: 'update-many-test-entity',
+      data: [fakeEntity],
+    });
+
+    expect(service.updateMany).toHaveBeenCalledWith(body.ids, { field1: 'test' }, fakeUser);
   });
 
   it('should use eventName from routeConfig if provided', async () => {
@@ -138,7 +159,7 @@ describe('UpdateManyGatewayMixin', () => {
       data: [fakeEntity],
     });
 
-    expect(service.updateMany).toHaveBeenCalledWith(body.ids, { field1: 'test' });
+    expect(service.updateMany).toHaveBeenCalledWith(body.ids, { field1: 'test' }, undefined);
   });
 
   it('should map entities to response if presenter dto has fromEntities method', async () => {

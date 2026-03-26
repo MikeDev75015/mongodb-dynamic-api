@@ -72,7 +72,28 @@ describe('DeleteManyGatewayMixin', () => {
       data: fakeDeleteResult,
     });
 
-    expect(service.deleteMany).toHaveBeenCalledWith(body.ids);
+    expect(service.deleteMany).toHaveBeenCalledWith(body.ids, undefined);
+  });
+
+  it('should pass user from socket to service.deleteMany', async () => {
+    DeleteManyGateway = DeleteManyGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      routeConfig,
+    );
+
+    const deleteManyGateway = new DeleteManyGateway(service, jwtService);
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+    const socketWithUser = { user: fakeUser } as unknown as ExtendedSocket<TestEntity>;
+
+    service.deleteMany.mockResolvedValueOnce(fakeDeleteResult);
+
+    await expect(deleteManyGateway.deleteMany(socketWithUser, body)).resolves.toEqual({
+      event: 'delete-many-test-entity',
+      data: fakeDeleteResult,
+    });
+
+    expect(service.deleteMany).toHaveBeenCalledWith(body.ids, fakeUser);
   });
 
   it('should use eventName from routeConfig if provided', async () => {
@@ -133,6 +154,6 @@ describe('DeleteManyGatewayMixin', () => {
       data: { isDeleted: false },
     });
     expect(service.deleteMany).toHaveBeenCalledTimes(1);
-    expect(service.deleteMany).toHaveBeenCalledWith(['1']);
+    expect(service.deleteMany).toHaveBeenCalledWith(['1'], undefined);
   });
 });

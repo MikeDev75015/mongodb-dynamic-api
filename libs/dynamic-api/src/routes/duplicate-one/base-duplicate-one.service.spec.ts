@@ -83,6 +83,23 @@ describe('BaseDuplicateOneService', () => {
       expect(callback).toHaveBeenCalledWith(
         { ...duplicatedDocument, id: duplicatedDocument._id },
         internal(service).callbackMethods,
+        undefined,
+      );
+    });
+
+    it('should pass user to callback if it is defined', async () => {
+      const exec = jest.fn().mockResolvedValueOnce(document).mockResolvedValueOnce(duplicatedDocument);
+      service = initService(exec, duplicatedDocument);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const callback = jest.fn(() => Promise.resolve());
+      internal(service).callback = callback;
+      const fakeUser = { id: 'user-1', email: 'test@test.com' };
+      await service.duplicateOne(document._id, undefined, fakeUser);
+
+      expect(callback).toHaveBeenCalledWith(
+        { ...duplicatedDocument, id: duplicatedDocument._id },
+        internal(service).callbackMethods,
+        fakeUser,
       );
     });
 
@@ -99,6 +116,25 @@ describe('BaseDuplicateOneService', () => {
         { ...document, id: document._id },
         { id: document._id, override: undefined },
         internal(service).callbackMethods,
+        undefined,
+      );
+    });
+
+    it('should pass user to beforeSaveCallback if it is defined', async () => {
+      const exec = jest.fn().mockResolvedValueOnce(document).mockResolvedValueOnce(duplicatedDocument);
+      service = initService(exec, duplicatedDocument);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const beforeSaveCallback = jest.fn(() => Promise.resolve({ name: 'test' }));
+      internal(service).beforeSaveCallback = beforeSaveCallback;
+      const fakeUser = { id: 'user-1', email: 'test@test.com' };
+      await service.duplicateOne(document._id, undefined, fakeUser);
+
+      expect(beforeSaveCallback).toHaveBeenCalledTimes(1);
+      expect(beforeSaveCallback).toHaveBeenCalledWith(
+        { ...document, id: document._id },
+        { id: document._id, override: undefined },
+        internal(service).callbackMethods,
+        fakeUser,
       );
     });
   });

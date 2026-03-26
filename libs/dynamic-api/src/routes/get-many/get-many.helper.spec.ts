@@ -54,7 +54,7 @@ describe('GetManyHelper', () => {
 
       await controller.getMany({ limit: 1, page: 1 });
 
-      expect(spyServiceGetMany).toHaveBeenCalledWith({ limit: 1, page: 1 });
+      expect(spyServiceGetMany).toHaveBeenCalledWith({ limit: 1, page: 1 }, undefined);
     });
   });
 

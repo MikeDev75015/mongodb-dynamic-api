@@ -71,7 +71,28 @@ describe('ReplaceOneGatewayMixin', () => {
       data: fakeEntity,
     });
 
-    expect(service.replaceOne).toHaveBeenCalledWith(body.id, { field1: 'value' });
+    expect(service.replaceOne).toHaveBeenCalledWith(body.id, { field1: 'value' }, undefined);
+  });
+
+  it('should pass user from socket to service.replaceOne', async () => {
+    ReplaceOneGateway = ReplaceOneGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      routeConfig,
+    );
+
+    const replaceOneGateway = new ReplaceOneGateway(service, jwtService);
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+    const socketWithUser = { user: fakeUser } as unknown as ExtendedSocket<TestEntity>;
+
+    service.replaceOne.mockResolvedValueOnce(fakeEntity);
+
+    await expect(replaceOneGateway.replaceOne(socketWithUser, body)).resolves.toEqual({
+      event: 'replace-one-test-entity',
+      data: fakeEntity,
+    });
+
+    expect(service.replaceOne).toHaveBeenCalledWith(body.id, { field1: 'value' }, fakeUser);
   });
 
   it('should use eventName from routeConfig if provided', async () => {
@@ -133,7 +154,7 @@ describe('ReplaceOneGatewayMixin', () => {
       data: fakeEntity,
     });
     expect(service.replaceOne).toHaveBeenCalledTimes(1);
-    expect(service.replaceOne).toHaveBeenCalledWith(body.id, expectedArg);
+    expect(service.replaceOne).toHaveBeenCalledWith(body.id, expectedArg, undefined);
   });
 
   it('should map entity to response if presenter dto has fromEntity method', async () => {
@@ -161,6 +182,6 @@ describe('ReplaceOneGatewayMixin', () => {
       data: presenter,
     });
     expect(service.replaceOne).toHaveBeenCalledTimes(1);
-    expect(service.replaceOne).toHaveBeenCalledWith(body.id, { field1: body.field1 });
+    expect(service.replaceOne).toHaveBeenCalledWith(body.id, { field1: body.field1 }, undefined);
   });
 });

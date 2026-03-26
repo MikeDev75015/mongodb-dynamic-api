@@ -90,11 +90,37 @@ describe('BaseDuplicateManyService', () => {
         1,
         { ...duplicatedDocuments[0], id: duplicatedDocuments[0]._id },
         internal(service).callbackMethods,
+        undefined,
       );
       expect(callback).toHaveBeenNthCalledWith(
         2,
         { ...duplicatedDocuments[1], id: duplicatedDocuments[1]._id },
         internal(service).callbackMethods,
+        undefined,
+      );
+    });
+
+    it('should pass user to callback if it is defined', async () => {
+      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(duplicatedDocuments);
+      service = initService(exec, duplicatedDocuments);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
+      const callback = jest.fn(() => Promise.resolve());
+      internal(service).callback = callback;
+      const fakeUser = { id: 'user-1', email: 'test@test.com' };
+
+      await service.duplicateMany(ids, undefined, fakeUser);
+
+      expect(callback).toHaveBeenNthCalledWith(
+        1,
+        { ...duplicatedDocuments[0], id: duplicatedDocuments[0]._id },
+        internal(service).callbackMethods,
+        fakeUser,
+      );
+      expect(callback).toHaveBeenNthCalledWith(
+        2,
+        { ...duplicatedDocuments[1], id: duplicatedDocuments[1]._id },
+        internal(service).callbackMethods,
+        fakeUser,
       );
     });
 
@@ -111,6 +137,25 @@ describe('BaseDuplicateManyService', () => {
         documents,
         { ids, override: undefined },
         internal(service).callbackMethods,
+        undefined,
+      );
+    });
+
+    it('should pass user to beforeSaveCallback if it is defined', async () => {
+      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(duplicatedDocuments);
+      service = initService(exec, duplicatedDocuments);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const beforeSaveCallback = jest.fn(() => Promise.resolve([{ name: 'test 1' }, { name: 'test 2' }]));
+      internal(service).beforeSaveCallback = beforeSaveCallback;
+      const fakeUser = { id: 'user-1', email: 'test@test.com' };
+      await service.duplicateMany(ids, undefined, fakeUser);
+
+      expect(beforeSaveCallback).toHaveBeenCalledTimes(1);
+      expect(beforeSaveCallback).toHaveBeenCalledWith(
+        documents,
+        { ids, override: undefined },
+        internal(service).callbackMethods,
+        fakeUser,
       );
     });
   });

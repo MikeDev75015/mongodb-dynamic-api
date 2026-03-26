@@ -71,7 +71,18 @@ describe('UpdateManyControllerMixin', () => {
 
     await expect(controller.updateMany(ids, body)).resolves.toEqual(fakeEntities);
     expect(service.updateMany).toHaveBeenCalledTimes(1);
-    expect(service.updateMany).toHaveBeenCalledWith(ids, body);
+    expect(service.updateMany).toHaveBeenCalledWith(ids, body, undefined);
+  });
+
+  it('should pass user from request to service.updateMany', async () => {
+    controller = initController();
+    const ids = ['fakeId'];
+    const body = { name: 'test' };
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+
+    await expect(controller.updateMany(ids, body, { user: fakeUser })).resolves.toEqual(fakeEntities);
+    expect(service.updateMany).toHaveBeenCalledTimes(1);
+    expect(service.updateMany).toHaveBeenCalledWith(ids, body, fakeUser);
   });
 
   it('should map body to entity if body dto has toEntity method', async () => {
@@ -89,7 +100,7 @@ describe('UpdateManyControllerMixin', () => {
 
     await expect(controller.updateMany(ids, body)).resolves.toEqual(fakeEntities);
     expect(service.updateMany).toHaveBeenCalledTimes(1);
-    expect(service.updateMany).toHaveBeenCalledWith(ids, { name: 'test' });
+    expect(service.updateMany).toHaveBeenCalledWith(ids, { name: 'test' }, undefined);
   });
 
   it('should map entities to response if presenter dto has fromEntities method', async () => {
@@ -108,6 +119,6 @@ describe('UpdateManyControllerMixin', () => {
 
     await expect(controller.updateMany(ids, body)).resolves.toEqual(expectedResponse);
     expect(service.updateMany).toHaveBeenCalledTimes(1);
-    expect(service.updateMany).toHaveBeenCalledWith(ids, body);
+    expect(service.updateMany).toHaveBeenCalledWith(ids, body, undefined);
   });
 });
