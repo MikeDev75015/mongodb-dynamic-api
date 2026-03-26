@@ -25,13 +25,14 @@ type CallbackMethods = {
 /** @deprecated Use `CallbackMethods` instead. Will be removed in v5. */
 type DynamicApiCallbackMethods = CallbackMethods;
 
-type AfterSaveCallback<Entity extends BaseEntity> = (
+type AfterSaveCallback<Entity extends BaseEntity, User = unknown> = (
   entity: Entity,
   methods: CallbackMethods,
+  user?: User,
 ) => Promise<void>;
 
 /** @deprecated Use `AfterSaveCallback` instead. Will be removed in v5. */
-type DynamicApiServiceCallback<Entity extends BaseEntity> = AfterSaveCallback<Entity>;
+type DynamicApiServiceCallback<Entity extends BaseEntity, User = unknown> = AfterSaveCallback<Entity, User>;
 
 type DynamicApiResetPasswordCallbackMethods<Entity extends BaseEntity, UpdateBy = 'userId'> = {
   findUserByEmail: () => Promise<Entity>;

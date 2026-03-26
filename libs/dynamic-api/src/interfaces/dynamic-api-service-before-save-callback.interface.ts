@@ -42,35 +42,39 @@ type BeforeSaveDuplicateManyContext<Entity extends BaseEntity> = {
   override?: Partial<Entity>;
 }
 
-type BeforeSaveCallback<Entity extends BaseEntity, Context = Record<string, unknown>> = (
+type BeforeSaveCallback<Entity extends BaseEntity, Context = Record<string, unknown>, User = unknown> = (
   entity: Entity | undefined,
   context: Context,
   methods: CallbackMethods,
+  user?: User,
 ) => Promise<Partial<Entity>>;
 
-type BeforeSaveListCallback<Entity extends BaseEntity, Context = Record<string, unknown>> = (
+type BeforeSaveListCallback<Entity extends BaseEntity, Context = Record<string, unknown>, User = unknown> = (
   entities: Entity[] | undefined,
   context: Context,
   methods: CallbackMethods,
+  user?: User,
 ) => Promise<Partial<Entity>[]>;
 
-type BeforeSaveDeleteCallback<Entity extends BaseEntity, Context = Record<string, unknown>> = (
+type BeforeSaveDeleteCallback<Entity extends BaseEntity, Context = Record<string, unknown>, User = unknown> = (
   entity: Entity | undefined,
   context: Context,
   methods: CallbackMethods,
+  user?: User,
 ) => Promise<void>;
 
-type BeforeSaveDeleteManyCallback<Entity extends BaseEntity, Context = Record<string, unknown>> = (
+type BeforeSaveDeleteManyCallback<Entity extends BaseEntity, Context = Record<string, unknown>, User = unknown> = (
   entities: Entity[],
   context: Context,
   methods: CallbackMethods,
+  user?: User,
 ) => Promise<void>;
 
-type AnyBeforeSaveCallback<Entity extends BaseEntity> =
-  | BeforeSaveCallback<Entity>
-  | BeforeSaveListCallback<Entity>
-  | BeforeSaveDeleteCallback<Entity>
-  | BeforeSaveDeleteManyCallback<Entity>;
+type AnyBeforeSaveCallback<Entity extends BaseEntity, User = unknown> =
+  | BeforeSaveCallback<Entity, any, User>
+  | BeforeSaveListCallback<Entity, any, User>
+  | BeforeSaveDeleteCallback<Entity, any, User>
+  | BeforeSaveDeleteManyCallback<Entity, any, User>;
 
 // --- Deprecated aliases ---
 /** @deprecated Use `BeforeSaveCreateContext` instead. Will be removed in v5. */
@@ -92,13 +96,13 @@ type DynamicApiServiceBeforeSaveDuplicateContext<Entity extends BaseEntity> = Be
 /** @deprecated Use `BeforeSaveDuplicateManyContext` instead. Will be removed in v5. */
 type DynamicApiServiceBeforeSaveDuplicateManyContext<Entity extends BaseEntity> = BeforeSaveDuplicateManyContext<Entity>;
 /** @deprecated Use `BeforeSaveCallback` instead. Will be removed in v5. */
-type DynamicApiServiceBeforeSaveCallback<Entity extends BaseEntity, Context = Record<string, unknown>> = BeforeSaveCallback<Entity, Context>;
+type DynamicApiServiceBeforeSaveCallback<Entity extends BaseEntity, Context = Record<string, unknown>, User = unknown> = BeforeSaveCallback<Entity, Context, User>;
 /** @deprecated Use `BeforeSaveListCallback` instead. Will be removed in v5. */
-type DynamicApiServiceBeforeSaveListCallback<Entity extends BaseEntity, Context = Record<string, unknown>> = BeforeSaveListCallback<Entity, Context>;
+type DynamicApiServiceBeforeSaveListCallback<Entity extends BaseEntity, Context = Record<string, unknown>, User = unknown> = BeforeSaveListCallback<Entity, Context, User>;
 /** @deprecated Use `BeforeSaveDeleteCallback` instead. Will be removed in v5. */
-type DynamicApiServiceBeforeSaveDeleteCallback<Entity extends BaseEntity, Context = Record<string, unknown>> = BeforeSaveDeleteCallback<Entity, Context>;
+type DynamicApiServiceBeforeSaveDeleteCallback<Entity extends BaseEntity, Context = Record<string, unknown>, User = unknown> = BeforeSaveDeleteCallback<Entity, Context, User>;
 /** @deprecated Use `BeforeSaveDeleteManyCallback` instead. Will be removed in v5. */
-type DynamicApiServiceBeforeSaveDeleteManyCallback<Entity extends BaseEntity, Context = Record<string, unknown>> = BeforeSaveDeleteManyCallback<Entity, Context>;
+type DynamicApiServiceBeforeSaveDeleteManyCallback<Entity extends BaseEntity, Context = Record<string, unknown>, User = unknown> = BeforeSaveDeleteManyCallback<Entity, Context, User>;
 
 export type {
   AnyBeforeSaveCallback,
