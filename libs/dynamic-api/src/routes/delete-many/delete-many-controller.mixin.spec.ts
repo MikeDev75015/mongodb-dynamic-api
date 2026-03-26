@@ -55,7 +55,17 @@ describe('DeleteManyControllerMixin', () => {
 
     await expect(controller.deleteMany(query)).resolves.toEqual(fakeDeleteResult);
     expect(service.deleteMany).toHaveBeenCalledTimes(1);
-    expect(service.deleteMany).toHaveBeenCalledWith(query.ids);
+    expect(service.deleteMany).toHaveBeenCalledWith(query.ids, undefined);
+  });
+
+  it('should pass user from request to service.deleteMany', async () => {
+    controller = initController();
+    const query = { ids: ['1'] };
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+
+    await expect(controller.deleteMany(query, { user: fakeUser })).resolves.toEqual(fakeDeleteResult);
+    expect(service.deleteMany).toHaveBeenCalledTimes(1);
+    expect(service.deleteMany).toHaveBeenCalledWith(query.ids, fakeUser);
   });
 
   it('should map response to presenter if presenter dto has fromDeleteResult method', async () => {
@@ -72,6 +82,6 @@ describe('DeleteManyControllerMixin', () => {
 
     await expect(controller.deleteMany(query)).resolves.toEqual({ isDeleted: true });
     expect(service.deleteMany).toHaveBeenCalledTimes(1);
-    expect(service.deleteMany).toHaveBeenCalledWith(query.ids);
+    expect(service.deleteMany).toHaveBeenCalledWith(query.ids, undefined);
   });
 });

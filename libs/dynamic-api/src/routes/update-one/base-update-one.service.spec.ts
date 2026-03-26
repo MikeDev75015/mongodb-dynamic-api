@@ -90,6 +90,25 @@ describe('BaseUpdateOneService', () => {
       expect(callback).toHaveBeenCalledWith(
         { ...updatedDocument, id: updatedDocument._id },
         internal(service).callbackMethods,
+        undefined,
+      );
+    });
+
+    it('should pass user to callback if it is defined', async () => {
+      service = initService(
+        jest.fn().mockResolvedValueOnce(updatedDocument),
+        jest.fn().mockResolvedValueOnce(document),
+      );
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const callback = jest.fn(() => Promise.resolve());
+      internal(service).callback = callback;
+      const fakeUser = { id: 'user-1', email: 'test@test.com' };
+      await service.updateOne(document._id, { name: updatedDocument.name } as Partial<TestEntity>, fakeUser);
+
+      expect(callback).toHaveBeenCalledWith(
+        { ...updatedDocument, id: updatedDocument._id },
+        internal(service).callbackMethods,
+        fakeUser,
       );
     });
 
@@ -107,6 +126,26 @@ describe('BaseUpdateOneService', () => {
         { ...document, id: document._id },
         { id: document._id, update: { name: updatedDocument.name } },
         internal(service).callbackMethods,
+        undefined,
+      );
+    });
+
+    it('should pass user to beforeSaveCallback if it is defined', async () => {
+      service = initService(
+        jest.fn().mockResolvedValueOnce(updatedDocument),
+        jest.fn().mockResolvedValueOnce(document),
+      );
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const beforeSaveCallback = jest.fn().mockResolvedValue({}) as BeforeSaveCallback<TestEntity>;
+      internal(service).beforeSaveCallback = beforeSaveCallback;
+      const fakeUser = { id: 'user-1', email: 'test@test.com' };
+      await service.updateOne(document._id, { name: updatedDocument.name } as Partial<TestEntity>, fakeUser);
+
+      expect(beforeSaveCallback).toHaveBeenCalledWith(
+        { ...document, id: document._id },
+        { id: document._id, update: { name: updatedDocument.name } },
+        internal(service).callbackMethods,
+        fakeUser,
       );
     });
   });

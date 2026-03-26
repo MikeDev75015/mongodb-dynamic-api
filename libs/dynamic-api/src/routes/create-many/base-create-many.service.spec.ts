@@ -66,7 +66,17 @@ describe('BaseCreateManyService', () => {
       internal(service).callback = callback;
       await service.createMany([toCreate]);
 
-      expect(callback).toHaveBeenCalledWith({ ...created, id: created._id }, internal(service).callbackMethods);
+      expect(callback).toHaveBeenCalledWith({ ...created, id: created._id }, internal(service).callbackMethods, undefined);
+    });
+
+    it('should pass user to callback if it is defined', async () => {
+      service = initService([created]);
+      const callback = jest.fn(() => Promise.resolve());
+      internal(service).callback = callback;
+      const fakeUser = { id: 'user-1', email: 'test@test.com' };
+      await service.createMany([toCreate], fakeUser);
+
+      expect(callback).toHaveBeenCalledWith({ ...created, id: created._id }, internal(service).callbackMethods, fakeUser);
     });
 
     it('should throw an error if the document already exists', async () => {
@@ -99,6 +109,23 @@ describe('BaseCreateManyService', () => {
         undefined,
         { toCreate: [toCreate] },
         internal(service).callbackMethods,
+        undefined,
+      );
+    });
+
+    it('should pass user to beforeSaveCallback if it is defined', async () => {
+      service = initService([created]);
+      const beforeSaveCallback = jest.fn(() => Promise.resolve([toCreate]));
+      internal(service).beforeSaveCallback = beforeSaveCallback;
+      const fakeUser = { id: 'user-1', email: 'test@test.com' };
+      await service.createMany([toCreate], fakeUser);
+
+      expect(beforeSaveCallback).toHaveBeenCalledTimes(1);
+      expect(beforeSaveCallback).toHaveBeenCalledWith(
+        undefined,
+        { toCreate: [toCreate] },
+        internal(service).callbackMethods,
+        fakeUser,
       );
     });
   });

@@ -55,7 +55,28 @@ describe('GetManyGatewayMixin', () => {
       data: [fakeEntity],
     });
     expect(service.getMany).toHaveBeenCalledTimes(1);
-    expect(service.getMany).toHaveBeenCalledWith(body);
+    expect(service.getMany).toHaveBeenCalledWith(body, undefined);
+  });
+
+  it('should pass user from socket to service.getMany', async () => {
+    GetManyGateway = GetManyGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      routeConfig,
+    );
+
+    const getManyGateway = new GetManyGateway(service, jwtService);
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+    const socketWithUser = { user: fakeUser } as unknown as ExtendedSocket<TestEntity>;
+
+    service.getMany.mockResolvedValueOnce([fakeEntity]);
+
+    await expect(getManyGateway.getMany(socketWithUser, body)).resolves.toEqual({
+      event: 'get-many-test-entity',
+      data: [fakeEntity],
+    });
+
+    expect(service.getMany).toHaveBeenCalledWith(body, fakeUser);
   });
 
   it('should use eventName from routeConfig if provided', async () => {

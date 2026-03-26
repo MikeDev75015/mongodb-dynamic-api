@@ -121,6 +121,23 @@ describe('BaseDeleteOneService', () => {
     expect(callback).toHaveBeenCalledWith(
       { ...document, id: document._id },
       internal(service).callbackMethods,
+      undefined,
+    );
+  });
+
+  it('should pass user to callback if it is defined', async () => {
+    service = initService();
+    jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+    const callback = jest.fn(() => Promise.resolve());
+    internal(service).callback = callback;
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+    await service.deleteOne(id, fakeUser);
+
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(callback).toHaveBeenCalledWith(
+      { ...document, id: document._id },
+      internal(service).callbackMethods,
+      fakeUser,
     );
   });
 
@@ -136,6 +153,24 @@ describe('BaseDeleteOneService', () => {
       { ...document, id: document._id },
       { id },
       internal(service).callbackMethods,
+      undefined,
+    );
+  });
+
+  it('should pass user to beforeSaveCallback if it is defined', async () => {
+    service = initService();
+    jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+    const beforeSaveCallback = jest.fn(() => Promise.resolve());
+    internal(service).beforeSaveCallback = beforeSaveCallback;
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+    await service.deleteOne(id, fakeUser);
+
+    expect(beforeSaveCallback).toHaveBeenCalledTimes(1);
+    expect(beforeSaveCallback).toHaveBeenCalledWith(
+      { ...document, id: document._id },
+      { id },
+      internal(service).callbackMethods,
+      fakeUser,
     );
   });
 });

@@ -65,7 +65,17 @@ describe('CreateManyControllerMixin', () => {
 
     await expect(controller.createMany(body)).resolves.toEqual(fakeEntities);
     expect(service.createMany).toHaveBeenCalledTimes(1);
-    expect(service.createMany).toHaveBeenCalledWith(body.list);
+    expect(service.createMany).toHaveBeenCalledWith(body.list, undefined);
+  });
+
+  it('should pass user from request to service.createMany', async () => {
+    controller = initController();
+    const body = { list: [{ name: 'name 1' }, { name: 'name 2' }] };
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+
+    await expect(controller.createMany(body, { user: fakeUser })).resolves.toEqual(fakeEntities);
+    expect(service.createMany).toHaveBeenCalledTimes(1);
+    expect(service.createMany).toHaveBeenCalledWith(body.list, fakeUser);
   });
 
   it('should map body to entities if body dto has toEntities method', async () => {
@@ -83,7 +93,26 @@ describe('CreateManyControllerMixin', () => {
 
     await expect(controller.createMany(body)).resolves.toEqual(fakeEntities);
     expect(service.createMany).toHaveBeenCalledTimes(1);
-    expect(service.createMany).toHaveBeenCalledWith(expectedArg);
+    expect(service.createMany).toHaveBeenCalledWith(expectedArg, undefined);
+  });
+
+  it('should pass user to service.createMany when body dto has toEntities method', async () => {
+    class RouteBody {
+      list: { name: string }[];
+
+      static toEntities(_: RouteBody): Partial<Entity>[] {
+        return _.list.map((e, i) => ({ name: `${i} - ${e.name}` }));
+      }
+    }
+
+    controller = initController({ ...routeConfig, dTOs: { body: RouteBody } });
+    const body = { list: [{ name: 'test' }, { name: 'unit' }] };
+    const expectedArg = [{ name: '0 - test' }, { name: '1 - unit' }];
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+
+    await expect(controller.createMany(body, { user: fakeUser })).resolves.toEqual(fakeEntities);
+    expect(service.createMany).toHaveBeenCalledTimes(1);
+    expect(service.createMany).toHaveBeenCalledWith(expectedArg, fakeUser);
   });
 
   it('should map entities to response if presenter dto has fromEntities method', async () => {
@@ -109,6 +138,36 @@ describe('CreateManyControllerMixin', () => {
 
     await expect(controller.createMany(body)).resolves.toEqual(presenter);
     expect(service.createMany).toHaveBeenCalledTimes(1);
-    expect(service.createMany).toHaveBeenCalledWith(body.list);
+    expect(service.createMany).toHaveBeenCalledWith(body.list, undefined);
+  });
+
+  it('should pass user to service.createMany when presenter dto has fromEntities method', async () => {
+    class RoutePresenter {
+      count: number;
+
+      data: { ref: string; fullName: string }[];
+
+      static fromEntities(_: Entity[]): RoutePresenter {
+        return {
+          count: _.length,
+          data: _.map(e => ({ ref: e.id, fullName: e.name })),
+        };
+      }
+    }
+
+    controller = initController({ ...routeConfig, dTOs: { presenter: RoutePresenter } });
+    const body = { list: [{ name: 'test' }, { name: 'unit' }] };
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+    const presenter = {
+      count: 2,
+      data: [{ ref: '1', fullName: 'test' }, { ref: '2', fullName: 'unit' }],
+    };
+
+    await expect(controller.createMany(body, { user: fakeUser })).resolves.toEqual(presenter);
+    expect(service.createMany).toHaveBeenCalledTimes(1);
+    expect(service.createMany).toHaveBeenCalledWith(body.list, fakeUser);
   });
 });
+
+
+

@@ -94,6 +94,25 @@ describe('BaseReplaceOneService', () => {
       expect(callback).toHaveBeenCalledWith(
         { ...replacedDocument, id: replacedDocument._id },
         internal(service).callbackMethods,
+        undefined,
+      );
+    });
+
+    it('should pass user to callback if it is defined', async () => {
+      service = initService(
+        jest.fn().mockResolvedValueOnce(document),
+        jest.fn().mockResolvedValueOnce(replacedDocument),
+      );
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const callback = jest.fn(() => Promise.resolve());
+      internal(service).callback = callback;
+      const fakeUser = { id: 'user-1', email: 'test@test.com' };
+      await service.replaceOne(document._id, { name: replacedDocument.name } as Partial<TestEntity>, fakeUser);
+
+      expect(callback).toHaveBeenCalledWith(
+        { ...replacedDocument, id: replacedDocument._id },
+        internal(service).callbackMethods,
+        fakeUser,
       );
     });
 
@@ -112,6 +131,27 @@ describe('BaseReplaceOneService', () => {
         { ...document, id: document._id },
         { id: document._id, replacement: { name: replacedDocument.name } },
         internal(service).callbackMethods,
+        undefined,
+      );
+    });
+
+    it('should pass user to beforeSaveCallback if it is defined', async () => {
+      service = initService(
+        jest.fn().mockResolvedValueOnce(document),
+        jest.fn().mockResolvedValueOnce(replacedDocument),
+      );
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const beforeSaveCallback = jest.fn(() => Promise.resolve({ name: replacedDocument.name }));
+      internal(service).beforeSaveCallback = beforeSaveCallback;
+      const fakeUser = { id: 'user-1', email: 'test@test.com' };
+      await service.replaceOne(document._id, { name: replacedDocument.name } as Partial<TestEntity>, fakeUser);
+
+      expect(beforeSaveCallback).toHaveBeenCalledTimes(1);
+      expect(beforeSaveCallback).toHaveBeenCalledWith(
+        { ...document, id: document._id },
+        { id: document._id, replacement: { name: replacedDocument.name } },
+        internal(service).callbackMethods,
+        fakeUser,
       );
     });
   });

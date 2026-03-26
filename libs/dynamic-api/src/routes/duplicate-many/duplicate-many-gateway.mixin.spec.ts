@@ -74,7 +74,28 @@ describe('DuplicateManyGatewayMixin', () => {
       data: [fakeEntity],
     });
 
-    expect(service.duplicateMany).toHaveBeenCalledWith(body.ids, { field1: 'test' });
+    expect(service.duplicateMany).toHaveBeenCalledWith(body.ids, { field1: 'test' }, undefined);
+  });
+
+  it('should pass user from socket to service.duplicateMany', async () => {
+    DuplicateManyGateway = DuplicateManyGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      routeConfig,
+    );
+
+    const duplicateManyGateway = new DuplicateManyGateway(service, jwtService);
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+    const socketWithUser = { user: fakeUser } as unknown as ExtendedSocket<TestEntity>;
+
+    service.duplicateMany.mockResolvedValueOnce([fakeEntity]);
+
+    await expect(duplicateManyGateway.duplicateMany(socketWithUser, body)).resolves.toEqual({
+      event: 'duplicate-many-test-entity',
+      data: [fakeEntity],
+    });
+
+    expect(service.duplicateMany).toHaveBeenCalledWith(body.ids, { field1: 'test' }, fakeUser);
   });
 
   it('should use eventName from routeConfig if provided', async () => {
@@ -140,7 +161,7 @@ describe('DuplicateManyGatewayMixin', () => {
       data: [fakeEntity],
     });
     expect(service.duplicateMany).toHaveBeenCalledTimes(1);
-    expect(service.duplicateMany).toHaveBeenCalledWith(body.ids, { field1: body.fullName });
+    expect(service.duplicateMany).toHaveBeenCalledWith(body.ids, { field1: body.fullName }, undefined);
   });
 
   it('should map entities to response if presenter dto has fromEntities method', async () => {
@@ -169,6 +190,6 @@ describe('DuplicateManyGatewayMixin', () => {
       data: [{ id: '1', fullName: 'test' }],
     });
     expect(service.duplicateMany).toHaveBeenCalledTimes(1);
-    expect(service.duplicateMany).toHaveBeenCalledWith(body.ids, { field1: 'test' });
+    expect(service.duplicateMany).toHaveBeenCalledWith(body.ids, { field1: 'test' }, undefined);
   });
 });

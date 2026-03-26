@@ -70,7 +70,28 @@ describe('GetOneGatewayMixin', () => {
       data: fakeEntity,
     });
 
-    expect(service.getOne).toHaveBeenCalledWith(body.id);
+    expect(service.getOne).toHaveBeenCalledWith(body.id, undefined);
+  });
+
+  it('should pass user from socket to service.getOne', async () => {
+    GetOneGateway = GetOneGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      routeConfig,
+    );
+
+    const getOneGateway = new GetOneGateway(service, jwtService);
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+    const socketWithUser = { user: fakeUser } as unknown as ExtendedSocket<TestEntity>;
+
+    service.getOne.mockResolvedValueOnce(fakeEntity);
+
+    await expect(getOneGateway.getOne(socketWithUser, body)).resolves.toEqual({
+      event: 'get-one-test-entity',
+      data: fakeEntity,
+    });
+
+    expect(service.getOne).toHaveBeenCalledWith(body.id, fakeUser);
   });
 
   it('should use eventName from routeConfig if provided', async () => {
@@ -132,6 +153,6 @@ describe('GetOneGatewayMixin', () => {
       data: presenter,
     });
     expect(service.getOne).toHaveBeenCalledTimes(1);
-    expect(service.getOne).toHaveBeenCalledWith(body.id);
+    expect(service.getOne).toHaveBeenCalledWith(body.id, undefined);
   });
 });

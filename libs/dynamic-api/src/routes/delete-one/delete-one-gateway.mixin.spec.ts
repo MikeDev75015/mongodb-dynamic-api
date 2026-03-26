@@ -57,7 +57,28 @@ describe('DeleteOneGatewayMixin', () => {
       data: fakeDeleteResult,
     });
 
-    expect(service.deleteOne).toHaveBeenCalledWith('1');
+    expect(service.deleteOne).toHaveBeenCalledWith('1', undefined);
+  });
+
+  it('should pass user from socket to service.deleteOne', async () => {
+    DeleteOneGateway = DeleteOneGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      routeConfig,
+    );
+
+    const deleteOneGateway = new DeleteOneGateway(service, jwtService);
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+    const socketWithUser = { user: fakeUser } as unknown as ExtendedSocket<TestEntity>;
+
+    service.deleteOne.mockResolvedValueOnce(fakeDeleteResult);
+
+    await expect(deleteOneGateway.deleteOne(socketWithUser, body)).resolves.toEqual({
+      event: 'delete-one-test-entity',
+      data: fakeDeleteResult,
+    });
+
+    expect(service.deleteOne).toHaveBeenCalledWith('1', fakeUser);
   });
 
   it('should use eventName from routeConfig if provided', async () => {

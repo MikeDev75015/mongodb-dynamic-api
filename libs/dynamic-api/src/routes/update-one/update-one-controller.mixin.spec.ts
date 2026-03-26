@@ -61,7 +61,18 @@ describe('UpdateOneControllerMixin', () => {
 
     await expect(controller.updateOne(id, body)).resolves.toEqual(fakeEntity);
     expect(service.updateOne).toHaveBeenCalledTimes(1);
-    expect(service.updateOne).toHaveBeenCalledWith(id, body);
+    expect(service.updateOne).toHaveBeenCalledWith(id, body, undefined);
+  });
+
+  it('should pass user from request to service.updateOne', async () => {
+    controller = initController();
+    const id = 'fakeId';
+    const body = { age: 20 };
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+
+    await expect(controller.updateOne(id, body, { user: fakeUser })).resolves.toEqual(fakeEntity);
+    expect(service.updateOne).toHaveBeenCalledTimes(1);
+    expect(service.updateOne).toHaveBeenCalledWith(id, body, fakeUser);
   });
 
   it('should map body to entity if body dto has toEntity method', async () => {
@@ -80,7 +91,7 @@ describe('UpdateOneControllerMixin', () => {
 
     await controller.updateOne(id, body);
     expect(service.updateOne).toHaveBeenCalledTimes(1);
-    expect(service.updateOne).toHaveBeenCalledWith(id, expectedArg);
+    expect(service.updateOne).toHaveBeenCalledWith(id, expectedArg, undefined);
   });
 
   it('should map entity to response if presenter dto has fromEntity method', async () => {
@@ -99,6 +110,6 @@ describe('UpdateOneControllerMixin', () => {
 
     await expect(controller.updateOne(id, body)).resolves.toEqual(expectedResponse);
     expect(service.updateOne).toHaveBeenCalledTimes(1);
-    expect(service.updateOne).toHaveBeenCalledWith(id, body);
+    expect(service.updateOne).toHaveBeenCalledWith(id, body, undefined);
   });
 });

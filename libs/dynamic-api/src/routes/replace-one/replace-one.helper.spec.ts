@@ -68,7 +68,7 @@ describe('ReplaceOneHelper', () => {
 
       expect(spyServiceReplaceOne).toHaveBeenCalledWith('test', {
         unit: 'test',
-      });
+      }, undefined);
     });
   });
 

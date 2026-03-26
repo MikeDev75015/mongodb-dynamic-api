@@ -74,7 +74,28 @@ describe('CreateManyGatewayMixin', () => {
       data: [fakeEntity],
     });
 
-    expect(service.createMany).toHaveBeenCalledWith(body.list);
+    expect(service.createMany).toHaveBeenCalledWith(body.list, undefined);
+  });
+
+  it('should pass user from socket to service.createMany', async () => {
+    CreateManyGateway = CreateManyGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      routeConfig,
+    );
+
+    const createManyGateway = new CreateManyGateway(service, jwtService);
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+    const socketWithUser = { user: fakeUser } as unknown as ExtendedSocket<TestEntity>;
+
+    service.createMany.mockResolvedValueOnce([fakeEntity]);
+
+    await expect(createManyGateway.createMany(socketWithUser, body)).resolves.toEqual({
+      event: 'create-many-test-entity',
+      data: [fakeEntity],
+    });
+
+    expect(service.createMany).toHaveBeenCalledWith(body.list, fakeUser);
   });
 
   it('should use eventName from routeConfig if provided', async () => {
@@ -139,7 +160,7 @@ describe('CreateManyGatewayMixin', () => {
       event: 'create-many-test-entity',
       data: fakeResponse,
     });
-    expect(service.createMany).toHaveBeenCalledWith(expectedArg);
+    expect(service.createMany).toHaveBeenCalledWith(expectedArg, undefined);
   });
 
   it('should map entities to response if presenter dto has fromEntities method', async () => {
@@ -178,6 +199,6 @@ describe('CreateManyGatewayMixin', () => {
       event: 'create-many-test-entity',
       data: expectedResponse,
     });
-    expect(service.createMany).toHaveBeenCalledWith(body.list);
+    expect(service.createMany).toHaveBeenCalledWith(body.list, undefined);
   });
 });

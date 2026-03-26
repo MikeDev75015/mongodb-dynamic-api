@@ -49,7 +49,17 @@ describe('GetOneControllerMixin', () => {
 
     await expect(controller.getOne(id)).resolves.toEqual(fakeEntity);
     expect(service.getOne).toHaveBeenCalledTimes(1);
-    expect(service.getOne).toHaveBeenCalledWith(id);
+    expect(service.getOne).toHaveBeenCalledWith(id, undefined);
+  });
+
+  it('should pass user from request to service.getOne', async () => {
+    controller = initController();
+    const id = 'fakeId';
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+
+    await expect(controller.getOne(id, { user: fakeUser })).resolves.toEqual(fakeEntity);
+    expect(service.getOne).toHaveBeenCalledTimes(1);
+    expect(service.getOne).toHaveBeenCalledWith(id, fakeUser);
   });
 
   it('should map entity to response if presenter dto has fromEntity method', async () => {
@@ -67,6 +77,6 @@ describe('GetOneControllerMixin', () => {
 
     await expect(controller.getOne(id)).resolves.toEqual(expectedResponse);
     expect(service.getOne).toHaveBeenCalledTimes(1);
-    expect(service.getOne).toHaveBeenCalledWith(id);
+    expect(service.getOne).toHaveBeenCalledWith(id, undefined);
   });
 });

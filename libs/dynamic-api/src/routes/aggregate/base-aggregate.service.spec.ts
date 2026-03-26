@@ -78,9 +78,10 @@ describe('BaseAggregateService', () => {
       service = initService([aggregated]);
       const callback = jest.fn(() => Promise.resolve());
       service['callback'] = callback;
-      await service.aggregate(pipelineStages);
+      const user = { id: 'userId' };
+      await service.aggregate(pipelineStages, user);
 
-      expect(callback).toHaveBeenCalledWith({ ...aggregated, id: aggregated._id }, service['callbackMethods']);
+      expect(callback).toHaveBeenCalledWith({ ...aggregated, id: aggregated._id }, service['callbackMethods'], user);
     });
 
     it('should throw an error if the create query fails', async () => {

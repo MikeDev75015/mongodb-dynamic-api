@@ -69,9 +69,10 @@ describe('BaseGetManyService', () => {
       jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       const callback = jest.fn(() => Promise.resolve());
       internal(service).callback = callback;
-      await service.getMany();
+      const user = { id: 'userId' };
+      await service.getMany(undefined, user);
 
-      expect(callback).toHaveBeenCalledWith({ ...response[0], id: response[0]._id }, internal(service).callbackMethods);
+      expect(callback).toHaveBeenCalledWith({ ...response[0], id: response[0]._id }, internal(service).callbackMethods, user);
     });
   });
 });

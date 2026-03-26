@@ -64,7 +64,7 @@ describe('UpdateOneHelper', () => {
 
       expect(spyServiceUpdateOne).toHaveBeenCalledWith('test', {
         unit: 'test',
-      });
+      }, undefined);
     });
   });
 

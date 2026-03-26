@@ -48,7 +48,16 @@ describe('GetManyControllerMixin', () => {
 
     await expect(controller.getMany()).resolves.toEqual(fakeEntities);
     expect(service.getMany).toHaveBeenCalledTimes(1);
-    expect(service.getMany).toHaveBeenCalledWith({});
+    expect(service.getMany).toHaveBeenCalledWith({}, undefined);
+  });
+
+  it('should pass user from request to service.getMany', async () => {
+    controller = initController();
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+
+    await expect(controller.getMany(undefined, { user: fakeUser })).resolves.toEqual(fakeEntities);
+    expect(service.getMany).toHaveBeenCalledTimes(1);
+    expect(service.getMany).toHaveBeenCalledWith({}, fakeUser);
   });
 
   it('should call service.getMany with query and return response', async () => {
@@ -56,7 +65,7 @@ describe('GetManyControllerMixin', () => {
 
     await expect(controller.getMany(query)).resolves.toEqual(fakeEntities);
     expect(service.getMany).toHaveBeenCalledTimes(1);
-    expect(service.getMany).toHaveBeenCalledWith(query);
+    expect(service.getMany).toHaveBeenCalledWith(query, undefined);
   });
 
   it('should map entities to response if presenter dto has fromEntities method', async () => {
@@ -73,6 +82,6 @@ describe('GetManyControllerMixin', () => {
 
     await expect(controller.getMany()).resolves.toEqual(presenter);
     expect(service.getMany).toHaveBeenCalledTimes(1);
-    expect(service.getMany).toHaveBeenCalledWith({});
+    expect(service.getMany).toHaveBeenCalledWith({}, undefined);
   });
 });

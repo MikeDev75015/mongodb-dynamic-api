@@ -58,7 +58,18 @@ describe('DuplicateManyControllerMixin', () => {
 
     await expect(controller.duplicateMany(ids, body)).resolves.toEqual(fakeEntities);
     expect(service.duplicateMany).toHaveBeenCalledTimes(1);
-    expect(service.duplicateMany).toHaveBeenCalledWith(ids, body);
+    expect(service.duplicateMany).toHaveBeenCalledWith(ids, body, undefined);
+  });
+
+  it('should pass user from request to service.duplicateMany', async () => {
+    controller = initController();
+    const ids = ['1'];
+    const body = {};
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+
+    await expect(controller.duplicateMany(ids, body, { user: fakeUser })).resolves.toEqual(fakeEntities);
+    expect(service.duplicateMany).toHaveBeenCalledTimes(1);
+    expect(service.duplicateMany).toHaveBeenCalledWith(ids, body, fakeUser);
   });
 
   it('should map body to entity if body dto has toEntity method', async () => {
@@ -76,7 +87,7 @@ describe('DuplicateManyControllerMixin', () => {
 
     await expect(controller.duplicateMany(ids, body)).resolves.toEqual(fakeEntities);
     expect(service.duplicateMany).toHaveBeenCalledTimes(1);
-    expect(service.duplicateMany).toHaveBeenCalledWith(ids, { name: body.fullName });
+    expect(service.duplicateMany).toHaveBeenCalledWith(ids, { name: body.fullName }, undefined);
   });
 
   it('should map entities to response if presenter dto has fromEntities method', async () => {
@@ -100,6 +111,6 @@ describe('DuplicateManyControllerMixin', () => {
     .resolves
     .toEqual([{ id: '1', fullName: 'test' }, { id: '2', fullName: 'test' }]);
     expect(service.duplicateMany).toHaveBeenCalledTimes(1);
-    expect(service.duplicateMany).toHaveBeenCalledWith(ids, body);
+    expect(service.duplicateMany).toHaveBeenCalledWith(ids, body, undefined);
   });
 });

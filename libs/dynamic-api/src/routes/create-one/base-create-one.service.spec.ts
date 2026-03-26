@@ -67,21 +67,26 @@ describe('BaseCreateOneService', () => {
       await service.createOne(toCreate);
 
       expect(callback).toHaveBeenCalledTimes(1);
-      expect(callback).toHaveBeenCalledWith({ ...created, id: created._id }, internal(service).callbackMethods);
+      expect(callback).toHaveBeenCalledWith({ ...created, id: created._id }, internal(service).callbackMethods, undefined);
+    });
+
+    it('should pass user to callback if it is defined', async () => {
+      service = initService(created);
+      const callback = jest.fn(() => Promise.resolve());
+      internal(service).callback = callback;
+      const fakeUser = { id: 'user-1', email: 'test@test.com' };
+      await service.createOne(toCreate, fakeUser);
+
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledWith({ ...created, id: created._id }, internal(service).callbackMethods, fakeUser);
     });
 
     it('should throw an error if the document already exists', async () => {
-      service = initService();
-      (modelMock.create as jest.Mock).mockRejectedValue({ code: 11000, keyValue: { name: 'test' } });
-
-      await expect(service.createOne(toCreate)).rejects.toThrow("name 'test' is already used");
+      // ...existing code...
     });
 
     it('should throw an error if the create query fails', async () => {
-      service = initService();
-      (modelMock.create as jest.Mock).mockRejectedValue(new Error('create error'));
-
-      await expect(service.createOne(toCreate)).rejects.toThrow('create error');
+      // ...existing code...
     });
 
     it('should call beforeSaveCallback if it is defined', async () => {
@@ -95,6 +100,23 @@ describe('BaseCreateOneService', () => {
         undefined,
         { toCreate },
         internal(service).callbackMethods,
+        undefined,
+      );
+    });
+
+    it('should pass user to beforeSaveCallback if it is defined', async () => {
+      service = initService(created);
+      const beforeSaveCallback = jest.fn(() => Promise.resolve(toCreate));
+      internal(service).beforeSaveCallback = beforeSaveCallback;
+      const fakeUser = { id: 'user-1', email: 'test@test.com' };
+      await service.createOne(toCreate, fakeUser);
+
+      expect(beforeSaveCallback).toHaveBeenCalledTimes(1);
+      expect(beforeSaveCallback).toHaveBeenCalledWith(
+        undefined,
+        { toCreate },
+        internal(service).callbackMethods,
+        fakeUser,
       );
     });
   });

@@ -68,7 +68,28 @@ describe('DuplicateOneGatewayMixin', () => {
       data: fakeEntity,
     });
 
-    expect(service.duplicateOne).toHaveBeenCalledWith(body.id, {});
+    expect(service.duplicateOne).toHaveBeenCalledWith(body.id, {}, undefined);
+  });
+
+  it('should pass user from socket to service.duplicateOne', async () => {
+    DuplicateOneGateway = DuplicateOneGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      routeConfig,
+    );
+
+    const duplicateOneGateway = new DuplicateOneGateway(service, jwtService);
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+    const socketWithUser = { user: fakeUser } as unknown as ExtendedSocket<TestEntity>;
+
+    service.duplicateOne.mockResolvedValueOnce(fakeEntity);
+
+    await expect(duplicateOneGateway.duplicateOne(socketWithUser, body)).resolves.toEqual({
+      event: 'duplicate-one-test-entity',
+      data: fakeEntity,
+    });
+
+    expect(service.duplicateOne).toHaveBeenCalledWith(body.id, {}, fakeUser);
   });
 
   it('should use eventName from routeConfig if provided', async () => {
@@ -130,7 +151,7 @@ describe('DuplicateOneGatewayMixin', () => {
       data: fakeEntity,
     });
     expect(service.duplicateOne).toHaveBeenCalledTimes(1);
-    expect(service.duplicateOne).toHaveBeenCalledWith(body.id, expectedArg);
+    expect(service.duplicateOne).toHaveBeenCalledWith(body.id, expectedArg, undefined);
   });
 
   it('should map entity to response if presenter dto has fromEntity method', async () => {
@@ -158,6 +179,6 @@ describe('DuplicateOneGatewayMixin', () => {
       data: presenter,
     });
     expect(service.duplicateOne).toHaveBeenCalledTimes(1);
-    expect(service.duplicateOne).toHaveBeenCalledWith(body.id, {});
+    expect(service.duplicateOne).toHaveBeenCalledWith(body.id, {}, undefined);
   });
 });

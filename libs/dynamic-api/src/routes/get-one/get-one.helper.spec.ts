@@ -62,7 +62,7 @@ describe('GetOneHelper', () => {
 
       await controller.getOne('test');
 
-      expect(spyServiceGetOne).toHaveBeenCalledWith('test');
+      expect(spyServiceGetOne).toHaveBeenCalledWith('test', undefined);
     });
   });
 

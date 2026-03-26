@@ -72,9 +72,10 @@ describe('BaseGetOneService', () => {
       jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       const callback = jest.fn(() => Promise.resolve());
       internal(service).callback = callback;
-      await service.getOne('ObjectId');
+      const user = { id: 'userId' };
+      await service.getOne('ObjectId', user);
 
-      expect(callback).toHaveBeenCalledWith({ ...response, id: response._id }, internal(service).callbackMethods);
+      expect(callback).toHaveBeenCalledWith({ ...response, id: response._id }, internal(service).callbackMethods, user);
     });
 
     it('should throw error if document not found', async () => {

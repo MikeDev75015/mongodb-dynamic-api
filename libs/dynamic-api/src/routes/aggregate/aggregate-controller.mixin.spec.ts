@@ -96,7 +96,16 @@ describe('AggregateControllerMixin', () => {
 
     await expect(controller.aggregate(query)).resolves.toEqual(fakeEntities);
     expect(service.aggregate).toHaveBeenCalledTimes(1);
-    expect(service.aggregate).toHaveBeenCalledWith([{ $match: { name: query.name } }]);
+    expect(service.aggregate).toHaveBeenCalledWith([{ $match: { name: query.name } }], undefined);
+  });
+
+  it('should pass user from request to service.aggregate', async () => {
+    controller = initController({ ...routeConfig, dTOs: { query: QueryWithStatic } });
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+
+    await expect(controller.aggregate(query, { user: fakeUser })).resolves.toEqual(fakeEntities);
+    expect(service.aggregate).toHaveBeenCalledTimes(1);
+    expect(service.aggregate).toHaveBeenCalledWith([{ $match: { name: query.name } }], fakeUser);
   });
 
   it('should map to response if presenter dto has fromAggregate method', async () => {
@@ -121,6 +130,6 @@ describe('AggregateControllerMixin', () => {
 
     await expect(controller.aggregate(query)).resolves.toEqual(presenter);
     expect(service.aggregate).toHaveBeenCalledTimes(1);
-    expect(service.aggregate).toHaveBeenCalledWith([{ $match: { name: query.name } }]);
+    expect(service.aggregate).toHaveBeenCalledWith([{ $match: { name: query.name } }], undefined);
   });
 });

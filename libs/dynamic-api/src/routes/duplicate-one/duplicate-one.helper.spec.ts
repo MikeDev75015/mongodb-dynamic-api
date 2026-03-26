@@ -68,7 +68,7 @@ describe('DuplicateOneHelper', () => {
 
       expect(spyServiceDuplicateOne).toHaveBeenCalledWith('test', {
         unit: 'test',
-      });
+      }, undefined);
     });
   });
 
