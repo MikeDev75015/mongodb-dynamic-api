@@ -82,11 +82,22 @@ describe('BaseCreateOneService', () => {
     });
 
     it('should throw an error if the document already exists', async () => {
-      // ...existing code...
+      service = initService();
+      (modelMock.create as jest.Mock).mockRejectedValue({
+        code: 11000,
+        keyValue: { name: 'test' },
+      });
+
+      await expect(service.createOne(toCreate)).rejects.toThrow(
+        "name 'test' is already used",
+      );
     });
 
     it('should throw an error if the create query fails', async () => {
-      // ...existing code...
+      service = initService();
+      (modelMock.create as jest.Mock).mockRejectedValue(new Error('create error'));
+
+      await expect(service.createOne(toCreate)).rejects.toThrow('create error');
     });
 
     it('should call beforeSaveCallback if it is defined', async () => {
