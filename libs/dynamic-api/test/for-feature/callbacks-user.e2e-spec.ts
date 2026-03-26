@@ -2,6 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { Prop, Schema } from '@nestjs/mongoose';
 import { Test } from '@nestjs/testing';
 import mongoose from 'mongoose';
+import { PipelineStage } from 'mongodb-pipeline-builder';
 import {
   BaseEntity,
   DynamicApiModule,
@@ -36,10 +37,11 @@ import 'dotenv/config';
  *   with the user.email as performedBy
  *   → verified by querying the audit-logs endpoint
  */
-describe('Callbacks receive authenticated user (e2e)', () => {
-  // ── Entities ──────────────────────────────────────────────────────
 
-  @Schema({ collection: 'users-cb' })
+// ── Shared Builders ──────────────────────────────────────────────
+
+function buildEntities(collectionSuffix: string) {
+  @Schema({ collection: `users-${collectionSuffix}` })
   class UserEntity extends BaseEntity {
     @Prop({ type: String, required: true })
     email: string;
@@ -48,7 +50,7 @@ describe('Callbacks receive authenticated user (e2e)', () => {
     password: string;
   }
 
-  @Schema({ collection: 'items-cb' })
+  @Schema({ collection: `items-${collectionSuffix}` })
   class ItemEntity extends BaseEntity {
     @Prop({ type: String, required: true })
     name: string;
@@ -60,7 +62,7 @@ describe('Callbacks receive authenticated user (e2e)', () => {
     updatedBy: string;
   }
 
-  @Schema({ collection: 'audit-logs-cb' })
+  @Schema({ collection: `audit-logs-${collectionSuffix}` })
   class AuditLogEntity extends BaseEntity {
     @Prop({ type: String, required: true })
     action: string;
@@ -72,203 +74,238 @@ describe('Callbacks receive authenticated user (e2e)', () => {
     performedBy: string;
   }
 
-  // ── Callbacks ─────────────────────────────────────────────────────
+  return { UserEntity, ItemEntity, AuditLogEntity };
+}
 
-  const createOneBeforeSave: BeforeSaveCallback<ItemEntity, BeforeSaveCreateContext<ItemEntity>> =
+class ItemAggregateQuery {
+  name?: string;
+
+  static toPipeline(query: ItemAggregateQuery): PipelineStage[] {
+    return [{ $match: query.name ? { name: query.name } : {} }];
+  }
+}
+
+function buildCallbacks(
+  AuditLogEntity: any,
+  actionPrefix: string,
+) {
+  const email = (user: unknown) => (user as any)?.email ?? 'anonymous';
+
+  const createOneBeforeSave: BeforeSaveCallback<any, BeforeSaveCreateContext<any>> =
     async (_entity, context, _methods, user) => {
-      const u = user as UserEntity | undefined;
-      return { ...context.toCreate, createdBy: u?.email ?? 'anonymous' };
+      return { ...context.toCreate, createdBy: email(user) };
     };
 
-  const createOneAfterSave: AfterSaveCallback<ItemEntity> =
+  const createOneAfterSave: AfterSaveCallback<any> =
     async (entity, methods, user?) => {
-      const u = user as UserEntity | undefined;
       await methods.createOneDocument(AuditLogEntity, {
-        action: 'CreateOne',
+        action: `${actionPrefix}CreateOne`,
         entityId: entity.id,
-        performedBy: u?.email ?? 'anonymous',
+        performedBy: email(user),
       });
     };
 
-  const createManyBeforeSave: BeforeSaveListCallback<ItemEntity, BeforeSaveCreateManyContext<ItemEntity>> =
+  const createManyBeforeSave: BeforeSaveListCallback<any, BeforeSaveCreateManyContext<any>> =
     async (_entities, context, _methods, user) => {
-      const u = user as UserEntity | undefined;
-      return context.toCreate.map((item) => ({ ...item, createdBy: u?.email ?? 'anonymous' }));
+      return context.toCreate.map((item: any) => ({ ...item, createdBy: email(user) }));
     };
 
-  const createManyAfterSave: AfterSaveCallback<ItemEntity> =
+  const createManyAfterSave: AfterSaveCallback<any> =
     async (entity, methods, user?) => {
-      const u = user as UserEntity | undefined;
       await methods.createOneDocument(AuditLogEntity, {
-        action: 'CreateMany',
+        action: `${actionPrefix}CreateMany`,
         entityId: entity.id,
-        performedBy: u?.email ?? 'anonymous',
+        performedBy: email(user),
       });
     };
 
-  const updateOneBeforeSave: BeforeSaveCallback<ItemEntity, BeforeSaveUpdateContext<ItemEntity>> =
+  const updateOneBeforeSave: BeforeSaveCallback<any, BeforeSaveUpdateContext<any>> =
     async (_entity, context, _methods, user) => {
-      const u = user as UserEntity | undefined;
-      return { ...context.update, updatedBy: u?.email ?? 'anonymous' };
+      return { ...context.update, updatedBy: email(user) };
     };
 
-  const updateOneAfterSave: AfterSaveCallback<ItemEntity> =
+  const updateOneAfterSave: AfterSaveCallback<any> =
     async (entity, methods, user?) => {
-      const u = user as UserEntity | undefined;
       await methods.createOneDocument(AuditLogEntity, {
-        action: 'UpdateOne',
+        action: `${actionPrefix}UpdateOne`,
         entityId: entity.id,
-        performedBy: u?.email ?? 'anonymous',
+        performedBy: email(user),
       });
     };
 
-  const updateManyBeforeSave: BeforeSaveListCallback<ItemEntity, BeforeSaveUpdateManyContext<ItemEntity>> =
+  const updateManyBeforeSave: BeforeSaveListCallback<any, BeforeSaveUpdateManyContext<any>> =
     async (entities, context, _methods, user) => {
-      const u = user as UserEntity | undefined;
-      return entities.map(() => ({ ...context.update, updatedBy: u?.email ?? 'anonymous' }));
+      return entities.map(() => ({ ...context.update, updatedBy: email(user) }));
     };
 
-  const updateManyAfterSave: AfterSaveCallback<ItemEntity> =
+  const updateManyAfterSave: AfterSaveCallback<any> =
     async (entity, methods, user?) => {
-      const u = user as UserEntity | undefined;
       await methods.createOneDocument(AuditLogEntity, {
-        action: 'UpdateMany',
+        action: `${actionPrefix}UpdateMany`,
         entityId: entity.id,
-        performedBy: u?.email ?? 'anonymous',
+        performedBy: email(user),
       });
     };
 
-  const replaceOneBeforeSave: BeforeSaveCallback<ItemEntity, BeforeSaveReplaceContext<ItemEntity>> =
+  const replaceOneBeforeSave: BeforeSaveCallback<any, BeforeSaveReplaceContext<any>> =
     async (_entity, context, _methods, user) => {
-      const u = user as UserEntity | undefined;
-      return { ...context.replacement, updatedBy: u?.email ?? 'anonymous' };
+      return { ...context.replacement, updatedBy: email(user) };
     };
 
-  const replaceOneAfterSave: AfterSaveCallback<ItemEntity> =
+  const replaceOneAfterSave: AfterSaveCallback<any> =
     async (entity, methods, user?) => {
-      const u = user as UserEntity | undefined;
       await methods.createOneDocument(AuditLogEntity, {
-        action: 'ReplaceOne',
+        action: `${actionPrefix}ReplaceOne`,
         entityId: entity.id,
-        performedBy: u?.email ?? 'anonymous',
+        performedBy: email(user),
       });
     };
 
-  const duplicateOneBeforeSave: BeforeSaveCallback<ItemEntity, BeforeSaveDuplicateContext<ItemEntity>> =
+  const duplicateOneBeforeSave: BeforeSaveCallback<any, BeforeSaveDuplicateContext<any>> =
     async (_entity, context, _methods, user) => {
-      const u = user as UserEntity | undefined;
-      return { ...(context.override ?? {}), createdBy: u?.email ?? 'anonymous' };
+      return { ...(context.override ?? {}), createdBy: email(user) };
     };
 
-  const duplicateOneAfterSave: AfterSaveCallback<ItemEntity> =
+  const duplicateOneAfterSave: AfterSaveCallback<any> =
     async (entity, methods, user?) => {
-      const u = user as UserEntity | undefined;
       await methods.createOneDocument(AuditLogEntity, {
-        action: 'DuplicateOne',
+        action: `${actionPrefix}DuplicateOne`,
         entityId: entity.id,
-        performedBy: u?.email ?? 'anonymous',
+        performedBy: email(user),
       });
     };
 
-  const duplicateManyBeforeSave: BeforeSaveListCallback<ItemEntity, BeforeSaveDuplicateManyContext<ItemEntity>> =
+  const duplicateManyBeforeSave: BeforeSaveListCallback<any, BeforeSaveDuplicateManyContext<any>> =
     async (entities, context, _methods, user) => {
-      const u = user as UserEntity | undefined;
-      return entities.map((e) => ({
-        name: (e as any).name,
+      return entities.map((e: any) => ({
+        name: e.name,
         ...(context.override ?? {}),
-        createdBy: u?.email ?? 'anonymous',
+        createdBy: email(user),
       }));
     };
 
-  const duplicateManyAfterSave: AfterSaveCallback<ItemEntity> =
+  const duplicateManyAfterSave: AfterSaveCallback<any> =
     async (entity, methods, user?) => {
-      const u = user as UserEntity | undefined;
       await methods.createOneDocument(AuditLogEntity, {
-        action: 'DuplicateMany',
+        action: `${actionPrefix}DuplicateMany`,
         entityId: entity.id,
-        performedBy: u?.email ?? 'anonymous',
+        performedBy: email(user),
       });
     };
 
-  const deleteOneBeforeSave: BeforeSaveDeleteCallback<ItemEntity, BeforeSaveDeleteContext> =
+  const deleteOneBeforeSave: BeforeSaveDeleteCallback<any, BeforeSaveDeleteContext> =
     async (entity, _context, methods, user) => {
-      const u = user as UserEntity | undefined;
       if (entity) {
         await methods.createOneDocument(AuditLogEntity, {
-          action: 'DeleteOne-before',
+          action: `${actionPrefix}DeleteOne-before`,
           entityId: entity.id,
-          performedBy: u?.email ?? 'anonymous',
+          performedBy: email(user),
         });
       }
     };
 
-  const deleteOneAfterSave: AfterSaveCallback<ItemEntity> =
+  const deleteOneAfterSave: AfterSaveCallback<any> =
     async (entity, methods, user?) => {
-      const u = user as UserEntity | undefined;
       await methods.createOneDocument(AuditLogEntity, {
-        action: 'DeleteOne',
+        action: `${actionPrefix}DeleteOne`,
         entityId: entity.id,
-        performedBy: u?.email ?? 'anonymous',
+        performedBy: email(user),
       });
     };
 
-  const deleteManyBeforeSave: BeforeSaveDeleteManyCallback<ItemEntity, BeforeSaveDeleteManyContext> =
+  const deleteManyBeforeSave: BeforeSaveDeleteManyCallback<any, BeforeSaveDeleteManyContext> =
     async (entities, _context, methods, user) => {
-      const u = user as UserEntity | undefined;
-      for (const entity of entities) {
-        await methods.createOneDocument(AuditLogEntity, {
-          action: 'DeleteMany-before',
-          entityId: (entity as any)._id?.toString() ?? (entity as any).id,
-          performedBy: u?.email ?? 'anonymous',
-        });
-      }
+      await Promise.all(
+        entities.map((entity: any) =>
+          methods.createOneDocument(AuditLogEntity, {
+            action: `${actionPrefix}DeleteMany-before`,
+            entityId: entity._id?.toString() ?? entity.id,
+            performedBy: email(user),
+          }),
+        ),
+      );
     };
 
-  const deleteManyAfterSave: AfterSaveCallback<ItemEntity> =
+  const deleteManyAfterSave: AfterSaveCallback<any> =
     async (entity, methods, user?) => {
-      const u = user as UserEntity | undefined;
       await methods.createOneDocument(AuditLogEntity, {
-        action: 'DeleteMany',
+        action: `${actionPrefix}DeleteMany`,
         entityId: entity.id,
-        performedBy: u?.email ?? 'anonymous',
+        performedBy: email(user),
       });
     };
 
-  const getOneAfterSave: AfterSaveCallback<ItemEntity> =
+  const getOneAfterSave: AfterSaveCallback<any> =
     async (entity, methods, user?) => {
-      const u = user as UserEntity | undefined;
       await methods.createOneDocument(AuditLogEntity, {
-        action: 'GetOne',
+        action: `${actionPrefix}GetOne`,
         entityId: entity.id,
-        performedBy: u?.email ?? 'anonymous',
+        performedBy: email(user),
       });
     };
 
-  const getManyAfterSave: AfterSaveCallback<ItemEntity> =
+  const getManyAfterSave: AfterSaveCallback<any> =
     async (entity, methods, user?) => {
-      const u = user as UserEntity | undefined;
       await methods.createOneDocument(AuditLogEntity, {
-        action: 'GetMany',
+        action: `${actionPrefix}GetMany`,
         entityId: entity.id,
-        performedBy: u?.email ?? 'anonymous',
+        performedBy: email(user),
       });
     };
 
-  // ── Routes config ─────────────────────────────────────────────────
+  const aggregateAfterSave: AfterSaveCallback<any> =
+    async (entity, methods, user?) => {
+      await methods.createOneDocument(AuditLogEntity, {
+        action: `${actionPrefix}Aggregate`,
+        entityId: entity.id,
+        performedBy: email(user),
+      });
+    };
 
-  const routes: DynamicAPIRouteConfig<ItemEntity>[] = [
-    { type: 'CreateOne', callback: createOneAfterSave, beforeSaveCallback: createOneBeforeSave },
-    { type: 'CreateMany', callback: createManyAfterSave, beforeSaveCallback: createManyBeforeSave },
-    { type: 'UpdateOne', callback: updateOneAfterSave, beforeSaveCallback: updateOneBeforeSave },
-    { type: 'UpdateMany', callback: updateManyAfterSave, beforeSaveCallback: updateManyBeforeSave },
-    { type: 'ReplaceOne', callback: replaceOneAfterSave, beforeSaveCallback: replaceOneBeforeSave },
-    { type: 'DuplicateOne', callback: duplicateOneAfterSave, beforeSaveCallback: duplicateOneBeforeSave },
-    { type: 'DuplicateMany', callback: duplicateManyAfterSave, beforeSaveCallback: duplicateManyBeforeSave },
-    { type: 'DeleteOne', callback: deleteOneAfterSave, beforeSaveCallback: deleteOneBeforeSave },
-    { type: 'DeleteMany', callback: deleteManyAfterSave, beforeSaveCallback: deleteManyBeforeSave },
-    { type: 'GetOne', callback: getOneAfterSave },
-    { type: 'GetMany', callback: getManyAfterSave },
+  return {
+    createOneBeforeSave, createOneAfterSave,
+    createManyBeforeSave, createManyAfterSave,
+    updateOneBeforeSave, updateOneAfterSave,
+    updateManyBeforeSave, updateManyAfterSave,
+    replaceOneBeforeSave, replaceOneAfterSave,
+    duplicateOneBeforeSave, duplicateOneAfterSave,
+    duplicateManyBeforeSave, duplicateManyAfterSave,
+    deleteOneBeforeSave, deleteOneAfterSave,
+    deleteManyBeforeSave, deleteManyAfterSave,
+    getOneAfterSave, getManyAfterSave,
+    aggregateAfterSave,
+  };
+}
+
+type Callbacks = ReturnType<typeof buildCallbacks>;
+
+function buildRoutes(
+  cb: Callbacks,
+  opts?: { webSocket?: boolean },
+): DynamicAPIRouteConfig<any>[] {
+  const ws = opts?.webSocket ? { webSocket: true as const } : {};
+  return [
+    { type: 'CreateOne', ...ws, callback: cb.createOneAfterSave, beforeSaveCallback: cb.createOneBeforeSave },
+    { type: 'CreateMany', ...ws, callback: cb.createManyAfterSave, beforeSaveCallback: cb.createManyBeforeSave },
+    { type: 'UpdateOne', ...ws, callback: cb.updateOneAfterSave, beforeSaveCallback: cb.updateOneBeforeSave },
+    { type: 'UpdateMany', ...ws, callback: cb.updateManyAfterSave, beforeSaveCallback: cb.updateManyBeforeSave },
+    { type: 'ReplaceOne', ...ws, callback: cb.replaceOneAfterSave, beforeSaveCallback: cb.replaceOneBeforeSave },
+    { type: 'DuplicateOne', ...ws, callback: cb.duplicateOneAfterSave, beforeSaveCallback: cb.duplicateOneBeforeSave },
+    { type: 'DuplicateMany', ...ws, callback: cb.duplicateManyAfterSave, beforeSaveCallback: cb.duplicateManyBeforeSave },
+    { type: 'DeleteOne', ...ws, callback: cb.deleteOneAfterSave, beforeSaveCallback: cb.deleteOneBeforeSave },
+    { type: 'DeleteMany', ...ws, callback: cb.deleteManyAfterSave, beforeSaveCallback: cb.deleteManyBeforeSave },
+    { type: 'GetOne', ...ws, callback: cb.getOneAfterSave },
+    { type: 'GetMany', ...ws, callback: cb.getManyAfterSave },
+    { type: 'Aggregate', ...ws, subPath: 'aggregate', dTOs: { query: ItemAggregateQuery }, callback: cb.aggregateAfterSave },
   ];
+}
+
+// ── HTTP Tests ───────────────────────────────────────────────────
+
+describe('Callbacks receive authenticated user (e2e)', () => {
+  const { UserEntity, ItemEntity, AuditLogEntity } = buildEntities('cb');
+  const callbacks = buildCallbacks(AuditLogEntity, '');
+  const routes = buildRoutes(callbacks);
 
   // ── Setup / teardown ──────────────────────────────────────────────
 
@@ -549,7 +586,35 @@ describe('Callbacks receive authenticated user (e2e)', () => {
       expect(logs.every((l: any) => l.performedBy === userEmail)).toBe(true);
     });
   });
+
+  describe('Aggregate', () => {
+    it('afterSave callback should create audit logs with user for each aggregated entity', async () => {
+      await server.post(
+        '/items/many',
+        { list: [{ name: 'agg-1' }, { name: 'agg-2' }] },
+        auth(),
+      );
+
+      const { body: items, status } = await server.get(
+        '/items/aggregate',
+        { ...auth(), query: { name: 'agg-1' } },
+      ) as any;
+
+      expect(status).toBe(200);
+      expect(items).toHaveLength(1);
+      expect(items[0].name).toBe('agg-1');
+
+      const logs = await getAuditLogs('Aggregate');
+      expect(logs).toHaveLength(1);
+      expect(logs[0]).toEqual(expect.objectContaining({
+        entityId: items[0].id,
+        performedBy: userEmail,
+      }));
+    });
+  });
 });
+
+// ── WebSocket Tests ──────────────────────────────────────────────
 
 /**
  * WebSocket variant — same callbacks, but exercised through socket events.
@@ -557,238 +622,9 @@ describe('Callbacks receive authenticated user (e2e)', () => {
  * beforeSaveCallback / afterSave callback just like the HTTP flow.
  */
 describe('Callbacks receive authenticated user via WebSocket (e2e)', () => {
-  // ── Entities ──────────────────────────────────────────────────────
-
-  @Schema({ collection: 'users-cb-ws' })
-  class UserEntity extends BaseEntity {
-    @Prop({ type: String, required: true })
-    email: string;
-
-    @Prop({ type: String, required: true })
-    password: string;
-  }
-
-  @Schema({ collection: 'items-cb-ws' })
-  class ItemEntity extends BaseEntity {
-    @Prop({ type: String, required: true })
-    name: string;
-
-    @Prop({ type: String })
-    createdBy: string;
-
-    @Prop({ type: String })
-    updatedBy: string;
-  }
-
-  @Schema({ collection: 'audit-logs-cb-ws' })
-  class AuditLogEntity extends BaseEntity {
-    @Prop({ type: String, required: true })
-    action: string;
-
-    @Prop({ type: String, required: true })
-    entityId: string;
-
-    @Prop({ type: String })
-    performedBy: string;
-  }
-
-  // ── Callbacks (reused logic) ──────────────────────────────────────
-
-  const createOneBeforeSave: BeforeSaveCallback<ItemEntity, BeforeSaveCreateContext<ItemEntity>> =
-    async (_entity, context, _methods, user) => {
-      const u = user as UserEntity | undefined;
-      return { ...context.toCreate, createdBy: u?.email ?? 'anonymous' };
-    };
-
-  const createOneAfterSave: AfterSaveCallback<ItemEntity> =
-    async (entity, methods, user?) => {
-      const u = user as UserEntity | undefined;
-      await methods.createOneDocument(AuditLogEntity, {
-        action: 'WS-CreateOne',
-        entityId: entity.id,
-        performedBy: u?.email ?? 'anonymous',
-      });
-    };
-
-  const createManyBeforeSave: BeforeSaveListCallback<ItemEntity, BeforeSaveCreateManyContext<ItemEntity>> =
-    async (_entities, context, _methods, user) => {
-      const u = user as UserEntity | undefined;
-      return context.toCreate.map((item) => ({ ...item, createdBy: u?.email ?? 'anonymous' }));
-    };
-
-  const createManyAfterSave: AfterSaveCallback<ItemEntity> =
-    async (entity, methods, user?) => {
-      const u = user as UserEntity | undefined;
-      await methods.createOneDocument(AuditLogEntity, {
-        action: 'WS-CreateMany',
-        entityId: entity.id,
-        performedBy: u?.email ?? 'anonymous',
-      });
-    };
-
-  const updateOneBeforeSave: BeforeSaveCallback<ItemEntity, BeforeSaveUpdateContext<ItemEntity>> =
-    async (_entity, context, _methods, user) => {
-      const u = user as UserEntity | undefined;
-      return { ...context.update, updatedBy: u?.email ?? 'anonymous' };
-    };
-
-  const updateOneAfterSave: AfterSaveCallback<ItemEntity> =
-    async (entity, methods, user?) => {
-      const u = user as UserEntity | undefined;
-      await methods.createOneDocument(AuditLogEntity, {
-        action: 'WS-UpdateOne',
-        entityId: entity.id,
-        performedBy: u?.email ?? 'anonymous',
-      });
-    };
-
-  const updateManyBeforeSave: BeforeSaveListCallback<ItemEntity, BeforeSaveUpdateManyContext<ItemEntity>> =
-    async (entities, context, _methods, user) => {
-      const u = user as UserEntity | undefined;
-      return entities.map(() => ({ ...context.update, updatedBy: u?.email ?? 'anonymous' }));
-    };
-
-  const updateManyAfterSave: AfterSaveCallback<ItemEntity> =
-    async (entity, methods, user?) => {
-      const u = user as UserEntity | undefined;
-      await methods.createOneDocument(AuditLogEntity, {
-        action: 'WS-UpdateMany',
-        entityId: entity.id,
-        performedBy: u?.email ?? 'anonymous',
-      });
-    };
-
-  const replaceOneBeforeSave: BeforeSaveCallback<ItemEntity, BeforeSaveReplaceContext<ItemEntity>> =
-    async (_entity, context, _methods, user) => {
-      const u = user as UserEntity | undefined;
-      return { ...context.replacement, updatedBy: u?.email ?? 'anonymous' };
-    };
-
-  const replaceOneAfterSave: AfterSaveCallback<ItemEntity> =
-    async (entity, methods, user?) => {
-      const u = user as UserEntity | undefined;
-      await methods.createOneDocument(AuditLogEntity, {
-        action: 'WS-ReplaceOne',
-        entityId: entity.id,
-        performedBy: u?.email ?? 'anonymous',
-      });
-    };
-
-  const duplicateOneBeforeSave: BeforeSaveCallback<ItemEntity, BeforeSaveDuplicateContext<ItemEntity>> =
-    async (_entity, context, _methods, user) => {
-      const u = user as UserEntity | undefined;
-      return { ...(context.override ?? {}), createdBy: u?.email ?? 'anonymous' };
-    };
-
-  const duplicateOneAfterSave: AfterSaveCallback<ItemEntity> =
-    async (entity, methods, user?) => {
-      const u = user as UserEntity | undefined;
-      await methods.createOneDocument(AuditLogEntity, {
-        action: 'WS-DuplicateOne',
-        entityId: entity.id,
-        performedBy: u?.email ?? 'anonymous',
-      });
-    };
-
-  const duplicateManyBeforeSave: BeforeSaveListCallback<ItemEntity, BeforeSaveDuplicateManyContext<ItemEntity>> =
-    async (entities, context, _methods, user) => {
-      const u = user as UserEntity | undefined;
-      return entities.map((e) => ({
-        name: (e as any).name,
-        ...(context.override ?? {}),
-        createdBy: u?.email ?? 'anonymous',
-      }));
-    };
-
-  const duplicateManyAfterSave: AfterSaveCallback<ItemEntity> =
-    async (entity, methods, user?) => {
-      const u = user as UserEntity | undefined;
-      await methods.createOneDocument(AuditLogEntity, {
-        action: 'WS-DuplicateMany',
-        entityId: entity.id,
-        performedBy: u?.email ?? 'anonymous',
-      });
-    };
-
-  const deleteOneBeforeSave: BeforeSaveDeleteCallback<ItemEntity, BeforeSaveDeleteContext> =
-    async (entity, _context, methods, user) => {
-      const u = user as UserEntity | undefined;
-      if (entity) {
-        await methods.createOneDocument(AuditLogEntity, {
-          action: 'WS-DeleteOne-before',
-          entityId: entity.id,
-          performedBy: u?.email ?? 'anonymous',
-        });
-      }
-    };
-
-  const deleteOneAfterSave: AfterSaveCallback<ItemEntity> =
-    async (entity, methods, user?) => {
-      const u = user as UserEntity | undefined;
-      await methods.createOneDocument(AuditLogEntity, {
-        action: 'WS-DeleteOne',
-        entityId: entity.id,
-        performedBy: u?.email ?? 'anonymous',
-      });
-    };
-
-  const deleteManyBeforeSave: BeforeSaveDeleteManyCallback<ItemEntity, BeforeSaveDeleteManyContext> =
-    async (entities, _context, methods, user) => {
-      const u = user as UserEntity | undefined;
-      for (const entity of entities) {
-        await methods.createOneDocument(AuditLogEntity, {
-          action: 'WS-DeleteMany-before',
-          entityId: (entity as any)._id?.toString() ?? (entity as any).id,
-          performedBy: u?.email ?? 'anonymous',
-        });
-      }
-    };
-
-  const deleteManyAfterSave: AfterSaveCallback<ItemEntity> =
-    async (entity, methods, user?) => {
-      const u = user as UserEntity | undefined;
-      await methods.createOneDocument(AuditLogEntity, {
-        action: 'WS-DeleteMany',
-        entityId: entity.id,
-        performedBy: u?.email ?? 'anonymous',
-      });
-    };
-
-  const getOneAfterSave: AfterSaveCallback<ItemEntity> =
-    async (entity, methods, user?) => {
-      const u = user as UserEntity | undefined;
-      await methods.createOneDocument(AuditLogEntity, {
-        action: 'WS-GetOne',
-        entityId: entity.id,
-        performedBy: u?.email ?? 'anonymous',
-      });
-    };
-
-  const getManyAfterSave: AfterSaveCallback<ItemEntity> =
-    async (entity, methods, user?) => {
-      const u = user as UserEntity | undefined;
-      await methods.createOneDocument(AuditLogEntity, {
-        action: 'WS-GetMany',
-        entityId: entity.id,
-        performedBy: u?.email ?? 'anonymous',
-      });
-    };
-
-  // ── Routes config (webSocket: true) ───────────────────────────────
-
-  const wsRoutes: DynamicAPIRouteConfig<ItemEntity>[] = [
-    { type: 'CreateOne', webSocket: true, callback: createOneAfterSave, beforeSaveCallback: createOneBeforeSave },
-    { type: 'CreateMany', webSocket: true, callback: createManyAfterSave, beforeSaveCallback: createManyBeforeSave },
-    { type: 'UpdateOne', webSocket: true, callback: updateOneAfterSave, beforeSaveCallback: updateOneBeforeSave },
-    { type: 'UpdateMany', webSocket: true, callback: updateManyAfterSave, beforeSaveCallback: updateManyBeforeSave },
-    { type: 'ReplaceOne', webSocket: true, callback: replaceOneAfterSave, beforeSaveCallback: replaceOneBeforeSave },
-    { type: 'DuplicateOne', webSocket: true, callback: duplicateOneAfterSave, beforeSaveCallback: duplicateOneBeforeSave },
-    { type: 'DuplicateMany', webSocket: true, callback: duplicateManyAfterSave, beforeSaveCallback: duplicateManyBeforeSave },
-    { type: 'DeleteOne', webSocket: true, callback: deleteOneAfterSave, beforeSaveCallback: deleteOneBeforeSave },
-    { type: 'DeleteMany', webSocket: true, callback: deleteManyAfterSave, beforeSaveCallback: deleteManyBeforeSave },
-    { type: 'GetOne', webSocket: true, callback: getOneAfterSave },
-    { type: 'GetMany', webSocket: true, callback: getManyAfterSave },
-  ];
+  const { UserEntity, ItemEntity, AuditLogEntity } = buildEntities('cb-ws');
+  const callbacks = buildCallbacks(AuditLogEntity, 'WS-');
+  const wsRoutes = buildRoutes(callbacks, { webSocket: true });
 
   // ── Setup / teardown ──────────────────────────────────────────────
 
@@ -1106,6 +942,32 @@ describe('Callbacks receive authenticated user via WebSocket (e2e)', () => {
       const logs = await getAuditLogs('WS-GetMany');
       expect(logs.length).toBe(result.length);
       expect(logs.every((l: any) => l.performedBy === userEmail)).toBe(true);
+    });
+  });
+
+  describe('Aggregate', () => {
+    it('afterSave callback should create audit logs with socket user for each aggregated entity', async () => {
+      await server.emit(
+        'create-many-item-entity',
+        { list: [{ name: 'ws-agg-1' }, { name: 'ws-agg-2' }] },
+        wsAuth(),
+      );
+
+      const result = await server.emit(
+        'aggregate-aggregate-item-entity',
+        { name: 'ws-agg-1' },
+        wsAuth(),
+      ) as any;
+
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe('ws-agg-1');
+
+      const logs = await getAuditLogs('WS-Aggregate');
+      expect(logs).toHaveLength(1);
+      expect(logs[0]).toEqual(expect.objectContaining({
+        entityId: result[0].id,
+        performedBy: userEmail,
+      }));
     });
   });
 });
