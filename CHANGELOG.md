@@ -1,5 +1,17 @@
 Changelog
 
+## [4.6.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.5.0...v4.6.0) (2026-03-26)
+
+
+### interfaces
+
+* **interfaces:** add User generic type parameter to callback interfaces ([532302d](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/532302d88ddbe9fe19f7237b5298be3098b54af6))
+
+
+### routes
+
+* **routes:** propagate authenticated user to service callbacks ([b7454e5](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/b7454e58f3adc8467e6727eef59e90b89a0e1fe9))
+
 ## [4.5.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.4.0...v4.5.0) (2026-03-18)
 
 
