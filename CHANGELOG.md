@@ -1,5 +1,7 @@
 Changelog
 
+## [4.6.1](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.6.0...v4.6.1) (2026-03-27)
+
 ## [4.6.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.5.0...v4.6.0) (2026-03-26)
 
 
