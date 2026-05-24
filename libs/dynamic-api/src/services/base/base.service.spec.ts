@@ -602,22 +602,24 @@ describe('BaseService', () => {
   });
 
   describe('handleDuplicateKeyError', () => {
-    it(
-      'should throw a ConflictException with the property that caused the error if error code is mongo duplicated error code',
-      () => {
-        const service = new TestService({} as unknown as Model<TestEntity>);
-        const error = {
-          code: 11000,
-          keyValue: {
-            name: 'toto',
-          },
-        };
+    it('should throw a ConflictException with the property that caused the error if error code is mongo duplicated error code', () => {
+      const service = new TestService({} as unknown as Model<TestEntity>);
+      const error = {
+        code: 11000,
+        keyValue: { name: 'toto' },
+      };
 
-        expect(() => service['handleDuplicateKeyError'](error)).toThrow(
-          new ConflictException(`name 'toto' is already used`),
-        );
-      },
-    );
+      expect(() => service['handleDuplicateKeyError'](error)).toThrow(
+        new ConflictException(`name 'toto' is already used`),
+      );
+    });
+
+    it('should throw a ConflictException with no property details when keyValue is undefined', () => {
+      const service = new TestService({} as unknown as Model<TestEntity>);
+      const error = { code: 11000 };
+
+      expect(() => service['handleDuplicateKeyError'](error)).toThrow(ConflictException);
+    });
 
     it(
       'should throw a ConflictException with the combination that caused the error if error code is mongo duplicated error code',
@@ -651,6 +653,15 @@ describe('BaseService', () => {
       );
     });
 
+    it('should wrap error without string message using JSON.stringify', () => {
+      const service = new TestService({} as unknown as Model<TestEntity>);
+      const error = { code: 999 };
+
+      expect(() => service['handleDuplicateKeyError'](error)).toThrow(
+        new ServiceUnavailableException(JSON.stringify(error)),
+      );
+    });
+
     it('should not throw an error if reThrow is false', () => {
       const service = new TestService({} as unknown as Model<TestEntity>);
       const error = {
@@ -666,6 +677,15 @@ describe('BaseService', () => {
       const error = new NotFoundException('Original not found error');
 
       expect(() => service['handleDuplicateKeyError'](error)).toThrow(error);
+    });
+
+    it('should wrap a native Error in ServiceUnavailableException using error.message', () => {
+      const service = new TestService({} as unknown as Model<TestEntity>);
+      const error = new Error('native error message');
+
+      expect(() => service['handleDuplicateKeyError'](error)).toThrow(
+        new ServiceUnavailableException('native error message'),
+      );
     });
   });
 
@@ -717,6 +737,15 @@ describe('BaseService', () => {
       },
     );
 
+    it('should throw BadRequestException with "Invalid payload" when errors property is undefined', () => {
+      const service = new TestService({} as unknown as Model<TestEntity>);
+      const error = { name: 'ValidationError' };
+
+      expect(() => service['handleMongoErrors'](error)).toThrow(
+        new BadRequestException(['Invalid payload']),
+      );
+    });
+
     it('should throw a ServiceUnavailableException if the error name is not "CastError" or "ValidationError"', () => {
       const service = new TestService({} as unknown as Model<TestEntity>);
       const error = {
@@ -744,6 +773,15 @@ describe('BaseService', () => {
       const error = new NotFoundException('Original not found error');
 
       expect(() => service['handleMongoErrors'](error)).toThrow(error);
+    });
+
+    it('should wrap a native Error in ServiceUnavailableException using error.message', () => {
+      const service = new TestService({} as unknown as Model<TestEntity>);
+      const error = new Error('native mongo error');
+
+      expect(() => service['handleMongoErrors'](error)).toThrow(
+        new ServiceUnavailableException('native mongo error'),
+      );
     });
   });
 
@@ -815,6 +853,25 @@ describe('BaseService', () => {
       const svc = new DerivedService();
       const result = svc['applyDerivedFields']({ firstName: 'John', lastName: 'Doe' }, 'save');
       expect(result.fullName).toBe('John Doe');
+    });
+
+    it('should merge existingDoc with partial before deriving fields when existingDoc is provided', () => {
+      Reflect.defineMetadata('dynamic-api-module:derived-field-keys', ['fullName'], DerivedEntity.prototype);
+      Reflect.defineMetadata('dynamic-api-module:derived-field', { computeFn: fullNameFn, on: 'save' }, DerivedEntity.prototype, 'fullName');
+
+      class DerivedServiceExisting extends BaseService<DerivedEntity> {
+        protected entity = DerivedEntity;
+        constructor() { super({} as unknown as Model<DerivedEntity>); }
+      }
+      const svc = new DerivedServiceExisting();
+      // partial only has lastName — firstName comes from existingDoc
+      const result = svc['applyDerivedFields'](
+        { lastName: 'Doe' },
+        'save',
+        { firstName: 'Jane', lastName: 'Old' },
+      );
+      // snapshot = { firstName: 'Jane', lastName: 'Doe' } → fullName = 'Jane Doe'
+      expect(result.fullName).toBe('Jane Doe');
     });
 
     it('should NOT apply save field when trigger is read', () => {

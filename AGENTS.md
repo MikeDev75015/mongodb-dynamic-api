@@ -6,6 +6,27 @@
 
 ## Universal Rules
 
+### ✅ Tests & Doc — Mandatory, Non-Negotiable
+
+**Every code change (feat / fix / refactor) MUST include, in this order:**
+
+1. **Unit tests** (`*.spec.ts` alongside the source file)
+   - 100% line + branch coverage on every modified file
+   - Happy path + every conditional branch + every thrown exception + edge cases
+   - Use `it.each` for similar multi-case scenarios
+   - Run `npx jest <file>.spec.ts --coverage` and verify 100% before committing
+
+2. **Documentation** (all impacted `.md` files)
+   - Every new method / type / option: description + full TypeScript signature + complete compilable code example (imports included)
+   - No generic placeholder examples — use real entity names from the project
+   - Update the Table of Contents if a new section is added
+
+3. **Commit only after steps 1 and 2 are fully done.**
+
+Skipping tests or doc = invalid delivery. No exception.
+
+---
+
 ### 🚫 No `any` — Ever
 
 Never use `as any`, `Promise<any>`, `: any`, `[key: string]: any`. Always create an explicit interface or type. If an external type is missing, declare a local typed interface. Non-negotiable.
