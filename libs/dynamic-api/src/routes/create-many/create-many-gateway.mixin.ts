@@ -59,8 +59,7 @@ function CreateManyGatewayMixin<Entity extends BaseEntity>(
     routeType,
     event,
     version,
-    abilityPredicate,
-    isPublic,
+    { abilityPredicate, isPublic },
   ) {}
 
   class BaseCreateManyGateway extends BaseGateway<Entity> implements CreateManyGateway<Entity> {

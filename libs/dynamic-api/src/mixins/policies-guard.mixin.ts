@@ -51,17 +51,23 @@ function RoutePoliciesGuardMixin<Entity extends BaseEntity>(
   return RoutePoliciesGuard;
 }
 
+interface SocketPoliciesGuardMixinOptions {
+  abilityPredicate?: AuthAbilityPredicate;
+  isPublic?: boolean;
+  queryToPipeline?: (query: unknown) => PipelineStage[];
+  predicateBehavior?: PredicateBehavior;
+}
+
 /** @deprecated Internal API — will be removed from public exports in v5. */
 function SocketPoliciesGuardMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   routeType: RouteType,
   event: string,
   version: string | undefined,
-  abilityPredicate: AuthAbilityPredicate | undefined,
-  isPublic: boolean | undefined,
-  queryToPipeline?: (query: unknown) => PipelineStage[],
-  predicateBehavior?: PredicateBehavior,
+  options: SocketPoliciesGuardMixinOptions = {},
 ): PoliciesGuardConstructor<Entity> {
+  const { abilityPredicate, isPublic, queryToPipeline, predicateBehavior } = options;
+
   @Injectable()
   class SocketPoliciesGuard extends BaseSocketPoliciesGuard<Entity> {
     protected routeType = routeType;

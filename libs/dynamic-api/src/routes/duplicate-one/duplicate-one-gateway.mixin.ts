@@ -56,8 +56,7 @@ function DuplicateOneGatewayMixin<Entity extends BaseEntity>(
     routeType,
     event,
     version,
-    abilityPredicate,
-    isPublic,
+    { abilityPredicate, isPublic },
   ) {}
 
   class BaseDuplicateOneGateway extends BaseGateway<Entity> implements DuplicateOneGateway<Entity> {

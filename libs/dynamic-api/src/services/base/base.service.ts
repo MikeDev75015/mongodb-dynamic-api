@@ -167,7 +167,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
     return model.updateOne(query, update).exec();
   }
 
-  private validateMongoOperators(update: Record<string, unknown>): void {
+  private validateMongoOperators<T extends BaseEntity>(update: MongoUpdateOperators<T>): void {
     const invalidKeys = Object.keys(update).filter((k) => !k.startsWith('$'));
     if (invalidKeys.length > 0) {
       throw new BadRequestException(
@@ -181,7 +181,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
     filter: FilterQuery<T>,
     update: MongoUpdateOperators<T>,
   ): Promise<UpdateResult> {
-    this.validateMongoOperators(update as Record<string, unknown>);
+    this.validateMongoOperators(update);
     const model = await DynamicApiGlobalStateService.getEntityModel(entity);
     return model.updateMany(filter, update).exec();
   }
@@ -191,7 +191,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
     filter: FilterQuery<T>,
     update: MongoUpdateOperators<T>,
   ): Promise<UpdateResult> {
-    this.validateMongoOperators(update as Record<string, unknown>);
+    this.validateMongoOperators(update);
     const model = await DynamicApiGlobalStateService.getEntityModel(entity);
     return model.updateOne(filter, update).exec();
   }

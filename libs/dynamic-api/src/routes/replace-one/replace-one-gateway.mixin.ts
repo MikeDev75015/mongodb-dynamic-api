@@ -56,8 +56,7 @@ function ReplaceOneGatewayMixin<Entity extends BaseEntity>(
     routeType,
     event,
     version,
-    abilityPredicate,
-    isPublic,
+    { abilityPredicate, isPublic },
   ) {}
 
   class BaseReplaceOneGateway extends BaseGateway<Entity> implements ReplaceOneGateway<Entity> {

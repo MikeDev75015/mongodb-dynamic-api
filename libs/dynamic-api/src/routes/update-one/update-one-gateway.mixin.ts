@@ -56,8 +56,7 @@ function UpdateOneGatewayMixin<Entity extends BaseEntity>(
     routeType,
     event,
     version,
-    abilityPredicate,
-    isPublic,
+    { abilityPredicate, isPublic },
   ) {}
 
   class BaseUpdateOneGateway extends BaseGateway<Entity> implements UpdateOneGateway<Entity> {

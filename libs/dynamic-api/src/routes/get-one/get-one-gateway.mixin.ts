@@ -47,8 +47,7 @@ function GetOneGatewayMixin<Entity extends BaseEntity>(
     routeType,
     event,
     version,
-    abilityPredicate,
-    isPublic,
+    { abilityPredicate, isPublic },
   ) {}
 
   class BaseGetOneGateway extends BaseGateway<Entity> implements GetOneGateway<Entity> {

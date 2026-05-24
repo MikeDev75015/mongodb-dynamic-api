@@ -36,6 +36,7 @@ export abstract class BaseDeleteManyService<Entity extends BaseEntity>
     // Fetch documents ahead of hooks when at least one hook is registered
     let documents: Entity[] = [];
 
+    // ── Pre-hooks (OUTSIDE try-catch: HTTP exceptions propagate cleanly) ─────
     if (this.beforeDeleteCallback ?? this.beforeSaveCallback) {
       documents = await this.model
         .find({
@@ -43,29 +44,10 @@ export abstract class BaseDeleteManyService<Entity extends BaseEntity>
           ...(this.isSoftDeletable ? { isDeleted: false } : undefined),
         })
         .lean<Entity[]>()
-
         .exec();
-    }
 
-    // ── beforeDeleteCallback ─────────────────────────────────────────────────
-    // Runs OUTSIDE try-catch: HTTP exceptions propagate cleanly to the client.
-    if (this.beforeDeleteCallback) {
-      await this.beforeDeleteCallback(
-        documents,
-        { ids },
-        this.callbackMethods,
-        user,
-      );
-    }
-
-    // ── beforeSaveCallback (fix: also outside try-catch) ────────────────────
-    if (this.beforeSaveCallback) {
-      await this.beforeSaveCallback(
-        documents,
-        { ids },
-        this.callbackMethods,
-        user,
-      );
+      await this.beforeDeleteCallback?.(documents, { ids }, this.callbackMethods, user);
+      await this.beforeSaveCallback?.(documents, { ids }, this.callbackMethods, user);
     }
 
     let deletedCount = 0;
