@@ -215,7 +215,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
       ),
     });
 
-    return this.applyDerivedFields(instance as unknown as Partial<Entity>, 'read') as Entity;
+    return this.applyDerivedFields(instance, 'read') as Entity;
   }
 
   /**
@@ -316,7 +316,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
   }
 
   protected addDocumentId<T extends BaseEntity>(document: T): T {
-    return { ...document, id: document._id.toString() } as T;
+    return { ...document, id: document._id.toString() };
   }
 
   private isModelSoftDeletable<T>(model: Model<T>): boolean {
