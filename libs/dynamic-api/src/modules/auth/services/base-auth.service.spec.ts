@@ -631,6 +631,58 @@ describe('BaseAuthService', () => {
         service['callbackMethods'],
       );
     });
+
+    describe('with refreshTokenOnUpdate = true', () => {
+      let spyLogin: jest.SpyInstance;
+
+      beforeEach(() => {
+        service['refreshTokenOnUpdate'] = true;
+        service['beforeUpdateAccountCallback'] = undefined;
+        service['updateAccountCallback'] = undefined;
+        spyLogin = jest.spyOn<any, any>(service, 'login').mockResolvedValueOnce({ accessToken, refreshToken: 'fresh-rt' });
+      });
+
+      afterEach(() => {
+        service['refreshTokenOnUpdate'] = false;
+      });
+
+      it('should return LoginResponse when refreshTokenOnUpdate is true', async () => {
+        exec.mockResolvedValueOnce(undefined).mockResolvedValueOnce({ ...fakeUser, _id: fakeUserId });
+
+        const result = await service['updateAccount']({ id: fakeUserId } as User, update);
+
+        expect(model.updateOne).toHaveBeenCalledWith({ _id: fakeUserId }, { $set: update });
+        expect(spyLogin).toHaveBeenCalledWith(
+          { ...fakeUser, _id: fakeUserId, id: fakeUserId },
+          true,
+        );
+        expect(result).toEqual({ accessToken, refreshToken: 'fresh-rt' });
+        expect(spyGetAccount).not.toHaveBeenCalled();
+      });
+
+      it('should not call getAccount when refreshTokenOnUpdate is true', async () => {
+        exec.mockResolvedValueOnce(undefined).mockResolvedValueOnce({ ...fakeUser, _id: fakeUserId });
+
+        await service['updateAccount']({ id: fakeUserId } as User, update);
+
+        expect(spyGetAccount).not.toHaveBeenCalled();
+      });
+
+      it('should still call updateAccountCallback before refreshing token', async () => {
+        service['updateAccountCallback'] = updateAccountCallback;
+        exec
+          .mockResolvedValueOnce(undefined)          // updateOne
+          .mockResolvedValueOnce({ ...fakeUser, _id: fakeUserId })  // findOne for callback
+          .mockResolvedValueOnce({ ...fakeUser, _id: fakeUserId }); // findOne for login
+        spyBuildInstance.mockReturnValueOnce(fakeUserInstance);
+
+        await service['updateAccount']({ id: fakeUserId } as User, update);
+
+        expect(updateAccountCallback).toHaveBeenCalledTimes(1);
+        expect(updateAccountCallback).toHaveBeenCalledWith(fakeUserInstance, service['callbackMethods']);
+        expect(spyLogin).toHaveBeenCalledTimes(1);
+      });
+    });
   });
 
   describe('resetPassword', () => {

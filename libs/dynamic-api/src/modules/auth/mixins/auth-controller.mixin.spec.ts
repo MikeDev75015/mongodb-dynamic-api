@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Response } from 'express';
 import { BaseEntity } from '../../../models';
 import { DynamicApiBroadcastService } from '../../../services';
+import { authOperationStorage, getAuthOperationContext } from '../auth-operation-context';
 import { AuthService } from '../interfaces';
 import { AuthControllerMixin } from './auth-controller.mixin';
 
@@ -200,7 +201,7 @@ describe('AuthControllerMixin', () => {
       jwtService.decode.mockReturnValueOnce(decodedUser);
       const controller = new AuthController(service, undefined, jwtService);
 
-      await controller.updateAccount({ user: new TestEntity(), headers: { authorization: 'Bearer fake-token' } }, {});
+      await controller.updateAccount({ user: new TestEntity(), headers: { authorization: 'Bearer fake-token' } }, {}, { cookie: jest.fn() } as unknown as Response);
 
       expect(jwtService.decode).toHaveBeenCalledWith('fake-token');
       expect(service.updateAccount).toHaveBeenCalledWith(
@@ -220,9 +221,149 @@ describe('AuthControllerMixin', () => {
       const controller = new AuthController(service);
       const user = new TestEntity();
 
-      await controller.updateAccount({ user, headers: { authorization: 'Bearer fake-token' } }, {});
+      await controller.updateAccount({ user, headers: { authorization: 'Bearer fake-token' } }, {}, { cookie: jest.fn() } as unknown as Response);
 
       expect(service.updateAccount).toHaveBeenCalledWith(user, {});
+    });
+
+    describe('with refreshTokenOnUpdate = true', () => {
+      it('should return LoginResponse when service returns accessToken', async () => {
+        const AuthController = AuthControllerMixin(
+          TestEntity,
+          { loginField: 'loginField', passwordField: 'passwordField' },
+          undefined,
+          undefined,
+          { refreshTokenOnUpdate: true },
+        );
+        const controller = new AuthController(service);
+        const user = new TestEntity();
+        const fakeRes = { cookie: jest.fn() };
+        service.updateAccount.mockResolvedValueOnce({ accessToken: 'at', refreshToken: 'rt' });
+
+        const result = await controller.updateAccount(
+          { user, headers: {} as Record<string, string> },
+          {},
+          fakeRes as unknown as Response,
+        );
+
+        expect(result).toEqual({ accessToken: 'at', refreshToken: 'rt' });
+        expect(fakeRes.cookie).not.toHaveBeenCalled();
+      });
+
+      it('should set cookie and strip refreshToken when useCookie + refreshTokenOnUpdate', async () => {
+        const AuthController = AuthControllerMixin(
+          TestEntity,
+          { loginField: 'loginField', passwordField: 'passwordField' },
+          undefined,
+          undefined,
+          { refreshTokenOnUpdate: true },
+          undefined,
+          { useCookie: true },
+        );
+        const controller = new AuthController(service);
+        const user = new TestEntity();
+        const fakeRes = { cookie: jest.fn() };
+        service.updateAccount.mockResolvedValueOnce({ accessToken: 'at', refreshToken: 'rt' });
+
+        const result = await controller.updateAccount(
+          { user, headers: {} as Record<string, string> },
+          {},
+          fakeRes as unknown as Response,
+        );
+
+        expect(fakeRes.cookie).toHaveBeenCalledWith('refreshToken', 'rt', expect.objectContaining({ httpOnly: true }));
+        expect(result).toEqual({ accessToken: 'at' });
+      });
+
+      it('should return account entity when service returns entity (no accessToken)', async () => {
+        const AuthController = AuthControllerMixin(
+          TestEntity,
+          { loginField: 'loginField', passwordField: 'passwordField' },
+          undefined,
+          undefined,
+          { refreshTokenOnUpdate: true },
+        );
+        const controller = new AuthController(service);
+        const user = new TestEntity();
+        const fakeRes = { cookie: jest.fn() };
+        const fakeAccount = Object.assign(new TestEntity(), { id: 'acc-id', loginField: 'test@test.co' });
+        service.updateAccount.mockResolvedValueOnce(fakeAccount);
+
+        const result = await controller.updateAccount(
+          { user, headers: {} as Record<string, string> },
+          {},
+          fakeRes as unknown as Response,
+        );
+
+        expect(result).toEqual(fakeAccount);
+      });
+    });
+  });
+
+  describe('authOperationStorage context', () => {
+    it('should run login in "login" context', async () => {
+      const AuthController = AuthControllerMixin(
+        TestEntity,
+        { loginField: 'loginField', passwordField: 'passwordField' },
+      );
+      const controller = new AuthController(service);
+      const fakeRes = { cookie: jest.fn() };
+      let capturedContext: string | undefined;
+
+      service.login.mockImplementationOnce(async () => {
+        capturedContext = getAuthOperationContext();
+        return { accessToken: 'at', refreshToken: 'rt' };
+      });
+
+      await controller.login({ user: new TestEntity() }, {}, fakeRes as unknown as Response);
+
+      expect(capturedContext).toBe('login');
+    });
+
+    it('should run register in "register" context', async () => {
+      const AuthController = AuthControllerMixin(
+        TestEntity,
+        { loginField: 'loginField', passwordField: 'passwordField' },
+      );
+      const controller = new AuthController(service);
+      const fakeRes = { cookie: jest.fn() };
+      let capturedContext: string | undefined;
+
+      service.register.mockImplementationOnce(async () => {
+        capturedContext = getAuthOperationContext();
+        return { accessToken: 'at', refreshToken: 'rt' };
+      });
+
+      await controller.register({} as Parameters<typeof controller.register>[0], fakeRes as unknown as Response);
+
+      expect(capturedContext).toBe('register');
+    });
+
+    it('should run updateAccount in "updateAccount" context', async () => {
+      const AuthController = AuthControllerMixin(
+        TestEntity,
+        { loginField: 'loginField', passwordField: 'passwordField' },
+      );
+      const controller = new AuthController(service);
+      const fakeRes = { cookie: jest.fn() };
+      let capturedContext: string | undefined;
+
+      service.updateAccount.mockImplementationOnce(async () => {
+        capturedContext = getAuthOperationContext();
+        return new TestEntity();
+      });
+
+      await controller.updateAccount(
+        { user: new TestEntity(), headers: {} as Record<string, string> },
+        {},
+        fakeRes as unknown as Response,
+      );
+
+      expect(capturedContext).toBe('updateAccount');
+    });
+
+    it('should return undefined context outside of any auth operation', () => {
+      expect(getAuthOperationContext()).toBeUndefined();
     });
   });
 
@@ -662,7 +803,7 @@ describe('AuthControllerMixin', () => {
         );
         const controller = new AuthController(service, broadcastService, jwtService);
 
-        await controller.updateAccount({ user: fakeUser, headers: { authorization: 'Bearer fake-token' } }, {});
+        await controller.updateAccount({ user: fakeUser, headers: { authorization: 'Bearer fake-token' } }, {}, { cookie: jest.fn() } as unknown as Response);
 
         expect(broadcastService.broadcastFromHttp).toHaveBeenCalledWith(
           'auth-update-account-broadcast',
@@ -681,7 +822,7 @@ describe('AuthControllerMixin', () => {
         );
         const controller = new AuthController(service, broadcastService, jwtService);
 
-        await controller.updateAccount({ user: fakeUser, headers: { authorization: 'Bearer fake-token' } }, {});
+        await controller.updateAccount({ user: fakeUser, headers: { authorization: 'Bearer fake-token' } }, {}, { cookie: jest.fn() } as unknown as Response);
 
         expect(broadcastService.broadcastFromHttp).toHaveBeenCalledWith(
           'auth-update-account-broadcast',
@@ -700,7 +841,7 @@ describe('AuthControllerMixin', () => {
         );
         const controller = new AuthController(service, broadcastService, jwtService);
 
-        await controller.updateAccount({ user: fakeUser, headers: { authorization: 'Bearer fake-token' } }, {});
+        await controller.updateAccount({ user: fakeUser, headers: { authorization: 'Bearer fake-token' } }, {}, { cookie: jest.fn() } as unknown as Response);
 
         expect(broadcastService.broadcastFromHttp).toHaveBeenCalledWith(
           'custom-update-account',
@@ -719,7 +860,7 @@ describe('AuthControllerMixin', () => {
         );
         const controller = new AuthController(service, broadcastService, jwtService);
 
-        await controller.updateAccount({ user: fakeUser, headers: { authorization: 'Bearer fake-token' } }, {});
+        await controller.updateAccount({ user: fakeUser, headers: { authorization: 'Bearer fake-token' } }, {}, { cookie: jest.fn() } as unknown as Response);
 
         expect(broadcastService.broadcastFromHttp).not.toHaveBeenCalled();
       });
