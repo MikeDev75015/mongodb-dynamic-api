@@ -2,7 +2,7 @@ import { Body, Optional, Query, Request, Type, UseGuards, UseInterceptors } from
 import { RouteDecoratorsBuilder } from '../../builders';
 import { applyFromUser, addVersionSuffix, getMixinData, isEmpty, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
-import { RoutePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
+import { RoutePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin, stripProtectedFields } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DynamicApiBroadcastService } from '../../services';
 import { DuplicateManyController, DuplicateManyControllerConstructor } from './duplicate-many-controller.interface';
@@ -89,7 +89,7 @@ function DuplicateManyControllerMixin<Entity extends BaseEntity>(
       ).toEntity;
 
       const rawPartial = !isEmpty(body) && toEntity ? toEntity(body) : body as Partial<Entity>;
-      const partial = applyFromUser(rawPartial, fromUser, req?.user);
+      const partial = applyFromUser(stripProtectedFields(rawPartial, this.entity), fromUser, req?.user);
 
       const list = await this.service.duplicateMany(
         ids,

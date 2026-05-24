@@ -37,7 +37,9 @@ export abstract class BaseUpdateManyService<Entity extends BaseEntity>
           user,
         );
 
-        const updatesWithDerived = updates.map((u) => this.applyDerivedFields(u, 'save'));
+        const updatesWithDerived = updates.map((u, index) =>
+          this.applyDerivedFields(u, 'save', this.addDocumentId(toUpdateList[index]) as Partial<Entity>),
+        );
 
         await Promise.all(
           updatesWithDerived.map((update, index) =>

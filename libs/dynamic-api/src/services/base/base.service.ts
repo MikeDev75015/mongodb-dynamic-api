@@ -221,9 +221,19 @@ export abstract class BaseService<Entity extends BaseEntity> {
   /**
    * Applies `@DerivedField` computed values to a partial entity snapshot.
    * Only fields whose `on` option matches `trigger` (or is `'both'`) are computed.
-   * The `computeFn` receives the snapshot **before** any mutation to avoid circular deps.
+   *
+   * When `existingDoc` is supplied (update/replace scenarios), `computeFn` receives
+   * the full merged document `{ ...existingDoc, ...partial }` as snapshot so that
+   * fields not present in the partial (e.g. firstName during a lastName-only PATCH)
+   * are still available for derivation.
+   * The computed values are written back into the **returned partial only** (not the
+   * full doc), preserving the semantics of a partial $set update.
    */
-  protected applyDerivedFields(partial: Partial<Entity>, trigger: 'save' | 'read'): Partial<Entity> {
+  protected applyDerivedFields(
+    partial: Partial<Entity>,
+    trigger: 'save' | 'read',
+    existingDoc?: Partial<Entity>,
+  ): Partial<Entity> {
     if (!this.entity?.prototype) {
       return partial;
     }
@@ -235,7 +245,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
       return partial;
     }
 
-    const snapshot = { ...partial };
+    const snapshot = existingDoc ? { ...existingDoc, ...partial } : { ...partial };
     const result = { ...partial };
 
     for (const key of keys) {

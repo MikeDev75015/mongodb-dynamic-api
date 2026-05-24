@@ -2,7 +2,7 @@ import { BadRequestException, Body, Optional, Request, Type, UseGuards, UseInter
 import { RouteDecoratorsBuilder } from '../../builders';
 import { applyFromUser, addVersionSuffix, getMixinData, isEmpty, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
-import { RoutePoliciesGuardMixin } from '../../mixins';
+import { RoutePoliciesGuardMixin, stripProtectedFields } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DynamicApiBroadcastService } from '../../services';
 import { CreateManyBodyMixin } from './create-many-body.mixin';
@@ -95,7 +95,7 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
 
       const rawList = toEntities ? toEntities(body) : toCreateList;
       const list = await this.service.createMany(
-        rawList.map((p) => applyFromUser(p, fromUser, req?.user)),
+        rawList.map((p) => applyFromUser(stripProtectedFields(p, this.entity), fromUser, req?.user)),
         req?.user,
       );
 

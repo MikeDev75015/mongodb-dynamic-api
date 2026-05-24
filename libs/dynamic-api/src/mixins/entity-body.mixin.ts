@@ -1,6 +1,6 @@
 import { Type } from '@nestjs/common';
 import { OmitType, PartialType } from '@nestjs/swagger';
-import { PROTECTED_FIELD_METADATA } from '../decorators/protected-field.decorator';
+import { PROTECTED_FIELD_METADATA } from '../decorators';
 import { BaseEntity } from '../models';
 
 const baseEntityKeysToExclude = <Entity extends BaseEntity>() =>
@@ -18,6 +18,26 @@ function getProtectedFieldKeys<Entity extends BaseEntity>(entity: Type<Entity>):
   return (
     (Reflect.getMetadata(PROTECTED_FIELD_METADATA, entity.prototype) as (keyof Entity)[] | undefined) ?? []
   );
+}
+
+/**
+ * Strips @ProtectedField keys from a partial entity at **runtime**.
+ * OmitType only removes keys from TypeScript types and Swagger docs — it does NOT
+ * prevent the JSON body from carrying those keys at runtime. This function must be
+ * called in controller mixins after body → partial conversion to enforce the protection.
+ */
+function stripProtectedFields<Entity extends BaseEntity>(
+  partial: Partial<Entity>,
+  entity: Type<Entity>,
+): Partial<Entity> {
+  const keys = getProtectedFieldKeys(entity);
+  if (!keys.length) return partial;
+
+  const result = { ...partial };
+  for (const key of keys) {
+    delete result[key];
+  }
+  return result;
 }
 
 function EntityBodyMixin<Entity extends BaseEntity>(
@@ -39,4 +59,4 @@ function EntityBodyMixin<Entity extends BaseEntity>(
   return optional ? PartialType(EntityBody) : EntityBody;
 }
 
-export { baseEntityKeysToExclude, EntityBodyMixin, getProtectedFieldKeys };
+export { baseEntityKeysToExclude, EntityBodyMixin, getProtectedFieldKeys, stripProtectedFields };
