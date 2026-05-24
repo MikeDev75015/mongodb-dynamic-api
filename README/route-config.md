@@ -36,6 +36,7 @@ Each route in `DynamicApiModule.forFeature` can be finely configured through the
   - [subPath](#subpath)
   - [validationPipeOptions](#validationpipeoptions)
   - [abilityPredicate](#abilitypredicate)
+  - [predicateBehavior](#predicatebehavior)
   - [isArrayResponse](#isarrayresponse)
   - [useInterceptors](#useinterceptors)
   - [fromUser](#fromuser)
@@ -93,6 +94,7 @@ interface DynamicAPIRouteConfig<Entity extends BaseEntity> {
 
   // Authorization
   abilityPredicate?: (entity: Entity, user: any) => boolean;
+  predicateBehavior?: 'filter' | 'throw'; // Only for GetMany and Aggregate
 
   // Callbacks
   beforeSaveCallback?: AnyBeforeSaveCallback<Entity>;
@@ -703,6 +705,64 @@ routes: [
 ```
 
 > Also configurable at the controller level via `controllerOptions.abilityPredicates`. The route-level predicate takes precedence.
+
+---
+
+### predicateBehavior
+
+Controls how `abilityPredicate` reacts when a document fails the authorization check on **`GetMany`** and **`Aggregate`** routes.
+
+| Value | Behavior |
+|---|---|
+| `'throw'` *(default)* | If **any** document fails the predicate, the entire request is rejected with **403 Forbidden**. Same as omitting this option. |
+| `'filter'` | Documents that fail the predicate are **silently removed** from the response. The request always returns **200** with the authorized subset (empty array `[]` if none pass). |
+
+> **Scope:** `GetMany` (HTTP + WebSocket) and `Aggregate` (HTTP + WebSocket) only. No effect on `GetOne`, `UpdateOne`, etc.
+
+```typescript
+routes: [
+  {
+    type: 'GetMany',
+    // Silently filter documents the user is not allowed to see
+    predicateBehavior: 'filter',
+    abilityPredicate: (product, user) => product.visible || user.role === 'admin',
+  },
+]
+```
+
+**Important notes:**
+
+- When `predicateBehavior: 'filter'`, the guard's pre-flight DB check is **bypassed entirely**. Filtering occurs inside the service after documents are fetched.
+- **Pagination / `limit`** — Option A: if `limit: 10` is requested and 3 documents are filtered out, the response will contain **< 10 documents**. No re-query is performed.
+- **Aggregate `count`** — When using `predicateBehavior: 'filter'` with `Aggregate`, the returned `count` reflects the **filtered** list length, not the original MongoDB pipeline count.
+- `'throw'` (or omitting `predicateBehavior`) preserves the existing behaviour: the guard pre-checks all fetched documents and throws 403 if any fails.
+
+```typescript
+// Full example — mixed configuration
+DynamicApiModule.forFeature({
+  entity: Article,
+  controllerOptions: { path: 'articles' },
+  routes: [
+    {
+      type: 'GetMany',
+      // Public users see only published articles; no 403 ever raised
+      isPublic: true,
+      predicateBehavior: 'filter',
+      abilityPredicate: (article, user) =>
+        article.status === 'published' || (user && user.role === 'admin'),
+    },
+    {
+      type: 'GetOne',
+      // Keep strict 403 for single-document access
+      predicateBehavior: 'throw', // or simply omit
+      abilityPredicate: (article, user) =>
+        article.status === 'published' || user.role === 'admin',
+    },
+  ],
+})
+```
+
+> 📚 See [Authorization guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/authorization.md#filter-mode-vs-throw-mode) for the full comparison.
 
 ---
 

@@ -10,6 +10,7 @@ Authorization provides fine-grained access control for your API routes based on 
 
 - [Quick Start](#quick-start)
 - [Configuration Levels](#configuration-levels)
+- [Filter Mode vs Throw Mode](#filter-mode-vs-throw-mode)
 - [Advanced Predicates](#advanced-predicates)
 - [Best Practices](#best-practices)
 - [Examples](#examples)
@@ -248,9 +249,68 @@ DynamicApiModule.forFeature({
 
 ---
 
+## Filter Mode vs Throw Mode
+
+By default, `abilityPredicate` on `GetMany` and `Aggregate` routes behaves in **throw mode**: if *any* fetched document fails the predicate, the entire request is rejected with **403 Forbidden**.
+
+The `predicateBehavior` option (available on `GetMany` and `Aggregate` only) lets you switch to **filter mode**, where non-authorized documents are silently excluded from the response.
+
+### Comparison
+
+| | `'throw'` (default) | `'filter'` |
+|---|---|---|
+| 1 doc fails predicate | ❌ 403 Forbidden | ✅ Doc excluded, rest returned |
+| All docs fail | ❌ 403 Forbidden | ✅ `[]` returned (200) |
+| All docs pass | ✅ Full list | ✅ Full list |
+| Guard pre-flight DB check | ✅ Runs | ⏭️ Bypassed |
+| Filtering location | Guard (pre-request) | Service (post-query) |
+
+### When to use `'filter'`
+
+- **Public listings** where some documents are restricted (e.g. published vs draft articles).
+- **Multi-tenant feeds** where each user should only see their own records without revealing the existence of others.
+- **Soft visibility** flags — hide records instead of exposing authorization errors.
+
+### When to keep `'throw'`
+
+- **Strict access control** where a user should never silently receive a partial list.
+- Routes where the absence of a document would be misleading (e.g. `GetOne` equivalents built with `GetMany`).
+
+### Example
+
+```typescript
+DynamicApiModule.forFeature({
+  entity: Article,
+  controllerOptions: { path: 'articles' },
+  routes: [
+    {
+      type: 'GetMany',
+      isPublic: true,
+      // Authenticated admins see all; anonymous/non-admin users see only published articles
+      predicateBehavior: 'filter',
+      abilityPredicate: (article, user) =>
+        article.status === 'published' || (user?.role === 'admin'),
+    },
+    {
+      type: 'Aggregate',
+      // Same filter mode on aggregate — filtered count reflects authorized results only
+      predicateBehavior: 'filter',
+      abilityPredicate: (article, user) => article.tenantId === user.tenantId,
+      dTOs: { query: ArticleStatsQuery },
+    },
+  ],
+})
+```
+
+> **Pagination note (Option A):** when `predicateBehavior: 'filter'`, results are filtered *after* the MongoDB query. If you request `limit: 10` and 3 documents are filtered out, you receive **< 10 documents**. No re-query is performed.
+
+> **Aggregate `count` note:** in filter mode, the returned `count` equals the filtered list length, not the original pipeline count.
+
+---
+
 ## Advanced Predicates
 
-### Role-Based Access Control
+
 
 ```typescript
 const isAdmin = (user) => user.role === 'admin';
