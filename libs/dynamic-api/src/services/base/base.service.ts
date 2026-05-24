@@ -3,7 +3,7 @@ import { plainToInstance } from 'class-transformer';
 import { PipelineStage } from 'mongodb-pipeline-builder';
 import { FilterQuery, Model, PipelineStage as MongoosePipelineStage, Schema, UpdateQuery, UpdateWithAggregationPipeline } from 'mongoose';
 import { DERIVED_FIELD_KEYS_METADATA, DERIVED_FIELD_METADATA, DerivedFieldMeta } from '../../decorators';
-import { AbilityPredicate, AuthAbilityPredicate, DeleteResult, DynamicApiCallbackMethods, UpdateResult } from '../../interfaces';
+import { AbilityPredicate, AuthAbilityPredicate, DeleteResult, DynamicApiCallbackMethods, MongoUpdateOperators, UpdateResult } from '../../interfaces';
 import { MongoDBDynamicApiLogger } from '../../logger';
 import { BaseEntity, SoftDeletableEntity } from '../../models';
 import { DynamicApiResetPasswordOptions } from '../../modules';
@@ -33,6 +33,8 @@ export abstract class BaseService<Entity extends BaseEntity> {
       createOneDocument: this.createOneDocument.bind(this),
       updateManyDocuments: this.updateManyDocuments.bind(this),
       updateOneDocument: this.updateOneDocument.bind(this),
+      rawUpdateManyDocuments: this.rawUpdateManyDocuments.bind(this),
+      rawUpdateOneDocument: this.rawUpdateOneDocument.bind(this),
       deleteManyDocuments: this.deleteManyDocuments.bind(this),
       deleteOneDocument: this.deleteOneDocument.bind(this),
       aggregateDocuments: this.aggregateDocuments.bind(this),
@@ -163,6 +165,35 @@ export abstract class BaseService<Entity extends BaseEntity> {
   ): Promise<UpdateResult> {
     const model = await DynamicApiGlobalStateService.getEntityModel(entity);
     return model.updateOne(query, update).exec();
+  }
+
+  private validateMongoOperators(update: Record<string, unknown>): void {
+    const invalidKeys = Object.keys(update).filter((k) => !k.startsWith('$'));
+    if (invalidKeys.length > 0) {
+      throw new BadRequestException(
+        `Invalid raw update: all keys must be MongoDB operators starting with "$". Invalid keys: ${invalidKeys.join(', ')}`,
+      );
+    }
+  }
+
+  protected async rawUpdateManyDocuments<T extends BaseEntity>(
+    entity: Type<T>,
+    filter: FilterQuery<T>,
+    update: MongoUpdateOperators<T>,
+  ): Promise<UpdateResult> {
+    this.validateMongoOperators(update as Record<string, unknown>);
+    const model = await DynamicApiGlobalStateService.getEntityModel(entity);
+    return model.updateMany(filter, update).exec();
+  }
+
+  protected async rawUpdateOneDocument<T extends BaseEntity>(
+    entity: Type<T>,
+    filter: FilterQuery<T>,
+    update: MongoUpdateOperators<T>,
+  ): Promise<UpdateResult> {
+    this.validateMongoOperators(update as Record<string, unknown>);
+    const model = await DynamicApiGlobalStateService.getEntityModel(entity);
+    return model.updateOne(filter, update).exec();
   }
 
   protected async deleteManyDocuments<T extends BaseEntity>(entity: Type<T>, ids: string[]): Promise<DeleteResult> {
