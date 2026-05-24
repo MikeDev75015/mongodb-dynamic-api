@@ -4,6 +4,7 @@ import {
   AbilityPredicate,
   DynamicApiControllerOptions,
   DynamicAPIRouteConfig,
+  PredicateBehavior,
   RouteType,
 } from '../interfaces';
 import { BaseEntity } from '../models';
@@ -26,6 +27,7 @@ function getMixinData<Entity extends BaseEntity>(
     isPublic: isPublicRoute,
     disableCache: disableCacheRoute,
     abilityPredicate: routeAbilityPredicate,
+    predicateBehavior,
     eventName,
   }: DynamicAPIRouteConfig<Entity>,
   isGateway = false,
@@ -36,6 +38,7 @@ function getMixinData<Entity extends BaseEntity>(
   isPublic: boolean;
   disableCache: boolean;
   abilityPredicate: AbilityPredicate<Entity>;
+  predicateBehavior: PredicateBehavior | undefined;
   event: string;
 } {
   const displayedName = getDisplayedName(apiTag,  entity.name, subPath);
@@ -72,6 +75,7 @@ function getMixinData<Entity extends BaseEntity>(
     isPublic,
     disableCache,
     abilityPredicate,
+    predicateBehavior,
     event,
   };
 }

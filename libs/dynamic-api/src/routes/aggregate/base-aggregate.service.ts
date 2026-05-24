@@ -1,7 +1,7 @@
 import { Type } from '@nestjs/common';
 import { GetPagingResult, GetResult, PipelineStage } from 'mongodb-pipeline-builder';
 import { Model } from 'mongoose';
-import { AfterSaveCallback } from '../../interfaces';
+import { AbilityPredicate, AfterSaveCallback, PredicateBehavior } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseService } from '../../services';
 import { AggregateService } from './aggregate-service.interface';
@@ -12,6 +12,8 @@ export abstract class BaseAggregateService<Entity extends BaseEntity>
 {
   protected readonly entity: Type<Entity>;
   protected readonly callback: AfterSaveCallback<Entity> | undefined;
+  protected readonly abilityPredicate: AbilityPredicate<Entity> | undefined;
+  protected readonly predicateBehavior: PredicateBehavior | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
     super(model);
@@ -43,7 +45,14 @@ export abstract class BaseAggregateService<Entity extends BaseEntity>
         );
       }
 
-      return { list: documents.map((d) => this.buildInstance(d)), count, totalPage };
+      const list = documents.map((d) => this.buildInstance(d));
+
+      if (this.predicateBehavior === 'filter' && this.abilityPredicate) {
+        const filtered = list.filter((instance) => this.abilityPredicate(instance, user));
+        return { list: filtered, count: filtered.length, totalPage };
+      }
+
+      return { list, count, totalPage };
     } catch (error: unknown) {
       this.handleMongoErrors(error, false);
       this.handleDuplicateKeyError(error);

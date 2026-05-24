@@ -1,5 +1,5 @@
 import { Model } from 'mongoose';
-import { AfterSaveCallback } from '../../interfaces';
+import { AbilityPredicate, AfterSaveCallback, PredicateBehavior } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseService } from '../../services';
 import { GetManyService } from './get-many-service.interface';
@@ -8,6 +8,8 @@ export abstract class BaseGetManyService<Entity extends BaseEntity>
   extends BaseService<Entity>
   implements GetManyService<Entity> {
   protected readonly callback: AfterSaveCallback<Entity> | undefined;
+  protected readonly abilityPredicate: AbilityPredicate<Entity> | undefined;
+  protected readonly predicateBehavior: PredicateBehavior | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
     super(model);
@@ -34,6 +36,12 @@ export abstract class BaseGetManyService<Entity extends BaseEntity>
       );
     }
 
-    return documents.map((d) => this.buildInstance(d));
+    const instances = documents.map((d) => this.buildInstance(d));
+
+    if (this.predicateBehavior === 'filter' && this.abilityPredicate) {
+      return instances.filter((instance) => this.abilityPredicate(instance, user));
+    }
+
+    return instances;
   }
 }

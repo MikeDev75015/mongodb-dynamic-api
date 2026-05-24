@@ -49,7 +49,7 @@ describe('AggregateModule', () => {
 
       expect(spyCreateAggregateController)
       .toHaveBeenCalledWith(Entity, fakeDisplayedName, controllerOptions, routeConfig, version, validationPipeOptions);
-      expect(spyCreateAggregateServiceProvider).toHaveBeenCalledWith(Entity, fakeDisplayedName, version, routeConfigCallback);
+      expect(spyCreateAggregateServiceProvider).toHaveBeenCalledWith(Entity, fakeDisplayedName, version, routeConfigCallback, undefined, undefined);
     });
 
     it('should return a DynamicModule with gateway', () => {
@@ -73,7 +73,7 @@ describe('AggregateModule', () => {
       expect(spyCreateAggregateController)
       .toHaveBeenCalledWith(Entity, fakeDisplayedName, controllerOptions, routeConfig, version, validationPipeOptions);
       expect(spyCreateAggregateServiceProvider)
-      .toHaveBeenCalledWith(Entity, fakeDisplayedName, version, routeConfigCallback);
+      .toHaveBeenCalledWith(Entity, fakeDisplayedName, version, routeConfigCallback, undefined, undefined);
       expect(spyCreateAggregateGateway)
       .toHaveBeenCalledWith(
         Entity,

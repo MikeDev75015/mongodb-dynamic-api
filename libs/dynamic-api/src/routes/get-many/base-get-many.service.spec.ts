@@ -74,5 +74,63 @@ describe('BaseGetManyService', () => {
 
       expect(callback).toHaveBeenCalledWith({ ...response[0], id: response[0]._id }, internal(service).callbackMethods, user);
     });
+
+    it('should filter documents when predicateBehavior is filter and abilityPredicate rejects some', async () => {
+      const documents = [
+        { _id: 'id1', __v: 1, name: 'allowed' },
+        { _id: 'id2', __v: 1, name: 'denied' },
+      ];
+      const exec = jest.fn().mockResolvedValueOnce(documents);
+      service = initService(exec);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      Object.defineProperty(service, 'abilityPredicate', { value: (entity: TestEntity) => entity.name === 'allowed', configurable: true });
+      Object.defineProperty(service, 'predicateBehavior', { value: 'filter', configurable: true });
+      const user = { id: 'userId' };
+
+      const result = await service.getMany(undefined, user);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe('allowed');
+    });
+
+    it('should return empty array when predicateBehavior is filter and abilityPredicate rejects all', async () => {
+      const documents = [{ _id: 'id1', __v: 1, name: 'denied' }];
+      const exec = jest.fn().mockResolvedValueOnce(documents);
+      service = initService(exec);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      Object.defineProperty(service, 'abilityPredicate', { value: () => false, configurable: true });
+      Object.defineProperty(service, 'predicateBehavior', { value: 'filter', configurable: true });
+
+      const result = await service.getMany();
+
+      expect(result).toEqual([]);
+    });
+
+    it('should return all documents when predicateBehavior is filter and abilityPredicate allows all', async () => {
+      const exec = jest.fn().mockResolvedValueOnce(response);
+      service = initService(exec);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      Object.defineProperty(service, 'abilityPredicate', { value: () => true, configurable: true });
+      Object.defineProperty(service, 'predicateBehavior', { value: 'filter', configurable: true });
+      const { _id, __v, ...documentWithoutIdAndVersion } = response[0];
+
+      const result = await service.getMany();
+
+      expect(result).toStrictEqual([{ ...documentWithoutIdAndVersion, id: response[0]._id }]);
+    });
+
+    it('should not filter when predicateBehavior is throw (default behavior)', async () => {
+      const exec = jest.fn().mockResolvedValueOnce(response);
+      service = initService(exec);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      Object.defineProperty(service, 'abilityPredicate', { value: () => false, configurable: true });
+      Object.defineProperty(service, 'predicateBehavior', { value: 'throw', configurable: true });
+      const { _id, __v, ...documentWithoutIdAndVersion } = response[0];
+
+      // predicateBehavior 'throw' means guard handles it — service just returns all
+      const result = await service.getMany();
+
+      expect(result).toStrictEqual([{ ...documentWithoutIdAndVersion, id: response[0]._id }]);
+    });
   });
 });

@@ -17,9 +17,11 @@ import { provideName } from '../../helpers';
 import {
   DynamicApiControllerOptions,
   DynamicAPIRouteConfig,
+  AbilityPredicate,
   AfterSaveCallback,
   DynamicAPIServiceProvider,
   GatewayOptions,
+  PredicateBehavior,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseGetManyService } from './base-get-many.service';
@@ -34,10 +36,14 @@ function createGetManyServiceProvider<Entity extends BaseEntity>(
   displayedName: string,
   version: string | undefined,
   callback: AfterSaveCallback<Entity> | undefined,
+  abilityPredicate?: AbilityPredicate<Entity>,
+  predicateBehavior?: PredicateBehavior,
 ): DynamicAPIServiceProvider {
   class GetManyService extends BaseGetManyService<Entity> {
     protected readonly entity = entity;
     protected readonly callback = callback;
+    protected readonly abilityPredicate = abilityPredicate;
+    protected readonly predicateBehavior = predicateBehavior;
 
     constructor(
       @InjectModel(

@@ -84,6 +84,55 @@ describe('BaseAggregateService', () => {
       expect(callback).toHaveBeenCalledWith({ ...aggregated, id: aggregated._id }, service['callbackMethods'], user);
     });
 
+    it('should filter documents when predicateBehavior is filter and abilityPredicate rejects some', async () => {
+      const allowed = { _id: 'id1' as unknown as ObjectId, __v: 0, name: 'allowed' } as Entity;
+      const denied = { _id: 'id2' as unknown as ObjectId, __v: 0, name: 'denied' } as Entity;
+      service = initService([allowed, denied]);
+      Object.defineProperty(service, 'abilityPredicate', { value: (entity: Entity) => entity.name === 'allowed', configurable: true });
+      Object.defineProperty(service, 'predicateBehavior', { value: 'filter', configurable: true });
+      const user = { id: 'userId' };
+
+      const result = await service.aggregate(pipelineStages, user);
+
+      expect(result.list).toHaveLength(1);
+      expect(result.list[0].name).toBe('allowed');
+      expect(result.count).toBe(1);
+    });
+
+    it('should return empty list when predicateBehavior is filter and abilityPredicate rejects all', async () => {
+      service = initService([aggregated]);
+      Object.defineProperty(service, 'abilityPredicate', { value: () => false, configurable: true });
+      Object.defineProperty(service, 'predicateBehavior', { value: 'filter', configurable: true });
+
+      const result = await service.aggregate(pipelineStages);
+
+      expect(result.list).toEqual([]);
+      expect(result.count).toBe(0);
+    });
+
+    it('should return all documents when predicateBehavior is filter and abilityPredicate allows all', async () => {
+      service = initService([aggregated]);
+      Object.defineProperty(service, 'abilityPredicate', { value: () => true, configurable: true });
+      Object.defineProperty(service, 'predicateBehavior', { value: 'filter', configurable: true });
+
+      const result = await service.aggregate(pipelineStages);
+
+      expect(result.list).toHaveLength(1);
+      expect(result.count).toBe(1);
+    });
+
+    it('should not filter when predicateBehavior is throw', async () => {
+      service = initService([aggregated]);
+      Object.defineProperty(service, 'abilityPredicate', { value: () => false, configurable: true });
+      Object.defineProperty(service, 'predicateBehavior', { value: 'throw', configurable: true });
+
+      const result = await service.aggregate(pipelineStages);
+
+      // 'throw' mode = guard handles it; service returns all
+      expect(result.list).toHaveLength(1);
+      expect(result.count).toBe(1);
+    });
+
     it('should throw an error if the create query fails', async () => {
       service = initService();
       (modelMock.aggregate as jest.Mock).mockRejectedValue(new Error('create error'));

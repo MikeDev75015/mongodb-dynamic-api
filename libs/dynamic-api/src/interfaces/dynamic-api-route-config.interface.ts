@@ -1,6 +1,6 @@
 import { NestInterceptor, Type, ValidationPipeOptions } from '@nestjs/common';
 import { BaseEntity } from '../models';
-import { AbilityPredicate } from './dynamic-api-ability.interface';
+import { AbilityPredicate, PredicateBehavior } from './dynamic-api-ability.interface';
 import { DynamicApiBroadcastConfig } from './dynamic-api-broadcast-config.interface';
 import { DTOsBundle } from './dynamic-api-route-dtos-bundle.type';
 import { RouteType } from './dynamic-api-route-type.type';
@@ -32,6 +32,7 @@ interface DynamicApiRouteConfig<Entity extends BaseEntity> {
   dTOs?: DTOsBundle;
   validationPipeOptions?: ValidationPipeOptions;
   abilityPredicate?: AbilityPredicate<Entity>;
+  predicateBehavior?: PredicateBehavior;
   beforeSaveCallback?: AnyBeforeSaveCallback<Entity>;
   callback?: AfterSaveCallback<Entity>;
   webSocket?: DynamicApiWebSocketOptions;
