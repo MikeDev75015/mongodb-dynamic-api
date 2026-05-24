@@ -16,6 +16,7 @@ describe('DynamicApiConfigModule', () => {
     jwtRefreshTokenExpiresIn: 0,
     jwtRefreshSecret: undefined,
     jwtRefreshUseCookie: undefined,
+    refreshTokenOnUpdate: false,
     routesConfig: undefined,
     uri: '',
     gatewayOptions: undefined,
