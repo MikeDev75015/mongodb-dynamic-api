@@ -8,6 +8,20 @@ import { AnyBeforeSaveCallback } from './dynamic-api-service-before-save-callbac
 import { AfterSaveCallback } from './dynamic-api-service-callback.interface';
 import { DynamicApiWebSocketOptions } from './dynamic-api-web-socket.interface';
 
+/**
+ * Maps entity fields to JWT claim names or extractor functions.
+ * When a request is processed, the mapped values are injected into the body
+ * before validation and persistence.
+ *
+ * @example
+ * // Inject `req.user.email` into `createdBy`, run a function for `tenantId`
+ * fromUser: {
+ *   createdBy: 'email',
+ *   tenantId: (user) => (user as JwtPayload).tenantId,
+ * }
+ */
+type FromUserMap<Entity> = Partial<Record<keyof Entity, string | ((user: unknown) => unknown)>>;
+
 interface DynamicApiRouteConfig<Entity extends BaseEntity> {
   type: RouteType;
   isPublic?: boolean;
@@ -25,6 +39,7 @@ interface DynamicApiRouteConfig<Entity extends BaseEntity> {
   broadcast?: DynamicApiBroadcastConfig<Entity>;
   isArrayResponse?: boolean;
   useInterceptors?: Type<NestInterceptor>[];
+  fromUser?: FromUserMap<Entity>;
 }
 
 /**
@@ -32,4 +47,4 @@ interface DynamicApiRouteConfig<Entity extends BaseEntity> {
  */
 type DynamicAPIRouteConfig<Entity extends BaseEntity> = DynamicApiRouteConfig<Entity>;
 
-export { DynamicApiRouteConfig, DynamicAPIRouteConfig };
+export { DynamicApiRouteConfig, DynamicAPIRouteConfig, FromUserMap };

@@ -1,6 +1,6 @@
 import { Body, Optional, Query, Request, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
-import { addVersionSuffix, getMixinData, isEmpty, provideName, RouteDecoratorsHelper } from '../../helpers';
+import { applyFromUser, addVersionSuffix, getMixinData, isEmpty, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
@@ -11,7 +11,7 @@ import { UpdateManyService } from './update-many-service.interface';
 function UpdateManyControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, fromUser, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): UpdateManyControllerConstructor<Entity> {
   const {
@@ -92,7 +92,10 @@ function UpdateManyControllerMixin<Entity extends BaseEntity>(
         UpdateManyBody as Mappable<Entity>
       ).toEntity;
 
-      const list = await this.service.updateMany(ids, toEntity ? toEntity(body) : body as Partial<Entity>, req?.user);
+      const rawPartial = toEntity ? toEntity(body) : body as Partial<Entity>;
+      const partial = applyFromUser(rawPartial, fromUser, req?.user);
+
+      const list = await this.service.updateMany(ids, partial, req?.user);
 
       const fromEntities = (
         UpdateManyPresenter as Mappable<Entity>

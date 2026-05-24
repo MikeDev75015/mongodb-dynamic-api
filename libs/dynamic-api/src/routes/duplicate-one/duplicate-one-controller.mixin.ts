@@ -1,7 +1,7 @@
 import { Body, Optional, Param, Request, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityParam } from '../../dtos';
-import { addVersionSuffix, getMixinData, isEmpty, provideName, RouteDecoratorsHelper } from '../../helpers';
+import { applyFromUser, addVersionSuffix, getMixinData, isEmpty, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
@@ -12,7 +12,7 @@ import { DuplicateOneService } from './duplicate-one-service.interface';
 function DuplicateOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, fromUser, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): DuplicateOneControllerConstructor<Entity> {
   const {
@@ -86,9 +86,12 @@ function DuplicateOneControllerMixin<Entity extends BaseEntity>(
         DuplicateOneBody as Mappable<Entity>
       ).toEntity;
 
+      const rawPartial = !isEmpty(body) && toEntity ? toEntity(body) : body as Partial<Entity>;
+      const partial = applyFromUser(rawPartial, fromUser, req?.user);
+
       const entity = await this.service.duplicateOne(
         id,
-        !isEmpty(body) && toEntity ? toEntity(body) : body as Partial<Entity>,
+        partial,
         req?.user,
       );
 

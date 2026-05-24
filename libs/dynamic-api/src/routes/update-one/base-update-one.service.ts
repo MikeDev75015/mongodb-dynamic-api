@@ -37,7 +37,7 @@ export abstract class BaseUpdateOneService<Entity extends BaseEntity>
         this.handleDocumentNotFound();
       }
 
-      const update = this.beforeSaveCallback
+      const afterCallback = this.beforeSaveCallback
         ? await this.beforeSaveCallback(
           this.addDocumentId(document),
           { id, update: cloneDeep(partial) },
@@ -45,6 +45,8 @@ export abstract class BaseUpdateOneService<Entity extends BaseEntity>
           user,
         )
         : cloneDeep(partial);
+
+      const update = this.applyDerivedFields(afterCallback, 'save');
 
       const updatedDocument = await this.model
       .findOneAndUpdate(

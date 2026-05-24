@@ -38,6 +38,7 @@ Each route in `DynamicApiModule.forFeature` can be finely configured through the
   - [abilityPredicate](#abilitypredicate)
   - [isArrayResponse](#isarrayresponse)
   - [useInterceptors](#useinterceptors)
+  - [fromUser](#fromuser)
   - [webSocket](#websocket)
   - [eventName](#eventname)
   - [broadcast](#broadcast)
@@ -807,6 +808,85 @@ routes: [
   },
 ]
 ```
+
+---
+
+### fromUser
+
+Automatically injects values from the **authenticated user's JWT payload** (`req.user`) into the body before the `beforeSaveCallback` and persistence. Supported on all mutating routes: `CreateOne`, `CreateMany`, `UpdateOne`, `UpdateMany`, `ReplaceOne`, `DuplicateOne`, `DuplicateMany`.
+
+> 📌 **Execution order:** `fromUser` injection → `beforeSaveCallback` → `@DerivedField` computation → DB write.
+
+#### Signature
+
+```typescript
+type FromUserMap<Entity> = Partial<
+  Record<keyof Entity, string | ((user: unknown) => unknown)>
+>;
+```
+
+| Source type | Description |
+|-------------|-------------|
+| `string` | Key name on `req.user` — value is read as `req.user[key]` |
+| `(user) => value` | Extractor function — receives `req.user` and returns the value |
+
+> ⚠️ If `req.user` is `undefined` or `null` (unauthenticated route), `fromUser` is silently skipped.
+
+#### Example
+
+```typescript
+// Entity
+@Schema({ collection: 'posts' })
+export class Post extends BaseEntity {
+  @Prop({ type: String, required: true })
+  title: string;
+
+  @Prop({ type: String })
+  @ProtectedField()   // Cannot be set by the client
+  createdBy: string;
+
+  @Prop({ type: String })
+  @ProtectedField()
+  tenantId: string;
+}
+```
+
+```typescript
+// Module
+DynamicApiModule.forFeature({
+  entity: Post,
+  controllerOptions: { path: 'posts' },
+  routes: [
+    {
+      type: 'CreateOne',
+      fromUser: {
+        // Inject req.user.email into createdBy
+        createdBy: 'email',
+        // Inject computed value from req.user
+        tenantId: (user) => (user as JwtPayload).tenantId,
+      },
+    },
+  ],
+})
+```
+
+**POST /posts** (JWT: `{ email: "alice@co.com", tenantId: "tenant-42" }`)
+
+Request body (client sends):
+```json
+{ "title": "Hello World" }
+```
+
+Persisted document:
+```json
+{
+  "title": "Hello World",
+  "createdBy": "alice@co.com",
+  "tenantId": "tenant-42"
+}
+```
+
+> 💡 Combine `@ProtectedField()` with `fromUser` for the most secure pattern: the field is excluded from the DTO (client cannot submit it) **and** automatically filled from JWT. See [Entities docs](./entities.md#combo-pattern-protectedfield--fromuser).
 
 ---
 

@@ -470,6 +470,145 @@ export class Order extends BaseEntity {
 - 🔧 **[Schema Options](./schema-options.md)** - Configure indexes, hooks, and custom initialization
 - ✅ **[Validation](./validation.md)** - Validate entity data
 - 📚 **[Swagger UI](./swagger-ui.md)** - API documentation
+- 🔑 **[Route Config](./route-config.md)** - `fromUser` injection, callbacks, DTOs
+
+---
+
+## Field Decorators
+
+Two property-level decorators let you declare computed and protected fields directly on the entity class, without writing any custom DTO or `beforeSaveCallback`.
+
+### `@DerivedField(computeFn, options?)`
+
+Marks a field as **server-computed**. The `computeFn` receives a snapshot of the entity being saved/read and must return the derived value. The original body value for this field is always overwritten.
+
+#### Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `on` | `'save' \| 'read' \| 'both'` | `'save'` | When to compute: before DB write, after DB read, or both |
+
+#### Behaviour
+
+| `on` value | Computed… | Persisted to DB |
+|-----------|-----------|-----------------|
+| `'save'` | Before DB write (after `beforeSaveCallback`) | ✅ Yes |
+| `'read'` | After DB read (in `buildInstance`) | ❌ No |
+| `'both'` | At both moments | ✅ Yes (save value) |
+
+> 💡 All `computeFn` calls receive the entity snapshot **before** any mutation from other derived fields, preventing circular computation.
+
+#### Example
+
+```typescript
+import { Prop, Schema } from '@nestjs/mongoose';
+import { BaseEntity, DerivedField } from 'mongodb-dynamic-api';
+import { ApiProperty } from '@nestjs/swagger';
+
+@Schema({ collection: 'articles' })
+export class Article extends BaseEntity {
+  @ApiProperty({ example: 'John' })
+  @Prop({ type: String, required: true })
+  firstName: string;
+
+  @ApiProperty({ example: 'Doe' })
+  @Prop({ type: String, required: true })
+  lastName: string;
+
+  // Computed on save and persisted
+  @ApiProperty({ example: 'John Doe' })
+  @Prop({ type: String })
+  @DerivedField<Article>((e) => `${e.firstName} ${e.lastName}`)
+  fullName: string;
+
+  // Computed only on read (never persisted)
+  @ApiProperty({ example: 'Hi, my name is John' })
+  @Prop({ type: String })
+  @DerivedField<Article>((e) => `Hi, my name is ${e.firstName}`, { on: 'read' })
+  greeting: string;
+
+  // Re-computed at every read AND save
+  @ApiProperty({ example: 'JOHN DOE' })
+  @Prop({ type: String })
+  @DerivedField<Article>((e) => `${e.firstName} ${e.lastName}`.toUpperCase(), { on: 'both' })
+  displayName: string;
+}
+```
+
+#### POST /articles
+
+**Request body:**
+```json
+{ "firstName": "John", "lastName": "Doe" }
+```
+
+**Response (201):**
+```json
+{
+  "id": "...",
+  "firstName": "John",
+  "lastName": "Doe",
+  "fullName": "John Doe",
+  "displayName": "JOHN DOE",
+  "createdAt": "...",
+  "updatedAt": "..."
+}
+```
+
+---
+
+### `@ProtectedField()`
+
+Marks a field as **server-only**. It is automatically excluded from all mutating body DTOs (`CreateOne`, `CreateMany`, `UpdateOne`, `UpdateMany`, `ReplaceOne`, `DuplicateOne`, `DuplicateMany`) without needing manual `additionalKeysToExclude` lists. Clients cannot set or override this field.
+
+> ⚠️ If you supply a custom `dTOs.body`, `@ProtectedField` auto-exclusion is **bypassed** — manage exclusions manually in that case.
+
+#### Example
+
+```typescript
+import { Prop, Schema } from '@nestjs/mongoose';
+import { BaseEntity, ProtectedField } from 'mongodb-dynamic-api';
+import { ApiProperty } from '@nestjs/swagger';
+
+@Schema({ collection: 'products' })
+export class Product extends BaseEntity {
+  @ApiProperty({ example: 'Laptop' })
+  @Prop({ type: String, required: true })
+  name: string;
+
+  // Stored internally, never writable by clients
+  @Prop({ type: String })
+  @ProtectedField()
+  internalSku: string;
+
+  // Set server-side via fromUser (see Route Config docs)
+  @Prop({ type: String })
+  @ProtectedField()
+  createdBy: string;
+}
+```
+
+**POST /products body** (`internalSku` and `createdBy` are stripped from the DTO):
+```json
+{ "name": "Laptop" }
+```
+
+#### Combo pattern: `@ProtectedField` + `fromUser`
+
+Mark a field `@ProtectedField()` **and** map it in `fromUser` on the route → clients cannot submit the value, but the server auto-injects it from the JWT:
+
+```typescript
+// Entity
+@ProtectedField()
+@Prop({ type: String })
+createdBy: string;
+
+// Route config
+{
+  type: 'CreateOne',
+  fromUser: { createdBy: 'email' },
+}
+```
 
 ---
 

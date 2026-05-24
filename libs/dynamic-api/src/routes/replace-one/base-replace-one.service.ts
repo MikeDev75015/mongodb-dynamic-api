@@ -42,7 +42,7 @@ export abstract class BaseReplaceOneService<Entity extends BaseEntity>
         this.handleDocumentNotFound();
       }
 
-      const replacement = this.beforeSaveCallback
+      const afterCallback = this.beforeSaveCallback
         ? await this.beforeSaveCallback(
           this.addDocumentId(existingDocument),
           { id, replacement: cloneDeep(partial) },
@@ -50,6 +50,8 @@ export abstract class BaseReplaceOneService<Entity extends BaseEntity>
           user,
         )
         : cloneDeep(partial);
+
+      const replacement = this.applyDerivedFields(afterCallback, 'save');
 
       const document = await this.model
       .findOneAndReplace(
