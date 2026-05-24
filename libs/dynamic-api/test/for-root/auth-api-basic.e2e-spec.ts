@@ -22,7 +22,7 @@ describe('DynamicApiModule forRoot - Authentication API Basic (e2e)', () => {
     const UserEntity = createBasicUserEntity();
 
     let app: INestApplication;
-
+-
     beforeEach(async () => {
       app = await initModule({ useAuth: { userEntity: UserEntity } });
     });
@@ -44,6 +44,7 @@ describe('DynamicApiModule forRoot - Authentication API Basic (e2e)', () => {
         jwtRefreshTokenExpiresIn: '7d',
         jwtRefreshSecret: undefined,
         jwtRefreshUseCookie: false,
+        refreshTokenOnUpdate: false,
         jwtSecret: 'dynamic-api-jwt-secret',
         routesConfig: {
           defaults: [
@@ -271,6 +272,7 @@ describe('DynamicApiModule forRoot - Authentication API Basic (e2e)', () => {
         jwtRefreshTokenExpiresIn: '7d',
         jwtRefreshSecret: undefined,
         jwtRefreshUseCookie: false,
+        refreshTokenOnUpdate: false,
         jwtSecret: 'test-secret',
         routesConfig: {
           defaults: [
