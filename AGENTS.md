@@ -16,12 +16,18 @@
    - Use `it.each` for similar multi-case scenarios
    - Run `npx jest <file>.spec.ts --coverage` and verify 100% before committing
 
-2. **Documentation** (all impacted `.md` files)
+2. **E2E tests** (`*.e2e-spec.ts` in `libs/dynamic-api/test/for-feature/` or `for-root/`)
+   - For every feature touching callbacks, routes, or public services
+   - Cover happy path for each operator/case + error paths (guard, exceptions)
+   - Use real MongoDB + full NestJS app via `createTestingApp`
+   - Run `npx jest --config libs/dynamic-api/test/jest-e2e.json <file>` and verify all green
+
+3. **Documentation** (all impacted `.md` files)
    - Every new method / type / option: description + full TypeScript signature + complete compilable code example (imports included)
    - No generic placeholder examples — use real entity names from the project
    - Update the Table of Contents if a new section is added
 
-3. **Commit only after steps 1 and 2 are fully done.**
+4. **Commit only after steps 1, 2 and 3 are fully done.**
 
 Skipping tests or doc = invalid delivery. No exception.
 
