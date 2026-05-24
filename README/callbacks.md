@@ -34,6 +34,7 @@ Both `beforeSaveCallback` and `callback` (after save) **receive the authenticate
     - [BeforeSaveDeleteManyContext](#beforesavedeletemanycontext)
   - [Signature-to-route compatibility](#signature-to-route-compatibility)
 - [CallbackMethods](#callbackmethods)
+- [rawUpdateOneDocument & rawUpdateManyDocuments](#rawupdateonedocument--rawupdatemanydocuments)
 - [Accessing the authenticated user](#accessing-the-authenticated-user)
   - [Typing the user parameter](#typing-the-user-parameter)
   - [In beforeSaveCallback](#in-beforesavecallback)
@@ -418,6 +419,16 @@ type CallbackMethods = {
     query: FilterQuery<T>,
     update: UpdateQuery<T> | UpdateWithAggregationPipeline,
   ): Promise<UpdateResult>;
+  rawUpdateManyDocuments<T>(
+    entity: Type<T>,
+    filter: FilterQuery<T>,
+    update: MongoUpdateOperators<T>,
+  ): Promise<UpdateResult>;
+  rawUpdateOneDocument<T>(
+    entity: Type<T>,
+    filter: FilterQuery<T>,
+    update: MongoUpdateOperators<T>,
+  ): Promise<UpdateResult>;
   deleteManyDocuments<T>(entity: Type<T>, ids: string[]): Promise<DeleteResult>;
   deleteOneDocument<T>(entity: Type<T>, id: string): Promise<DeleteResult>;
   aggregateDocuments<T>(entity: Type<T>, pipeline: PipelineStage[]): Promise<T[]>;
@@ -428,7 +439,133 @@ type CallbackMethods = {
 
 ---
 
-## Accessing the authenticated user
+## rawUpdateOneDocument & rawUpdateManyDocuments
+
+`rawUpdateOneDocument` and `rawUpdateManyDocuments` are purpose-built helpers for callbacks that need to apply **native MongoDB update operators** (e.g., `$push`, `$pull`, `$inc`) without bypassing the abstraction layer.
+
+### Why use raw methods instead of `updateOneDocument`?
+
+| | `updateOneDocument` / `updateManyDocuments` | `rawUpdateOneDocument` / `rawUpdateManyDocuments` |
+|---|---|---|
+| Accepted payload | `UpdateQuery<T>` (any shape) | `MongoUpdateOperators<T>` (operator keys only) |
+| Runtime guard | ❌ | ✅ rejects keys without `$` |
+| Intent in code | General-purpose | Explicit operator-only update |
+
+### `MongoUpdateOperators<T>` type
+
+```typescript
+import { MongoUpdateOperators } from 'mongodb-dynamic-api';
+
+type MongoUpdateOperators<T> = {
+  $set?:      Partial<T>;
+  $unset?:    Partial<Record<keyof T, '' | 1 | true>>;
+  $inc?:      Partial<Record<keyof T, number>>;
+  $push?:     Partial<{ [K in keyof T]: T[K] extends Array<infer U> ? U | { $each: U[] } : never }>;
+  $pull?:     Partial<{ [K in keyof T]: T[K] extends Array<infer U> ? Partial<U> | FilterQuery<U> : never }>;
+  $addToSet?: Partial<{ [K in keyof T]: T[K] extends Array<infer U> ? U | { $each: U[] } : never }>;
+  $pop?:      Partial<Record<keyof T, -1 | 1>>;
+  $rename?:   Partial<Record<keyof T, string>>;
+};
+```
+
+> **⚠️ Runtime guard:** If any key in the payload does **not** start with `$`, a `400 BadRequest` is thrown immediately — the MongoDB query is never executed.
+
+### Examples
+
+#### `$set` — update specific fields
+
+```typescript
+const callback: AfterSaveCallback<OrderEntity> = async (order, methods) => {
+  await methods.rawUpdateOneDocument(OrderEntity, { _id: order.id }, {
+    $set: { status: 'confirmed', confirmedAt: new Date() },
+  });
+};
+```
+
+#### `$unset` — remove a field
+
+```typescript
+const callback: AfterSaveCallback<UserEntity> = async (user, methods) => {
+  await methods.rawUpdateOneDocument(UserEntity, { _id: user.id }, {
+    $unset: { resetPasswordToken: '' },
+  });
+};
+```
+
+#### `$push` — append to an array field
+
+```typescript
+const callback: AfterSaveCallback<PostEntity> = async (post, methods) => {
+  await methods.rawUpdateOneDocument(PostEntity, { _id: post.id }, {
+    $push: { tags: 'featured' } as MongoUpdateOperators<PostEntity>['$push'],
+  });
+};
+```
+
+#### `$pull` — remove matching elements from an array
+
+```typescript
+const callback: AfterSaveCallback<PostEntity> = async (post, methods) => {
+  await methods.rawUpdateOneDocument(PostEntity, { _id: post.id }, {
+    $pull: { tags: 'draft' } as MongoUpdateOperators<PostEntity>['$pull'],
+  });
+};
+```
+
+#### `$inc` — increment a numeric field
+
+```typescript
+const callback: AfterSaveCallback<ProductEntity> = async (product, methods) => {
+  await methods.rawUpdateOneDocument(ProductEntity, { _id: product.id }, {
+    $inc: { viewCount: 1 } as MongoUpdateOperators<ProductEntity>['$inc'],
+  });
+};
+```
+
+#### `$addToSet` — add to array only if not present
+
+```typescript
+const callback: AfterSaveCallback<UserEntity> = async (user, methods) => {
+  await methods.rawUpdateOneDocument(UserEntity, { _id: user.id }, {
+    $addToSet: { roles: 'editor' } as MongoUpdateOperators<UserEntity>['$addToSet'],
+  });
+};
+```
+
+#### `$pop` — remove first or last array element
+
+```typescript
+const callback: AfterSaveCallback<QueueEntity> = async (queue, methods) => {
+  // 1 = last element, -1 = first element
+  await methods.rawUpdateOneDocument(QueueEntity, { _id: queue.id }, {
+    $pop: { items: 1 } as MongoUpdateOperators<QueueEntity>['$pop'],
+  });
+};
+```
+
+#### `$rename` — rename a field
+
+```typescript
+const callback: AfterSaveCallback<LegacyEntity> = async (doc, methods) => {
+  await methods.rawUpdateOneDocument(LegacyEntity, { _id: doc.id }, {
+    $rename: { oldFieldName: 'newFieldName' },
+  });
+};
+```
+
+#### `rawUpdateManyDocuments` — bulk operator update
+
+```typescript
+const callback: AfterSaveCallback<ProductEntity> = async (_product, methods) => {
+  // Increment stock for all low-stock products
+  await methods.rawUpdateManyDocuments(ProductEntity, { stock: { $lt: 5 } }, {
+    $inc: { stock: 10 } as MongoUpdateOperators<ProductEntity>['$inc'],
+  });
+};
+```
+
+---
+
 
 When authentication is enabled (`useAuth` in `DynamicApiModule.forRoot`), the authenticated user is passed as the **last parameter** of both callbacks.
 

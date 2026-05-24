@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, ForbiddenException, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { Model, ObjectId } from 'mongoose';
-import { AbilityPredicate, DeleteResult, UpdateResult } from '../../interfaces';
+import { AbilityPredicate, DeleteResult, MongoUpdateOperators, UpdateResult } from '../../interfaces';
 import { BaseEntity, SoftDeletableEntity } from '../../models';
 import { DynamicApiGlobalStateService } from '../dynamic-api-global-state/dynamic-api-global-state.service';
 import { BaseService } from './base.service';
@@ -108,6 +108,8 @@ describe('BaseService', () => {
         createOneDocument: expect.any(Function),
         updateManyDocuments: expect.any(Function),
         updateOneDocument: expect.any(Function),
+        rawUpdateManyDocuments: expect.any(Function),
+        rawUpdateOneDocument: expect.any(Function),
         deleteManyDocuments: expect.any(Function),
         deleteOneDocument: expect.any(Function),
       });
@@ -396,6 +398,106 @@ describe('BaseService', () => {
 
       expect(result).toEqual(fakeUpdateResult);
       expect(fakeModel.updateOne).toHaveBeenCalledWith(fakeQuery, data);
+    });
+  });
+
+  describe('rawUpdateManyDocuments', () => {
+    const setupService = () => {
+      exec.mockResolvedValue(fakeUpdateResult);
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
+      return new TestService(fakeModel as unknown as Model<TestEntity>);
+    };
+
+    it.each<[string, MongoUpdateOperators<TestEntity>]>([
+      ['$set',      { $set: { name: 'updated' } }],
+      ['$unset',    { $unset: { name: '' } }],
+      ['$inc',      { $inc: { name: 1 } as MongoUpdateOperators<TestEntity>['$inc'] }],
+      ['$push',     { $push: { name: 'val' } as MongoUpdateOperators<TestEntity>['$push'] }],
+      ['$pull',     { $pull: { name: 'val' } as MongoUpdateOperators<TestEntity>['$pull'] }],
+      ['$addToSet', { $addToSet: { name: 'val' } as MongoUpdateOperators<TestEntity>['$addToSet'] }],
+      ['$pop',      { $pop: { name: 1 } as MongoUpdateOperators<TestEntity>['$pop'] }],
+      ['$rename',   { $rename: { name: 'newName' } }],
+    ])('should call updateMany with operator %s', async (_, update) => {
+      const svc = setupService();
+
+      const result = await svc['callbackMethods'].rawUpdateManyDocuments(TestEntity, fakeQuery, update);
+
+      expect(result).toEqual(fakeUpdateResult);
+      expect(fakeModel.updateMany).toHaveBeenCalledWith(fakeQuery, update);
+    });
+
+    it('should throw BadRequestException if a key does not start with $', async () => {
+      const svc = setupService();
+
+      await expect(
+        svc['callbackMethods'].rawUpdateManyDocuments(
+          TestEntity,
+          fakeQuery,
+          { name: 'bad' } as unknown as MongoUpdateOperators<TestEntity>,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException listing all invalid keys', async () => {
+      const svc = setupService();
+
+      await expect(
+        svc['callbackMethods'].rawUpdateManyDocuments(
+          TestEntity,
+          fakeQuery,
+          { name: 'bad', $set: { name: 'ok' } } as unknown as MongoUpdateOperators<TestEntity>,
+        ),
+      ).rejects.toThrow('Invalid raw update: all keys must be MongoDB operators starting with "$". Invalid keys: name');
+    });
+  });
+
+  describe('rawUpdateOneDocument', () => {
+    const setupService = () => {
+      exec.mockResolvedValue(fakeUpdateResult);
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
+      return new TestService(fakeModel as unknown as Model<TestEntity>);
+    };
+
+    it.each<[string, MongoUpdateOperators<TestEntity>]>([
+      ['$set',      { $set: { name: 'updated' } }],
+      ['$unset',    { $unset: { name: '' } }],
+      ['$inc',      { $inc: { name: 1 } as MongoUpdateOperators<TestEntity>['$inc'] }],
+      ['$push',     { $push: { name: 'val' } as MongoUpdateOperators<TestEntity>['$push'] }],
+      ['$pull',     { $pull: { name: 'val' } as MongoUpdateOperators<TestEntity>['$pull'] }],
+      ['$addToSet', { $addToSet: { name: 'val' } as MongoUpdateOperators<TestEntity>['$addToSet'] }],
+      ['$pop',      { $pop: { name: 1 } as MongoUpdateOperators<TestEntity>['$pop'] }],
+      ['$rename',   { $rename: { name: 'newName' } }],
+    ])('should call updateOne with operator %s', async (_, update) => {
+      const svc = setupService();
+
+      const result = await svc['callbackMethods'].rawUpdateOneDocument(TestEntity, fakeQuery, update);
+
+      expect(result).toEqual(fakeUpdateResult);
+      expect(fakeModel.updateOne).toHaveBeenCalledWith(fakeQuery, update);
+    });
+
+    it('should throw BadRequestException if a key does not start with $', async () => {
+      const svc = setupService();
+
+      await expect(
+        svc['callbackMethods'].rawUpdateOneDocument(
+          TestEntity,
+          fakeQuery,
+          { name: 'bad' } as unknown as MongoUpdateOperators<TestEntity>,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException listing all invalid keys', async () => {
+      const svc = setupService();
+
+      await expect(
+        svc['callbackMethods'].rawUpdateOneDocument(
+          TestEntity,
+          fakeQuery,
+          { name: 'bad', $set: { name: 'ok' } } as unknown as MongoUpdateOperators<TestEntity>,
+        ),
+      ).rejects.toThrow('Invalid raw update: all keys must be MongoDB operators starting with "$". Invalid keys: name');
     });
   });
 
