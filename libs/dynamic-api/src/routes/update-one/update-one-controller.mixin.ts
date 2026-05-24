@@ -2,7 +2,7 @@ import { Body, Optional, Param, Request, Type, UseGuards, UseInterceptors } from
 import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityParam } from '../../dtos';
 import { applyFromUser, addVersionSuffix, getMixinData, isEmpty, provideName, RouteDecoratorsHelper } from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiRequest, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin, stripProtectedFields } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DynamicApiBroadcastService } from '../../services';
@@ -81,7 +81,7 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(UpdateOnePoliciesGuard)
     @UseInterceptors(...useInterceptors)
-    async updateOne(@Param('id') id: string, @Body() body: UpdateOneBody, @Request() req?: any) {
+    async updateOne(@Param('id') id: string, @Body() body: UpdateOneBody, @Request() req?: DynamicApiRequest) {
       if (isEmpty(body)) {
         throw new Error('Invalid request body');
       }

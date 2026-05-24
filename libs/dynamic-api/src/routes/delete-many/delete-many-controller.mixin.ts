@@ -2,7 +2,7 @@ import { Optional, Query, Request, Type, UseGuards, UseInterceptors } from '@nes
 import { RouteDecoratorsBuilder } from '../../builders';
 import { ManyEntityQuery, DeletePresenter } from '../../dtos';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiRequest, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DynamicApiBroadcastService } from '../../services';
@@ -68,7 +68,7 @@ function DeleteManyControllerMixin<Entity extends BaseEntity>(
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(DeleteManyPoliciesGuard)
     @UseInterceptors(...useInterceptors)
-    async deleteMany(@Query() { ids }: ManyEntityQuery, @Request() req?: any) {
+    async deleteMany(@Query() { ids }: ManyEntityQuery, @Request() req?: DynamicApiRequest) {
       if (!ids?.length) {
         throw new Error('Invalid query');
       }

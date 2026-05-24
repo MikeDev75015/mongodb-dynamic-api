@@ -2,7 +2,7 @@ import { Body, Optional, Param, Request, Type, UseGuards, UseInterceptors } from
 import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityParam } from '../../dtos';
 import { applyFromUser, addVersionSuffix, getMixinData, isEmpty, provideName, RouteDecoratorsHelper } from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiRequest, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin, stripProtectedFields } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DynamicApiBroadcastService } from '../../services';
@@ -81,7 +81,7 @@ function DuplicateOneControllerMixin<Entity extends BaseEntity>(
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(DuplicateOnePoliciesGuard)
     @UseInterceptors(...useInterceptors)
-    async duplicateOne(@Param('id') id: string, @Body() body?: DuplicateOneBody, @Request() req?: any) {
+    async duplicateOne(@Param('id') id: string, @Body() body?: DuplicateOneBody, @Request() req?: DynamicApiRequest) {
       const toEntity = (
         DuplicateOneBody as Mappable<Entity>
       ).toEntity;

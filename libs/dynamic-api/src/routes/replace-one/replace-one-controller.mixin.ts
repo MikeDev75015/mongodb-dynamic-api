@@ -2,7 +2,7 @@ import { Body, Optional, Param, Request, Type, UseGuards, UseInterceptors } from
 import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityParam } from '../../dtos';
 import { applyFromUser, addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiRequest, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin, stripProtectedFields } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DynamicApiBroadcastService } from '../../services';
@@ -81,7 +81,7 @@ function ReplaceOneControllerMixin<Entity extends BaseEntity>(
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(ReplaceOnePoliciesGuard)
     @UseInterceptors(...useInterceptors)
-    async replaceOne(@Param('id') id: string, @Body() body: ReplaceOneBody, @Request() req?: any) {
+    async replaceOne(@Param('id') id: string, @Body() body: ReplaceOneBody, @Request() req?: DynamicApiRequest) {
       const toEntity = (
         ReplaceOneBody as Mappable<Entity>
       ).toEntity;

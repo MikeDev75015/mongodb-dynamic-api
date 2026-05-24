@@ -3,7 +3,7 @@ import { RouteDecoratorsBuilder } from '../../builders';
 import { DISABLE_CACHE_KEY } from '../../decorators';
 import { EntityParam } from '../../dtos';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiRequest, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { GetOneController, GetOneControllerConstructor } from './get-one-controller.interface';
@@ -70,7 +70,7 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
     @UseGuards(GetOnePoliciesGuard)
     @UseInterceptors(...useInterceptors)
     @SetMetadata(DISABLE_CACHE_KEY, disableCache)
-    async getOne(@Param('id') id: string, @Request() req?: any) {
+    async getOne(@Param('id') id: string, @Request() req?: DynamicApiRequest) {
       const entity = await this.service.getOne(id, req?.user);
 
       const fromEntity = (

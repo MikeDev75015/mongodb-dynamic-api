@@ -2,7 +2,7 @@ import { Optional, Param, Request, Type, UseGuards, UseInterceptors } from '@nes
 import { RouteDecoratorsBuilder } from '../../builders';
 import { DeletePresenter, EntityParam } from '../../dtos';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiRequest, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DynamicApiBroadcastService } from '../../services';
@@ -71,7 +71,7 @@ function DeleteOneControllerMixin<Entity extends BaseEntity>(
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(DeleteOnePoliciesGuard)
     @UseInterceptors(...useInterceptors)
-    async deleteOne(@Param('id') id: string, @Request() req?: any) {
+    async deleteOne(@Param('id') id: string, @Request() req?: DynamicApiRequest) {
       const deleteResult = await this.service.deleteOne(id, req?.user);
 
       const fromDeleteResult = (

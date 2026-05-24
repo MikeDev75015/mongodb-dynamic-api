@@ -1,13 +1,14 @@
+import { DynamicApiRequest } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { DynamicApiBroadcastService } from '../../services';
 import { CreateManyService } from './create-many-service.interface';
 
-type CreateManyBody<T = any> = {
+type CreateManyBody<T = unknown> = {
   list: Partial<T>[];
 };
 
-interface CreateManyController<Entity extends BaseEntity, Response = any> {
-  createMany(body: CreateManyBody<Entity>, req?: any): Promise<(Entity | Response)[]>;
+interface CreateManyController<Entity extends BaseEntity, Response = unknown> {
+  createMany(body: CreateManyBody<Entity>, req?: DynamicApiRequest): Promise<(Entity | Response)[]>;
 }
 
 type CreateManyControllerConstructor<Entity extends BaseEntity> = new (

@@ -3,7 +3,7 @@ import { RouteDecoratorsBuilder } from '../../builders';
 import { DISABLE_CACHE_KEY } from '../../decorators';
 import { EntityQuery } from '../../dtos';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiRequest, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { GetManyController, GetManyControllerConstructor } from './get-many-controller.interface';
@@ -81,7 +81,7 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
     @UseGuards(GetManyPoliciesGuard)
     @UseInterceptors(...useInterceptors)
     @SetMetadata(DISABLE_CACHE_KEY, disableCache)
-    async getMany(@Query() query: GetManyQuery, @Request() req?: any) {
+    async getMany(@Query() query: GetManyQuery, @Request() req?: DynamicApiRequest) {
       const list = await this.service.getMany(query ?? {}, req?.user);
 
       const fromEntities = (
