@@ -1,5 +1,5 @@
 import { Type } from '@nestjs/common';
-import { ProtectedField } from '../decorators/protected-field.decorator';
+import { ProtectedField } from '../decorators';
 import { BaseEntity, SoftDeletableEntity } from '../models';
 import { EntityBodyMixin, stripProtectedFields } from './entity-body.mixin';
 

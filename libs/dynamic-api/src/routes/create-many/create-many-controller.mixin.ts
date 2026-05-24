@@ -1,7 +1,7 @@
 import { BadRequestException, Body, Optional, Request, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { applyFromUser, addVersionSuffix, getMixinData, isEmpty, provideName, RouteDecoratorsHelper } from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiRequest, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin, stripProtectedFields } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DynamicApiBroadcastService } from '../../services';
@@ -77,7 +77,7 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(CreateManyPoliciesGuard)
     @UseInterceptors(...useInterceptors)
-    async createMany(@Body() body: CreateManyBody, @Request() req?: any) {
+    async createMany(@Body() body: CreateManyBody, @Request() req?: DynamicApiRequest) {
       if (!(
         'list' in body &&
         Array.isArray(body.list) &&

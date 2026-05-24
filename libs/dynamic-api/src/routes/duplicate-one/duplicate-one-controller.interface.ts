@@ -1,9 +1,10 @@
+import { DynamicApiRequest } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { DynamicApiBroadcastService } from '../../services';
 import { DuplicateOneService } from './duplicate-one-service.interface';
 
-interface DuplicateOneController<Entity extends BaseEntity, Body = any, Response = any> {
-  duplicateOne(id: string, body?: Body, req?: any): Promise<Entity | Response>;
+interface DuplicateOneController<Entity extends BaseEntity, Body = unknown, Response = unknown> {
+  duplicateOne(id: string, body?: Body, req?: DynamicApiRequest): Promise<Entity | Response>;
 }
 
 type DuplicateOneControllerConstructor<Entity extends BaseEntity> = new (

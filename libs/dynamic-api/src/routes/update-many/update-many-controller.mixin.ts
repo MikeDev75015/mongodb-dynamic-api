@@ -1,7 +1,7 @@
 import { Body, Optional, Query, Request, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { applyFromUser, addVersionSuffix, getMixinData, isEmpty, provideName, RouteDecoratorsHelper } from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiRequest, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin, stripProtectedFields } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DynamicApiBroadcastService } from '../../services';
@@ -79,7 +79,7 @@ function UpdateManyControllerMixin<Entity extends BaseEntity>(
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(UpdateManyPoliciesGuard)
     @UseInterceptors(...useInterceptors)
-    async updateMany(@Query('ids') ids: string[], @Body() body: UpdateManyBody, @Request() req?: any) {
+    async updateMany(@Query('ids') ids: string[], @Body() body: UpdateManyBody, @Request() req?: DynamicApiRequest) {
       if (!ids?.length) {
         throw new Error('Invalid query');
       }

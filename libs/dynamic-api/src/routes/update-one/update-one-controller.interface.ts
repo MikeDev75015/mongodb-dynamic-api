@@ -1,9 +1,10 @@
+import { DynamicApiRequest } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { DynamicApiBroadcastService } from '../../services';
 import { UpdateOneService } from './update-one-service.interface';
 
-interface UpdateOneController<Entity extends BaseEntity, Body = any, Response = any> {
-  updateOne(id: string, partial: Body, req?: any): Promise<Entity | Response>;
+interface UpdateOneController<Entity extends BaseEntity, Body = unknown, Response = unknown> {
+  updateOne(id: string, partial: Body, req?: DynamicApiRequest): Promise<Entity | Response>;
 }
 
 type UpdateOneControllerConstructor<Entity extends BaseEntity> = new (

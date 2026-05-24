@@ -1,11 +1,11 @@
 import { ManyEntityQuery } from '../../dtos';
-import { DeleteResult } from '../../interfaces';
+import { DeleteResult, DynamicApiRequest } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { DynamicApiBroadcastService } from '../../services';
 import { DeleteManyService } from './delete-many-service.interface';
 
-interface DeleteManyController<_Entity extends BaseEntity, Response = any> {
-  deleteMany(query: ManyEntityQuery, req?: any): Promise<DeleteResult | Response>;
+interface DeleteManyController<_Entity extends BaseEntity, Response = unknown> {
+  deleteMany(query: ManyEntityQuery, req?: DynamicApiRequest): Promise<DeleteResult | Response>;
 }
 
 type DeleteManyControllerConstructor<Entity extends BaseEntity> = new (

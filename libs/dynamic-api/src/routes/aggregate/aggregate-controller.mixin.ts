@@ -3,7 +3,7 @@ import { plainToInstance } from 'class-transformer';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { DISABLE_CACHE_KEY } from '../../decorators';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
-import { Aggregatable, DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
+import { Aggregatable, DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiRequest, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { AggregateController, AggregateControllerConstructor } from './aggregate-controller.interface';
@@ -86,7 +86,7 @@ function AggregateControllerMixin<Entity extends BaseEntity>(
     @UseGuards(AggregatePoliciesGuard)
     @UseInterceptors(...useInterceptors)
     @SetMetadata(DISABLE_CACHE_KEY, disableCache)
-    async aggregate(@Query() query: AggregateQuery, @Request() req?: any) {
+    async aggregate(@Query() query: AggregateQuery, @Request() req?: DynamicApiRequest) {
       const toPipeline = (
         AggregateQuery as Aggregatable<AggregateQuery>
       ).toPipeline;
