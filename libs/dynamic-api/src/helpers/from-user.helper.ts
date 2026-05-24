@@ -23,7 +23,7 @@ function applyFromUser<Entity extends BaseEntity>(
 
     if (typeof source === 'function') {
       result[field] = source(user) as Entity[typeof field];
-    } else if (typeof source === 'string' && typeof user === 'object' && user !== null) {
+    } else if (typeof source === 'string' && typeof user === 'object') {
       result[field] = (user as Record<string, unknown>)[source] as Entity[typeof field];
     }
   }

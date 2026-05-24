@@ -3,7 +3,7 @@ import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityParam } from '../../dtos';
 import { applyFromUser, addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
-import { RoutePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
+import { RoutePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin, stripProtectedFields } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DynamicApiBroadcastService } from '../../services';
 import { ReplaceOneController, ReplaceOneControllerConstructor } from './replace-one-controller.interface';
@@ -87,7 +87,7 @@ function ReplaceOneControllerMixin<Entity extends BaseEntity>(
       ).toEntity;
 
       const rawPartial = toEntity ? toEntity(body) : body as Partial<Entity>;
-      const partial = applyFromUser(rawPartial, fromUser, req?.user);
+      const partial = applyFromUser(stripProtectedFields(rawPartial, this.entity), fromUser, req?.user);
 
       const entity = await this.service.replaceOne(id, partial, req?.user);
 

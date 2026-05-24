@@ -46,7 +46,7 @@ export abstract class BaseUpdateOneService<Entity extends BaseEntity>
         )
         : cloneDeep(partial);
 
-      const update = this.applyDerivedFields(afterCallback, 'save');
+      const update = this.applyDerivedFields(afterCallback, 'save', this.addDocumentId(document) as Partial<Entity>);
 
       const updatedDocument = await this.model
       .findOneAndUpdate(
