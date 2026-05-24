@@ -49,6 +49,29 @@ Both `beforeSaveCallback` and `callback` (after save) **receive the authenticate
 
 ---
 
+## Mutation Pipeline Order
+
+For every mutating route (`CreateOne`, `UpdateOne`, `ReplaceOne`, etc.), the following pipeline is executed **in order**:
+
+```
+1. fromUser injection        (controller layer — injects JWT claims into body)
+           ↓
+2. beforeSaveCallback        (your hook — transform / validate / enrich)
+           ↓
+3. @DerivedField computation (service layer — computes server-side values, on:'save')
+           ↓
+4. DB write (model.create / model.findOneAndUpdate / …)
+           ↓
+5. buildInstance + @DerivedField on:'read' computation
+           ↓
+6. afterSave callback        (your hook — side effects, audit logs, notifications)
+```
+
+> ✅ `beforeSaveCallback` always sees the enriched body **after** `fromUser` injection, so you can use `context.toCreate.createdBy` directly.
+> ✅ `@DerivedField(fn, { on:'save' })` fields are always computed **after** your callback, so your callback can modify source fields (e.g. `firstName`) and the derived field (e.g. `fullName`) will still be correct.
+
+---
+
 ## Overview
 
 | Property | Hook point | Purpose | Returns |

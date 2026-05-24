@@ -675,4 +675,99 @@ describe('BaseService', () => {
       expect(result).toEqual({ id: fakeId, ...data });
     });
   });
+
+  describe('applyDerivedFields', () => {
+    class DerivedEntity extends BaseEntity {
+      firstName: string;
+      lastName: string;
+      fullName: string;
+      score: number;
+      displayScore: string;
+    }
+
+    // Register derived field metadata manually (simulating @DerivedField decorator)
+    const fullNameFn = (e: Partial<DerivedEntity>) => `${e.firstName} ${e.lastName}`;
+    const scoreFn = (e: Partial<DerivedEntity>) => `Score: ${e.score}`;
+    const readOnlyFn = (e: Partial<DerivedEntity>) => `readonly:${e.firstName}`;
+
+    beforeEach(() => {
+      // Reset metadata for a fresh state per test
+      Reflect.defineMetadata('dynamic-api-module:derived-field-keys', [], DerivedEntity.prototype);
+    });
+
+    it('should return partial unchanged when no derived keys registered', () => {
+      const service = new TestService({} as unknown as Model<TestEntity>);
+      (service as unknown as { entity: typeof TestEntity }).entity = TestEntity;
+      const partial = { name: 'test' };
+      expect(service['applyDerivedFields'](partial, 'save')).toEqual(partial);
+    });
+
+    it('should apply save-triggered derived field', () => {
+      Reflect.defineMetadata('dynamic-api-module:derived-field-keys', ['fullName'], DerivedEntity.prototype);
+      Reflect.defineMetadata('dynamic-api-module:derived-field', { computeFn: fullNameFn, on: 'save' }, DerivedEntity.prototype, 'fullName');
+
+      class DerivedService extends BaseService<DerivedEntity> {
+        protected entity = DerivedEntity;
+        constructor() { super({} as unknown as Model<DerivedEntity>); }
+      }
+      const svc = new DerivedService();
+      const result = svc['applyDerivedFields']({ firstName: 'John', lastName: 'Doe' }, 'save');
+      expect(result.fullName).toBe('John Doe');
+    });
+
+    it('should NOT apply save field when trigger is read', () => {
+      Reflect.defineMetadata('dynamic-api-module:derived-field-keys', ['fullName'], DerivedEntity.prototype);
+      Reflect.defineMetadata('dynamic-api-module:derived-field', { computeFn: fullNameFn, on: 'save' }, DerivedEntity.prototype, 'fullName');
+
+      class DerivedService2 extends BaseService<DerivedEntity> {
+        protected entity = DerivedEntity;
+        constructor() { super({} as unknown as Model<DerivedEntity>); }
+      }
+      const svc = new DerivedService2();
+      const result = svc['applyDerivedFields']({ firstName: 'John', lastName: 'Doe' }, 'read');
+      expect(result.fullName).toBeUndefined();
+    });
+
+    it('should apply both-triggered field on save and read', () => {
+      class BothEntity extends BaseEntity {
+        val: number;
+        double: number;
+      }
+      const doubleFn = (e: Partial<BothEntity>) => (e.val ?? 0) * 2;
+      Reflect.defineMetadata('dynamic-api-module:derived-field-keys', ['double'], BothEntity.prototype);
+      Reflect.defineMetadata('dynamic-api-module:derived-field', { computeFn: doubleFn, on: 'both' }, BothEntity.prototype, 'double');
+
+      class BothService extends BaseService<BothEntity> {
+        protected entity = BothEntity;
+        constructor() { super({} as unknown as Model<BothEntity>); }
+      }
+      const svc = new BothService();
+
+      expect(svc['applyDerivedFields']({ val: 5 }, 'save').double).toBe(10);
+      expect(svc['applyDerivedFields']({ val: 3 }, 'read').double).toBe(6);
+    });
+
+    it('should use snapshot (not mutated result) for all computeFns', () => {
+      class SnapshotEntity extends BaseEntity {
+        x: number;
+        y: number;
+        sumXY: number;
+        diff: number;
+      }
+      const sumFn = (e: Partial<SnapshotEntity>) => (e.x ?? 0) + (e.y ?? 0);
+      const diffFn = (e: Partial<SnapshotEntity>) => (e.x ?? 0) - (e.y ?? 0);
+      Reflect.defineMetadata('dynamic-api-module:derived-field-keys', ['sumXY', 'diff'], SnapshotEntity.prototype);
+      Reflect.defineMetadata('dynamic-api-module:derived-field', { computeFn: sumFn, on: 'save' }, SnapshotEntity.prototype, 'sumXY');
+      Reflect.defineMetadata('dynamic-api-module:derived-field', { computeFn: diffFn, on: 'save' }, SnapshotEntity.prototype, 'diff');
+
+      class SnapshotService extends BaseService<SnapshotEntity> {
+        protected entity = SnapshotEntity;
+        constructor() { super({} as unknown as Model<SnapshotEntity>); }
+      }
+      const svc = new SnapshotService();
+      const result = svc['applyDerivedFields']({ x: 10, y: 3 }, 'save');
+      expect(result.sumXY).toBe(13);
+      expect(result.diff).toBe(7);
+    });
+  });
 });

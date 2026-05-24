@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, ForbiddenException, HttpExcepti
 import { plainToInstance } from 'class-transformer';
 import { PipelineStage } from 'mongodb-pipeline-builder';
 import { FilterQuery, Model, PipelineStage as MongoosePipelineStage, Schema, UpdateQuery, UpdateWithAggregationPipeline } from 'mongoose';
+import { DERIVED_FIELD_KEYS_METADATA, DERIVED_FIELD_METADATA, DerivedFieldMeta } from '../../decorators';
 import { AbilityPredicate, AuthAbilityPredicate, DeleteResult, DynamicApiCallbackMethods, UpdateResult } from '../../interfaces';
 import { MongoDBDynamicApiLogger } from '../../logger';
 import { BaseEntity, SoftDeletableEntity } from '../../models';
@@ -203,7 +204,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
       ...rest
     } = document as unknown as SoftDeletableEntity;
 
-    return plainToInstance(this.entity, {
+    const instance = plainToInstance(this.entity, {
       ...rest as Partial<Entity>,
       ...(
         _id && !id ? { id: _id?.toString() } : {}
@@ -213,6 +214,43 @@ export abstract class BaseService<Entity extends BaseEntity> {
         isDeleted ? { deletedAt } : {}
       ),
     });
+
+    return this.applyDerivedFields(instance as unknown as Partial<Entity>, 'read') as Entity;
+  }
+
+  /**
+   * Applies `@DerivedField` computed values to a partial entity snapshot.
+   * Only fields whose `on` option matches `trigger` (or is `'both'`) are computed.
+   * The `computeFn` receives the snapshot **before** any mutation to avoid circular deps.
+   */
+  protected applyDerivedFields(partial: Partial<Entity>, trigger: 'save' | 'read'): Partial<Entity> {
+    if (!this.entity?.prototype) {
+      return partial;
+    }
+
+    const keys: (string | symbol)[] =
+      Reflect.getMetadata(DERIVED_FIELD_KEYS_METADATA, this.entity.prototype) ?? [];
+
+    if (!keys.length) {
+      return partial;
+    }
+
+    const snapshot = { ...partial };
+    const result = { ...partial };
+
+    for (const key of keys) {
+      const meta = Reflect.getMetadata(
+        DERIVED_FIELD_METADATA,
+        this.entity.prototype,
+        key,
+      ) as DerivedFieldMeta<Entity> | undefined;
+
+      if (meta && (meta.on === trigger || meta.on === 'both')) {
+        result[key as keyof Entity] = meta.computeFn(snapshot) as Entity[keyof Entity];
+      }
+    }
+
+    return result;
   }
 
   protected handleAbilityPredicate(document: Entity, authAbilityPredicate?: AuthAbilityPredicate<Entity>) {

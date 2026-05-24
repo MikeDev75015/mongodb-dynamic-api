@@ -1,7 +1,7 @@
 import { Body, Optional, Param, Request, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityParam } from '../../dtos';
-import { addVersionSuffix, getMixinData, isEmpty, provideName, RouteDecoratorsHelper } from '../../helpers';
+import { applyFromUser, addVersionSuffix, getMixinData, isEmpty, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
@@ -12,7 +12,7 @@ import { UpdateOneService } from './update-one-service.interface';
 function UpdateOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, fromUser, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): UpdateOneControllerConstructor<Entity> {
   const {
@@ -90,7 +90,10 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
         UpdateOneBody as Mappable<Entity>
       ).toEntity;
 
-      const entity = await this.service.updateOne(id, toEntity ? toEntity(body) : body as Partial<Entity>, req?.user);
+      const rawPartial = toEntity ? toEntity(body) : body as Partial<Entity>;
+      const partial = applyFromUser(rawPartial, fromUser, req?.user);
+
+      const entity = await this.service.updateOne(id, partial, req?.user);
 
       const fromEntity = (
         UpdateOnePresenter as Mappable<Entity>

@@ -1,5 +1,7 @@
 export * from './api-endpoint-visibility.decorator';
+export * from './derived-field.decorator';
 export * from './disable-cache.decorator';
+export * from './protected-field.decorator';
 export * from './public.decorator';
 export * from './schema-options.decorator';
 export * from './validator-pipe.decorator';

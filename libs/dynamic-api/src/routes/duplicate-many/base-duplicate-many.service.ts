@@ -56,7 +56,7 @@ export abstract class BaseDuplicateManyService<Entity extends BaseEntity>
         ...partial,
       }));
 
-      const toCreateList = this.beforeSaveCallback
+      const afterCallback = this.beforeSaveCallback
         ? await this.beforeSaveCallback(
           toDuplicateList,
           { ids, override: partial ? cloneDeep(partial) : undefined },
@@ -64,6 +64,8 @@ export abstract class BaseDuplicateManyService<Entity extends BaseEntity>
           user,
         )
         : baseDataList;
+
+      const toCreateList = afterCallback.map((d) => this.applyDerivedFields(d, 'save'));
 
       const duplicatedList = await this.model.create(toCreateList.map((d) => plainToInstance(
         this.entity,

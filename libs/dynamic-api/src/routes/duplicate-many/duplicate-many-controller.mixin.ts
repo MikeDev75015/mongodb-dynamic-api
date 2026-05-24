@@ -1,6 +1,6 @@
 import { Body, Optional, Query, Request, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
-import { addVersionSuffix, getMixinData, isEmpty, provideName, RouteDecoratorsHelper } from '../../helpers';
+import { applyFromUser, addVersionSuffix, getMixinData, isEmpty, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
@@ -11,7 +11,7 @@ import { DuplicateManyService } from './duplicate-many-service.interface';
 function DuplicateManyControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, fromUser, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): DuplicateManyControllerConstructor<Entity> {
   const {
@@ -88,9 +88,12 @@ function DuplicateManyControllerMixin<Entity extends BaseEntity>(
         DuplicateManyBody as Mappable<Entity>
       ).toEntity;
 
+      const rawPartial = !isEmpty(body) && toEntity ? toEntity(body) : body as Partial<Entity>;
+      const partial = applyFromUser(rawPartial, fromUser, req?.user);
+
       const list = await this.service.duplicateMany(
         ids,
-        !isEmpty(body) && toEntity ? toEntity(body) : body as Partial<Entity>,
+        partial,
         req?.user,
       );
 

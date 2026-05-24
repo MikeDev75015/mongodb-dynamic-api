@@ -26,7 +26,7 @@ export abstract class BaseCreateOneService<Entity extends BaseEntity>
 
   async createOne(partial: Partial<Entity>, user?: unknown): Promise<Entity> {
     try {
-      const toCreate = this.beforeSaveCallback
+      const afterCallback = this.beforeSaveCallback
         ? await this.beforeSaveCallback(
           undefined,
           { toCreate: cloneDeep(partial) },
@@ -34,6 +34,8 @@ export abstract class BaseCreateOneService<Entity extends BaseEntity>
           user,
         )
         : cloneDeep(partial);
+
+      const toCreate = this.applyDerivedFields(afterCallback, 'save');
 
       const { _id } = await this.model.create(plainToInstance(this.entity, toCreate));
 

@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Optional, Request, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
-import { addVersionSuffix, getMixinData, isEmpty, provideName, RouteDecoratorsHelper } from '../../helpers';
+import { applyFromUser, addVersionSuffix, getMixinData, isEmpty, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
@@ -13,7 +13,7 @@ import { CreateManyService } from './create-many-service.interface';
 function CreateManyControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, fromUser, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): CreateManyControllerConstructor<Entity> {
   const {
@@ -93,7 +93,11 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
         CreateManyBody as Mappable<Entity>
       ).toEntities;
 
-      const list = await this.service.createMany(toEntities ? toEntities(body) : toCreateList, req?.user);
+      const rawList = toEntities ? toEntities(body) : toCreateList;
+      const list = await this.service.createMany(
+        rawList.map((p) => applyFromUser(p, fromUser, req?.user)),
+        req?.user,
+      );
 
       const fromEntities = (
         CreateManyPresenter as Mappable<Entity>

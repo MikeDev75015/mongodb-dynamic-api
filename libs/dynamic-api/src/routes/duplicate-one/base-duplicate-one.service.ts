@@ -52,7 +52,7 @@ export abstract class BaseDuplicateOneService<Entity extends BaseEntity>
         ...partial,
       };
 
-      const toCreate = this.beforeSaveCallback
+      const afterCallback = this.beforeSaveCallback
         ? await this.beforeSaveCallback(
           this.addDocumentId(toDuplicate),
           { id, override: partial ? cloneDeep(partial) : undefined },
@@ -60,6 +60,8 @@ export abstract class BaseDuplicateOneService<Entity extends BaseEntity>
           user,
         )
         : baseData;
+
+      const toCreate = this.applyDerivedFields(afterCallback, 'save');
 
       const { _id } = await this.model.create(plainToInstance(this.entity, toCreate));
       const document = await this.model.findOne({ _id }).lean<Entity>().exec();

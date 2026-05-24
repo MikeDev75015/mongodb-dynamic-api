@@ -1,6 +1,6 @@
 import { Body, Optional, Request, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
-import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
+import { applyFromUser, addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
@@ -11,7 +11,7 @@ import { CreateOneService } from './create-one-service.interface';
 function CreateOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, fromUser, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
   version?: string,
 ): CreateOneControllerConstructor<Entity> {
   const {
@@ -80,7 +80,10 @@ function CreateOneControllerMixin<Entity extends BaseEntity>(
         CreateOneBody as Mappable<Entity>
       ).toEntity;
 
-      const entity = await this.service.createOne(toEntity ? toEntity(body) : body as Partial<Entity>, req?.user);
+      const rawPartial = toEntity ? toEntity(body) : body as Partial<Entity>;
+      const partial = applyFromUser(rawPartial, fromUser, req?.user);
+
+      const entity = await this.service.createOne(partial, req?.user);
 
       const fromEntity = (
         CreateOnePresenter as Mappable<Entity>

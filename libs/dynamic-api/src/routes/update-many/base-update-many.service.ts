@@ -37,8 +37,10 @@ export abstract class BaseUpdateManyService<Entity extends BaseEntity>
           user,
         );
 
+        const updatesWithDerived = updates.map((u) => this.applyDerivedFields(u, 'save'));
+
         await Promise.all(
-          updates.map((update, index) =>
+          updatesWithDerived.map((update, index) =>
             this.model
             .findByIdAndUpdate(
               toUpdateList[index]._id,
@@ -50,6 +52,8 @@ export abstract class BaseUpdateManyService<Entity extends BaseEntity>
           ),
         );
       } else {
+        const partialWithDerived = this.applyDerivedFields(partial, 'save');
+
         await this.model
         .updateMany(
           {
@@ -58,7 +62,7 @@ export abstract class BaseUpdateManyService<Entity extends BaseEntity>
               this.isSoftDeletable ? { isDeleted: false } : undefined
             ),
           },
-          partial,
+          partialWithDerived,
         )
         .lean()
         .exec();

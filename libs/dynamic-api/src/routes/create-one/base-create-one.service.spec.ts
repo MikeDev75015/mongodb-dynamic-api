@@ -130,5 +130,28 @@ describe('BaseCreateOneService', () => {
         fakeUser,
       );
     });
+
+    it('should call applyDerivedFields with "save" trigger after beforeSaveCallback', async () => {
+      service = initService(created);
+      const applyDerivedFieldsSpy = jest
+        .spyOn(service as unknown as { applyDerivedFields: jest.Mock }, 'applyDerivedFields')
+        .mockImplementation((p) => p);
+
+      await service.createOne(toCreate);
+
+      expect(applyDerivedFieldsSpy).toHaveBeenCalledWith(toCreate, 'save');
+    });
+
+    it('should apply applyDerivedFields result to the entity persisted', async () => {
+      service = initService(created);
+      const withDerived = { ...toCreate, slug: 'test-slug' };
+      jest
+        .spyOn(service as unknown as { applyDerivedFields: jest.Mock }, 'applyDerivedFields')
+        .mockReturnValue(withDerived);
+
+      await service.createOne(toCreate);
+
+      expect(modelMock.create).toHaveBeenCalledWith(expect.objectContaining({ slug: 'test-slug' }));
+    });
   });
 });
