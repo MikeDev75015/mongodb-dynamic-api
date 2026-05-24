@@ -69,6 +69,12 @@ type DynamicApiUpdateAccountOptions<Entity extends BaseEntity = any> = {
   additionalFieldsToExclude?: (keyof Entity)[];
   useInterceptors?: Type<NestInterceptor>[];
   broadcast?: DynamicApiAuthBroadcastConfig<Entity>;
+  /**
+   * When true, the updateAccount endpoint returns a fresh `{ accessToken, refreshToken }`
+   * instead of the updated entity, so the client can seamlessly refresh its JWT after
+   * a profile change without a separate /refresh-token call.
+   */
+  refreshTokenOnUpdate?: boolean;
 };
 
 type DynamicApiResetPasswordOptions<Entity extends BaseEntity = any> = {

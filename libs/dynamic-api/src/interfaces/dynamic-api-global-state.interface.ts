@@ -32,6 +32,7 @@ interface DynamicApiGlobalState {
   jwtRefreshTokenExpiresIn: string | number | undefined;
   jwtRefreshSecret: string | undefined;
   jwtRefreshUseCookie: boolean | undefined;
+  refreshTokenOnUpdate: boolean;
   routesConfig: RoutesConfig;
   gatewayOptions: GatewayMetadata | undefined;
   broadcastGatewayOptions: GatewayMetadata | undefined;

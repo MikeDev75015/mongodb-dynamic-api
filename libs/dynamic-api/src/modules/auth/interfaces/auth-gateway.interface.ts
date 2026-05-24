@@ -9,7 +9,7 @@ interface AuthGateway<Entity extends BaseEntity> {
   login<Body>(socket: ExtendedSocket<Entity>, body: Body): GatewayResponse<LoginResponse>;
   register<Body>(socket: ExtendedSocket<Entity>, body: Body): GatewayResponse<LoginResponse>;
   getAccount(socket: ExtendedSocket<Entity>): GatewayResponse<Partial<Entity>>;
-  updateAccount<Body>(socket: ExtendedSocket<Entity>, body: Body): GatewayResponse<Partial<Entity>>;
+  updateAccount<Body>(socket: ExtendedSocket<Entity>, body: Body): GatewayResponse<Partial<Entity> | LoginResponse>;
   resetPassword(body: ResetPasswordDto): GatewayResponse<void>;
   changePassword(body: ChangePasswordDto): GatewayResponse<void>;
   refreshToken(socket: ExtendedSocket<Entity>): GatewayResponse<LoginResponse>;

@@ -287,6 +287,7 @@ export class DynamicApiModule {
           jwtRefreshTokenExpiresIn: useAuth.jwt?.refreshTokenExpiresIn ?? '7d',
           jwtRefreshSecret: useAuth.jwt?.refreshSecret,
           jwtRefreshUseCookie: useAuth.refreshToken?.useCookie ?? false,
+          refreshTokenOnUpdate: useAuth.updateAccount?.refreshTokenOnUpdate ?? false,
           gatewayOptions: initializeConfigFromOptions(webSocket),
         } : {}
       ),
