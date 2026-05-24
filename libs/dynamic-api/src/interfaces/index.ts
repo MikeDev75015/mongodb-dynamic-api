@@ -4,6 +4,7 @@ export * from './dynamic-api-decorator-builder.interface';
 export * from './dynamic-api-cache-options.interface';
 export * from './dynamic-api-ability.interface';
 export * from './dynamic-api-broadcast-config.interface';
+export * from './dynamic-api-cascade-config.interface';
 export * from './dynamic-api-entity-mappers.interface';
 export * from './dynamic-api-global-state.interface';
 export * from './dynamic-api-options.interface';
