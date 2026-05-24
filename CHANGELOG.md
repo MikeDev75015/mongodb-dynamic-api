@@ -1,5 +1,19 @@
 Changelog
 
+## [4.8.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.7.0...v4.8.0) (2026-05-24)
+
+### cascade
+
+* **cascade:** add cascade delete and beforeDeleteCallback hook ([d4f3122](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/d4f312268114c901a36467ad6a8f9348e3d11f95))
+
+### callbacks
+
+* **callbacks:** add rawUpdateOneDocument and rawUpdateManyDocuments to CallbackMethods ([c0b3dfa](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/c0b3dfab500b983e506daaed7680b806e1ed64c8))
+
+### get-many,aggregate
+
+* **get-many,aggregate:** add predicateBehavior 'filter' option ([0d5d478](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/0d5d478fb4227a658d908ec967c9ba23cb8da235))
+
 ## [4.7.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.6.1...v4.7.0) (2026-05-24)
 
 ### interfaces
