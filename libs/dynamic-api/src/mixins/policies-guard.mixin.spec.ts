@@ -57,20 +57,20 @@ describe('PoliciesGuardMixin', () => {
 
     it('should create a SocketPoliciesGuard with the correct name', () => {
       const formattedEvent = 'UnitTestEvent';
-      const guard = SocketPoliciesGuardMixin(TestEntity, routeType, event, '1', undefined, isPublic);
+      const guard = SocketPoliciesGuardMixin(TestEntity, routeType, event, '1', { isPublic });
       expect(guard.name).toBe(`CreateOne${formattedEvent}V1SocketPoliciesGuard`);
     });
 
     it('should create a SocketPoliciesGuard with the correct routeType', () => {
       const guard = new (
-        SocketPoliciesGuardMixin(TestEntity, routeType, event, '1', undefined, isPublic)
+        SocketPoliciesGuardMixin(TestEntity, routeType, event, '1', { isPublic })
       )(model);
       expect(guard['routeType']).toBe(routeType);
     });
 
     it('should create a SocketPoliciesGuard with the correct entity', () => {
       const guard = new (
-        SocketPoliciesGuardMixin(TestEntity, routeType, event, '1', undefined, isPublic)
+        SocketPoliciesGuardMixin(TestEntity, routeType, event, '1', { isPublic })
       )(model);
       expect(guard['entity']).toBe(TestEntity);
     });
@@ -78,14 +78,14 @@ describe('PoliciesGuardMixin', () => {
     it('should create a SocketPoliciesGuard with the correct abilityPredicate', () => {
       const abilityPredicate = (_: TestEntity) => true;
       const guard = new (
-        SocketPoliciesGuardMixin(TestEntity, routeType, event, '1', abilityPredicate, isPublic)
+        SocketPoliciesGuardMixin(TestEntity, routeType, event, '1', { abilityPredicate, isPublic })
       )(model);
       expect(guard['abilityPredicate']).toBe(abilityPredicate);
     });
 
     it('should create a SocketPoliciesGuard without abilityPredicate if not provided', () => {
       const guard = new (
-        SocketPoliciesGuardMixin(TestEntity, routeType, event, '1', undefined, isPublic)
+        SocketPoliciesGuardMixin(TestEntity, routeType, event, '1', { isPublic })
       )(model);
       expect(guard['abilityPredicate']).toBeUndefined();
     });

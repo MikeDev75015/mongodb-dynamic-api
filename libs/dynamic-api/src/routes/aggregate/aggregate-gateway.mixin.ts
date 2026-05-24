@@ -65,10 +65,7 @@ function AggregateGatewayMixin<Entity extends BaseEntity>(
     routeType,
     event,
     version,
-    abilityPredicate,
-    isPublic,
-    undefined,
-    predicateBehavior,
+    { abilityPredicate, isPublic, predicateBehavior },
   ) {}
 
   class BaseAggregateGateway extends BaseGateway<Entity> implements AggregateGateway<

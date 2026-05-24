@@ -46,26 +46,9 @@ export abstract class BaseDeleteOneService<Entity extends BaseEntity>
         .exec();
     }
 
-    // ── beforeDeleteCallback ─────────────────────────────────────────────────
+    // ── beforeDeleteCallback + beforeSaveCallback ────────────────────────────
     // Runs OUTSIDE try-catch: HTTP exceptions propagate cleanly to the client.
-    if (this.beforeDeleteCallback) {
-      await this.beforeDeleteCallback(
-        document ? this.addDocumentId(document) : undefined,
-        { id },
-        this.callbackMethods,
-        user,
-      );
-    }
-
-    // ── beforeSaveCallback (fix: also outside try-catch) ────────────────────
-    if (this.beforeSaveCallback) {
-      await this.beforeSaveCallback(
-        document ? this.addDocumentId(document) : undefined,
-        { id },
-        this.callbackMethods,
-        user,
-      );
-    }
+    await this.invokePreHooks(id, document, user);
 
     let deletedCount = 0;
     try {
@@ -110,5 +93,23 @@ export abstract class BaseDeleteOneService<Entity extends BaseEntity>
     }
 
     return plainToInstance(DeletePresenter, { deletedCount });
+  }
+
+  // ── Private helpers ──────────────────────────────────────────────────────
+
+  /**
+   * Invokes beforeDeleteCallback then beforeSaveCallback when defined.
+   * Extracted to reduce the cognitive complexity of {@link deleteOne}.
+   */
+  private async invokePreHooks(id: string, document: Entity | null, user: unknown): Promise<void> {
+    const entity = document ? this.addDocumentId(document) : undefined;
+
+    if (this.beforeDeleteCallback) {
+      await this.beforeDeleteCallback(entity, { id }, this.callbackMethods, user);
+    }
+
+    if (this.beforeSaveCallback) {
+      await this.beforeSaveCallback(entity, { id }, this.callbackMethods, user);
+    }
   }
 }

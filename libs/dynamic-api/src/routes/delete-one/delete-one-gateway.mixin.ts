@@ -47,8 +47,7 @@ function DeleteOneGatewayMixin<Entity extends BaseEntity>(
     routeType,
     event,
     version,
-    abilityPredicate,
-    isPublic,
+    { abilityPredicate, isPublic },
   ) {}
 
   class BaseDeleteOneGateway extends BaseGateway<Entity> implements DeleteOneGateway<Entity> {
