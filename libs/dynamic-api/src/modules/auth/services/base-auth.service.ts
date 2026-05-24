@@ -23,6 +23,9 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
   protected resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined;
   protected refreshTokenField: keyof Entity | undefined;
 
+  /** refreshTokenOnUpdate */
+  protected refreshTokenOnUpdate = false;
+
   private resetPasswordCallbackMethods: DynamicApiResetPasswordCallbackMethods<Entity> | undefined;
 
   private readonly logger = new MongoDBDynamicApiLogger('AuthService');
@@ -139,7 +142,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     return this.buildUserFields(user, fieldsToBuild);
   }
 
-  protected async updateAccount({ id }: Entity, update: Partial<Entity>): Promise<Entity> {
+  protected async updateAccount({ id }: Entity, update: Partial<Entity>): Promise<Entity | import('../interfaces').LoginResponse> {
     this.logger.debug('Updating account', { userId: id, update });
     this.verifyArguments(id, update);
 
@@ -159,6 +162,11 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
       const fullUser = (await this.model.findOne({ _id: id }).lean<Entity>().exec());
       const instance = this.buildInstance(fullUser);
       await this.updateAccountCallback(instance, this.callbackMethods);
+    }
+
+    if (this.refreshTokenOnUpdate) {
+      const updatedUser = await this.model.findOne({ _id: id }).lean<Entity>().exec();
+      return this.login({ ...updatedUser, id: updatedUser._id.toString() } as Entity, true);
     }
 
     return this.getAccount({ id } as Entity);

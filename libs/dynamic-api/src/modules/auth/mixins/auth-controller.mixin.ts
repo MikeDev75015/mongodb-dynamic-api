@@ -9,6 +9,7 @@ import { EntityBodyMixin } from '../../../mixins';
 import { BaseEntity } from '../../../models';
 import { DynamicApiBroadcastService } from '../../../services';
 import { buildAuthBroadcastData } from '../auth-broadcast.helper';
+import { authOperationStorage } from '../auth-operation-context';
 import {
   AUTH_GET_ACCOUNT_BROADCAST_EVENT,
   AUTH_LOGIN_BROADCAST_EVENT,
@@ -18,7 +19,7 @@ import {
 import { ChangePasswordDto } from '../dtos/change-password.dto';
 import { ResetPasswordDto } from '../dtos/reset-password.dto';
 import { JwtAuthGuard, JwtRefreshGuard, LocalAuthGuard, ResetPasswordGuard } from '../guards';
-import { AuthController, AuthControllerConstructor, AuthService, DynamicApiGetAccountOptions, DynamicApiLoginOptions, DynamicApiRefreshTokenOptions, DynamicApiRegisterOptions, DynamicApiResetPasswordOptions, DynamicApiUpdateAccountOptions } from '../interfaces';
+import { AuthController, AuthControllerConstructor, AuthService, DynamicApiGetAccountOptions, DynamicApiLoginOptions, DynamicApiRefreshTokenOptions, DynamicApiRegisterOptions, DynamicApiResetPasswordOptions, DynamicApiUpdateAccountOptions, LoginResponse } from '../interfaces';
 import { AuthPoliciesGuardMixin } from './auth-policies-guard.mixin';
 
 const REFRESH_TOKEN_COOKIE = 'refreshToken';
@@ -48,6 +49,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
   {
     useInterceptors: updateAccountUseInterceptors = [],
     broadcast: updateAccountBroadcastConfig,
+    refreshTokenOnUpdate = false,
     ...updateAccountOptions
   }: DynamicApiUpdateAccountOptions<Entity> = {},
   {
@@ -217,7 +219,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
       @Body() _: AuthLoginDto,
       @Res({ passthrough: true }) res: Response,
     ) {
-      const result = await this.service.login(req.user);
+      const result = await authOperationStorage.run('login', async () => this.service.login(req.user));
 
       if (loginBroadcastConfig) {
         const broadcastData = buildAuthBroadcastData(req.user, loginBroadcastConfig.fields);
@@ -246,7 +248,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
       @Body() body: AuthRegisterDto,
       @Res({ passthrough: true }) res: Response,
     ) {
-      const result = await this.service.register(body);
+      const result = await authOperationStorage.run('register', async () => this.service.register(body));
 
       if (registerBroadcastConfig && this.jwtService) {
         const decoded = this.jwtService.decode(result.accessToken);
@@ -279,15 +281,39 @@ function AuthControllerMixin<Entity extends BaseEntity>(
 
     @RouteDecoratorsHelper(authUpdateAccountDecorators)
     @HttpCode(HttpStatus.OK)
-    @ApiOkResponse({ type: AuthUserPresenter })
+    @ApiOkResponse({ type: refreshTokenOnUpdate ? AuthPresenter : AuthUserPresenter })
     @UseInterceptors(...updateAccountUseInterceptors)
     @Patch('account')
     async updateAccount(
       @Request() req: { user: Entity; headers: Record<string, string> },
       @Body() body: AuthUpdateAccountDto,
+      @Res({ passthrough: true }) res: Response,
     ) {
       const user = this.extractUserFromToken(req) ?? req.user;
-      const account = await this.service.updateAccount(user, body);
+      const result = await authOperationStorage.run('updateAccount', async () => this.service.updateAccount(user, body));
+
+      if (refreshTokenOnUpdate && result && 'accessToken' in result) {
+        const tokenResult = result as LoginResponse;
+
+        if (updateAccountBroadcastConfig) {
+          const broadcastData = buildAuthBroadcastData(user, updateAccountBroadcastConfig.fields);
+          this.broadcastService?.broadcastFromHttp(
+            updateAccountBroadcastConfig.eventName ?? AUTH_UPDATE_ACCOUNT_BROADCAST_EVENT,
+            [broadcastData],
+            updateAccountBroadcastConfig,
+          );
+        }
+
+        if (useCookie) {
+          res.cookie(REFRESH_TOKEN_COOKIE, tokenResult.refreshToken, COOKIE_OPTIONS);
+          const { refreshToken: _rt, ...bodyResult } = tokenResult;
+          return bodyResult;
+        }
+
+        return tokenResult;
+      }
+
+      const account = result as Entity;
 
       if (updateAccountBroadcastConfig) {
         const broadcastData = buildAuthBroadcastData(account, updateAccountBroadcastConfig.fields);

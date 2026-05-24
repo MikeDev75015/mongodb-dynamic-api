@@ -8,6 +8,7 @@ import { ExtendedSocket } from '../../../interfaces';
 import { EntityBodyMixin } from '../../../mixins';
 import { BaseEntity } from '../../../models';
 import { buildAuthBroadcastData } from '../auth-broadcast.helper';
+import { authOperationStorage } from '../auth-operation-context';
 import {
   AUTH_CHANGE_PASSWORD_EVENT,
   AUTH_GET_ACCOUNT_BROADCAST_EVENT,
@@ -159,10 +160,12 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
       @ConnectedSocket() socket: ExtendedSocket<Entity>,
       @MessageBody() body: AuthUpdateAccountDto,
     ) {
-      const account = socket.user ? await this.service.updateAccount(socket.user, body) : undefined;
+      const account = socket.user
+        ? await authOperationStorage.run('updateAccount', async () => this.service.updateAccount(socket.user, body))
+        : undefined;
 
-      if (updateAccountBroadcastConfig && account) {
-        const broadcastData = buildAuthBroadcastData(account, updateAccountBroadcastConfig.fields);
+      if (updateAccountBroadcastConfig && account && !('accessToken' in account)) {
+        const broadcastData = buildAuthBroadcastData(account as Partial<Entity>, updateAccountBroadcastConfig.fields);
         this.broadcastIfNeeded(
           socket,
           updateAccountBroadcastConfig.eventName ?? AUTH_UPDATE_ACCOUNT_BROADCAST_EVENT,
@@ -192,7 +195,7 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
         throw new WsException('Access denied');
       }
 
-      const result = await this.service.login(socket.user);
+      const result = await authOperationStorage.run('login', async () => this.service.login(socket.user));
 
       if (loginBroadcastConfig) {
         const broadcastData = buildAuthBroadcastData(socket.user, loginBroadcastConfig.fields);
@@ -216,7 +219,7 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
     ) {
       this.addUserToSocket(socket, !registerProtected && !registerAbilityPredicate);
 
-      const result = await this.service.register(data);
+      const result = await authOperationStorage.run('register', async () => this.service.register(data));
 
       if (registerBroadcastConfig) {
         const decoded = this.jwtService.decode(result.accessToken);
