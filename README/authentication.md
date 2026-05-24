@@ -21,6 +21,8 @@ JWT authentication is built-in and provides secure, **dual-token** (access + ref
   - [Custom Passport Strategy (`useStrategy`)](#custom-passport-strategy-usestrategy)
   - [JWT Payload Customization](#jwt-payload-customization)
   - [Update Account Configuration](#update-account-configuration)
+  - [Automatic Token Refresh on Update (`refreshTokenOnUpdate`)](#automatic-token-refresh-on-update-refreshtokenonupdate) ⭐ *New*
+  - [Auth Operation Context (`getAuthOperationContext`)](#auth-operation-context-getauthoperationcontext) ⭐ *New*
   - [Reset Password Configuration](#reset-password-configuration)
   - [Callbacks and Lifecycle Hooks](#callbacks-and-lifecycle-hooks)
   - [Interceptors](#interceptors)
@@ -190,6 +192,12 @@ DynamicApiModule.forRoot('mongodb-uri', {
         fields?: (keyof Entity)[];            // Fields to include (default: all)
         rooms?: string | string[] | ((data: Partial<Entity>) => string | string[]); // Target rooms
       };
+      /**
+       * When true, PATCH /auth/account returns { accessToken, refreshToken }
+       * instead of the updated entity, so the client refreshes its JWT in one
+       * round-trip after a profile change.
+       */
+      refreshTokenOnUpdate?: boolean;         // Default: false
     },
     
     // Reset Password Configuration
@@ -384,7 +392,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 }
 ```
 
-**Response (200 OK):**
+**Response (200 OK) — default (`refreshTokenOnUpdate` not set):**
 ```json
 {
   "id": "507f1f77bcf86cd799439011",
@@ -395,7 +403,15 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 }
 ```
 
-**Note:** By default, `loginField` (email/username) and `passwordField` are excluded from updates. Use `additionalFieldsToExclude` to exclude more fields.
+**Response (200 OK) — with `refreshTokenOnUpdate: true`:**
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**Note:** By default, `loginField` (email/username) and `passwordField` are excluded from updates. Use `additionalFieldsToExclude` to exclude more fields. When `refreshTokenOnUpdate: true`, the response shape switches to a token pair so the client does not need a separate `/auth/refresh-token` call after updating profile data that is embedded in the JWT.
 
 ### 5. Reset/Change Password
 
@@ -895,6 +911,74 @@ DynamicApiModule.forRoot('mongodb-uri', {
 ```
 
 **Note:** By default, `loginField` and `passwordField` are automatically excluded from updates.
+
+### Automatic Token Refresh on Update (`refreshTokenOnUpdate`)
+
+> ⭐ **New option** — eliminates the need for a client-side `/auth/refresh-token` call after a profile change.
+
+**Problem:** When a user updates profile data that is **embedded in their JWT payload** (e.g., `name`, `role`, or any field in `login.additionalFields`), the access token becomes stale. The standard workaround is to call `/auth/refresh-token` immediately after `/auth/account` — an extra round-trip that can cause race conditions in SPA/mobile clients.
+
+**Solution:** Set `refreshTokenOnUpdate: true` to make `PATCH /auth/account` return a **fresh token pair** instead of the updated entity. The client receives a new `{ accessToken, refreshToken }` in a single request.
+
+```typescript
+DynamicApiModule.forRoot('mongodb-uri', {
+  useAuth: {
+    userEntity: User,
+    login: {
+      additionalFields: ['role', 'name'], // These fields are in the JWT — get stale after update
+    },
+    updateAccount: {
+      refreshTokenOnUpdate: true, // ← PATCH /auth/account now returns { accessToken, refreshToken }
+    },
+  },
+})
+```
+
+**Response comparison:**
+
+| `refreshTokenOnUpdate` | `PATCH /auth/account` response |
+|---|---|
+| `false` (default) | `{ id, email, name, ... }` — updated entity |
+| `true` | `{ accessToken, refreshToken }` — fresh token pair |
+
+**When to use:**
+
+✅ Use `refreshTokenOnUpdate: true` when:
+- Profile fields that change (`name`, `role`, `avatar`, etc.) are included in `login.additionalFields` and therefore embedded in the JWT
+- You want one round-trip instead of two (`PATCH /account` → `/refresh-token`)
+- Your client needs the new token immediately (e.g., role change must take effect before the next request)
+
+❌ Keep default (`false`) when:
+- Updated fields are **not** in the JWT payload (e.g., `address`, `bio`, `preferences`)
+- Your client already has a silent-refresh interceptor and the extra call is acceptable
+- You need the updated entity shape in the response for UI state management
+
+**Cookie mode compatibility:**
+
+`refreshTokenOnUpdate` is fully compatible with `useCookie: true`. When both are enabled, the new `refreshToken` is set as an httpOnly cookie and **not** included in the response body:
+
+```typescript
+updateAccount: { refreshTokenOnUpdate: true }
+refreshToken:  { useCookie: true }
+// → Response body: { "accessToken": "eyJ..." }
+// → Cookie: Set-Cookie: refreshToken=eyJ...; HttpOnly; ...
+```
+
+**Broadcast behaviour:**
+
+When `refreshTokenOnUpdate: true`, the broadcast payload (if `broadcast` is configured) uses the **original user identity** from the request (not the token result) so field filtering still works as expected:
+
+```typescript
+updateAccount: {
+  refreshTokenOnUpdate: true,
+  broadcast: {
+    enabled: true,
+    fields: ['id', 'email', 'name'],  // Works normally — not affected by refreshTokenOnUpdate
+  },
+},
+```
+
+---
 
 ### Reset Password Configuration
 
@@ -1398,6 +1482,133 @@ socket.on('admin-logged-in', (data) => {
 | Change Password | `PATCH /auth/change-password` | `auth-change-password` | ❌ |
 
 \* WS events require `useAuth.webSocket: true` to be enabled. Broadcasts work independently via HTTP without it.
+
+---
+
+### Auth Operation Context (`getAuthOperationContext`)
+
+> ⭐ **New utility** — enables operation-aware validation in `class-validator` decorators.
+
+MDA automatically tracks which auth operation is currently executing (`'register'`, `'login'`, or `'updateAccount'`) using Node.js `AsyncLocalStorage`. This context is available anywhere in the request pipeline via the exported `getAuthOperationContext()` helper — including inside custom `class-validator` decorators.
+
+**Import:**
+
+```typescript
+import { getAuthOperationContext } from 'mongodb-dynamic-api';
+// Returns: 'register' | 'login' | 'updateAccount' | undefined
+```
+
+**Type:**
+
+```typescript
+type AuthOperationContext = 'register' | 'login' | 'updateAccount';
+```
+
+Returns `undefined` when called outside of an auth request pipeline (e.g., in a background job).
+
+#### Use cases
+
+##### Only validate a field on registration
+
+```typescript
+import { ValidateIf, IsNotEmpty } from 'class-validator';
+import { getAuthOperationContext } from 'mongodb-dynamic-api';
+
+@Schema({ collection: 'users' })
+export class User extends BaseEntity {
+  @IsEmail()
+  @Prop({ type: String, required: true, unique: true })
+  email: string;
+
+  @Prop({ type: String, required: true })
+  password: string;
+
+  // referralCode is only mandatory when registering — optional elsewhere
+  @ValidateIf(() => getAuthOperationContext() === 'register')
+  @IsNotEmpty({ message: 'Referral code is required at registration' })
+  @Prop({ type: String })
+  referralCode?: string;
+}
+```
+
+##### Apply different validation rules per operation
+
+```typescript
+import { ValidateIf, MinLength, IsOptional } from 'class-validator';
+import { getAuthOperationContext } from 'mongodb-dynamic-api';
+
+@Schema({ collection: 'users' })
+export class User extends BaseEntity {
+  @IsEmail()
+  @Prop({ type: String, required: true })
+  email: string;
+
+  // On register: password must be strong (min 12 chars)
+  // On updateAccount: password is optional (user may not want to change it)
+  @ValidateIf(() => getAuthOperationContext() !== 'updateAccount')
+  @MinLength(12, { message: 'Password must be at least 12 characters on registration' })
+  @Prop({ type: String, required: true })
+  password: string;
+}
+```
+
+##### Custom decorator helper
+
+Create a reusable decorator to avoid repeating `ValidateIf(() => getAuthOperationContext() === '...')`:
+
+```typescript
+// src/validators/auth-operation.decorators.ts
+import { ValidateIf } from 'class-validator';
+import { getAuthOperationContext, AuthOperationContext } from 'mongodb-dynamic-api';
+
+/** Only apply the following validators during the specified auth operation(s). */
+export function OnAuthOperation(...operations: AuthOperationContext[]): PropertyDecorator {
+  return ValidateIf(() => {
+    const ctx = getAuthOperationContext();
+    return ctx !== undefined && operations.includes(ctx);
+  });
+}
+
+/** Skip the following validators during the specified auth operation(s). */
+export function ExceptAuthOperation(...operations: AuthOperationContext[]): PropertyDecorator {
+  return ValidateIf(() => {
+    const ctx = getAuthOperationContext();
+    return ctx === undefined || !operations.includes(ctx);
+  });
+}
+```
+
+Usage:
+
+```typescript
+import { OnAuthOperation, ExceptAuthOperation } from './validators/auth-operation.decorators';
+import { IsNotEmpty, IsOptional, MinLength } from 'class-validator';
+
+@Schema()
+export class User extends BaseEntity {
+  @IsEmail()
+  @Prop({ type: String, required: true })
+  email: string;
+
+  @OnAuthOperation('register')        // ← only validated on POST /auth/register
+  @IsNotEmpty()
+  @MinLength(8)
+  @Prop({ type: String, required: true })
+  password: string;
+
+  @OnAuthOperation('register')        // ← terms acceptance only required at registration
+  @IsNotEmpty()
+  @Prop({ type: Boolean })
+  acceptedTerms?: boolean;
+
+  @ExceptAuthOperation('updateAccount') // ← validated everywhere except PATCH /auth/account
+  @IsNotEmpty()
+  @Prop({ type: String })
+  requiredOnRegisterAndLogin?: string;
+}
+```
+
+> **Note:** `getAuthOperationContext()` uses `AsyncLocalStorage` (Node.js native) and has **zero performance overhead** — no request-scoped DI or additional middleware is involved. It returns `undefined` outside of an auth request, so validators that run in other contexts (e.g., CRUD routes) are unaffected.
 
 ---
 
