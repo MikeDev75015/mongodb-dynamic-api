@@ -293,7 +293,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
       const result = await authOperationStorage.run('updateAccount', async () => this.service.updateAccount(user, body));
 
       if (refreshTokenOnUpdate && result && 'accessToken' in result) {
-        const tokenResult = result as LoginResponse;
+        const tokenResult = result;
 
         if (updateAccountBroadcastConfig) {
           const broadcastData = buildAuthBroadcastData(user, updateAccountBroadcastConfig.fields);
