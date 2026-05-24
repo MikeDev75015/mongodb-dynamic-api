@@ -1,5 +1,29 @@
 Changelog
 
+## [4.7.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.6.1...v4.7.0) (2026-05-24)
+
+### interfaces
+
+* **interfaces:** add DynamicApiRequest typed interface ([a7e6558](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/a7e65582f5f83fd1bf499a94941340111a097470))
+
+### decorators
+
+* **decorators:** add @DerivedField and @ProtectedField decorators ([d01b52a](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/d01b52a588ba138b38b708c52e7c660b8c53d897))
+* **decorators:** fix @DerivedField on update and @ProtectedField runtime strip ([4eaf187](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/4eaf187404cd60953a9cc5895bb3063eec308679))
+
+### auth
+
+* **auth:** implement refreshTokenOnUpdate and operation context ([3044a50](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/3044a50fdbbeb018d7469ebf5221f5eae3637191))
+* **auth:** remove unnecessary type assertions flagged by SonarQube ([dad0a7a](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/dad0a7ae70ecd8384a900a61fb8cc59530b2855b))
+
+### dynamic-api-config
+
+* **dynamic-api-config:** add missing refreshTokenOnUpdate field in spec config ([0e3c41b](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/0e3c41bbf2a3f05b9c8e6bf761c88ee22d7869e9))
+
+### agent
+
+* **agent:** install caveman skills and project documentation ([533db4d](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/533db4dfe902334abf12d1e8590ff6a2978a32d9))
+
 ## [4.6.1](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.6.0...v4.6.1) (2026-03-27)
 
 ## [4.6.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.5.0...v4.6.0) (2026-03-26)
