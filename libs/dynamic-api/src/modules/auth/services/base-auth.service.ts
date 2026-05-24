@@ -52,7 +52,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
       return null;
     }
 
-    return { ...user, id: user._id.toString() } as Entity;
+    return { ...user, id: user._id.toString() };
   }
 
   protected async login(user: Entity, fromMember = false) {
@@ -166,7 +166,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
 
     if (this.refreshTokenOnUpdate) {
       const updatedUser = await this.model.findOne({ _id: id }).lean<Entity>().exec();
-      return this.login({ ...updatedUser, id: updatedUser._id.toString() } as Entity, true);
+      return this.login({ ...updatedUser, id: updatedUser._id.toString() }, true);
     }
 
     return this.getAccount({ id } as Entity);
