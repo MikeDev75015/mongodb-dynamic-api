@@ -26,6 +26,19 @@ describe('DeleteOneHelper', () => {
       expect(useClass.name).toBe(`DeleteOne${displayedName}V1Service`);
       expect(service.entity).toBe(entity);
     });
+
+    it('should wire beforeDeleteCallback and cascade into the service', () => {
+      const beforeDeleteCallback = jest.fn();
+      const cascade = [{ entity, foreignKey: 'parentId', on: 'delete' as const }];
+
+      const { useClass } = createDeleteOneServiceProvider(
+        entity, displayedName, '1', undefined, undefined, beforeDeleteCallback, cascade,
+      );
+      const service = new useClass(model) as { beforeDeleteCallback: unknown; cascade: unknown };
+
+      expect(service.beforeDeleteCallback).toBe(beforeDeleteCallback);
+      expect(service.cascade).toBe(cascade);
+    });
   });
 
   describe('createDeleteOneController', () => {

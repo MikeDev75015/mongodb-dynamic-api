@@ -76,6 +76,36 @@ type AnyBeforeSaveCallback<Entity extends BaseEntity, User = unknown> =
   | BeforeSaveDeleteCallback<Entity, unknown, User>
   | BeforeSaveDeleteManyCallback<Entity, unknown, User>;
 
+/**
+ * Pre-delete hook for `DeleteOne` routes.
+ * Runs **before** the MongoDB delete and **outside** the error-catch block,
+ * so any exception thrown (e.g. `ForbiddenException`, `BadRequestException`)
+ * propagates correctly as an HTTP error to the client.
+ *
+ * Unlike `beforeSaveCallback`, throwing here guarantees the document is **not** deleted.
+ */
+type BeforeDeleteCallback<Entity extends BaseEntity, Context = Record<string, unknown>, User = unknown> = (
+  entity: Entity | undefined,
+  context: Context,
+  methods: CallbackMethods,
+  user?: User,
+) => Promise<void>;
+
+/**
+ * Pre-delete hook for `DeleteMany` routes.
+ * Same propagation guarantees as {@link BeforeDeleteCallback}.
+ */
+type BeforeDeleteManyCallback<Entity extends BaseEntity, Context = Record<string, unknown>, User = unknown> = (
+  entities: Entity[],
+  context: Context,
+  methods: CallbackMethods,
+  user?: User,
+) => Promise<void>;
+
+type AnyBeforeDeleteCallback<Entity extends BaseEntity, User = unknown> =
+  | BeforeDeleteCallback<Entity, BeforeSaveDeleteContext, User>
+  | BeforeDeleteManyCallback<Entity, BeforeSaveDeleteManyContext, User>;
+
 // --- Deprecated aliases ---
 /** @deprecated Use `BeforeSaveCreateContext` instead. Will be removed in v5. */
 type DynamicApiServiceBeforeSaveCreateContext<Entity extends BaseEntity> = BeforeSaveCreateContext<Entity>;
@@ -105,6 +135,9 @@ type DynamicApiServiceBeforeSaveDeleteCallback<Entity extends BaseEntity, Contex
 type DynamicApiServiceBeforeSaveDeleteManyCallback<Entity extends BaseEntity, Context = Record<string, unknown>, User = unknown> = BeforeSaveDeleteManyCallback<Entity, Context, User>;
 
 export type {
+  AnyBeforeDeleteCallback,
+  BeforeDeleteCallback,
+  BeforeDeleteManyCallback,
   AnyBeforeSaveCallback,
   BeforeSaveCallback,
   BeforeSaveListCallback,

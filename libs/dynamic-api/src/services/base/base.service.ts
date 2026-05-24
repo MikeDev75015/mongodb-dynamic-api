@@ -3,7 +3,7 @@ import { plainToInstance } from 'class-transformer';
 import { PipelineStage } from 'mongodb-pipeline-builder';
 import { FilterQuery, Model, PipelineStage as MongoosePipelineStage, Schema, UpdateQuery, UpdateWithAggregationPipeline } from 'mongoose';
 import { DERIVED_FIELD_KEYS_METADATA, DERIVED_FIELD_METADATA, DerivedFieldMeta } from '../../decorators';
-import { AbilityPredicate, AuthAbilityPredicate, DeleteResult, DynamicApiCallbackMethods, MongoUpdateOperators, UpdateResult } from '../../interfaces';
+import { AbilityPredicate, AuthAbilityPredicate, CascadeConfig, DeleteResult, DynamicApiCallbackMethods, MongoUpdateOperators, UpdateResult } from '../../interfaces';
 import { MongoDBDynamicApiLogger } from '../../logger';
 import { BaseEntity, SoftDeletableEntity } from '../../models';
 import { DynamicApiResetPasswordOptions } from '../../modules';
@@ -222,6 +222,40 @@ export abstract class BaseService<Entity extends BaseEntity> {
     }
 
     return model.deleteOne({ _id: id }).exec();
+  }
+
+  /**
+   * Executes configured cascade deletes after a successful parent delete.
+   * Each `CascadeConfig` entry whose `on` value matches the delete mode is processed.
+   *
+   * @param parentIds    - IDs of the deleted parent documents.
+   * @param cascade      - cascade configurations from the route config.
+   * @param isSoftDelete - `true` if the parent was soft-deleted, `false` if hard-deleted.
+   */
+  protected async executeCascade(
+    parentIds: string[],
+    cascade: CascadeConfig[],
+    isSoftDelete: boolean,
+  ): Promise<void> {
+    for (const config of cascade) {
+      const shouldTrigger =
+        (config.on === 'delete' && !isSoftDelete) ||
+        (config.on === 'softDelete' && isSoftDelete);
+
+      if (!shouldTrigger) {
+        continue;
+      }
+
+      const useSoftDelete = config.softDelete ?? isSoftDelete;
+      const model = await DynamicApiGlobalStateService.getEntityModel(config.entity);
+      const filter = { [config.foreignKey]: { $in: parentIds } } as FilterQuery<BaseEntity>;
+
+      if (useSoftDelete) {
+        await model.updateMany(filter, { $set: { isDeleted: true, deletedAt: new Date() } }).exec();
+      } else {
+        await model.deleteMany(filter).exec();
+      }
+    }
   }
 
   protected buildInstance(document: Entity) {

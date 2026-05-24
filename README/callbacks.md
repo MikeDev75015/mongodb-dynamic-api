@@ -33,6 +33,10 @@ Both `beforeSaveCallback` and `callback` (after save) **receive the authenticate
     - [BeforeSaveDeleteContext](#beforesavedeletecontext)
     - [BeforeSaveDeleteManyContext](#beforesavedeletemanycontext)
   - [Signature-to-route compatibility](#signature-to-route-compatibility)
+- [beforeDelete Callback (`beforeDeleteCallback`)](#beforedelete-callback-beforedeletecallback)
+  - [Why `beforeDeleteCallback` instead of `beforeSaveCallback`?](#why-beforedeletecallback-instead-of-beforesavecallback)
+  - [Signatures](#beforedelete-signatures)
+  - [Example — Block deletion based on business rule](#example--block-deletion-based-on-business-rule)
 - [CallbackMethods](#callbackmethods)
 - [rawUpdateOneDocument & rawUpdateManyDocuments](#rawupdateonedocument--rawupdatemanydocuments)
 - [Accessing the authenticated user](#accessing-the-authenticated-user)
@@ -396,6 +400,93 @@ type BeforeSaveDeleteManyContext = {
 | `DeleteMany` | `BeforeSaveDeleteManyCallback` | `BeforeSaveDeleteManyContext` | Entities to delete | `void` |
 
 > **⚠️ Note:** `GetOne` and `GetMany` do **not** support `beforeSaveCallback` — they only support the `callback` (after save) property.
+
+---
+
+## beforeDelete Callback (`beforeDeleteCallback`)
+
+> **Compatible routes:** `DeleteOne`, `DeleteMany` only.
+
+### Why `beforeDeleteCallback` instead of `beforeSaveCallback`?
+
+Both callbacks run before a delete operation, but there is a critical difference:
+
+| | `beforeSaveCallback` on delete routes | `beforeDeleteCallback` |
+|---|---|---|
+| Runs before delete | ✅ | ✅ |
+| Exception aborts delete | ✅ | ✅ |
+| Exception propagates as HTTP error | ❌ (was silently swallowed as `{ deletedCount: 0 }` — **fixed in this version**) | ✅ (always) |
+| Recommended for validation / guard | ❌ Use `beforeDeleteCallback` | ✅ |
+
+> **Bug fix note:** Prior to this release, exceptions thrown inside `beforeSaveCallback` for `DeleteOne` and `DeleteMany` routes were caught internally and returned `{ deletedCount: 0 }` to the client instead of the correct HTTP error. **Both `beforeSaveCallback` and `beforeDeleteCallback` now correctly propagate HTTP exceptions.** `beforeDeleteCallback` is the preferred hook for delete-specific validation.
+
+### beforeDelete Signatures
+
+```typescript
+import {
+  BeforeDeleteCallback,
+  BeforeDeleteManyCallback,
+  BeforeSaveDeleteContext,
+  BeforeSaveDeleteManyContext,
+  CallbackMethods,
+} from 'mongodb-dynamic-api';
+
+// For DeleteOne
+type BeforeDeleteCallback<Entity, Context = Record<string, unknown>, User = unknown> = (
+  entity: Entity | undefined,    // current document (undefined if not found before delete)
+  context: BeforeSaveDeleteContext,  // { id: string }
+  methods: CallbackMethods,
+  user?: User,
+) => Promise<void>;
+
+// For DeleteMany
+type BeforeDeleteManyCallback<Entity, Context = Record<string, unknown>, User = unknown> = (
+  entities: Entity[],            // matched documents (empty array if none found)
+  context: BeforeSaveDeleteManyContext,  // { ids: string[] }
+  methods: CallbackMethods,
+  user?: User,
+) => Promise<void>;
+```
+
+### Example — Block deletion based on business rule
+
+```typescript
+import {
+  BaseEntity,
+  BeforeDeleteCallback,
+  BeforeSaveDeleteContext,
+  DynamicApiModule,
+} from 'mongodb-dynamic-api';
+import { ForbiddenException } from '@nestjs/common';
+import { Prop, Schema } from '@nestjs/mongoose';
+
+@Schema({ collection: 'posts' })
+class PostEntity extends BaseEntity {
+  @Prop({ type: String, required: true })
+  title: string;
+
+  @Prop({ type: Boolean, default: false })
+  pinned: boolean;
+}
+
+const blockPinnedDeletion: BeforeDeleteCallback<PostEntity, BeforeSaveDeleteContext> =
+  async (post, _context, _methods) => {
+    if (post?.pinned) {
+      throw new ForbiddenException('Pinned posts cannot be deleted');
+    }
+  };
+
+DynamicApiModule.forFeature({
+  entity: PostEntity,
+  controllerOptions: { path: 'posts' },
+  routes: [
+    {
+      type: 'DeleteOne',
+      beforeDeleteCallback: blockPinnedDeletion,
+    },
+  ],
+});
+```
 
 ---
 

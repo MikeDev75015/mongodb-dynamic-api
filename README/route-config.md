@@ -26,8 +26,13 @@ Each route in `DynamicApiModule.forFeature` can be finely configured through the
   - [DTO Compatibility by Route Type](#dto-compatibility-by-route-type)
 - [Callbacks](#callbacks) — [📚 Full Callbacks Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/callbacks.md)
   - [beforeSaveCallback](#beforesavecallback)
+  - [beforeDeleteCallback](#beforedeletecallback)
   - [callback (afterSave)](#callback-aftersave)
   - [CallbackMethods](#callbackmethods)
+- [Cascade Delete](#cascade-delete)
+  - [CascadeConfig](#cascadeconfig)
+  - [Cascade + Soft Delete](#cascade--soft-delete)
+  - [Atomicity Warning](#atomicity-warning)
 - [Other Options](#other-options)
   - [isPublic](#ispublic)
   - [disableCache](#disablecache)
@@ -98,7 +103,16 @@ interface DynamicAPIRouteConfig<Entity extends BaseEntity> {
 
   // Callbacks
   beforeSaveCallback?: AnyBeforeSaveCallback<Entity>;
+  /**
+   * Pre-delete hook for DeleteOne / DeleteMany routes only.
+   * Runs BEFORE the MongoDB delete and OUTSIDE the internal error-catch block:
+   * any exception thrown propagates as a proper HTTP error and aborts the delete.
+   */
+  beforeDeleteCallback?: AnyBeforeDeleteCallback<Entity>;
   callback?: AfterSaveCallback<Entity>;
+
+  // Cascade (DeleteOne / DeleteMany only)
+  cascade?: CascadeConfig[];
 
   // Interceptors
   useInterceptors?: Type<NestInterceptor>[];
@@ -483,6 +497,89 @@ DynamicApiModule.forFeature({
 
 ### callback (afterSave)
 
+---
+
+### beforeDeleteCallback
+
+> **Compatible routes:** `DeleteOne`, `DeleteMany` only.
+
+A pre-delete hook that runs **before** the MongoDB delete operation and **outside** the internal error-catch block. This means any exception you throw (e.g. `ForbiddenException`, `BadRequestException`) propagates cleanly to the client as an HTTP error and **aborts** the delete.
+
+**Key difference vs `beforeSaveCallback`:** `beforeSaveCallback` on delete routes was silently swallowing exceptions (returning `{ deletedCount: 0 }` instead of an HTTP error). `beforeDeleteCallback` is the recommended hook for delete guard/validation logic.
+
+#### Signatures
+
+```typescript
+import {
+  BeforeDeleteCallback,
+  BeforeDeleteManyCallback,
+  BeforeSaveDeleteContext,
+  BeforeSaveDeleteManyContext,
+  CallbackMethods,
+} from 'mongodb-dynamic-api';
+
+// DeleteOne
+type BeforeDeleteCallback<Entity, Context = BeforeSaveDeleteContext, User = unknown> = (
+  entity: Entity | undefined,        // current document (undefined if not found)
+  context: { id: string },
+  methods: CallbackMethods,
+  user?: User,
+) => Promise<void>;
+
+// DeleteMany
+type BeforeDeleteManyCallback<Entity, Context = BeforeSaveDeleteManyContext, User = unknown> = (
+  entities: Entity[],                // matched documents (empty array if none found)
+  context: { ids: string[] },
+  methods: CallbackMethods,
+  user?: User,
+) => Promise<void>;
+```
+
+#### Example — block deletion based on business rule
+
+```typescript
+import {
+  BaseEntity,
+  BeforeDeleteCallback,
+  BeforeSaveDeleteContext,
+  CallbackMethods,
+  DynamicApiModule,
+} from 'mongodb-dynamic-api';
+import { ForbiddenException } from '@nestjs/common';
+import { Prop, Schema } from '@nestjs/mongoose';
+
+@Schema({ collection: 'posts' })
+class PostEntity extends BaseEntity {
+  @Prop({ type: String, required: true })
+  title: string;
+
+  @Prop({ type: Boolean, default: false })
+  pinned: boolean;
+}
+
+const blockPinnedPostDeletion: BeforeDeleteCallback<PostEntity, BeforeSaveDeleteContext> =
+  async (post, _context, _methods) => {
+    if (post?.pinned) {
+      throw new ForbiddenException('Pinned posts cannot be deleted');
+    }
+  };
+
+DynamicApiModule.forFeature({
+  entity: PostEntity,
+  controllerOptions: { path: 'posts' },
+  routes: [
+    {
+      type: 'DeleteOne',
+      beforeDeleteCallback: blockPinnedPostDeletion,
+    },
+  ],
+});
+```
+
+---
+
+### callback (afterSave)
+
 ```typescript
 type AfterSaveCallback<Entity, User = unknown> = (
   entity: Entity,
@@ -490,6 +587,7 @@ type AfterSaveCallback<Entity, User = unknown> = (
   user?: User,
 ) => Promise<void>;
 ```
+
 
 Available on **all** route types (including `GetOne` and `GetMany`). For list routes, called **once per entity**. The `User` generic defaults to `unknown` — pass your user entity type for full type safety.
 
@@ -555,6 +653,141 @@ type CallbackMethods = {
 ```
 
 > 📚 See the [**Callbacks guide**](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/callbacks.md) for typed contexts per route, authenticated user access in HTTP & WebSocket, ownership stamping, audit trails, and more examples.
+
+---
+
+---
+
+## Cascade Delete
+
+The `cascade` option lets you **automatically delete child documents** when a parent document is deleted. It is available on `DeleteOne` and `DeleteMany` routes.
+
+### CascadeConfig
+
+```typescript
+import { CascadeConfig } from 'mongodb-dynamic-api';
+
+interface CascadeConfig {
+  /**
+   * The child entity class whose documents will be deleted.
+   */
+  entity: Type<BaseEntity>;
+
+  /**
+   * The field name on the child entity that references the parent document's ID.
+   */
+  foreignKey: string;
+
+  /**
+   * When to trigger the cascade:
+   * - 'delete'     — when the parent is hard-deleted (entity is NOT soft-deletable)
+   * - 'softDelete' — when the parent is soft-deleted (entity IS soft-deletable).
+   *                  Only triggered when `isSoftDeletable === true` on the parent service.
+   */
+  on: 'delete' | 'softDelete';
+
+  /**
+   * Controls how child documents are deleted:
+   * - true      → always soft-delete children (sets isDeleted + deletedAt)
+   * - false     → always hard-delete children
+   * - undefined → mirror parent: soft children when parent was soft-deleted,
+   *               hard children when parent was hard-deleted (default)
+   */
+  softDelete?: boolean;
+}
+```
+
+| Property | Required | Description |
+|---|---|---|
+| `entity` | ✅ | Child entity class registered with `DynamicApiModule.forFeature` |
+| `foreignKey` | ✅ | Field on the child that holds the parent ID |
+| `on` | ✅ | `'delete'` or `'softDelete'` — controls when the cascade fires |
+| `softDelete` | ❌ | Override soft/hard delete for children (default: mirror parent) |
+
+> **Important:** The child entity must be registered with `DynamicApiModule.forFeature` (even with `routes: []`) so its schema is available for model resolution.
+
+#### Example — hard-delete comments when a post is hard-deleted
+
+```typescript
+import {
+  BaseEntity,
+  CascadeConfig,
+  DynamicApiModule,
+} from 'mongodb-dynamic-api';
+import { Prop, Schema } from '@nestjs/mongoose';
+
+@Schema({ collection: 'posts' })
+class PostEntity extends BaseEntity {
+  @Prop({ type: String, required: true }) title: string;
+}
+
+@Schema({ collection: 'comments' })
+class CommentEntity extends BaseEntity {
+  @Prop({ type: String, required: true }) postId: string;
+  @Prop({ type: String, required: true }) body: string;
+}
+
+const cascade: CascadeConfig[] = [
+  { entity: CommentEntity, foreignKey: 'postId', on: 'delete' },
+];
+
+DynamicApiModule.forFeature({
+  entity: PostEntity,
+  controllerOptions: { path: 'posts' },
+  routes: [
+    { type: 'DeleteOne', cascade },
+    { type: 'DeleteMany', cascade },
+  ],
+  // Register child entity schema so it can be resolved
+  extraImports: [
+    DynamicApiModule.forFeature({
+      entity: CommentEntity,
+      controllerOptions: { path: 'comments' },
+      routes: [],
+    }),
+  ],
+});
+```
+
+### Cascade + Soft Delete
+
+```typescript
+import { SoftDeletableEntity } from 'mongodb-dynamic-api';
+import { Prop, Schema } from '@nestjs/mongoose';
+
+@Schema({ collection: 'soft-posts' })
+class SoftPost extends SoftDeletableEntity {
+  @Prop({ type: String, required: true }) title: string;
+}
+
+@Schema({ collection: 'soft-comments' })
+class SoftComment extends SoftDeletableEntity {
+  @Prop({ type: String, required: true }) postId: string;
+  @Prop({ type: String, required: true }) body: string;
+}
+
+// When SoftPost is soft-deleted, SoftComment children are also soft-deleted
+DynamicApiModule.forFeature({
+  entity: SoftPost,
+  controllerOptions: { path: 'soft-posts' },
+  routes: [
+    {
+      type: 'DeleteOne',
+      cascade: [
+        { entity: SoftComment, foreignKey: 'postId', on: 'softDelete' },
+        // softDelete: undefined → mirrors parent (soft-delete children too)
+      ],
+    },
+  ],
+  extraImports: [
+    DynamicApiModule.forFeature({ entity: SoftComment, controllerOptions: { path: 'soft-comments' }, routes: [] }),
+  ],
+});
+```
+
+### Atomicity Warning
+
+> ⚠️ **Cascade operations are NOT atomic.** If a cascade delete fails mid-way, the parent document is already deleted but some children may remain. This is a known limitation when MongoDB transactions are not available (e.g., standalone instances). For production use cases requiring atomic multi-collection operations, use a replica set and wrap operations in a MongoDB session transaction via a custom `callback`.
 
 ---
 

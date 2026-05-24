@@ -19,9 +19,12 @@ import {
   DynamicApiControllerOptions,
   DynamicAPIRouteConfig,
   BeforeSaveDeleteManyCallback,
+  BeforeDeleteManyCallback,
+  BeforeSaveDeleteManyContext,
   AfterSaveCallback,
   DynamicAPIServiceProvider,
   GatewayOptions,
+  CascadeConfig,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { DynamicApiBroadcastService } from '../../services';
@@ -36,11 +39,15 @@ function createDeleteManyServiceProvider<Entity extends BaseEntity>(
   version: string | undefined,
   callback: AfterSaveCallback<Entity> | undefined,
   beforeSaveCallback: BeforeSaveDeleteManyCallback<Entity> | undefined,
+  beforeDeleteCallback?: BeforeDeleteManyCallback<Entity, BeforeSaveDeleteManyContext> | undefined,
+  cascade?: CascadeConfig[] | undefined,
 ): DynamicAPIServiceProvider {
   class DeleteManyService extends BaseDeleteManyService<Entity> {
     protected readonly entity = entity;
     protected readonly beforeSaveCallback = beforeSaveCallback;
+    protected readonly beforeDeleteCallback = beforeDeleteCallback;
     protected readonly callback = callback;
+    protected readonly cascade = cascade;
 
     constructor(
       @InjectModel(
