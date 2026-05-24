@@ -41,6 +41,21 @@ describe('BasePoliciesGuard', () => {
     await expect(guard.canActivate(context)).resolves.not.toThrow();
   });
 
+  it('should not throw ForbiddenException if predicateBehavior is filter even if user is not defined', async () => {
+    guard['abilityPredicate'] = jest.fn();
+    guard['predicateBehavior'] = 'filter';
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+  });
+
+  it('should not call findManyDocumentsWithAbilityPredicate if predicateBehavior is filter', async () => {
+    const spy = jest.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockImplementationOnce(jest.fn());
+    guard['abilityPredicate'] = jest.fn();
+    guard['predicateBehavior'] = 'filter';
+    context.switchToHttp().getRequest().user = {};
+    await guard.canActivate(context);
+    expect(spy).not.toHaveBeenCalled();
+  });
+
   it('should call findOneDocument if params.id is defined', async () => {
     const spy = jest.spyOn<any, any>(guard, 'findOneDocumentWithAbilityPredicate').mockImplementationOnce(jest.fn());
     guard['abilityPredicate'] = jest.fn();
@@ -112,6 +127,24 @@ describe('BaseSocketPoliciesGuard', () => {
     guard['isPublic'] = false;
     guard['abilityPredicate'] = jest.fn();
     await expect(guard.canActivate(context)).rejects.toThrow(WsException);
+  });
+
+  it('should not throw WsException if predicateBehavior is filter even without user', async () => {
+    guard['isPublic'] = false;
+    guard['abilityPredicate'] = jest.fn();
+    guard['predicateBehavior'] = 'filter';
+    await expect(guard.canActivate(context)).rejects.toThrow(WsException); // still throws: no user + !isPublic block is outer
+  });
+
+  it('should not call findManyDocumentsWithAbilityPredicate if predicateBehavior is filter (socket)', async () => {
+    const spy = jest.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockImplementationOnce(jest.fn());
+    guard['isPublic'] = false;
+    guard['abilityPredicate'] = jest.fn();
+    guard['predicateBehavior'] = 'filter';
+    context.getArgs()[0].user = {};
+    context.getArgs()[1] = undefined;
+    await guard.canActivate(context);
+    expect(spy).not.toHaveBeenCalled();
   });
 
   it('should throw WsException if could not find document with ability predicate', async () => {

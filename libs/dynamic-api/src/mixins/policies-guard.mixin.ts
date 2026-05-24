@@ -9,6 +9,7 @@ import {
   AbilityPredicate, AuthAbilityPredicate,
   PoliciesGuard,
   PoliciesGuardConstructor,
+  PredicateBehavior,
   RouteType,
 } from '../interfaces';
 import { BaseEntity } from '../models';
@@ -21,12 +22,14 @@ function RoutePoliciesGuardMixin<Entity extends BaseEntity>(
   version: string | undefined,
   abilityPredicate: AbilityPredicate<Entity> | undefined,
   queryToPipeline?: (query: unknown) => PipelineStage[],
+  predicateBehavior?: PredicateBehavior,
 ): PoliciesGuardConstructor<Entity> {
   @Injectable()
   class RoutePoliciesGuard extends BasePoliciesGuard<Entity> implements PoliciesGuard {
     protected routeType = routeType;
     protected entity = entity;
     protected abilityPredicate: AbilityPredicate<Entity> | undefined = abilityPredicate;
+    protected predicateBehavior: PredicateBehavior | undefined = predicateBehavior;
     protected queryToPipeline = queryToPipeline;
 
     constructor(
@@ -57,12 +60,14 @@ function SocketPoliciesGuardMixin<Entity extends BaseEntity>(
   abilityPredicate: AuthAbilityPredicate | undefined,
   isPublic: boolean | undefined,
   queryToPipeline?: (query: unknown) => PipelineStage[],
+  predicateBehavior?: PredicateBehavior,
 ): PoliciesGuardConstructor<Entity> {
   @Injectable()
   class SocketPoliciesGuard extends BaseSocketPoliciesGuard<Entity> {
     protected routeType = routeType;
     protected entity = entity;
     protected abilityPredicate = abilityPredicate;
+    protected predicateBehavior: PredicateBehavior | undefined = predicateBehavior;
     protected queryToPipeline = queryToPipeline;
     protected isPublic = isPublic;
 

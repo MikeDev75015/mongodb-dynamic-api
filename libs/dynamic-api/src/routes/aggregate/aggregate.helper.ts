@@ -17,8 +17,10 @@ import { provideName } from '../../helpers';
 import {
   DynamicApiControllerOptions,
   DynamicAPIRouteConfig,
+  AbilityPredicate,
   AfterSaveCallback,
   DynamicAPIServiceProvider, GatewayOptions,
+  PredicateBehavior,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseAggregateService } from './base-aggregate.service';
@@ -33,10 +35,14 @@ function createAggregateServiceProvider<Entity extends BaseEntity>(
   displayedName: string,
   version: string | undefined,
   callback: AfterSaveCallback<Entity> | undefined,
+  abilityPredicate?: AbilityPredicate<Entity>,
+  predicateBehavior?: PredicateBehavior,
 ): DynamicAPIServiceProvider {
   class AggregateService extends BaseAggregateService<Entity> {
     protected readonly entity = entity;
     protected readonly callback = callback;
+    protected readonly abilityPredicate = abilityPredicate;
+    protected readonly predicateBehavior = predicateBehavior;
 
     constructor(
       @InjectModel(

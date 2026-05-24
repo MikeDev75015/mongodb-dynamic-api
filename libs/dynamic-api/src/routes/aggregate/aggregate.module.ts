@@ -35,7 +35,14 @@ export class AggregateModule {
       version,
       validationPipeOptions,
     );
-    const ServiceProvider = createAggregateServiceProvider(entity, displayedName, version, routeConfig.callback);
+    const ServiceProvider = createAggregateServiceProvider(
+      entity,
+      displayedName,
+      version,
+      routeConfig.callback,
+      routeConfig.abilityPredicate,
+      routeConfig.predicateBehavior,
+    );
 
     const gatewayOptions = webSocket
       ? initializeConfigFromOptions(webSocket)

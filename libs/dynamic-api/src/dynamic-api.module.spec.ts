@@ -209,6 +209,7 @@ describe('DynamicApiModule', () => {
         isPublic: false,
         disableCache: false,
         abilityPredicate: undefined,
+        predicateBehavior: undefined,
         displayedName: 'fake-displayed-name',
         event: 'fake-event',
       });

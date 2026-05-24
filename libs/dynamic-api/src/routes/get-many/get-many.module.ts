@@ -31,7 +31,14 @@ export class GetManyModule {
       version,
       validationPipeOptions,
     );
-    const ServiceProvider = createGetManyServiceProvider(entity, displayedName, version, routeConfig.callback);
+    const ServiceProvider = createGetManyServiceProvider(
+      entity,
+      displayedName,
+      version,
+      routeConfig.callback,
+      routeConfig.abilityPredicate,
+      routeConfig.predicateBehavior,
+    );
 
     const gatewayOptions = webSocket
       ? initializeConfigFromOptions(webSocket)

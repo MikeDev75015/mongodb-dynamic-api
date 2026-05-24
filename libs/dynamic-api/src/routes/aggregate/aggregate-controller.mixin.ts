@@ -23,6 +23,7 @@ function AggregateControllerMixin<Entity extends BaseEntity>(
     isPublic,
     disableCache,
     abilityPredicate,
+    predicateBehavior,
   } = getMixinData(
     entity,
     controllerOptions,
@@ -73,6 +74,7 @@ function AggregateControllerMixin<Entity extends BaseEntity>(
     version,
     abilityPredicate,
     toPipeline,
+    predicateBehavior,
   ) {}
 
   class BaseAggregateController implements AggregateController<Entity, AggregateQuery, AggregatePresenter> {

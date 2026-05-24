@@ -2,7 +2,7 @@ import { CanActivate, ExecutionContext, ForbiddenException, Type } from '@nestjs
 import { WsException } from '@nestjs/websockets';
 import { PipelineStage } from 'mongodb-pipeline-builder';
 import { Model } from 'mongoose';
-import { AbilityPredicate, RouteType } from '../interfaces';
+import { AbilityPredicate, PredicateBehavior, RouteType } from '../interfaces';
 import { MongoDBDynamicApiLogger } from '../logger';
 import { BaseEntity } from '../models';
 import { BaseService } from '../services';
@@ -12,6 +12,7 @@ abstract class BasePoliciesGuard<Entity extends BaseEntity> extends BaseService<
   protected routeType: RouteType;
   protected entity: Type<Entity>;
   protected abilityPredicate: AbilityPredicate<Entity> | undefined;
+  protected predicateBehavior: PredicateBehavior | undefined;
   protected queryToPipeline?: (query: unknown) => PipelineStage[];
 
   protected constructor(protected readonly model: Model<Entity>) {
@@ -21,7 +22,7 @@ abstract class BasePoliciesGuard<Entity extends BaseEntity> extends BaseService<
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const { user, query, params } = context.switchToHttp().getRequest();
 
-    if (this.abilityPredicate) {
+    if (this.abilityPredicate && this.predicateBehavior !== 'filter') {
       if (!user) {
         throw new ForbiddenException('Access Denied');
       }
@@ -45,6 +46,7 @@ abstract class BasePoliciesGuard<Entity extends BaseEntity> extends BaseService<
 abstract class BaseSocketPoliciesGuard<Entity extends BaseEntity> extends BaseService<Entity> implements CanActivate {
   protected routeType: RouteType;
   protected abilityPredicate: AbilityPredicate<Entity> | undefined;
+  protected predicateBehavior: PredicateBehavior | undefined;
   protected entity: Type<Entity>;
   protected queryToPipeline?: (query: unknown) => PipelineStage[];
   protected isPublic: boolean | undefined;
@@ -80,7 +82,7 @@ abstract class BaseSocketPoliciesGuard<Entity extends BaseEntity> extends BaseSe
         throw new WsException('Access Denied');
       }
 
-      if (this.abilityPredicate) {
+      if (this.abilityPredicate && this.predicateBehavior !== 'filter') {
         try {
           this.user = socket.user;
 

@@ -1,6 +1,8 @@
 import { BaseEntity } from '../models';
 import { RouteType } from './dynamic-api-route-type.type';
 
+type PredicateBehavior = 'filter' | 'throw';
+
 type AbilityPredicate<Entity extends BaseEntity, User = any> = (entity: Entity, user: User) => boolean;
 
 type AuthAbilityPredicate<User = any, Body = unknown> = (user: User, body?: Body) => boolean;
@@ -15,6 +17,7 @@ type ControllerAbilityPredicate<Entity extends BaseEntity> = {
 };
 
 export {
+  PredicateBehavior,
   ControllerAbilityPredicate,
   AuthAbilityPredicate,
   AbilityPredicate,
