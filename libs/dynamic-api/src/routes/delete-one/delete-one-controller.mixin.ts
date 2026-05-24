@@ -80,7 +80,7 @@ function DeleteOneControllerMixin<Entity extends BaseEntity>(
 
       const responseData = fromDeleteResult ? fromDeleteResult<DeleteOnePresenter>(deleteResult) : deleteResult;
 
-      this.broadcastService?.broadcastFromHttp(event, [{ id } as object], broadcastConfig);
+      this.broadcastService?.broadcastFromHttp(event, [{ id } as Entity], broadcastConfig);
 
       return responseData;
     }
