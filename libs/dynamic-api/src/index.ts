@@ -14,3 +14,4 @@ export * from './routes';
 export * from './services';
 export * from './utils';
 export * from './dynamic-api.module';
+export { AuthOperationContext, getAuthOperationContext } from './modules/auth/auth-operation-context';
