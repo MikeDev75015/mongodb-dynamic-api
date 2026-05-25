@@ -1,5 +1,14 @@
 Changelog
 
+## [4.9.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.8.0...v4.9.0) (2026-05-25)
+
+### presence
+
+* **presence:** add @Public() to PresenceController and fix e2e race conditions ([6245e6d](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/6245e6d265d6a086d3aa6813df3c1cd71fa7303d))
+* **presence:** add DynamicApiPresenceModule with pluggable adapters ([5957c54](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/5957c54b62664f5861123468f50068861aff7b78))
+* **presence:** break circular dependency by moving presence out of modules barrel ([51fad6a](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/51fad6a7fe8b7dd3472bbd27fd25ff6f70a80267))
+* **presence:** replace String(err) with JSON.stringify in gateway error handler ([8dcaa04](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/8dcaa04499ef0dbacb988b9a0acddbf463ac68be))
+
 ## [4.8.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.7.0...v4.8.0) (2026-05-24)
 
 ### cascade
