@@ -115,6 +115,16 @@ describe('DynamicApiBroadcastService', () => {
         ]);
       });
 
+      it('should call the predicate with undefined as user (HTTP context — no socket)', () => {
+        service.setWsServer(mockServer as unknown as Server);
+        const data = [{ id: '1', role: 'admin' }];
+        const predicate = jest.fn(() => true);
+
+        service.broadcastFromHttp('my-event', data, { enabled: predicate });
+
+        expect(predicate).toHaveBeenCalledWith(data[0], undefined);
+      });
+
       it('should emit with custom eventName when predicate matches', () => {
         service.setWsServer(mockServer as unknown as Server);
         const data = [{ id: '1', role: 'admin' }];
@@ -168,6 +178,16 @@ describe('DynamicApiBroadcastService', () => {
         expect(mockServer.to).toHaveBeenCalledWith(['c1', 'c2']);
         expect(mockToEmit).toHaveBeenCalledWith('my-event', data);
         expect(mockServer.emit).not.toHaveBeenCalled();
+      });
+
+      it('should call the rooms function with undefined as user (HTTP context — no socket)', () => {
+        service.setWsServer(mockServer as unknown as Server);
+        const data = [{ id: '1', companyId: 'c1' }];
+        const roomsFn = jest.fn((_item: { id: string; companyId: string }) => 'room-a');
+
+        service.broadcastFromHttp('my-event', data, { enabled: true, rooms: roomsFn });
+
+        expect(roomsFn).toHaveBeenCalledWith(data[0], undefined);
       });
 
       it('should use custom eventName when emitting to rooms', () => {

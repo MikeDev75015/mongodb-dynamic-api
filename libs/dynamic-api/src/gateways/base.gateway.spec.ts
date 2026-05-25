@@ -347,6 +347,30 @@ describe('BaseGateway', () => {
         expect(mockSocket.broadcast.emit).not.toHaveBeenCalled();
       });
 
+      it('should pass socket.user to the rooms function', () => {
+        const user = { id: 'user-42', name: 'Alice' } as unknown as Entity;
+        mockSocket.user = user;
+
+        const data = [
+          { id: '1', name: 'Post 1', ownerId: 'user-42' } as Entity & { ownerId: string },
+          { id: '2', name: 'Post 2', ownerId: 'user-99' } as Entity & { ownerId: string },
+        ];
+        const roomsFn = jest.fn(
+          (item: Entity & { ownerId: string }, u?: Entity) =>
+            u && (u as unknown as { id: string }).id === item.ownerId ? [] : ['all'],
+        );
+        const broadcastConfig = { enabled: true, rooms: roomsFn };
+
+        gateway['broadcastIfNeeded'](mockSocket, event, data, broadcastConfig);
+
+        expect(roomsFn).toHaveBeenCalledTimes(2);
+        expect(roomsFn).toHaveBeenCalledWith(data[0], user);
+        expect(roomsFn).toHaveBeenCalledWith(data[1], user);
+        // item[0] → owner excluded → [], item[1] → ['all'] → resolved = ['all']
+        expect(mockSocket.nsp['to']).toHaveBeenCalledWith(['all']);
+        expect(mockNspToEmit).toHaveBeenCalledWith(event, data);
+      });
+
       it('should use custom eventName when emitting to rooms', () => {
         const data = [{ id: '1', name: 'Entity 1' } as Entity];
         const broadcastConfig = { enabled: true, rooms: 'room-a', eventName: 'custom-event' };
@@ -373,6 +397,19 @@ describe('BaseGateway', () => {
 
         expect(spyLog).toHaveBeenCalledWith(
           expect.stringContaining('[WS] broadcastIfNeeded'),
+        );
+      });
+
+      it('should log "all" when debug is true and no rooms are configured', () => {
+        DynamicApiWsConfigStore.debug = true;
+        const spyLog = jest.spyOn(gateway['logger'], 'log').mockImplementation(() => {});
+        const data = [{ id: '1', name: 'Entity 1' } as Entity];
+        const broadcastConfig = { enabled: true }; // no rooms → resolvedRooms = undefined
+
+        gateway['broadcastIfNeeded'](mockSocket, event, data, broadcastConfig);
+
+        expect(spyLog).toHaveBeenCalledWith(
+          expect.stringContaining('rooms=all'),
         );
       });
 

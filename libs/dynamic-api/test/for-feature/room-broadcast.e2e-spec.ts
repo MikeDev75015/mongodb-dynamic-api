@@ -41,6 +41,9 @@ describe('DynamicApiModule forFeature - Room-targeted Broadcast (e2e)', () => {
 
     @Prop({ type: String })
     category?: string;
+
+    @Prop({ type: String })
+    ownerId?: string;
   }
 
   // ─── State ───────────────────────────────────────────────────────────────────
@@ -92,6 +95,18 @@ describe('DynamicApiModule forFeature - Room-targeted Broadcast (e2e)', () => {
             broadcast: {
               enabled: true,
               rooms: (item: RbItemEntity) => item.category ?? 'unknown',
+            },
+          },
+          // WS + user-aware rooms (rooms fn receives socket.user)
+          // isPublic: false → JwtSocketGuard populates socket.user from the JWT token
+          {
+            type: 'DeleteOne',
+            webSocket: true,
+            isPublic: false,
+            broadcast: {
+              enabled: true,
+              rooms: (_item: object, user?) =>
+                [`user-${(user as { id?: string })?.id ?? 'anonymous'}`],
             },
           },
         ],
@@ -286,6 +301,54 @@ describe('DynamicApiModule forFeature - Room-targeted Broadcast (e2e)', () => {
           data: expect.arrayContaining([expect.objectContaining({ name: 'replaced-item', category: 'electronics' })]),
         }),
       );
+      expect(outsiderReceivedBroadcast).toBe(false);
+    });
+  });
+
+  // ─── user-aware rooms (rooms fn receives socket.user) ─────────────────────────
+
+  describe('user-aware rooms (socket.user passed to rooms fn)', () => {
+    it('[user-aware rooms] should broadcast to user-specific room derived from socket.user', async () => {
+      // Decode userId from the JWT access token (no verification needed — e2e context)
+      const jwtPayload = JSON.parse(
+        Buffer.from(accessToken.split('.')[1], 'base64url').toString('utf-8'),
+      ) as { id: string };
+      const userId = jwtPayload.id;
+      const userRoom = `user-${userId}`;
+
+      // DeleteOne broadcasts [{ id }] and the rooms fn receives socket.user
+      const { response, outsiderReceivedBroadcast } = await server.emitWithRoomsBroadcast(
+        'delete-one-rb-item',
+        { id: existingItem.id },
+        { accessToken },
+        { receiverAccessToken: accessToken, rooms: userRoom, broadcastEvent: 'delete-one-rb-item' },
+      );
+
+      expect(response).toBeDefined();
+      expect(handleSocketBroadcast).toHaveBeenCalledTimes(1);
+      expect(handleSocketBroadcast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event: 'delete-one-rb-item',
+          data: expect.arrayContaining([expect.objectContaining({ id: existingItem.id })]),
+        }),
+      );
+      expect(outsiderReceivedBroadcast).toBe(false);
+    });
+
+    it('[user-aware rooms] should NOT broadcast to a receiver in a different user room', async () => {
+      // Receiver joins 'user-anonymous' but rooms fn returns 'user-{realUserId}' → timeout
+      const { outsiderReceivedBroadcast } = await server.emitWithRoomsBroadcast(
+        'delete-one-rb-item',
+        { id: existingItem.id },
+        { accessToken },
+        {
+          receiverAccessToken: accessToken,
+          rooms: 'user-anonymous',
+          broadcastEvent: 'delete-one-rb-item',
+          timeoutMs: 3000,
+        },
+      ).catch(() => ({ response: undefined, outsiderReceivedBroadcast: false }));
+
       expect(outsiderReceivedBroadcast).toBe(false);
     });
   });

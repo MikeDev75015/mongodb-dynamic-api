@@ -64,6 +64,55 @@ describe('resolveRooms', () => {
 
       expect(resolveRooms(roomsFn, [])).toEqual([]);
     });
+
+    it('should pass user to the rooms function when provided', () => {
+      const data = [{ id: '1', ownerId: 'user-1' }];
+      const user = { id: 'user-1' };
+      const roomsFn = jest.fn(
+        (item: { id: string; ownerId: string }, u?: { id: string }) =>
+          u?.id === item.ownerId ? [] : ['all'],
+      );
+
+      const result = resolveRooms(roomsFn, data, user);
+
+      expect(roomsFn).toHaveBeenCalledTimes(1);
+      expect(roomsFn).toHaveBeenCalledWith(data[0], user);
+      // ownerId matches user.id → returns [] → flattened to empty → deduped = []
+      expect(result).toEqual([]);
+    });
+
+    it('should return rooms for items whose ownerId does not match user', () => {
+      const data = [
+        { id: '1', ownerId: 'user-1' },
+        { id: '2', ownerId: 'user-2' },
+      ];
+      const user = { id: 'user-1' };
+      const roomsFn = (item: { id: string; ownerId: string }, u?: { id: string }) =>
+        u?.id === item.ownerId ? [] : ['all'];
+
+      const result = resolveRooms(roomsFn, data, user);
+
+      // item-1 excluded (owner), item-2 → ['all']
+      expect(result).toEqual(['all']);
+    });
+
+    it('should call the function with undefined user when user is not provided', () => {
+      const data = [{ id: '1' }];
+      const roomsFn = jest.fn(() => 'room-a');
+
+      resolveRooms(roomsFn, data);
+
+      expect(roomsFn).toHaveBeenCalledWith(data[0], undefined);
+    });
+
+    it('should call the function with undefined when user is explicitly undefined', () => {
+      const data = [{ id: '1' }];
+      const roomsFn = jest.fn(() => 'room-b');
+
+      resolveRooms(roomsFn, data, undefined);
+
+      expect(roomsFn).toHaveBeenCalledWith(data[0], undefined);
+    });
   });
 });
 
