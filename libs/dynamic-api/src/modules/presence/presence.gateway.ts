@@ -1,7 +1,7 @@
 import { Inject } from '@nestjs/common';
 import { OnGatewayInit, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { DynamicApiWsConfigStore } from '../../helpers/ws-config.store';
+import { DynamicApiWsConfigStore } from '../../helpers';
 import {
   DYNAMIC_API_PRESENCE_ADAPTER,
   ExtendedSocket,
@@ -89,7 +89,7 @@ export function createPresenceGateway(options: GatewayOptions = {}) {
           }
         })
         .catch((err: unknown) => {
-          const message = err instanceof Error ? err.message : String(err);
+          const message = err instanceof Error ? err.message : JSON.stringify(err);
           this.logger.error(`[Presence] disconnect handler error: ${message}`);
         });
     }
