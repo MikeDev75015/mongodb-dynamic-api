@@ -199,6 +199,8 @@ DynamicApiModule.forFeature({
 | `abilityPredicate` | `AbilityPredicate<Entity>` | ➖ | Ability predicate identical to `DynamicApiRouteConfig.abilityPredicate`. Generates a `RoutePoliciesGuard` automatically. |
 | `predicateBehavior` | `'throw' \| 'filter'` | ➖ | Controls ability-predicate behavior. |
 | `validationPipeOptions` | `ValidationPipeOptions` | ➖ | Merged with `controllerOptions.validationPipeOptions`. |
+| `webSocket` | `boolean \| GatewayMetadata` | ➖ | Exposes the route **via WebSocket** in addition to HTTP. `true` for default gateway options, or a `GatewayMetadata` object for custom config. Auto-generates a gateway class alongside the controller. |
+| `eventName` | `string` | ➖ | Custom WS event name. Default: `kebabCase('custom/{path}/{entityName}')` → e.g. `custom-metadata-conversation`. In WS context `params` and `query` are always `{}` — include everything in the message body. |
 | `dTOs.body` | `Type` | ➖ | DTO class for request body validation and Swagger `@ApiBody`. |
 | `dTOs.query` | `Type` | ➖ | DTO class for query string validation and Swagger `@ApiQuery`. |
 | `dTOs.presenter` | `Type & Partial<Mappable<Entity>>` | ➖ | Response presenter. If it exposes `fromEntity`, the handler result is mapped through it; otherwise raw result is returned (with `ClassSerializerInterceptor`). |
@@ -278,6 +280,56 @@ DynamicApiModule.forFeature({
 ```
 
 This registers `PATCH /conversations/:id/e2ee-wrapped-keys` alongside the standard MDA routes. The controller is auto-named `CustomIdE2eeWrappedKeysConversationController` to avoid DI collisions.
+
+---
+
+#### Example — WebSocket on a custom route
+
+```typescript
+import { Model } from 'mongoose';
+import { io } from 'socket.io-client';
+import {
+  BaseEntity,
+  DynamicAPISchemaOptions,
+  DynamicApiModule,
+  CustomRouteConfig,
+} from 'mongodb-dynamic-api';
+import { Prop, Schema } from '@nestjs/mongoose';
+
+@DynamicAPISchemaOptions({})
+@Schema({ collection: 'conversations' })
+class Conversation extends BaseEntity {
+  @Prop({ type: String, required: true }) encryptedContent: string;
+  @Prop({ type: String }) wrappedKey: string;
+}
+
+// Custom route exposed via HTTP AND WebSocket
+const customRoute: CustomRouteConfig<Conversation> = {
+  path: 'metadata',
+  method: 'GET',
+  isPublic: true,
+  webSocket: true,                  // Also expose as WS event
+  eventName: 'conversation-meta',   // Optional: override auto-generated event name
+  handler: async () => ({ version: '2.0', algo: 'AES-256' }),
+};
+
+DynamicApiModule.forFeature({
+  entity: Conversation,
+  controllerOptions: { path: 'conversations' },
+  customRoutes: [customRoute],
+});
+
+// ── Client-side usage ──────────────────────────────────────────────────────────
+// Auto event (no eventName): 'custom-metadata-conversation'
+// Custom event (eventName: 'conversation-meta'): 'conversation-meta'
+const socket = io('http://localhost:3000');
+socket.emit('conversation-meta');
+socket.on('conversation-meta', (data) => {
+  console.log(data); // { version: '2.0', algo: 'AES-256' }
+});
+```
+
+> **WS context note:** In WebSocket context, `params` and `query` are always `{}` — include all required data in the message **body**. The `user` field is populated from the JWT token passed in the socket handshake query (`accessToken`) when auth is enabled.
 
 ---
 

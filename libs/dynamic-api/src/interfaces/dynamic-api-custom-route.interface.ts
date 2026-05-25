@@ -3,6 +3,7 @@ import { Model } from 'mongoose';
 import { BaseEntity } from '../models';
 import { AbilityPredicate, PredicateBehavior } from './dynamic-api-ability.interface';
 import { Mappable } from './dynamic-api-route-dtos-bundle.type';
+import { DynamicApiWebSocketOptions } from './dynamic-api-web-socket.interface';
 
 /**
  * Supported HTTP methods for a custom route.
@@ -111,6 +112,19 @@ interface CustomRouteConfig<
 
   /** Optional validation pipe options, merged with `validationPipeOptions` from `controllerOptions`. */
   validationPipeOptions?: ValidationPipeOptions;
+
+  /**
+   * Exposes the route via **WebSocket** in addition to HTTP.
+   * Accepts `true` for default gateway options, or a `GatewayMetadata` object for custom configuration.
+   * Same behaviour as `webSocket` on standard `DynamicApiRouteConfig` entries.
+   */
+  webSocket?: DynamicApiWebSocketOptions;
+
+  /**
+   * Custom WebSocket event name for this route.
+   * Overrides the auto-generated name: `kebabCase('custom/{path}/{entityName}')`.
+   */
+  eventName?: string;
 
   /** DTO classes for Swagger documentation and validation. */
   dTOs?: {

@@ -9,7 +9,7 @@ import {
   DynamicAPISchemaOptions,
   CustomRouteConfig,
 } from '../../src';
-import { closeTestingApp, server } from '../e2e.setup';
+import { closeTestingApp, handleSocketException, server, TestSocketAdapter } from '../e2e.setup';
 import 'dotenv/config';
 import { getModelFromEntity } from '../utils';
 import { initApp } from '../shared';
@@ -77,6 +77,7 @@ describe('DynamicApiModule forFeature - customRoutes (e2e)', () => {
 
   beforeEach(() => {
     DynamicApiModule.state['resetState']();
+    handleSocketException.mockClear();
   });
 
   afterEach(async () => {
@@ -285,6 +286,102 @@ describe('DynamicApiModule forFeature - customRoutes (e2e)', () => {
 
       expect(status).toBe(201);
       expect(body).toEqual({ wrapped: 3 });
+    });
+  });
+
+  // ── 7. WebSocket — happy path ──────────────────────────────────────────────
+
+  describe('WebSocket customRoute — happy path', () => {
+    it('receives handler result via WS event', async () => {
+      await initApp(
+        {
+          entity: Conversation,
+          controllerOptions: { path: 'conversations', isPublic: true },
+          routes: [],
+          customRoutes: [
+            {
+              path: 'metadata',
+              method: 'GET',
+              isPublic: true,
+              webSocket: true,
+              handler: async () => ({ version: '2.0', algo: 'AES-256' }),
+            },
+          ],
+        },
+        {},
+        undefined,
+        async (app) => { app.useWebSocketAdapter(new TestSocketAdapter(app)); },
+      );
+
+      const result = await server.emit<undefined, { version: string; algo: string }>(
+        'custom-metadata-conversation',
+        undefined,
+      );
+
+      expect(result).toEqual({ version: '2.0', algo: 'AES-256' });
+    });
+  });
+
+  // ── 8. WebSocket — custom eventName ──────────────────────────────────────
+
+  describe('WebSocket customRoute — custom eventName', () => {
+    it('subscribes to the custom event name', async () => {
+      await initApp(
+        {
+          entity: Conversation,
+          controllerOptions: { path: 'conversations', isPublic: true },
+          routes: [],
+          customRoutes: [
+            {
+              path: 'ping',
+              method: 'GET',
+              isPublic: true,
+              webSocket: true,
+              eventName: 'my-custom-ping',
+              handler: async () => ({ pong: true }),
+            },
+          ],
+        },
+        {},
+        undefined,
+        async (app) => { app.useWebSocketAdapter(new TestSocketAdapter(app)); },
+      );
+
+      const result = await server.emit<undefined, { pong: boolean }>('my-custom-ping', undefined);
+      expect(result).toEqual({ pong: true });
+    });
+  });
+
+  // ── 9. WebSocket — Unauthorized (isPublic: false, no token) ───────────────
+
+  describe('WebSocket customRoute — Unauthorized', () => {
+    it('emits WsException when no access token is provided', async () => {
+      await initApp(
+        {
+          entity: Conversation,
+          controllerOptions: { path: 'conversations' },
+          routes: [],
+          customRoutes: [
+            {
+              path: 'secret',
+              method: 'GET',
+              isPublic: false,
+              webSocket: true,
+              handler: async () => ({ ok: true }),
+            },
+          ],
+        },
+        {},
+        undefined,
+        async (app) => { app.useWebSocketAdapter(new TestSocketAdapter(app)); },
+      );
+
+      // Emit without accessToken → JwtSocketGuard throws WsException
+      await server.emit('custom-secret-conversation', undefined);
+
+      expect(handleSocketException).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Unauthorized' }),
+      );
     });
   });
 });

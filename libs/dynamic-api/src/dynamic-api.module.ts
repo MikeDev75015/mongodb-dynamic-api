@@ -11,7 +11,7 @@ import { DynamicApiCacheInterceptor } from './interceptors';
 import { DYNAMIC_API_GLOBAL_STATE, DynamicApiCacheOptions, DynamicApiForFeatureOptions, DynamicApiForRootOptions, DynamicApiGlobalState, DynamicAPIRouteConfig, DynamicApiWebSocketOptions, GatewayOptions, RouteModule, RoutesConfig, RouteType } from './interfaces';
 import { BaseEntity } from './models';
 import { AuthModule, DynamicApiAuthOptions, DynamicApiConfigModule } from './modules';
-import { AggregateModule, createCachePurgeController, CreateManyModule, CreateOneModule, DeleteManyModule, DeleteOneModule, DuplicateManyModule, DuplicateOneModule, GetManyModule, GetOneModule, ReplaceOneModule, UpdateManyModule, UpdateOneModule, createCustomRouteController } from './routes';
+import { AggregateModule, createCachePurgeController, CreateManyModule, CreateOneModule, DeleteManyModule, DeleteOneModule, DuplicateManyModule, DuplicateOneModule, GetManyModule, GetOneModule, ReplaceOneModule, UpdateManyModule, UpdateOneModule, createCustomRouteController, createCustomRouteGateway } from './routes';
 import { DynamicApiBroadcastService, DynamicApiGlobalStateService } from './services';
 
 /**
@@ -150,7 +150,25 @@ export class DynamicApiModule {
           ),
         );
 
-        const needsDatabaseModule = customRouteControllers.length > 0;
+        // Build custom-route gateways for entries that declare webSocket
+        const customRouteGateways = customRoutes
+          .filter((cr) => cr.webSocket)
+          .map((customRoute) => {
+            const wsOptions = customRoute.webSocket
+              ? initializeConfigFromOptions(customRoute.webSocket)
+              : DynamicApiModule.state.get<GatewayOptions>('gatewayOptions') ?? null;
+
+            return createCustomRouteGateway(
+              entity,
+              controllerOptions,
+              customRoute,
+              controllerVersion,
+              controllerValidationPipeOptions,
+              wsOptions ?? {},
+            );
+          });
+
+        const needsDatabaseModule = customRouteControllers.length > 0 || customRouteGateways.length > 0;
 
         const castType = (t: RouteType) => t;
         const castModule = (m: RouteModule) => m;
@@ -255,6 +273,7 @@ export class DynamicApiModule {
                 ),
               ] : []
             ),
+            ...customRouteGateways,
           ],
         };
 
