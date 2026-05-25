@@ -3,6 +3,11 @@ import { DynamicApiModule } from '../../dynamic-api.module';
 import { BaseEntity } from '../../models';
 import { RoutePoliciesGuardMixin } from '../../mixins';
 import {
+  CustomRouteConfig,
+  DynamicApiControllerOptions,
+  DynamicApiRequest,
+} from '../../interfaces';
+import {
   createCustomRouteController,
   getCustomRouteControllerName,
   getCustomRoutePoliciesGuardName,
@@ -19,41 +24,63 @@ jest.mock('../../mixins', () => ({
   }),
 }));
 
-// ─── Fakes ─────────────────────────────────────────────────────────────────
+// ─── Local interfaces ──────────────────────────────────────────────────────
+
+interface ControllerInstanceShape {
+  model: unknown;
+  handle: (
+    params: Record<string, string>,
+    body: unknown,
+    query: unknown,
+    req: DynamicApiRequest | undefined,
+  ) => Promise<unknown>;
+}
+
+interface CustomRouteControllerClass {
+  new (model: unknown): ControllerInstanceShape;
+  readonly name: string;
+  readonly prototype: ControllerInstanceShape;
+}
+
+// ─── Fakes ────────────────────────────────────────────────────────────────
 
 class FakeEntity extends BaseEntity {
   name: string;
 }
 Object.defineProperty(FakeEntity, 'name', { value: 'FakeEntity', writable: false });
 
-const fakeControllerOptions = { path: 'fakes', apiTag: undefined } as any;
+const fakeControllerOptions: DynamicApiControllerOptions<FakeEntity> = { path: 'fakes' };
 
-const fakeHandler = jest.fn().mockResolvedValue({ id: '1', name: 'result' });
+const fakeHandler = jest.fn().mockResolvedValue({ id: '1', name: 'result' }) as jest.MockedFunction<
+  CustomRouteConfig<FakeEntity>['handler']
+>;
 
-// ─── Helpers ───────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────
 
-function makeController(overrides: Record<string, unknown> = {}) {
+function makeController(
+  overrides: Partial<CustomRouteConfig<FakeEntity>> = {},
+): CustomRouteControllerClass {
   return createCustomRouteController(
-    FakeEntity as any,
+    FakeEntity,
     fakeControllerOptions,
     {
       path: 'e2ee-wrapped-keys',
       method: 'PATCH',
       handler: fakeHandler,
       ...overrides,
-    } as any,
-  );
+    } as CustomRouteConfig<FakeEntity>,
+  ) as unknown as CustomRouteControllerClass;
 }
 
-// ─── Suite ─────────────────────────────────────────────────────────────────
+// ─── Suite ────────────────────────────────────────────────────────────────
 
 describe('createCustomRouteController', () => {
   beforeEach(() => {
-    jest.spyOn(DynamicApiModule.state, 'get').mockReturnValue(false as any);
+    (jest.spyOn(DynamicApiModule.state, 'get') as jest.SpyInstance).mockReturnValue(false);
     fakeHandler.mockClear();
   });
 
-  // ── Naming ────────────────────────────────────────────────────────────────
+  // ── Naming ──────────────────────────────────────────────────────────────
 
   describe('controller name', () => {
     it('uses Custom + pascal(path) + entityName + Controller', () => {
@@ -68,12 +95,13 @@ describe('createCustomRouteController', () => {
 
     it('uses apiTag instead of entityName when provided', () => {
       const Ctrl = createCustomRouteController(
-        FakeEntity as any,
-        { path: 'fakes', apiTag: 'Conversations' } as any,
-        { path: 'keys', method: 'GET', handler: fakeHandler } as any,
-      );
+        FakeEntity,
+        { path: 'fakes', apiTag: 'Conversations' },
+        { path: 'keys', method: 'GET', handler: fakeHandler },
+      ) as unknown as CustomRouteControllerClass;
       expect(Ctrl.name).toBe('CustomKeysConversationsController');
     });
+
     it('falls back to "Custom" as routePathPascal when path is empty string', () => {
       const Ctrl = makeController({ path: '' });
       // routePathPascal = 'Custom' (fallback) → name = 'CustomCustomFakeEntityController'
@@ -81,7 +109,7 @@ describe('createCustomRouteController', () => {
     });
   });
 
-  // ── getCustomRouteControllerName ──────────────────────────────────────────
+  // ── getCustomRouteControllerName ─────────────────────────────────────────
 
   describe('getCustomRouteControllerName', () => {
     it('returns correct name without version', () => {
@@ -101,7 +129,7 @@ describe('createCustomRouteController', () => {
     });
   });
 
-  // ── getCustomRoutePoliciesGuardName ───────────────────────────────────────
+  // ── getCustomRoutePoliciesGuardName ──────────────────────────────────────
 
   describe('getCustomRoutePoliciesGuardName', () => {
     it('returns correct guard name', () => {
@@ -121,37 +149,37 @@ describe('createCustomRouteController', () => {
     });
   });
 
-  // ── HTTP methods ──────────────────────────────────────────────────────────
+  // ── HTTP methods ─────────────────────────────────────────────────────────
 
   it.each(['GET', 'POST', 'PATCH', 'PUT', 'DELETE'])('creates controller for %s method', (method) => {
-    const Ctrl = makeController({ method });
+    const Ctrl = makeController({ method: method as CustomRouteConfig<FakeEntity>['method'] });
     expect(Ctrl).toBeDefined();
     expect(Ctrl.prototype.handle).toBeDefined();
   });
 
-  // ── Auth decorators ───────────────────────────────────────────────────────
+  // ── Auth decorators ──────────────────────────────────────────────────────
 
   describe('auth decorators', () => {
     it('does not apply ApiBearerAuth when isAuthEnabled is false and isPublic is false', () => {
-      jest.spyOn(DynamicApiModule.state, 'get').mockReturnValue(false as any);
+      (jest.spyOn(DynamicApiModule.state, 'get') as jest.SpyInstance).mockReturnValue(false);
       const Ctrl = makeController({ isPublic: false });
       expect(Ctrl).toBeDefined();
     });
 
     it('applies ApiBearerAuth when isAuthEnabled is true and isPublic is falsy', () => {
-      jest.spyOn(DynamicApiModule.state, 'get').mockReturnValue(true as any);
+      (jest.spyOn(DynamicApiModule.state, 'get') as jest.SpyInstance).mockReturnValue(true);
       const Ctrl = makeController();
       expect(Ctrl.name).toBe('CustomE2eeWrappedKeysFakeEntityController');
     });
 
     it('applies Public when isPublic is true', () => {
-      jest.spyOn(DynamicApiModule.state, 'get').mockReturnValue(false as any);
+      (jest.spyOn(DynamicApiModule.state, 'get') as jest.SpyInstance).mockReturnValue(false);
       const Ctrl = makeController({ isPublic: true });
       expect(Ctrl).toBeDefined();
     });
   });
 
-  // ── abilityPredicate → guard created ──────────────────────────────────────
+  // ── abilityPredicate → guard created ─────────────────────────────────────
 
   describe('abilityPredicate', () => {
     beforeEach(() => {
@@ -194,11 +222,11 @@ describe('createCustomRouteController', () => {
     });
   });
 
-  // ── constructor ───────────────────────────────────────────────────────────
+  // ── constructor ──────────────────────────────────────────────────────────
 
   describe('constructor', () => {
     it('assigns injected model to this.model', () => {
-      const Ctrl = makeController() as any;
+      const Ctrl = makeController();
       const fakeModel = { find: jest.fn() };
       // Instantiate directly (bypassing DI decorator) to cover the constructor
       const instance = new Ctrl(fakeModel);
@@ -206,13 +234,13 @@ describe('createCustomRouteController', () => {
     });
   });
 
-  // ── handle() invocation ───────────────────────────────────────────────────
+  // ── handle() invocation ──────────────────────────────────────────────────
 
   describe('handle()', () => {
     it('calls handler with model, user, params, body, query', async () => {
-      const Ctrl = makeController() as any;
+      const Ctrl = makeController();
       const fakeModel = { findById: jest.fn() };
-      const instance = Object.create(Ctrl.prototype);
+      const instance: ControllerInstanceShape = Object.create(Ctrl.prototype);
       instance.model = fakeModel;
 
       const params = { id: 'abc' };
@@ -235,11 +263,11 @@ describe('createCustomRouteController', () => {
       const expected = { id: '1', name: 'result' };
       fakeHandler.mockResolvedValueOnce(expected);
 
-      const Ctrl = makeController() as any;
-      const instance = Object.create(Ctrl.prototype);
+      const Ctrl = makeController();
+      const instance: ControllerInstanceShape = Object.create(Ctrl.prototype);
       instance.model = {};
 
-      const result = await instance.handle({}, {}, {}, {});
+      const result = await instance.handle({}, {}, {}, undefined);
       expect(result).toEqual(expected);
     });
 
@@ -253,18 +281,18 @@ describe('createCustomRouteController', () => {
         static fromEntity = fromEntity;
       }
 
-      const Ctrl = makeController({ dTOs: { presenter: FakePresenter } }) as any;
-      const instance = Object.create(Ctrl.prototype);
+      const Ctrl = makeController({ dTOs: { presenter: FakePresenter } });
+      const instance: ControllerInstanceShape = Object.create(Ctrl.prototype);
       instance.model = {};
 
-      const result = await instance.handle({}, {}, {}, {});
+      const result = await instance.handle({}, {}, {}, undefined);
       expect(fromEntity).toHaveBeenCalledWith(rawResult);
       expect(result).toEqual(mappedResult);
     });
 
     it('handles undefined req gracefully (public route, no user)', async () => {
-      const Ctrl = makeController({ isPublic: true }) as any;
-      const instance = Object.create(Ctrl.prototype);
+      const Ctrl = makeController({ isPublic: true });
+      const instance: ControllerInstanceShape = Object.create(Ctrl.prototype);
       instance.model = {};
 
       await instance.handle({}, {}, {}, undefined);
@@ -275,7 +303,7 @@ describe('createCustomRouteController', () => {
     });
   });
 
-  // ── dTOs metadata ─────────────────────────────────────────────────────────
+  // ── dTOs metadata ────────────────────────────────────────────────────────
 
   describe('dTOs reflect-metadata override', () => {
     it('overrides paramtypes[1] with dTOs.body when provided', () => {
@@ -285,15 +313,12 @@ describe('createCustomRouteController', () => {
 
       makeController({ dTOs: { body: BodyDto } });
 
-      const paramTypes = Reflect.getMetadata(
-        'design:paramtypes',
-        (createCustomRouteController(
-          FakeEntity as any,
-          fakeControllerOptions,
-          { path: 'e2ee-wrapped-keys', method: 'PATCH', handler: fakeHandler, dTOs: { body: BodyDto } } as any,
-        ) as any).prototype,
-        'handle',
-      );
+      const Ctrl = createCustomRouteController(
+        FakeEntity,
+        fakeControllerOptions,
+        { path: 'e2ee-wrapped-keys', method: 'PATCH', handler: fakeHandler, dTOs: { body: BodyDto } },
+      ) as unknown as CustomRouteControllerClass;
+      const paramTypes = Reflect.getMetadata('design:paramtypes', Ctrl.prototype, 'handle');
       expect(paramTypes[1]).toBe(BodyDto);
     });
 
@@ -303,53 +328,44 @@ describe('createCustomRouteController', () => {
       }
 
       const Ctrl = createCustomRouteController(
-        FakeEntity as any,
+        FakeEntity,
         fakeControllerOptions,
-        { path: 'e2ee-wrapped-keys', method: 'GET', handler: fakeHandler, dTOs: { query: QueryDto } } as any,
-      ) as any;
+        { path: 'e2ee-wrapped-keys', method: 'GET', handler: fakeHandler, dTOs: { query: QueryDto } },
+      ) as unknown as CustomRouteControllerClass;
 
       const paramTypes = Reflect.getMetadata('design:paramtypes', Ctrl.prototype, 'handle');
       expect(paramTypes[2]).toBe(QueryDto);
     });
 
     it('does not override paramtypes when no dTOs.body or dTOs.query', () => {
-      const Ctrl = makeController() as any;
+      const Ctrl = makeController();
       const paramTypes = Reflect.getMetadata('design:paramtypes', Ctrl.prototype, 'handle');
       // All Object (TypeScript emits Object for unknown/interface types)
       expect(paramTypes).toBeDefined();
     });
   });
 
-  // ── version inheritance ───────────────────────────────────────────────────
+  // ── version inheritance ──────────────────────────────────────────────────
 
   describe('version', () => {
     it('inherits controllerVersion when customRoute.version is not set', () => {
       const Ctrl = createCustomRouteController(
-        FakeEntity as any,
+        FakeEntity,
         fakeControllerOptions,
-        { path: 'keys', method: 'GET', handler: fakeHandler } as any,
+        { path: 'keys', method: 'GET', handler: fakeHandler },
         '1',
-      );
+      ) as unknown as CustomRouteControllerClass;
       expect(Ctrl.name).toBe('CustomKeysFakeEntityV1Controller');
     });
 
     it('overrides controllerVersion with customRoute.version', () => {
       const Ctrl = createCustomRouteController(
-        FakeEntity as any,
+        FakeEntity,
         fakeControllerOptions,
-        { path: 'keys', method: 'GET', handler: fakeHandler, version: '5' } as any,
+        { path: 'keys', method: 'GET', handler: fakeHandler, version: '5' },
         '1',
-      );
+      ) as unknown as CustomRouteControllerClass;
       expect(Ctrl.name).toBe('CustomKeysFakeEntityV5Controller');
     });
   });
 });
-
-
-
-
-
-
-
-
-
