@@ -80,7 +80,7 @@ describe('DynamicApiModule forFeature - Websockets (e2e)', () => {
             type: 'CreateMany',
             webSocket: true,
             broadcast: {
-              enabled: (_, user) => user.isAdmin === true,
+              enabled: (_, user) => (user as UserEntity).isAdmin === true,
             },
           },
           {
@@ -115,7 +115,7 @@ describe('DynamicApiModule forFeature - Websockets (e2e)', () => {
             type: 'DuplicateOne',
             webSocket: true,
             broadcast: {
-              enabled: (_, user) => user.isAdmin === true,
+              enabled: (_, user) => (user as UserEntity).isAdmin === true,
               eventName: customEvent,
             },
           },
