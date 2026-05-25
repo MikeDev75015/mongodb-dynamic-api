@@ -1,5 +1,17 @@
 Changelog
 
+## [4.10.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.9.0...v4.10.0) (2026-05-25)
+
+### custom-route
+
+* **custom-route:** add WebSocket gateway support ([f7b54a4](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/f7b54a4))
+* **custom-route:** remove unnecessary type casts in controller factory ([8448e8e](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/8448e8ee16c3ada8fdcb08c3d3252a05ca82b90a))
+* **custom-route:** rename DynamicApiCustomRouteConfig to CustomRouteConfig ([4b67e6b](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/4b67e6bffad70424d6898db3ffa47db0ac4e9a26))
+
+### custom-routes
+
+* **custom-routes:** add customRoutes option to forFeature() ([3a06adb](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/3a06adb032102233d9a13bab35f05a7e7fbcb19e))
+
 ## [4.9.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.8.0...v4.9.0) (2026-05-25)
 
 ### presence
