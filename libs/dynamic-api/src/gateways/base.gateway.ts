@@ -4,7 +4,7 @@ import { ManyEntityQuery } from '../dtos';
 import { DynamicApiModule } from '../dynamic-api.module';
 import { isEmpty, resolveRooms } from '../helpers';
 import { DynamicApiWsConfigStore } from '../helpers/ws-config.store';
-import { DynamicApiBroadcastConfig, ExtendedSocket } from '../interfaces';
+import { BroadcastConfig, ExtendedSocket } from '../interfaces';
 import { MongoDBDynamicApiLogger } from '../logger';
 import { BaseEntity } from '../models';
 
@@ -62,7 +62,7 @@ export abstract class BaseGateway<Entity extends BaseEntity> {
     socket: ExtendedSocket,
     event: string,
     data: ResponseData[],
-    broadcastConfig?: DynamicApiBroadcastConfig<ResponseData>,
+    broadcastConfig?: BroadcastConfig<ResponseData>,
   ): void {
     if (!broadcastConfig) {
       return;

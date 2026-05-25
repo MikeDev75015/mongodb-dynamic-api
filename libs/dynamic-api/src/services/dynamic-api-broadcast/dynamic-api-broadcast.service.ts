@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Server } from 'socket.io';
 import { resolveRooms } from '../../helpers';
-import { BroadcastAbilityPredicate, DynamicApiBroadcastConfig } from '../../interfaces';
+import { BroadcastAbilityPredicate, BroadcastConfig } from '../../interfaces';
 
 @Injectable()
 /** @deprecated Internal API — will be removed from public exports in v5. */
@@ -15,7 +15,7 @@ export class DynamicApiBroadcastService {
   broadcastFromHttp<T extends object>(
     event: string,
     data: T[],
-    broadcastConfig: DynamicApiBroadcastConfig<T>,
+    broadcastConfig: BroadcastConfig<T>,
   ): void {
     if (!DynamicApiBroadcastService.wsServer || !broadcastConfig || !data?.length) {
       return;

@@ -1,7 +1,7 @@
 import { NestInterceptor, Type, ValidationPipeOptions } from '@nestjs/common';
 import { BaseEntity } from '../models';
 import { AbilityPredicate, PredicateBehavior } from './dynamic-api-ability.interface';
-import { DynamicApiBroadcastConfig } from './dynamic-api-broadcast-config.interface';
+import { BroadcastConfig } from './dynamic-api-broadcast-config.interface';
 import { CascadeConfig } from './dynamic-api-cascade-config.interface';
 import { DTOsBundle } from './dynamic-api-route-dtos-bundle.type';
 import { RouteType } from './dynamic-api-route-type.type';
@@ -52,7 +52,7 @@ interface DynamicApiRouteConfig<Entity extends BaseEntity> {
   callback?: AfterSaveCallback<Entity>;
   webSocket?: DynamicApiWebSocketOptions;
   eventName?: string;
-  broadcast?: DynamicApiBroadcastConfig<Entity>;
+  broadcast?: BroadcastConfig<Entity>;
   isArrayResponse?: boolean;
   useInterceptors?: Type<NestInterceptor>[];
   fromUser?: FromUserMap<Entity>;

@@ -1077,8 +1077,8 @@ routes: [
 Broadcasts the operation result to **all connected WebSocket clients** after an HTTP operation completes. Useful for real-time updates.
 
 ```typescript
-interface DynamicApiBroadcastConfig<Entity> {
-  enabled: boolean | ((data: Entity, user: any) => boolean);
+interface BroadcastConfig<Entity> {
+  enabled: boolean | ((data: Entity, user: unknown) => boolean);
   eventName?: string; // Defaults to the WS event name pattern
 }
 ```

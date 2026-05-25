@@ -33,16 +33,15 @@ Skipping tests or doc = invalid delivery. No exception.
 
 ---
 
-### 🏷️ No `DynamicApi` Prefix on Exported Public Symbols
+### 🏷️ No `DynamicApi` Prefix on Models
 
-**Never** prefix with `DynamicApi` any class, interface, type, enum, or model that is exported in the public API (`libs/dynamic-api/src/index.ts` or any barrel re-exported from it) and intended to be used by lib consumers.
+**Never** prefix with `DynamicApi` any class, interface, type, or enum that represents a **data model** — whether public or internal.
 
-- `DynamicApi*` prefix = **internal only** (internal helpers, stores, internal builders, internal guards, internal decorators).
-- Public symbols consumed by lib users (models, DTOs, interfaces, services, options types, decorators applied by users) **must use a plain name or a domain-specific prefix** (e.g., `BaseEntity`, `SoftDeletableEntity`, `DynamicApiModule`, `DynamicApiForFeatureOptions`…).
-- When adding or renaming a symbol: check if it lands in the public barrel (`index.ts`). If yes → strip `DynamicApi` prefix.
-- Exception: `DynamicApiModule` itself is kept for historical/brand reasons (module entry point is already widely known).
-
-Rule applies to: models, DTOs, interfaces, types, enums, abstract classes exported via `libs/dynamic-api/src/index.ts`.
+- `DynamicApi*` prefix = **technical NestJS constructs only**: modules, injectable services, guards, filters, interceptors, internal helpers/stores, builders, mixins.
+- **Models** (DTOs, config interfaces, options types, domain types, callbacks) **must use a plain name or a domain-specific prefix** regardless of visibility (e.g., `BaseEntity`, `BroadcastConfig`, `BeforeSaveCallback`, `RouteConfig`).
+- Rule of thumb: ask "is this a data model?" → if yes, drop `DynamicApi`.
+- Exception: `DynamicApiModule` itself is kept for historical/brand reasons.
+- When adding or renaming a symbol: if it's a model (interface, type, DTO, enum), strip `DynamicApi` unconditionally.
 
 ---
 
