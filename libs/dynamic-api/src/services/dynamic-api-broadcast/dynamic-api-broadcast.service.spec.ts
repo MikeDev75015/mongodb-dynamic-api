@@ -1,5 +1,5 @@
 import { Server } from 'socket.io';
-import { DynamicApiBroadcastConfig } from '../../interfaces';
+import { BroadcastConfig } from '../../interfaces';
 import { DynamicApiBroadcastService } from './dynamic-api-broadcast.service';
 
 describe('DynamicApiBroadcastService', () => {
@@ -41,7 +41,7 @@ describe('DynamicApiBroadcastService', () => {
       it('should not emit when broadcastConfig is null', () => {
         service.setWsServer(mockServer as unknown as Server);
 
-        service.broadcastFromHttp('event', [{ id: '1' }], null as unknown as DynamicApiBroadcastConfig<{ id: string }>);
+        service.broadcastFromHttp('event', [{ id: '1' }], null as unknown as BroadcastConfig<{ id: string }>);
 
         expect(mockServer.emit).not.toHaveBeenCalled();
       });
