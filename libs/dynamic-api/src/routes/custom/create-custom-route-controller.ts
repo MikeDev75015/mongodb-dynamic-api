@@ -119,7 +119,7 @@ function createCustomRouteController<
       undefined,
       predicateBehavior,
     );
-    allGuards.push(PoliciesGuard as Type<CanActivate>);
+    allGuards.push(PoliciesGuard);
   }
   allGuards.push(...guards);
 
@@ -149,7 +149,7 @@ function createCustomRouteController<
         user: req?.user,
         params: params as Params,
         body: body as Body,
-        query: query as unknown as QueryDto,
+        query: query as QueryDto,
       });
 
       const fromEntity = (presenterType as Mappable<Entity>).fromEntity;
