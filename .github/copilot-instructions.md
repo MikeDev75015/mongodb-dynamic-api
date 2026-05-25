@@ -10,6 +10,8 @@
 >
 > **Ordre d'exécution obligatoire** : 1. Code → 2. Tests unitaires (100% coverage) → 3. Tests e2e (tous verts) → 4. Doc → 5. Commit. Ne jamais committer sans avoir complété les 4 étapes.
 
+> **🏷️ PAS de préfixe `DynamicApi` sur les symboles publics exportés** — Ne JAMAIS préfixer avec `DynamicApi` une classe, interface, type, enum ou modèle qui est exporté dans l'API publique (`libs/dynamic-api/src/index.ts` ou tout barrel re-exporté) et destiné aux utilisateurs de la lib. `DynamicApi*` = usage interne uniquement (helpers internes, stores, builders internes, guards internes). Les symboles publics (models, DTOs, interfaces, types d'options, services) doivent utiliser un nom simple ou un préfixe métier (ex. `BaseEntity`, `SoftDeletableEntity`). Exception : `DynamicApiModule` conservé pour raison historique/brand. Vérifier systématiquement si un nouveau symbole atterrit dans le barrel public — si oui, supprimer le préfixe `DynamicApi`.
+
 > **🚫 INTERDICTION ABSOLUE de `as any`** — ne JAMAIS utiliser `as any`, `Promise<any>`, `: any`, `[key: string]: any` ou tout autre usage du type `any`. Toujours créer une interface ou un type explicite. Si un type externe est manquant, déclarer une interface locale typée. Cette règle est non-négociable.
 
 > **🇬🇧 Commit messages = English only** — every commit subject and body must be written in English. No French, no mixed language. This applies to all scopes (feat, fix, chore, docs, refactor…). Non-negotiable.
