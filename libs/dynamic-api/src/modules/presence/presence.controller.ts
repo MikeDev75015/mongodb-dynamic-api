@@ -1,5 +1,6 @@
 import { Controller, Get, Inject, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { Public } from '../../decorators';
 import {
   DYNAMIC_API_PRESENCE_ADAPTER,
   PresenceAdapter,
@@ -10,6 +11,9 @@ import {
  * Optional HTTP endpoint that exposes the current presence state.
  *
  * Enabled by passing `enableController: true` to `DynamicApiPresenceModule.register()`.
+ *
+ * The route is decorated with `@Public()` so it remains accessible even when the
+ * `DynamicApiJwtAuthGuard` global guard is active.
  *
  * Routes:
  *  - `GET /presence`           — returns all online user IDs.
@@ -23,6 +27,7 @@ export class PresenceController {
     private readonly presenceAdapter: PresenceAdapter,
   ) {}
 
+  @Public()
   @Get()
   @ApiOperation({ summary: 'Get online user IDs (optionally filtered by room)' })
   @ApiQuery({ name: 'room', required: false, type: String })

@@ -1,4 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { Reflector } from '@nestjs/core';
+import { IS_PUBLIC_KEY } from '../../decorators';
 import { DYNAMIC_API_PRESENCE_ADAPTER } from '../../interfaces';
 import { PresenceController } from './presence.controller';
 
@@ -24,6 +26,12 @@ describe('PresenceController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  it('should have @Public() on getOnlineUsers so the global JWT guard does not block it', () => {
+    const reflector = new Reflector();
+    const isPublic = reflector.get<boolean>(IS_PUBLIC_KEY, controller.getOnlineUsers);
+    expect(isPublic).toBe(true);
   });
 
   describe('getOnlineUsers', () => {
