@@ -1,27 +1,66 @@
 import { BaseEntity } from '../models';
 import { CallbackMethods } from './dynamic-api-service-callback.interface';
 
-type BeforeSaveCreateContext<Entity extends BaseEntity> = {
-  toCreate: Partial<Entity>;
+/**
+ * Context provided to `beforeSaveCallback` for `CreateOne` routes.
+ *
+ * @typeParam Entity - The Mongoose entity being created.
+ * @typeParam BodyDTO - The body DTO type received by the controller. Defaults to `Entity`.
+ *   Pass a custom DTO type to get full type safety on `toCreate` when using `dTOs.body`.
+ *
+ * @example
+ * // Default — toCreate is Partial<Message>
+ * type Ctx = BeforeSaveCreateContext<Message>;
+ *
+ * @example
+ * // Custom body DTO — toCreate is Partial<CreateMessageDto>
+ * type Ctx = BeforeSaveCreateContext<Message, CreateMessageDto>;
+ */
+type BeforeSaveCreateContext<Entity extends BaseEntity, BodyDTO = Entity> = {
+  toCreate: Partial<BodyDTO>;
 }
 
-type BeforeSaveCreateManyContext<Entity extends BaseEntity> = {
-  toCreate: Partial<Entity>[];
+/**
+ * Context provided to `beforeSaveCallback` for `CreateMany` routes.
+ *
+ * @typeParam Entity - The Mongoose entity being created.
+ * @typeParam BodyDTO - The body DTO type received by the controller. Defaults to `Entity`.
+ */
+type BeforeSaveCreateManyContext<Entity extends BaseEntity, BodyDTO = Entity> = {
+  toCreate: Partial<BodyDTO>[];
 }
 
-type BeforeSaveUpdateContext<Entity extends BaseEntity> = {
+/**
+ * Context provided to `beforeSaveCallback` for `UpdateOne` routes.
+ *
+ * @typeParam Entity - The Mongoose entity being updated.
+ * @typeParam BodyDTO - The body DTO type received by the controller. Defaults to `Entity`.
+ */
+type BeforeSaveUpdateContext<Entity extends BaseEntity, BodyDTO = Entity> = {
   id: string;
-  update: Partial<Entity>;
+  update: Partial<BodyDTO>;
 }
 
-type BeforeSaveUpdateManyContext<Entity extends BaseEntity> = {
+/**
+ * Context provided to `beforeSaveCallback` for `UpdateMany` routes.
+ *
+ * @typeParam Entity - The Mongoose entity being updated.
+ * @typeParam BodyDTO - The body DTO type received by the controller. Defaults to `Entity`.
+ */
+type BeforeSaveUpdateManyContext<Entity extends BaseEntity, BodyDTO = Entity> = {
   ids: string[];
-  update: Partial<Entity>;
+  update: Partial<BodyDTO>;
 }
 
-type BeforeSaveReplaceContext<Entity extends BaseEntity> = {
+/**
+ * Context provided to `beforeSaveCallback` for `ReplaceOne` routes.
+ *
+ * @typeParam Entity - The Mongoose entity being replaced.
+ * @typeParam BodyDTO - The body DTO type received by the controller. Defaults to `Entity`.
+ */
+type BeforeSaveReplaceContext<Entity extends BaseEntity, BodyDTO = Entity> = {
   id: string;
-  replacement: Partial<Entity>;
+  replacement: Partial<BodyDTO>;
 }
 
 type BeforeSaveDeleteContext = {
@@ -32,14 +71,26 @@ type BeforeSaveDeleteManyContext = {
   ids: string[];
 }
 
-type BeforeSaveDuplicateContext<Entity extends BaseEntity> = {
+/**
+ * Context provided to `beforeSaveCallback` for `DuplicateOne` routes.
+ *
+ * @typeParam Entity - The Mongoose entity being duplicated.
+ * @typeParam BodyDTO - The body DTO type for optional override fields. Defaults to `Entity`.
+ */
+type BeforeSaveDuplicateContext<Entity extends BaseEntity, BodyDTO = Entity> = {
   id: string;
-  override?: Partial<Entity>;
+  override?: Partial<BodyDTO>;
 }
 
-type BeforeSaveDuplicateManyContext<Entity extends BaseEntity> = {
+/**
+ * Context provided to `beforeSaveCallback` for `DuplicateMany` routes.
+ *
+ * @typeParam Entity - The Mongoose entity being duplicated.
+ * @typeParam BodyDTO - The body DTO type for optional override fields. Defaults to `Entity`.
+ */
+type BeforeSaveDuplicateManyContext<Entity extends BaseEntity, BodyDTO = Entity> = {
   ids: string[];
-  override?: Partial<Entity>;
+  override?: Partial<BodyDTO>;
 }
 
 type BeforeSaveCallback<Entity extends BaseEntity, Context = Record<string, unknown>, User = unknown> = (
@@ -108,23 +159,23 @@ type AnyBeforeDeleteCallback<Entity extends BaseEntity, User = unknown> =
 
 // --- Deprecated aliases ---
 /** @deprecated Use `BeforeSaveCreateContext` instead. Will be removed in v5. */
-type DynamicApiServiceBeforeSaveCreateContext<Entity extends BaseEntity> = BeforeSaveCreateContext<Entity>;
+type DynamicApiServiceBeforeSaveCreateContext<Entity extends BaseEntity, BodyDTO = Entity> = BeforeSaveCreateContext<Entity, BodyDTO>;
 /** @deprecated Use `BeforeSaveCreateManyContext` instead. Will be removed in v5. */
-type DynamicApiServiceBeforeSaveCreateManyContext<Entity extends BaseEntity> = BeforeSaveCreateManyContext<Entity>;
+type DynamicApiServiceBeforeSaveCreateManyContext<Entity extends BaseEntity, BodyDTO = Entity> = BeforeSaveCreateManyContext<Entity, BodyDTO>;
 /** @deprecated Use `BeforeSaveUpdateContext` instead. Will be removed in v5. */
-type DynamicApiServiceBeforeSaveUpdateContext<Entity extends BaseEntity> = BeforeSaveUpdateContext<Entity>;
+type DynamicApiServiceBeforeSaveUpdateContext<Entity extends BaseEntity, BodyDTO = Entity> = BeforeSaveUpdateContext<Entity, BodyDTO>;
 /** @deprecated Use `BeforeSaveUpdateManyContext` instead. Will be removed in v5. */
-type DynamicApiServiceBeforeSaveUpdateManyContext<Entity extends BaseEntity> = BeforeSaveUpdateManyContext<Entity>;
+type DynamicApiServiceBeforeSaveUpdateManyContext<Entity extends BaseEntity, BodyDTO = Entity> = BeforeSaveUpdateManyContext<Entity, BodyDTO>;
 /** @deprecated Use `BeforeSaveReplaceContext` instead. Will be removed in v5. */
-type DynamicApiServiceBeforeSaveReplaceContext<Entity extends BaseEntity> = BeforeSaveReplaceContext<Entity>;
+type DynamicApiServiceBeforeSaveReplaceContext<Entity extends BaseEntity, BodyDTO = Entity> = BeforeSaveReplaceContext<Entity, BodyDTO>;
 /** @deprecated Use `BeforeSaveDeleteContext` instead. Will be removed in v5. */
 type DynamicApiServiceBeforeSaveDeleteContext = BeforeSaveDeleteContext;
 /** @deprecated Use `BeforeSaveDeleteManyContext` instead. Will be removed in v5. */
 type DynamicApiServiceBeforeSaveDeleteManyContext = BeforeSaveDeleteManyContext;
 /** @deprecated Use `BeforeSaveDuplicateContext` instead. Will be removed in v5. */
-type DynamicApiServiceBeforeSaveDuplicateContext<Entity extends BaseEntity> = BeforeSaveDuplicateContext<Entity>;
+type DynamicApiServiceBeforeSaveDuplicateContext<Entity extends BaseEntity, BodyDTO = Entity> = BeforeSaveDuplicateContext<Entity, BodyDTO>;
 /** @deprecated Use `BeforeSaveDuplicateManyContext` instead. Will be removed in v5. */
-type DynamicApiServiceBeforeSaveDuplicateManyContext<Entity extends BaseEntity> = BeforeSaveDuplicateManyContext<Entity>;
+type DynamicApiServiceBeforeSaveDuplicateManyContext<Entity extends BaseEntity, BodyDTO = Entity> = BeforeSaveDuplicateManyContext<Entity, BodyDTO>;
 /** @deprecated Use `BeforeSaveCallback` instead. Will be removed in v5. */
 type DynamicApiServiceBeforeSaveCallback<Entity extends BaseEntity, Context = Record<string, unknown>, User = unknown> = BeforeSaveCallback<Entity, Context, User>;
 /** @deprecated Use `BeforeSaveListCallback` instead. Will be removed in v5. */

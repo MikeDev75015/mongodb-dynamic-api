@@ -462,20 +462,38 @@ Callbacks let you hook into the lifecycle of a service operation, either **befor
 
 Four signatures depending on the route type:
 
-| Callback type | Used by | Returns |
-|---|---|---|
-| `BeforeSaveCallback<E, Context, User>` | `CreateOne`, `UpdateOne`, `ReplaceOne`, `DuplicateOne` | `Partial<E>` |
-| `BeforeSaveListCallback<E, Context, User>` | `CreateMany`, `UpdateMany`, `DuplicateMany` | `Partial<E>[]` |
-| `BeforeSaveDeleteCallback<E, Context, User>` | `DeleteOne` | `void` |
-| `BeforeSaveDeleteManyCallback<E, Context, User>` | `DeleteMany` | `void` |
+| Callback type | Used by | Context type | Returns |
+|---|---|---|---|
+| `BeforeSaveCallback<E, Context, User>` | `CreateOne`, `UpdateOne`, `ReplaceOne`, `DuplicateOne` | `BeforeSave*Context<E, BodyDTO>` | `Partial<E>` |
+| `BeforeSaveListCallback<E, Context, User>` | `CreateMany`, `UpdateMany`, `DuplicateMany` | `BeforeSave*Context<E, BodyDTO>` | `Partial<E>[]` |
+| `BeforeSaveDeleteCallback<E, Context, User>` | `DeleteOne` | `BeforeSaveDeleteContext` | `void` |
+| `BeforeSaveDeleteManyCallback<E, Context, User>` | `DeleteMany` | `BeforeSaveDeleteManyContext` | `void` |
 
 Each route provides a typed context (`BeforeSaveCreateContext`, `BeforeSaveUpdateContext`, etc.) and the authenticated `user` as the last parameter. The `User` generic defaults to `unknown` — pass your user entity type for full type safety (see [Callbacks guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/callbacks.md#typing-the-user-parameter)).
 
-**Example — Hash a password before saving:**
+Context types accept an optional **`BodyDTO` generic** (defaults to `Entity`). Pass your custom body DTO class when using `dTOs.body` to get full type safety on the body fields (see [Custom Body DTO](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/callbacks.md#custom-body-dto--bodydto-generic)).
+
+**Example — Hash a password before saving (typed context):**
 
 ```typescript
 import * as bcrypt from 'bcrypt';
 import { BeforeSaveCallback, BeforeSaveCreateContext } from 'mongodb-dynamic-api';
+
+class CreateUserDto {
+  email: string;
+  password: string;
+  displayName?: string;
+}
+
+// ✅ BodyDTO generic — ctx.toCreate is Partial<CreateUserDto>, no cast needed
+const beforeCreate: BeforeSaveCallback<User, BeforeSaveCreateContext<User, CreateUserDto>> =
+  async (_entity, ctx, _methods, _user) => {
+    const { toCreate } = ctx;
+    if (toCreate.password) {
+      toCreate.password = await bcrypt.hash(toCreate.password, 10);
+    }
+    return toCreate;
+  };
 
 DynamicApiModule.forFeature({
   entity: User,
@@ -483,13 +501,8 @@ DynamicApiModule.forFeature({
   routes: [
     {
       type: 'CreateOne',
-      beforeSaveCallback: async (_entity, context, _methods, user) => {
-        const { toCreate } = context as BeforeSaveCreateContext<User>;
-        if (toCreate.password) {
-          toCreate.password = await bcrypt.hash(toCreate.password, 10);
-        }
-        return toCreate;
-      },
+      dTOs: { body: CreateUserDto },
+      beforeSaveCallback: beforeCreate,
     },
   ],
 })

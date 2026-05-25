@@ -32,6 +32,7 @@ Both `beforeSaveCallback` and `callback` (after save) **receive the authenticate
     - [BeforeSaveDuplicateManyContext](#beforesaveduplicatemanycontext)
     - [BeforeSaveDeleteContext](#beforesavedeletecontext)
     - [BeforeSaveDeleteManyContext](#beforesavedeletemanycontext)
+  - [Custom Body DTO — `BodyDTO` generic](#custom-body-dto--bodydto-generic)
   - [Signature-to-route compatibility](#signature-to-route-compatibility)
 - [beforeDelete Callback (`beforeDeleteCallback`)](#beforedelete-callback-beforedeletecallback)
   - [Why `beforeDeleteCallback` instead of `beforeSaveCallback`?](#why-beforedeletecallback-instead-of-beforesavecallback)
@@ -273,23 +274,30 @@ type BeforeSaveDeleteManyCallback<Entity extends BaseEntity, Context = Record<st
 
 Each route type provides a **typed context object** as the second parameter of `beforeSaveCallback`. These types are exported from `mongodb-dynamic-api` and should be used as the second generic parameter of the callback type for full type safety.
 
+All context types that carry a body payload accept an **optional second generic `BodyDTO`** (defaults to `Entity`). Pass your custom body DTO class when using `dTOs.body` to get full autocompletion on the body fields without any cast.
+
 #### BeforeSaveCreateContext
 
 Route: **`CreateOne`**
 
 ```typescript
-type BeforeSaveCreateContext<Entity> = {
-  toCreate: Partial<Entity>;  // The data submitted for creation
+type BeforeSaveCreateContext<Entity, BodyDTO = Entity> = {
+  toCreate: Partial<BodyDTO>;  // The data submitted for creation
 };
 ```
+
+| Generic | Default | Purpose |
+|---|---|---|
+| `Entity` | — | The Mongoose entity being created |
+| `BodyDTO` | `Entity` | The body DTO class received by the controller. Pass a custom DTO when using `dTOs.body`. |
 
 #### BeforeSaveCreateManyContext
 
 Route: **`CreateMany`**
 
 ```typescript
-type BeforeSaveCreateManyContext<Entity> = {
-  toCreate: Partial<Entity>[];  // Array of items submitted for creation
+type BeforeSaveCreateManyContext<Entity, BodyDTO = Entity> = {
+  toCreate: Partial<BodyDTO>[];  // Array of items submitted for creation
 };
 ```
 
@@ -298,9 +306,9 @@ type BeforeSaveCreateManyContext<Entity> = {
 Route: **`UpdateOne`**
 
 ```typescript
-type BeforeSaveUpdateContext<Entity> = {
-  id: string;                // ID of the document to update
-  update: Partial<Entity>;   // The partial update payload
+type BeforeSaveUpdateContext<Entity, BodyDTO = Entity> = {
+  id: string;                 // ID of the document to update
+  update: Partial<BodyDTO>;   // The partial update payload
 };
 ```
 
@@ -309,9 +317,9 @@ type BeforeSaveUpdateContext<Entity> = {
 Route: **`UpdateMany`**
 
 ```typescript
-type BeforeSaveUpdateManyContext<Entity> = {
-  ids: string[];             // IDs of the documents to update
-  update: Partial<Entity>;   // The partial update (applied to all)
+type BeforeSaveUpdateManyContext<Entity, BodyDTO = Entity> = {
+  ids: string[];              // IDs of the documents to update
+  update: Partial<BodyDTO>;   // The partial update (applied to all)
 };
 ```
 
@@ -320,9 +328,9 @@ type BeforeSaveUpdateManyContext<Entity> = {
 Route: **`ReplaceOne`**
 
 ```typescript
-type BeforeSaveReplaceContext<Entity> = {
-  id: string;                    // ID of the document to replace
-  replacement: Partial<Entity>;  // The full replacement payload
+type BeforeSaveReplaceContext<Entity, BodyDTO = Entity> = {
+  id: string;                     // ID of the document to replace
+  replacement: Partial<BodyDTO>;  // The full replacement payload
 };
 ```
 
@@ -331,9 +339,9 @@ type BeforeSaveReplaceContext<Entity> = {
 Route: **`DuplicateOne`**
 
 ```typescript
-type BeforeSaveDuplicateContext<Entity> = {
-  id: string;                   // ID of the document to duplicate
-  override?: Partial<Entity>;   // Optional overrides for the duplicate
+type BeforeSaveDuplicateContext<Entity, BodyDTO = Entity> = {
+  id: string;                    // ID of the document to duplicate
+  override?: Partial<BodyDTO>;   // Optional overrides for the duplicate
 };
 ```
 
@@ -342,9 +350,9 @@ type BeforeSaveDuplicateContext<Entity> = {
 Route: **`DuplicateMany`**
 
 ```typescript
-type BeforeSaveDuplicateManyContext<Entity> = {
-  ids: string[];                // IDs of the documents to duplicate
-  override?: Partial<Entity>;   // Optional overrides for all duplicates
+type BeforeSaveDuplicateManyContext<Entity, BodyDTO = Entity> = {
+  ids: string[];                 // IDs of the documents to duplicate
+  override?: Partial<BodyDTO>;   // Optional overrides for all duplicates
 };
 ```
 
@@ -385,19 +393,75 @@ type BeforeSaveDeleteManyContext = {
 
 ---
 
+### Custom Body DTO — `BodyDTO` generic
+
+When you configure a route with a custom body DTO via `dTOs.body`, pass that DTO class as the second generic of the context type. This gives you **full autocompletion** on the body fields without any manual cast.
+
+**Example — `CreateOne` with a body DTO that has extra fields:**
+
+```typescript
+import {
+  BeforeSaveCallback,
+  BeforeSaveCreateContext,
+} from 'mongodb-dynamic-api';
+import { Schema, Prop } from '@nestjs/mongoose';
+import { BaseEntity } from 'mongodb-dynamic-api';
+
+@Schema()
+class Message extends BaseEntity {
+  @Prop() text: string;
+  @Prop() authorId: string;
+}
+
+// Custom body DTO — `emojiPack` is not a field on the Message entity
+class CreateMessageDto {
+  text: string;
+  emojiPack?: string;
+}
+
+// ✅ BodyDTO generic — ctx.toCreate is Partial<CreateMessageDto>, no cast needed
+const beforeCreate: BeforeSaveCallback<Message, BeforeSaveCreateContext<Message, CreateMessageDto>> =
+  async (_entity, ctx, _methods, _user) => {
+    // ctx.toCreate.emojiPack is Partial<string | undefined> — full autocompletion ✅
+    const defaultEmoji = ctx.toCreate.emojiPack ?? 'twemoji';
+    return {
+      text: ctx.toCreate.text,
+      authorId: 'server-injected',
+      // emojiPack is a BodyDTO field — strip it, only return Partial<Message>
+      _tag: defaultEmoji,  // stored as a derived field or discarded
+    };
+  };
+
+DynamicApiModule.forFeature({
+  entity: Message,
+  controllerOptions: { path: 'messages' },
+  routes: [
+    {
+      type: 'CreateOne',
+      dTOs: { body: CreateMessageDto },
+      beforeSaveCallback: beforeCreate,  // ✅ no cast needed
+    },
+  ],
+});
+```
+
+> **💡 Note:** `BodyDTO` defaults to `Entity`, so all existing callbacks that omit it continue to work exactly as before — this is a **non-breaking** addition.
+
+---
+
 ### Signature-to-route compatibility
 
-| Route Type | Callback signature | Context type | `entity` / `entities` | Returns |
-|---|---|---|---|---|
-| `CreateOne` | `BeforeSaveCallback` | `BeforeSaveCreateContext<E>` | `undefined` | `Partial<E>` |
-| `CreateMany` | `BeforeSaveListCallback` | `BeforeSaveCreateManyContext<E>` | `undefined` | `Partial<E>[]` |
-| `UpdateOne` | `BeforeSaveCallback` | `BeforeSaveUpdateContext<E>` | Existing entity | `Partial<E>` |
-| `UpdateMany` | `BeforeSaveListCallback` | `BeforeSaveUpdateManyContext<E>` | Existing entities | `Partial<E>[]` |
-| `ReplaceOne` | `BeforeSaveCallback` | `BeforeSaveReplaceContext<E>` | Existing entity | `Partial<E>` |
-| `DuplicateOne` | `BeforeSaveCallback` | `BeforeSaveDuplicateContext<E>` | Existing entity | `Partial<E>` |
-| `DuplicateMany` | `BeforeSaveListCallback` | `BeforeSaveDuplicateManyContext<E>` | Existing entities | `Partial<E>[]` |
-| `DeleteOne` | `BeforeSaveDeleteCallback` | `BeforeSaveDeleteContext` | Entity to delete | `void` |
-| `DeleteMany` | `BeforeSaveDeleteManyCallback` | `BeforeSaveDeleteManyContext` | Entities to delete | `void` |
+| Route Type | Callback signature | Context type | `BodyDTO` supported | `entity` / `entities` | Returns |
+|---|---|---|---|---|---|
+| `CreateOne` | `BeforeSaveCallback` | `BeforeSaveCreateContext<E, BodyDTO>` | ✅ | `undefined` | `Partial<E>` |
+| `CreateMany` | `BeforeSaveListCallback` | `BeforeSaveCreateManyContext<E, BodyDTO>` | ✅ | `undefined` | `Partial<E>[]` |
+| `UpdateOne` | `BeforeSaveCallback` | `BeforeSaveUpdateContext<E, BodyDTO>` | ✅ | Existing entity | `Partial<E>` |
+| `UpdateMany` | `BeforeSaveListCallback` | `BeforeSaveUpdateManyContext<E, BodyDTO>` | ✅ | Existing entities | `Partial<E>[]` |
+| `ReplaceOne` | `BeforeSaveCallback` | `BeforeSaveReplaceContext<E, BodyDTO>` | ✅ | Existing entity | `Partial<E>` |
+| `DuplicateOne` | `BeforeSaveCallback` | `BeforeSaveDuplicateContext<E, BodyDTO>` | ✅ | Existing entity | `Partial<E>` |
+| `DuplicateMany` | `BeforeSaveListCallback` | `BeforeSaveDuplicateManyContext<E, BodyDTO>` | ✅ | Existing entities | `Partial<E>[]` |
+| `DeleteOne` | `BeforeSaveDeleteCallback` | `BeforeSaveDeleteContext` | — | Entity to delete | `void` |
+| `DeleteMany` | `BeforeSaveDeleteManyCallback` | `BeforeSaveDeleteManyContext` | — | Entities to delete | `void` |
 
 > **⚠️ Note:** `GetOne` and `GetMany` do **not** support `beforeSaveCallback` — they only support the `callback` (after save) property.
 
@@ -694,6 +758,18 @@ class UserEntity extends BaseEntity {
 | `BeforeSaveListCallback` | `BeforeSaveListCallback<Entity, Context, User>` |
 | `BeforeSaveDeleteCallback` | `BeforeSaveDeleteCallback<Entity, Context, User>` |
 | `BeforeSaveDeleteManyCallback` | `BeforeSaveDeleteManyCallback<Entity, Context, User>` |
+
+For `Context`, use the typed context type with the optional `BodyDTO` generic:
+
+| Context type | With BodyDTO |
+|---|---|
+| `BeforeSaveCreateContext<E>` | `BeforeSaveCreateContext<E, BodyDTO>` |
+| `BeforeSaveCreateManyContext<E>` | `BeforeSaveCreateManyContext<E, BodyDTO>` |
+| `BeforeSaveUpdateContext<E>` | `BeforeSaveUpdateContext<E, BodyDTO>` |
+| `BeforeSaveUpdateManyContext<E>` | `BeforeSaveUpdateManyContext<E, BodyDTO>` |
+| `BeforeSaveReplaceContext<E>` | `BeforeSaveReplaceContext<E, BodyDTO>` |
+| `BeforeSaveDuplicateContext<E>` | `BeforeSaveDuplicateContext<E, BodyDTO>` |
+| `BeforeSaveDuplicateManyContext<E>` | `BeforeSaveDuplicateManyContext<E, BodyDTO>` |
 
 > **💡 Note:** The `User` generic defaults to `unknown`, so all existing code that omits it continues to work exactly as before — this is a **non-breaking** addition.
 
