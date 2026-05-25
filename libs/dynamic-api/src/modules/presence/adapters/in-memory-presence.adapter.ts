@@ -22,7 +22,9 @@ export class InMemoryPresenceAdapter implements PresenceAdapter {
       this.socketsByUser.set(userId, new Set());
     }
 
-    this.socketsByUser.get(userId)!.add(socketId);
+    const sockets = this.socketsByUser.get(userId) ?? new Set<string>();
+    sockets.add(socketId);
+    this.socketsByUser.set(userId, sockets);
 
     if (room) {
       this.roomBySocket.set(socketId, room);
