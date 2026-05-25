@@ -1,5 +1,19 @@
 Changelog
 
+## [4.11.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.10.0...v4.11.0) (2026-05-25)
+
+### callbacks
+
+* **callbacks:** add BodyDTO generic to beforeSave context types ([4c04c50](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/4c04c50f57e9b1e96d14f1eab83b45f76e2afd71))
+
+### e2e
+
+* **e2e:** cast user to UserEntity in websockets broadcast enabled predicate ([6ac68ef](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/6ac68ef1a5f206d129ee6395a7afb55dc1714962))
+
+### broadcast
+
+* **broadcast:** pass socket.user to rooms callback ([da6177f](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/da6177f307b3afb14e3b56bfef25c39d3ee9b514))
+
 ## [4.10.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.9.0...v4.10.0) (2026-05-25)
 
 ### custom-route
