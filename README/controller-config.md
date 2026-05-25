@@ -48,7 +48,7 @@ interface DynamicApiForFeatureOptions<Entity extends BaseEntity> {
   extraImports?: ModuleMetadata['imports'];                      // Optional — extra NestJS imports
   extraProviders?: ModuleMetadata['providers'];                  // Optional — extra NestJS providers
   extraControllers?: ModuleMetadata['controllers'];              // Optional — extra NestJS controllers
-  customRoutes?: DynamicApiCustomRouteConfig<Entity>[];          // Optional — custom endpoints
+  customRoutes?: CustomRouteConfig<Entity>[];          // Optional — custom endpoints
 }
 ```
 
@@ -185,7 +185,7 @@ DynamicApiModule.forFeature({
 
 > The Mongoose model is automatically available in the handler via `ctx.model`. No extra providers or module imports are needed.
 
-#### `DynamicApiCustomRouteConfig<Entity>` reference
+#### `CustomRouteConfig<Entity>` reference
 
 | Field | Type | Required | Description |
 |---|---|---|---|
@@ -224,7 +224,7 @@ import {
   BaseEntity,
   DynamicAPISchemaOptions,
   DynamicApiModule,
-  DynamicApiCustomRouteConfig,
+  CustomRouteConfig,
 } from 'mongodb-dynamic-api';
 
 // ── Entity ────────────────────────────────────────────────────────────────────
@@ -254,7 +254,7 @@ class OwnConversationGuard implements CanActivate {
 }
 
 // ── Feature module ────────────────────────────────────────────────────────────
-const customRoute: DynamicApiCustomRouteConfig<Conversation, UpdateWrappedKeyBody> = {
+const customRoute: CustomRouteConfig<Conversation, UpdateWrappedKeyBody> = {
   path: ':id/e2ee-wrapped-keys',
   method: 'PATCH',
   description: 'Update the E2EE wrapped key for a conversation',

@@ -7,7 +7,7 @@ import {
   BaseEntity,
   DynamicApiModule,
   DynamicAPISchemaOptions,
-  DynamicApiCustomRouteConfig,
+  CustomRouteConfig,
 } from '../../src';
 import { closeTestingApp, server } from '../e2e.setup';
 import 'dotenv/config';
@@ -96,7 +96,7 @@ describe('DynamicApiModule forFeature - customRoutes (e2e)', () => {
   }
 
   async function setupApp(
-    customRouteConfig: DynamicApiCustomRouteConfig<Conversation>,
+    customRouteConfig: CustomRouteConfig<Conversation>,
     seed?: (conn: Connection) => Promise<void>,
   ) {
     await initApp(

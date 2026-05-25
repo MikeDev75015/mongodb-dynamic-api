@@ -57,7 +57,7 @@ interface CustomRouteContext<
  * }
  * ```
  */
-interface DynamicApiCustomRouteConfig<
+interface CustomRouteConfig<
   Entity extends BaseEntity,
   Body = unknown,
   Query = unknown,
@@ -127,5 +127,5 @@ interface DynamicApiCustomRouteConfig<
   };
 }
 
-export type { HttpMethod, CustomRouteContext, DynamicApiCustomRouteConfig };
+export type { HttpMethod, CustomRouteContext, CustomRouteConfig };
 

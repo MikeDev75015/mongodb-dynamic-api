@@ -33,6 +33,19 @@ Skipping tests or doc = invalid delivery. No exception.
 
 ---
 
+### 🏷️ No `DynamicApi` Prefix on Exported Public Symbols
+
+**Never** prefix with `DynamicApi` any class, interface, type, enum, or model that is exported in the public API (`libs/dynamic-api/src/index.ts` or any barrel re-exported from it) and intended to be used by lib consumers.
+
+- `DynamicApi*` prefix = **internal only** (internal helpers, stores, internal builders, internal guards, internal decorators).
+- Public symbols consumed by lib users (models, DTOs, interfaces, services, options types, decorators applied by users) **must use a plain name or a domain-specific prefix** (e.g., `BaseEntity`, `SoftDeletableEntity`, `DynamicApiModule`, `DynamicApiForFeatureOptions`…).
+- When adding or renaming a symbol: check if it lands in the public barrel (`index.ts`). If yes → strip `DynamicApi` prefix.
+- Exception: `DynamicApiModule` itself is kept for historical/brand reasons (module entry point is already widely known).
+
+Rule applies to: models, DTOs, interfaces, types, enums, abstract classes exported via `libs/dynamic-api/src/index.ts`.
+
+---
+
 ### 🚫 No `any` — Ever
 
 Never use `as any`, `Promise<any>`, `: any`, `[key: string]: any`. Always create an explicit interface or type. If an external type is missing, declare a local typed interface. Non-negotiable.

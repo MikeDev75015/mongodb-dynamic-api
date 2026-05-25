@@ -36,7 +36,7 @@ import {
 } from '../../helpers';
 import {
   DynamicApiControllerOptions,
-  DynamicApiCustomRouteConfig,
+  CustomRouteConfig,
   DynamicApiRequest,
   HttpMethod,
   Mappable,
@@ -76,7 +76,7 @@ function createCustomRouteController<
 >(
   entity: Type<Entity>,
   { useInterceptors = [], ...controllerOptions }: DynamicApiControllerOptions<Entity>,
-  customRouteConfig: DynamicApiCustomRouteConfig<Entity, Body, QueryDto, Params, Response>,
+  customRouteConfig: CustomRouteConfig<Entity, Body, QueryDto, Params, Response>,
   controllerVersion?: string,
   controllerValidationPipeOptions?: ValidationPipeOptions,
 ): Type {

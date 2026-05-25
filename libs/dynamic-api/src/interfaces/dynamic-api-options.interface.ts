@@ -4,7 +4,7 @@ import { BaseEntity } from '../models';
 import { DynamicApiAuthOptions } from '../modules';
 import { DynamicApiControllerOptions } from './dynamic-api-controller-options.interface';
 import { DynamicApiCacheOptions } from './dynamic-api-cache-options.interface';
-import { DynamicApiCustomRouteConfig } from './dynamic-api-custom-route.interface';
+import { CustomRouteConfig } from './dynamic-api-custom-route.interface';
 import { RoutesConfig } from './dynamic-api-global-state.interface';
 import { DynamicAPIRouteConfig } from './dynamic-api-route-config.interface';
 import { DynamicApiWebSocketOptions } from './dynamic-api-web-socket.interface';
@@ -34,7 +34,7 @@ interface DynamicApiForFeatureOptions<Entity extends BaseEntity> {
    * Each entry generates a fully typed NestJS controller method with model injection,
    * Swagger documentation, optional guards and ability-predicate support.
    */
-  customRoutes?: DynamicApiCustomRouteConfig<Entity>[];
+  customRoutes?: CustomRouteConfig<Entity>[];
 }
 
 export { DynamicApiForFeatureOptions, DynamicApiForRootOptions, DYNAMIC_API_GLOBAL_STATE };
