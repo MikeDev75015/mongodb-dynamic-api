@@ -558,14 +558,17 @@ socket.emit('join-rooms', { rooms: 'some-room' });
 #### `BroadcastRooms` Type
 
 ```typescript
-type BroadcastRooms<T extends object> = string | string[] | ((data: T) => string | string[]);
+type BroadcastRooms<T extends object, User = unknown> =
+  | string
+  | string[]
+  | ((data: T, user?: User) => string | string[]);
 ```
 
 | Form | Description | Example |
 |------|-------------|---------|
 | `string` | A single static room name — all broadcasts go to this room | `'admin-room'` |
 | `string[]` | Multiple static room names | `['room-a', 'room-b']` |
-| `(data: T) => string \| string[]` | A function called **per entity** in the broadcast payload. Returns the room(s) to target. All results are flattened and deduplicated. | `(item) => item.category` |
+| `(data: T, user?: User) => string \| string[]` | A function called **per entity**. Receives the entity and the **authenticated user who triggered the action** (`socket.user` for WebSocket routes, `undefined` for HTTP routes). Returns the room(s) to target. All results are flattened and deduplicated. | `(item, user) => item.category` |
 
 #### Static Rooms
 
@@ -669,6 +672,92 @@ socket.emit('join-rooms', { rooms: 'clothing' }, () => {
   console.log('Watching clothing');
 });
 // This client will NOT receive broadcasts for electronics products
+```
+
+#### User-Aware Rooms (WebSocket only)
+
+When using **WebSocket routes**, the `rooms` function receives the authenticated user as its second argument (`user?: User`). This lets you compute the target room(s) based on **who triggered the action**, not just the entity data.
+
+> **Note — HTTP routes:** The `rooms` function is also supported on HTTP broadcast routes, but `user` will always be `undefined` in that context. Use the `enabled` predicate with user-based logic for HTTP.
+
+**Use case: broadcast to a user-specific room (personal notifications)**
+
+```typescript
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { BaseEntity, DynamicApiModule } from 'mongodb-dynamic-api';
+
+@Schema({ collection: 'notifications' })
+export class Notification extends BaseEntity {
+  @Prop({ type: String, required: true })
+  targetUserId: string;
+
+  @Prop({ type: String, required: true })
+  message: string;
+}
+
+DynamicApiModule.forFeature({
+  entity: Notification,
+  controllerOptions: { path: 'notifications' },
+  routes: [
+    {
+      type: 'CreateOne',
+      webSocket: true,
+      broadcast: {
+        enabled: true,
+        // Each notification is sent to the target user's personal room only
+        rooms: (notification: Notification) =>
+          `user-${notification.targetUserId}`,
+      },
+    },
+  ],
+})
+```
+
+**Use case: exclude the sender (the authenticated user who triggered the action)**
+
+```typescript
+DynamicApiModule.forFeature({
+  entity: Post,
+  controllerOptions: { path: 'posts', isPublic: false },
+  routes: [
+    {
+      type: 'CreateOne',
+      webSocket: true,
+      // isPublic: false ensures socket.user is set from the JWT token
+      isPublic: false,
+      broadcast: {
+        enabled: true,
+        // Send to 'posts-feed' for all users EXCEPT the author who just created the post
+        rooms: (post: Post, user?) =>
+          (user as { id?: string })?.id === post.authorId
+            ? []              // Sender gets no broadcast — they already have the response
+            : ['posts-feed'], // Everyone else in posts-feed receives it
+      },
+    },
+  ],
+})
+```
+
+> **Tip:** When `rooms` returns an empty array `[]` after evaluating all entities, no broadcast is emitted. This is the correct mechanism to silently exclude the sender.
+
+**Client setup:**
+
+```typescript
+import { io } from 'socket.io-client';
+
+const socket = io('http://localhost:3000', {
+  auth: { token: accessToken },
+});
+
+// Join the personal notification room
+socket.emit('join-rooms', { rooms: `user-${myUserId}` }, () => {
+  console.log('Listening for my notifications');
+});
+
+socket.on('create-one-notification', (data) => {
+  console.log('New notification:', data);
+  // ✅ Only received when notification.targetUserId === myUserId
+});
 ```
 
 #### Dynamic Rooms with Multiple Entities
@@ -1268,7 +1357,7 @@ DynamicApiModule.forFeature({
       broadcast: {
         enabled: true,
         // Broadcast to the targeted user's personal room
-        rooms: (notification) => 'user-' + notification.targetUserId,
+        rooms: (notification: Notification) => 'user-' + notification.targetUserId,
       },
     },
   ],

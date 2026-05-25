@@ -83,7 +83,7 @@ export abstract class BaseGateway<Entity extends BaseEntity> {
     }
 
     const broadcastEvent = eventName || event;
-    const resolvedRooms = resolveRooms(rooms, broadcastData);
+    const resolvedRooms = resolveRooms(rooms, broadcastData, socket.user);
 
     if (DynamicApiWsConfigStore.debug) {
       this.logger.log(
