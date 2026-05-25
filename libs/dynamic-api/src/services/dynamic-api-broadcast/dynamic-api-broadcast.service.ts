@@ -36,7 +36,7 @@ export class DynamicApiBroadcastService {
     }
 
     const broadcastEvent = eventName || event;
-    const resolvedRooms = resolveRooms(rooms, broadcastData, undefined);
+    const resolvedRooms = resolveRooms(rooms, broadcastData);
 
     if (resolvedRooms) {
       DynamicApiBroadcastService.wsServer.to(resolvedRooms).emit(broadcastEvent, broadcastData);
