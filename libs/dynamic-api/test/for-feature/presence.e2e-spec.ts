@@ -86,6 +86,9 @@ const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 // ---------------------------------------------------------------------------
 
 describe('DynamicApiPresenceModule (e2e)', () => {
+  // App init + socket handshakes can exceed the default 5 s jest timeout.
+  jest.setTimeout(20000);
+
   let accessToken: string;
 
   beforeEach(() => {
@@ -167,12 +170,16 @@ describe('DynamicApiPresenceModule (e2e)', () => {
     accessToken = await registerAndLogin();
 
     const observer = await connectSocket(global.appBaseUrl!);
+
+    // Register the user:online listener BEFORE the authenticated socket connects
+    // so the event is never missed (no race condition).
+    const onlinePromise = waitForEvent<{ userId: string }>(observer, 'user:online', 5000);
     const authenticated = await connectSocket(global.appBaseUrl!, accessToken);
 
-    // Wait for online event to settle
-    await waitForEvent(observer, 'user:online').catch(() => null);
+    // Wait until presence is established before testing the offline path.
+    await onlinePromise;
 
-    const offlinePromise = waitForEvent<{ userId: string }>(observer, 'user:offline');
+    const offlinePromise = waitForEvent<{ userId: string }>(observer, 'user:offline', 5000);
     authenticated.disconnect();
 
     const payload = await offlinePromise;
@@ -226,10 +233,14 @@ describe('DynamicApiPresenceModule (e2e)', () => {
     accessToken = await registerAndLogin();
 
     const observer = await connectSocket(global.appBaseUrl!);
+
+    // Register the listener BEFORE the authenticated socket connects so the
+    // event is guaranteed to be captured (no race condition).
+    const onlinePromise = waitForEvent<{ userId: string }>(observer, 'user:online', 5000);
     const authenticated = await connectSocket(global.appBaseUrl!, accessToken);
 
-    await waitForEvent(observer, 'user:online').catch(() => null);
-    await delay(100);
+    // Wait until presence is established — this proves setOnline has completed.
+    await onlinePromise;
 
     const res = await server.get('/presence');
     const onlineIds: string[] = (
