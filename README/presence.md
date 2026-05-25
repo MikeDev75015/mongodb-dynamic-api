@@ -183,6 +183,8 @@ socket.on('user:offline', ({ userId }) => console.log(`${userId} went offline`))
 
 Enable with `enableController: true` in `register()`.
 
+> **Note:** The endpoint is decorated with `@Public()` internally, so it remains accessible even when the `DynamicApiJwtAuthGuard` global guard is active — no JWT token is required to query it.
+
 ### `GET /presence`
 
 Returns all online user IDs.
