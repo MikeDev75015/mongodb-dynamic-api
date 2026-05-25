@@ -21,6 +21,7 @@
   - [extraImports](#extraimports)
   - [extraProviders](#extraproviders)
   - [extraControllers](#extracontrollers)
+  - [customRoutes](#customroutes)
 - [controllerOptions Reference](#controlleroptions-reference)
   - [path](#path)
   - [apiTag](#apitag)
@@ -40,13 +41,14 @@
 
 ```typescript
 interface DynamicApiForFeatureOptions<Entity extends BaseEntity> {
-  entity: Type<Entity>;                                    // Required
-  controllerOptions: DynamicApiControllerOptions<Entity>;  // Required
-  routes?: DynamicAPIRouteConfig<Entity>[];                // Optional — see route-config.md
-  webSocket?: GatewayMetadata | boolean;                   // Optional — feature-level WS
-  extraImports?: ModuleMetadata['imports'];                 // Optional — extra NestJS imports
-  extraProviders?: ModuleMetadata['providers'];             // Optional — extra NestJS providers
-  extraControllers?: ModuleMetadata['controllers'];         // Optional — extra NestJS controllers
+  entity: Type<Entity>;                                          // Required
+  controllerOptions: DynamicApiControllerOptions<Entity>;        // Required
+  routes?: DynamicAPIRouteConfig<Entity>[];                      // Optional — see route-config.md
+  webSocket?: GatewayMetadata | boolean;                         // Optional — feature-level WS
+  extraImports?: ModuleMetadata['imports'];                      // Optional — extra NestJS imports
+  extraProviders?: ModuleMetadata['providers'];                  // Optional — extra NestJS providers
+  extraControllers?: ModuleMetadata['controllers'];              // Optional — extra NestJS controllers
+  customRoutes?: DynamicApiCustomRouteConfig<Entity>[];          // Optional — custom endpoints
 }
 ```
 
@@ -174,6 +176,108 @@ DynamicApiModule.forFeature({
   extraControllers: [ProductStatsController],
 })
 ```
+
+---
+
+### customRoutes
+
+**Optional.** An array of custom endpoint configurations registered at the same controller `path` and `version` as the MDA standard routes. Each entry generates a fully typed NestJS controller method with automatic Mongoose model injection, Swagger documentation, optional guards and `abilityPredicate` support.
+
+> The Mongoose model is automatically available in the handler via `ctx.model`. No extra providers or module imports are needed.
+
+#### `DynamicApiCustomRouteConfig<Entity>` reference
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `path` | `string` | ✅ | Route sub-path appended to the controller base path. Supports route params (e.g. `:id/e2ee-wrapped-keys`). |
+| `method` | `'GET' \| 'POST' \| 'PATCH' \| 'PUT' \| 'DELETE'` | ✅ | HTTP method. |
+| `handler` | `(ctx: CustomRouteContext<Entity, Body, Query, Params>) => Promise<Response>` | ✅ | Pure async function executed when the route is matched. |
+| `version` | `string` | ➖ | Route-level version override. Falls back to `controllerOptions.version`. |
+| `isPublic` | `boolean` | ➖ | Skip JWT guard for this route. Falls back to `controllerOptions.isPublic`. |
+| `description` | `string` | ➖ | Swagger `summary`. Auto-generated if omitted. |
+| `guards` | `Type<CanActivate>[]` | ➖ | Extra NestJS guard classes applied **after** the ability-predicate guard. |
+| `abilityPredicate` | `AbilityPredicate<Entity>` | ➖ | Ability predicate identical to `DynamicApiRouteConfig.abilityPredicate`. Generates a `RoutePoliciesGuard` automatically. |
+| `predicateBehavior` | `'throw' \| 'filter'` | ➖ | Controls ability-predicate behavior. |
+| `validationPipeOptions` | `ValidationPipeOptions` | ➖ | Merged with `controllerOptions.validationPipeOptions`. |
+| `dTOs.body` | `Type` | ➖ | DTO class for request body validation and Swagger `@ApiBody`. |
+| `dTOs.query` | `Type` | ➖ | DTO class for query string validation and Swagger `@ApiQuery`. |
+| `dTOs.presenter` | `Type & Partial<Mappable<Entity>>` | ➖ | Response presenter. If it exposes `fromEntity`, the handler result is mapped through it; otherwise raw result is returned (with `ClassSerializerInterceptor`). |
+
+#### `CustomRouteContext<Entity, Body, Query, Params>` fields
+
+| Field | Type | Description |
+|---|---|---|
+| `model` | `Model<Entity>` | Injected Mongoose model for the entity. |
+| `user` | `unknown` | Authenticated user from `req.user`. `undefined` for public routes. |
+| `params` | `Params` | Parsed route params (e.g. `{ id: '...' }`). |
+| `body` | `Body` | Parsed request body. |
+| `query` | `Query` | Parsed query string object. |
+
+#### Example — `PATCH /conversations/:id/e2ee-wrapped-keys`
+
+```typescript
+import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
+import { IsNotEmpty, IsString } from 'class-validator';
+import { Prop, Schema } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import {
+  BaseEntity,
+  DynamicAPISchemaOptions,
+  DynamicApiModule,
+  DynamicApiCustomRouteConfig,
+} from 'mongodb-dynamic-api';
+
+// ── Entity ────────────────────────────────────────────────────────────────────
+@DynamicAPISchemaOptions({})
+@Schema({ collection: 'conversations' })
+class Conversation extends BaseEntity {
+  @Prop({ type: String, required: true }) encryptedContent: string;
+  @Prop({ type: String }) wrappedKey: string;
+  @Prop({ type: String }) ownerId: string;
+}
+
+// ── Body DTO ──────────────────────────────────────────────────────────────────
+class UpdateWrappedKeyBody {
+  @IsNotEmpty() @IsString()
+  wrappedKey: string;
+}
+
+// ── Custom guard ──────────────────────────────────────────────────────────────
+@Injectable()
+class OwnConversationGuard implements CanActivate {
+  canActivate(ctx: ExecutionContext): boolean {
+    const req = ctx.switchToHttp().getRequest();
+    // custom logic here …
+    if (!req.user) throw new ForbiddenException('Not authenticated');
+    return true;
+  }
+}
+
+// ── Feature module ────────────────────────────────────────────────────────────
+const customRoute: DynamicApiCustomRouteConfig<Conversation, UpdateWrappedKeyBody> = {
+  path: ':id/e2ee-wrapped-keys',
+  method: 'PATCH',
+  description: 'Update the E2EE wrapped key for a conversation',
+  guards: [OwnConversationGuard],
+  abilityPredicate: (entity: Conversation, user: { sub: string }) =>
+    entity.ownerId === user.sub,
+  dTOs: { body: UpdateWrappedKeyBody },
+  handler: async ({ model, params, body }) =>
+    (model as Model<Conversation>).findByIdAndUpdate(
+      params.id,
+      { $set: { wrappedKey: body.wrappedKey } },
+      { new: true, lean: true },
+    ),
+};
+
+DynamicApiModule.forFeature({
+  entity: Conversation,
+  controllerOptions: { path: 'conversations' },
+  customRoutes: [customRoute],
+});
+```
+
+This registers `PATCH /conversations/:id/e2ee-wrapped-keys` alongside the standard MDA routes. The controller is auto-named `CustomIdE2eeWrappedKeysConversationController` to avoid DI collisions.
 
 ---
 

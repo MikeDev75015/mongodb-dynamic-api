@@ -1104,6 +1104,97 @@ describe('DynamicApiModule', () => {
 
         expect(module.controllers).toEqual([]);
       });
+
+      describe('customRoutes', () => {
+        it('should not add custom controllers when customRoutes is absent', async () => {
+          const options = buildDynamicApiModuleOptionsMock({
+            controllerOptions: { path: 'fake-path', disableCache: true },
+          });
+
+          const module = await DynamicApiModule.forFeature(options);
+
+          // controllers[] should be empty (no cache purge, no custom routes)
+          expect(module.controllers).toEqual([]);
+        });
+
+        it('should not add custom controllers when customRoutes is empty array', async () => {
+          const options = buildDynamicApiModuleOptionsMock({
+            controllerOptions: { path: 'fake-path', disableCache: true },
+            customRoutes: [],
+          });
+
+          const module = await DynamicApiModule.forFeature(options);
+
+          expect(module.controllers).toEqual([]);
+        });
+
+        it('should add one controller per customRoute entry', async () => {
+          const fakeHandler = jest.fn();
+          const options = buildDynamicApiModuleOptionsMock({
+            routes: [],
+            controllerOptions: { path: 'fake-path', disableCache: true },
+            customRoutes: [
+              { path: 'e2ee-wrapped-keys', method: 'PATCH' as const, handler: fakeHandler },
+            ],
+          });
+
+          const module = await DynamicApiModule.forFeature(options);
+
+          // 1 custom route → exactly 1 controller (disableCache = true → no cache purge controller)
+          expect(module.controllers).toHaveLength(1);
+        });
+
+        it('should add one controller per entry for multiple customRoutes', async () => {
+          const fakeHandler = jest.fn();
+          const options = buildDynamicApiModuleOptionsMock({
+            routes: [],
+            controllerOptions: { path: 'fake-path', disableCache: true },
+            customRoutes: [
+              { path: 'keys', method: 'GET' as const, handler: fakeHandler },
+              { path: 'lock', method: 'POST' as const, handler: fakeHandler },
+            ],
+          });
+
+          const module = await DynamicApiModule.forFeature(options);
+
+          expect(module.controllers).toHaveLength(2);
+        });
+
+        it('should add databaseModule to imports when customRoutes has entries', async () => {
+          const fakeHandler = jest.fn();
+          const options = buildDynamicApiModuleOptionsMock({
+            routes: [],
+            controllerOptions: {
+              path: 'fake-path',
+              disableCache: true,
+              routesConfig: { defaults: [], excluded: [] },
+            },
+            customRoutes: [{ path: 'keys', method: 'GET' as const, handler: fakeHandler }],
+          });
+
+          const module = await DynamicApiModule.forFeature(options);
+
+          // routes disabled → no route modules; needsDatabaseModule true → only databaseModule
+          expect(module.imports).toHaveLength(1);
+        });
+
+        it('should not add databaseModule to imports when customRoutes is empty', async () => {
+          const options = buildDynamicApiModuleOptionsMock({
+            routes: [],
+            controllerOptions: {
+              path: 'fake-path',
+              disableCache: true,
+              routesConfig: { defaults: [], excluded: [] },
+            },
+            customRoutes: [],
+          });
+
+          const module = await DynamicApiModule.forFeature(options);
+
+          // routes disabled, customRoutes empty → no imports
+          expect(module.imports).toEqual([]);
+        });
+      });
     });
   });
 });

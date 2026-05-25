@@ -10,6 +10,7 @@ type RouteType =
   | 'ReplaceOne'
   | 'UpdateMany'
   | 'UpdateOne'
-  | 'Aggregate';
+  | 'Aggregate'
+  | 'Custom';
 
 export { RouteType };

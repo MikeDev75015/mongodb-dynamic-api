@@ -1,0 +1,131 @@
+import { CanActivate, Type, ValidationPipeOptions } from '@nestjs/common';
+import { Model } from 'mongoose';
+import { BaseEntity } from '../models';
+import { AbilityPredicate, PredicateBehavior } from './dynamic-api-ability.interface';
+import { Mappable } from './dynamic-api-route-dtos-bundle.type';
+
+/**
+ * Supported HTTP methods for a custom route.
+ */
+type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
+
+/**
+ * Execution context passed to every custom route handler.
+ *
+ * @template Entity  - The Mongoose entity class.
+ * @template Body    - Body DTO type. Defaults to `unknown`.
+ * @template Query   - Query DTO type. Defaults to `unknown`.
+ * @template Params  - Route params — record of string values. Defaults to `Record<string, string>`.
+ */
+interface CustomRouteContext<
+  Entity extends BaseEntity,
+  Body = unknown,
+  Query = unknown,
+  Params extends Record<string, string> = Record<string, string>,
+> {
+  /** Injected Mongoose model for the entity. */
+  model: Model<Entity>;
+  /** Authenticated user from the JWT guard (`req.user`). `undefined` when the route is public. */
+  user: unknown;
+  /** Parsed route params (e.g. `{ id: '...' }`). */
+  params: Params;
+  /** Parsed request body. */
+  body: Body;
+  /** Parsed query string object. */
+  query: Query;
+}
+
+/**
+ * Configuration object for a single custom route registered via `forFeature({ customRoutes })`.
+ *
+ * @template Entity   - The Mongoose entity class (must extend `BaseEntity`).
+ * @template Body     - Body DTO type. Defaults to `unknown`.
+ * @template Query    - Query DTO type. Defaults to `unknown`.
+ * @template Params   - Route params type. Defaults to `Record<string, string>`.
+ * @template Response - Return type of the handler. Defaults to `unknown`.
+ *
+ * @example
+ * ```typescript
+ * {
+ *   path: ':id/e2ee-wrapped-keys',
+ *   method: 'PATCH',
+ *   description: 'Update wrapped E2EE key for a conversation',
+ *   handler: async ({ model, user, params, body }) => {
+ *     return model.findByIdAndUpdate(params.id, { $set: { wrappedKey: body.wrappedKey } }, { new: true });
+ *   },
+ *   dTOs: { body: UpdateWrappedKeyDto, presenter: ConversationPresenter },
+ * }
+ * ```
+ */
+interface DynamicApiCustomRouteConfig<
+  Entity extends BaseEntity,
+  Body = unknown,
+  Query = unknown,
+  Params extends Record<string, string> = Record<string, string>,
+  Response = unknown,
+> {
+  /**
+   * Route sub-path appended to the controller's base path.
+   * May contain NestJS route params (e.g. `:id/e2ee-wrapped-keys`).
+   */
+  path: string;
+
+  /** HTTP method for the route. */
+  method: HttpMethod;
+
+  /**
+   * Pure async function executed when the route is matched.
+   * Receives the fully-typed execution context.
+   */
+  handler: (ctx: CustomRouteContext<Entity, Body, Query, Params>) => Promise<Response>;
+
+  /**
+   * Route-level version override.
+   * Falls back to `controllerOptions.version` if omitted.
+   */
+  version?: string;
+
+  /**
+   * Mark the route as publicly accessible (no JWT required).
+   * Falls back to `controllerOptions.isPublic` if omitted.
+   */
+  isPublic?: boolean;
+
+  /** Swagger `summary` for this route. Auto-generated if omitted. */
+  description?: string;
+
+  /**
+   * Extra NestJS guard classes applied **after** the ability-predicate guard.
+   * Each entry must be a class implementing `CanActivate`.
+   */
+  guards?: Type<CanActivate>[];
+
+  /**
+   * Ability predicate function identical to `DynamicApiRouteConfig.abilityPredicate`.
+   * When provided, a `RoutePoliciesGuard` is automatically created and prepended to the guard chain.
+   */
+  abilityPredicate?: AbilityPredicate<Entity>;
+
+  /** Controls how the ability predicate is applied (`'throw'` | `'filter'`). */
+  predicateBehavior?: PredicateBehavior;
+
+  /** Optional validation pipe options, merged with `validationPipeOptions` from `controllerOptions`. */
+  validationPipeOptions?: ValidationPipeOptions;
+
+  /** DTO classes for Swagger documentation and validation. */
+  dTOs?: {
+    /** Class used to validate and document the request body. */
+    body?: Type;
+    /** Class used to validate and document the query string. */
+    query?: Type;
+    /**
+     * Presenter class for the response.
+     * If it exposes a static `fromEntity` method, the handler result is mapped through it.
+     * Falls back to returning the raw handler result with `ClassSerializerInterceptor` applied.
+     */
+    presenter?: Type & Partial<Mappable<Entity>>;
+  };
+}
+
+export type { HttpMethod, CustomRouteContext, DynamicApiCustomRouteConfig };
+

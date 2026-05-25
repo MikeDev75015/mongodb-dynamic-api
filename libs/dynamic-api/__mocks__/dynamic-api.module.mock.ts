@@ -14,6 +14,7 @@ function buildDynamicApiModuleOptionsMock(
     extraImports,
     extraProviders,
     extraControllers,
+    customRoutes,
   }: Partial<DynamicApiForFeatureOptions<any>> = {},
   { indexes, hooks, customInit }: Partial<DynamicAPISchemaOptionsInterface> = {},
   softDeletable = false,
@@ -57,6 +58,7 @@ function buildDynamicApiModuleOptionsMock(
     extraImports,
     extraProviders,
     extraControllers,
+    customRoutes,
   };
 }
 
