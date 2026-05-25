@@ -1,4 +1,5 @@
 export * from './dynamic-api-controller-options.interface';
+export * from './dynamic-api-custom-route.interface';
 export * from './dynamic-api-request.interface';
 export * from './dynamic-api-decorator-builder.interface';
 export * from './dynamic-api-cache-options.interface';

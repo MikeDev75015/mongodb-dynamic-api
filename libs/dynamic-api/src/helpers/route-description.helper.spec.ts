@@ -51,6 +51,10 @@ describe('RouteDescriptionHelper', () => {
       expect(getDefaultRouteDescription('Aggregate', 'Entity')).toBe('Get aggregated entity');
     });
 
+    it('should return default description for Custom', () => {
+      expect(getDefaultRouteDescription('Custom', 'Entity')).toBe('Custom entity endpoint');
+    });
+
     it('should throw an error for unsupported route type', () => {
       expect(() => getDefaultRouteDescription('FakeRouteType' as unknown as RouteType, 'Entity'))
       .toThrowError('Route type "FakeRouteType" is not supported');

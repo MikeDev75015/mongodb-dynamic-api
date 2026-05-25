@@ -30,6 +30,8 @@ function getDefaultRouteDescription(routeType: RouteType, entityName: string): s
       return `Update one ${contentName}`;
     case 'Aggregate':
       return `Get aggregated ${contentName}`;
+    case 'Custom':
+      return `Custom ${contentName} endpoint`;
     default:
       throw new Error(`Route type "${routeType}" is not supported`);
   }

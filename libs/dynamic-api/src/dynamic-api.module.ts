@@ -11,7 +11,7 @@ import { DynamicApiCacheInterceptor } from './interceptors';
 import { DYNAMIC_API_GLOBAL_STATE, DynamicApiCacheOptions, DynamicApiForFeatureOptions, DynamicApiForRootOptions, DynamicApiGlobalState, DynamicAPIRouteConfig, DynamicApiWebSocketOptions, GatewayOptions, RouteModule, RoutesConfig, RouteType } from './interfaces';
 import { BaseEntity } from './models';
 import { AuthModule, DynamicApiAuthOptions, DynamicApiConfigModule } from './modules';
-import { AggregateModule, createCachePurgeController, CreateManyModule, CreateOneModule, DeleteManyModule, DeleteOneModule, DuplicateManyModule, DuplicateOneModule, GetManyModule, GetOneModule, ReplaceOneModule, UpdateManyModule, UpdateOneModule } from './routes';
+import { AggregateModule, createCachePurgeController, CreateManyModule, CreateOneModule, DeleteManyModule, DeleteOneModule, DuplicateManyModule, DuplicateOneModule, GetManyModule, GetOneModule, ReplaceOneModule, UpdateManyModule, UpdateOneModule, createCustomRouteController } from './routes';
 import { DynamicApiBroadcastService, DynamicApiGlobalStateService } from './services';
 
 /**
@@ -109,6 +109,7 @@ export class DynamicApiModule {
     extraImports,
     extraProviders,
     extraControllers,
+    customRoutes = [],
   }: DynamicApiForFeatureOptions<Entity>): Promise<DynamicModule> {
     const schema = buildSchemaFromEntity(entity);
     const databaseModule = MongooseModule.forFeature(
@@ -137,6 +138,19 @@ export class DynamicApiModule {
           validationPipeOptions: controllerValidationPipeOptions,
           routesConfig: controllerRoutesConfig,
         } = controllerOptions;
+
+        // Build custom-route controllers (must be done before apiModule construction)
+        const customRouteControllers = customRoutes.map((customRoute) =>
+          createCustomRouteController(
+            entity,
+            controllerOptions,
+            customRoute,
+            controllerVersion,
+            controllerValidationPipeOptions,
+          ),
+        );
+
+        const needsDatabaseModule = customRouteControllers.length > 0;
 
         const castType = (t: RouteType) => t;
         const castModule = (m: RouteModule) => m;
@@ -167,6 +181,8 @@ export class DynamicApiModule {
         const apiModule = {
           module: DynamicApiModule,
           imports: [
+            // Ensure databaseModule is available for custom-route controllers / guards
+            ...(needsDatabaseModule ? [databaseModule] : []),
             ...routes.map((routeConfig) => {
               const {
                 type,
@@ -209,6 +225,7 @@ export class DynamicApiModule {
             }),
           ],
           controllers: [
+            ...customRouteControllers,
             ...(
               isCacheEnabledForFeature
                 ? [createCachePurgeController(entity, controllerOptions)]
