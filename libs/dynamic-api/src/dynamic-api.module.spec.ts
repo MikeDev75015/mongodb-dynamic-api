@@ -1195,6 +1195,78 @@ describe('DynamicApiModule', () => {
           expect(module.imports).toEqual([]);
         });
       });
+
+      describe('customRoutes with webSocket', () => {
+        it('should add a gateway provider when customRoute has webSocket: true', async () => {
+          const fakeHandler = jest.fn();
+          const options = buildDynamicApiModuleOptionsMock({
+            routes: [],
+            controllerOptions: { path: 'fake-path', disableCache: true },
+            customRoutes: [
+              { path: 'keys', method: 'GET' as const, handler: fakeHandler, webSocket: true },
+            ],
+          });
+
+          const module = await DynamicApiModule.forFeature(options);
+
+          // providers: [ APP_INTERCEPTOR_provider, gateway ]
+          expect(module.providers).toHaveLength(2);
+        });
+
+        it('should add one gateway provider per webSocket customRoute entry', async () => {
+          const fakeHandler = jest.fn();
+          const options = buildDynamicApiModuleOptionsMock({
+            routes: [],
+            controllerOptions: { path: 'fake-path', disableCache: true },
+            customRoutes: [
+              { path: 'keys', method: 'GET' as const, handler: fakeHandler, webSocket: true },
+              { path: 'lock', method: 'POST' as const, handler: fakeHandler, webSocket: true },
+            ],
+          });
+
+          const module = await DynamicApiModule.forFeature(options);
+
+          // providers: [ APP_INTERCEPTOR_provider, gateway1, gateway2 ]
+          expect(module.providers).toHaveLength(3);
+        });
+
+        it('should not add gateway providers when no customRoute has webSocket', async () => {
+          const fakeHandler = jest.fn();
+          const options = buildDynamicApiModuleOptionsMock({
+            routes: [],
+            controllerOptions: { path: 'fake-path', disableCache: true },
+            customRoutes: [
+              { path: 'keys', method: 'GET' as const, handler: fakeHandler },
+            ],
+          });
+
+          const module = await DynamicApiModule.forFeature(options);
+
+          // providers: [ APP_INTERCEPTOR_provider ] only
+          expect(module.providers).toHaveLength(1);
+        });
+
+        it('should set needsDatabaseModule to true when only gateway (no controller) uses webSocket', async () => {
+          // This scenario: customRoute with webSocket alone → databaseModule required
+          const fakeHandler = jest.fn();
+          const options = buildDynamicApiModuleOptionsMock({
+            routes: [],
+            controllerOptions: {
+              path: 'fake-path',
+              disableCache: true,
+              routesConfig: { defaults: [], excluded: [] },
+            },
+            customRoutes: [
+              { path: 'keys', method: 'GET' as const, handler: fakeHandler, webSocket: true },
+            ],
+          });
+
+          const module = await DynamicApiModule.forFeature(options);
+
+          // databaseModule + route modules → at least 1 import (databaseModule)
+          expect(module.imports).toHaveLength(1);
+        });
+      });
     });
   });
 });
