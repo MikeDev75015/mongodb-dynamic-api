@@ -11,6 +11,7 @@ export * from './logger';
 export * from './mixins';
 export * from './models';
 export * from './modules';
+export * from './modules/presence';
 export * from './routes';
 export * from './services';
 export * from './utils';
