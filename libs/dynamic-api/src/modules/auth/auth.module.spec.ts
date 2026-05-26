@@ -198,16 +198,18 @@ describe('AuthModule', () => {
         expect(spyCreateAuthServiceProvider).toHaveBeenCalledWith(
           UserEntity,
           {
-            loginField: 'email',
-            passwordField: 'password',
-            additionalFields: [],
+            loginOptions: {
+              loginField: 'email',
+              passwordField: 'password',
+              additionalFields: [],
+            },
+            getAccountCallback: undefined,
+            register: { additionalFields: [], protected: false },
+            resetPasswordOptions: undefined,
+            updateAccount: { additionalFieldsToExclude: [] },
+            refreshToken: { useInterceptors: [], refreshTokenField: undefined, useCookie: false },
+            passwordlessOptions: undefined,
           },
-          undefined,
-          { additionalFields: [], protected: false },
-          undefined,
-          { additionalFieldsToExclude: [] },
-          { useInterceptors: [], refreshTokenField: undefined, useCookie: false },
-          undefined,
         );
 
         expect(spyCreateLocalStrategyProvider).toHaveBeenCalledTimes(1);
@@ -275,13 +277,15 @@ describe('AuthModule', () => {
         expect(spyCreateAuthServiceProvider).toHaveBeenCalledTimes(1);
         expect(spyCreateAuthServiceProvider).toHaveBeenCalledWith(
           UserEntity,
-          fullOptions.login,
-          fullOptions.getAccount.callback,
-          fullOptions.register,
-          fullOptions.resetPassword,
-          fullOptions.updateAccount,
-          fullOptions.refreshToken,
-          undefined,
+          {
+            loginOptions: fullOptions.login,
+            getAccountCallback: fullOptions.getAccount.callback,
+            register: fullOptions.register,
+            resetPasswordOptions: fullOptions.resetPassword,
+            updateAccount: fullOptions.updateAccount,
+            refreshToken: fullOptions.refreshToken,
+            passwordlessOptions: undefined,
+          },
         );
 
         expect(spyCreateLocalStrategyProvider).toHaveBeenCalledTimes(1);
