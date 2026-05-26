@@ -93,6 +93,27 @@ type BeforeSaveDuplicateManyContext<Entity extends BaseEntity, BodyDTO = Entity>
   override?: Partial<BodyDTO>;
 }
 
+/**
+ * Context provided to `beforeSaveCallback` for the `register` auth route.
+ *
+ * Available immediately after the password is hashed and before the user document is persisted.
+ * Use it to set `role`, validate business rules, or strip extra request fields.
+ *
+ * @example
+ * import { BeforeRegisterContext, BeforeSaveCallback } from 'mongodb-dynamic-api';
+ *
+ * const beforeRegister: BeforeSaveCallback<User, BeforeRegisterContext> =
+ *   async (user, ctx, methods) => ({
+ *     ...user,
+ *     role: 'member',
+ *     password: ctx.hashedPassword,
+ *   });
+ */
+type BeforeRegisterContext = {
+  /** Bcrypt-hashed password, ready to be persisted. */
+  hashedPassword: string;
+};
+
 type BeforeSaveCallback<Entity extends BaseEntity, Context = Record<string, unknown>, User = unknown> = (
   entity: Entity | undefined,
   context: Context,
@@ -210,6 +231,7 @@ export type {
   BeforeSaveDeleteManyContext,
   BeforeSaveDuplicateContext,
   BeforeSaveDuplicateManyContext,
+  BeforeRegisterContext,
   DynamicApiServiceBeforeSaveCallback,
   DynamicApiServiceBeforeSaveListCallback,
   DynamicApiServiceBeforeSaveDeleteCallback,

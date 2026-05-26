@@ -27,8 +27,8 @@ export class SocketAdapter extends IoAdapter {
   }
 
   private handleConnection(socket: ExtendedSocket): void {
-    const { debug, jwtSecret, onConnection } = DynamicApiWsConfigStore;
-    let user: any;
+    const { debug, jwtSecret, onConnection, customEvents } = DynamicApiWsConfigStore;
+    let user: unknown;
 
     if (jwtSecret) {
       const token = (socket.handshake?.auth?.token
@@ -51,7 +51,8 @@ export class SocketAdapter extends IoAdapter {
     }
 
     if (debug) {
-      this.logger.log(`[WS] connection – socket=${socket.id}, user=${user?.id ?? 'anonymous'}`);
+      const userId = (user as { id?: string })?.id ?? 'anonymous';
+      this.logger.log(`[WS] connection – socket=${socket.id}, user=${userId}`);
     }
 
     if (onConnection) {
@@ -63,6 +64,30 @@ export class SocketAdapter extends IoAdapter {
           this.logger.error(`onConnection hook error for socket ${socket.id}: ${message}`, stack);
         });
       }
+    }
+
+    // ─── Register declarative custom event handlers ──────────────────────────
+    for (const eventConfig of customEvents) {
+      socket.on(eventConfig.name, (payload: unknown) => {
+        if (eventConfig.predicate && !eventConfig.predicate(user)) {
+          if (debug) {
+            this.logger.warn(`[WS] event=${eventConfig.name} blocked by predicate for socket=${socket.id}`);
+          }
+          return;
+        }
+
+        const result = eventConfig.handler(socket, payload, user);
+        if (result instanceof Promise) {
+          result.catch((err) => {
+            const message = err instanceof Error ? err.message : String(err);
+            const stack = err instanceof Error ? err.stack : undefined;
+            this.logger.error(
+              `customEvent '${eventConfig.name}' handler error for socket ${socket.id}: ${message}`,
+              stack,
+            );
+          });
+        }
+      });
     }
   }
 }

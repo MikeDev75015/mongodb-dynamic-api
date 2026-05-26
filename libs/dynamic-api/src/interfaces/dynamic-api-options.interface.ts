@@ -12,10 +12,10 @@ import { DynamicApiWebSocketOptions } from './dynamic-api-web-socket.interface';
 /** @deprecated Internal API — will be removed from public exports in v5. */
 const DYNAMIC_API_GLOBAL_STATE = Symbol('DYNAMIC_API_GLOBAL_STATE');
 
-interface DynamicApiForRootOptions<Entity extends BaseEntity = any> {
+interface DynamicApiForRootOptions<Entity extends BaseEntity = any, RegisterExtra = Record<never, never>> {
   useGlobalCache?: boolean;
   cacheOptions?: DynamicApiCacheOptions;
-  useAuth?: DynamicApiAuthOptions<Entity>;
+  useAuth?: DynamicApiAuthOptions<Entity, RegisterExtra>;
   routesConfig?: Partial<RoutesConfig>;
   webSocket?: DynamicApiWebSocketOptions;
   broadcastGatewayOptions?: GatewayMetadata;

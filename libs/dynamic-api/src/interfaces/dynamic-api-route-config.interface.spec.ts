@@ -24,6 +24,13 @@ import {
   UpdateManyRouteConfig,
   UpdateOneRouteConfig,
   CustomOperationRouteConfig,
+  defineCreateCallback,
+  defineCreateManyCallback,
+  defineUpdateCallback,
+  defineUpdateManyCallback,
+  defineReplaceCallback,
+  defineDuplicateCallback,
+  defineDuplicateManyCallback,
 } from './dynamic-api-route-config.interface';
 import {
   BeforeSaveCallback,
@@ -450,6 +457,188 @@ describe('DynamicAPIRouteConfig (deprecated alias)', () => {
     const cfg: DynamicAPIRouteConfig<Item> = { type: 'CreateOne' };
 
     expect(cfg.type).toBe('CreateOne');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// BodyDTO generic — route configs with BodyDTO propagation
+// ---------------------------------------------------------------------------
+
+describe('BodyDTO generic on write route configs', () => {
+  class Item extends BaseEntity { name: string; price: number; }
+  class CreateItemDto { name: string; discountCode?: string; }
+  class UpdateItemDto { price?: number; reason?: string; }
+  class ReplaceItemDto { name: string; price: number; featured?: boolean; }
+  class DuplicateOverrideDto { tag?: string; }
+
+  const fakeCallbackMethods = {} as CallbackMethods;
+
+  it('CreateOneRouteConfig<E, BodyDTO> — ctx.toCreate typed as Partial<BodyDTO>', async () => {
+    let capturedCode = '';
+
+    const cfg: CreateOneRouteConfig<Item, CreateItemDto> = {
+      type: 'CreateOne',
+      beforeSaveCallback: async (_e, ctx, _m) => {
+        capturedCode = ctx.toCreate.discountCode ?? 'none';
+        return { name: ctx.toCreate.name };
+      },
+    };
+
+    await cfg.beforeSaveCallback!(undefined, { toCreate: { name: 'Widget', discountCode: 'PROMO' } }, fakeCallbackMethods);
+    expect(capturedCode).toBe('PROMO');
+  });
+
+  it('UpdateOneRouteConfig<E, BodyDTO> — ctx.update typed as Partial<BodyDTO>', async () => {
+    let capturedReason = '';
+
+    const cfg: UpdateOneRouteConfig<Item, UpdateItemDto> = {
+      type: 'UpdateOne',
+      beforeSaveCallback: async (_e, ctx, _m) => {
+        capturedReason = ctx.update.reason ?? '';
+        return { price: ctx.update.price };
+      },
+    };
+
+    await cfg.beforeSaveCallback!(undefined, { id: '1', update: { price: 50, reason: 'sale' } }, fakeCallbackMethods);
+    expect(capturedReason).toBe('sale');
+  });
+
+  it('ReplaceOneRouteConfig<E, BodyDTO> — ctx.replacement typed as Partial<BodyDTO>', async () => {
+    let capturedFeatured: boolean | undefined;
+
+    const cfg: ReplaceOneRouteConfig<Item, ReplaceItemDto> = {
+      type: 'ReplaceOne',
+      beforeSaveCallback: async (_e, ctx, _m) => {
+        capturedFeatured = ctx.replacement.featured;
+        return { name: ctx.replacement.name, price: ctx.replacement.price };
+      },
+    };
+
+    await cfg.beforeSaveCallback!(undefined, { id: '1', replacement: { name: 'A', price: 10, featured: true } }, fakeCallbackMethods);
+    expect(capturedFeatured).toBe(true);
+  });
+
+  it('DuplicateOneRouteConfig<E, BodyDTO> — ctx.override typed as Partial<BodyDTO>', async () => {
+    let capturedTag = '';
+
+    const cfg: DuplicateOneRouteConfig<Item, DuplicateOverrideDto> = {
+      type: 'DuplicateOne',
+      beforeSaveCallback: async (_e, ctx, _m) => {
+        capturedTag = ctx.override?.tag ?? '';
+        return {};
+      },
+    };
+
+    await cfg.beforeSaveCallback!(undefined, { id: '1', override: { tag: 'copy' } }, fakeCallbackMethods);
+    expect(capturedTag).toBe('copy');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// defineXxxCallback helpers
+// ---------------------------------------------------------------------------
+
+describe('defineXxxCallback helpers — eliminate `as never` casts', () => {
+  class Message extends BaseEntity { text: string; }
+  class ReactBody { emojiId: string; }
+  class CreateMsgDto { text: string; pack?: string; }
+  class ReplaceDto { text: string; featured?: boolean; }
+  class DupOverride { tag?: string; }
+
+  const fakeCallbackMethods = {} as CallbackMethods;
+
+  it('defineCreateCallback — ctx.toCreate typed as Partial<BodyDTO>', async () => {
+    let capturedPack = '';
+
+    const cb = defineCreateCallback<Message, CreateMsgDto>(
+      async (_e, ctx, _m) => {
+        capturedPack = ctx.toCreate.pack ?? 'default';
+        return { text: ctx.toCreate.text };
+      },
+    );
+
+    await cb(undefined, { toCreate: { text: 'hi', pack: 'emoji-v2' } }, fakeCallbackMethods);
+    expect(capturedPack).toBe('emoji-v2');
+  });
+
+  it('defineCreateManyCallback — ctx.toCreate is array Partial<BodyDTO>', async () => {
+    const cb = defineCreateManyCallback<Message, CreateMsgDto>(
+      async (_e, ctx, _m) => ctx.toCreate.map((d) => ({ text: d.text })),
+    );
+
+    const result = await cb(undefined, { toCreate: [{ text: 'a', pack: 'p1' }, { text: 'b' }] }, fakeCallbackMethods);
+    expect(result).toHaveLength(2);
+  });
+
+  it('defineUpdateCallback — ctx.update typed as Partial<ReactBody>', async () => {
+    let capturedEmoji = '';
+
+    const cb = defineUpdateCallback<Message, ReactBody>(
+      async (_e, ctx, _m) => {
+        capturedEmoji = ctx.update.emojiId ?? '';
+        return {};
+      },
+    );
+
+    await cb(undefined, { id: '1', update: { emojiId: '👍' } }, fakeCallbackMethods);
+    expect(capturedEmoji).toBe('👍');
+  });
+
+  it('defineUpdateManyCallback — ctx.update typed as Partial<ReactBody>', async () => {
+    const cb = defineUpdateManyCallback<Message, ReactBody>(
+      async (_e, ctx, _m) => [{ text: ctx.update.emojiId }],
+    );
+
+    const result = await cb(undefined, { ids: ['1', '2'], update: { emojiId: '❤️' } }, fakeCallbackMethods);
+    expect(result[0].text).toBe('❤️');
+  });
+
+  it('defineReplaceCallback — ctx.replacement typed as Partial<ReplaceDto>', async () => {
+    let capturedFeatured: boolean | undefined;
+
+    const cb = defineReplaceCallback<Message, ReplaceDto>(
+      async (_e, ctx, _m) => {
+        capturedFeatured = ctx.replacement.featured;
+        return {};
+      },
+    );
+
+    await cb(undefined, { id: '1', replacement: { text: 'x', featured: true } }, fakeCallbackMethods);
+    expect(capturedFeatured).toBe(true);
+  });
+
+  it('defineDuplicateCallback — ctx.override typed as Partial<DupOverride>', async () => {
+    let capturedTag = '';
+
+    const cb = defineDuplicateCallback<Message, DupOverride>(
+      async (_e, ctx, _m) => {
+        capturedTag = ctx.override?.tag ?? '';
+        return {};
+      },
+    );
+
+    await cb(undefined, { id: '1', override: { tag: 'promo' } }, fakeCallbackMethods);
+    expect(capturedTag).toBe('promo');
+  });
+
+  it('defineDuplicateManyCallback — ctx.override typed as Partial<DupOverride>', async () => {
+    let capturedTag = '';
+
+    const cb = defineDuplicateManyCallback<Message, DupOverride>(
+      async (_e, ctx, _m) => {
+        capturedTag = ctx.override?.tag ?? '';
+        return [];
+      },
+    );
+
+    await cb(undefined, { ids: ['1'], override: { tag: 'clone' } }, fakeCallbackMethods);
+    expect(capturedTag).toBe('clone');
+  });
+
+  it('helper returns the SAME function reference (identity)', () => {
+    const fn = async (_e: Message | undefined, _ctx: import('./dynamic-api-service-before-save-callback.interface').BeforeSaveUpdateContext<Message, ReactBody>, _m: CallbackMethods): Promise<Partial<Message>> => ({});
+    const wrapped = defineUpdateCallback<Message, ReactBody>(fn);
+    expect(wrapped).toBe(fn);
   });
 });
 

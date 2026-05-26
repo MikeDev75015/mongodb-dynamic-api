@@ -143,5 +143,140 @@ describe('SocketAdapter', () => {
         expect.any(String),
       );
     });
+
+    describe('customEvents', () => {
+      it('registers socket.on for each customEvent on connection', () => {
+        const handler = jest.fn();
+        const eventSocket = {
+          id: 'sock-ev',
+          handshake: { auth: {}, query: {} },
+          on: jest.fn(),
+        };
+
+        DynamicApiWsConfigStore.customEvents = [
+          { name: 'voice-call', handler },
+          { name: 'admin-action', handler },
+        ];
+
+        connectionHandler(eventSocket);
+
+        expect(eventSocket.on).toHaveBeenCalledTimes(2);
+        expect(eventSocket.on).toHaveBeenCalledWith('voice-call', expect.any(Function));
+        expect(eventSocket.on).toHaveBeenCalledWith('admin-action', expect.any(Function));
+      });
+
+      it('calls the event handler with payload and user', () => {
+        const handler = jest.fn();
+        let capturedListener: ((payload: unknown) => void) | undefined;
+
+        const eventSocket = {
+          id: 'sock-ev2',
+          handshake: { auth: {}, query: {} },
+          on: jest.fn((_name: string, listener: (payload: unknown) => void) => {
+            capturedListener = listener;
+          }),
+        };
+
+        DynamicApiWsConfigStore.customEvents = [{ name: 'test-event', handler }];
+
+        connectionHandler(eventSocket);
+        capturedListener!({ data: 'hello' });
+
+        expect(handler).toHaveBeenCalledWith(eventSocket, { data: 'hello' }, undefined);
+      });
+
+      it('blocks the event handler when predicate returns false', () => {
+        const handler = jest.fn();
+        const predicate = jest.fn().mockReturnValue(false);
+        let capturedListener: ((payload: unknown) => void) | undefined;
+
+        const eventSocket = {
+          id: 'sock-pred',
+          handshake: { auth: {}, query: {} },
+          on: jest.fn((_name: string, listener: (payload: unknown) => void) => {
+            capturedListener = listener;
+          }),
+        };
+
+        DynamicApiWsConfigStore.customEvents = [{ name: 'restricted', handler, predicate }];
+
+        connectionHandler(eventSocket);
+        capturedListener!({ data: 'blocked' });
+
+        expect(predicate).toHaveBeenCalledWith(undefined);
+        expect(handler).not.toHaveBeenCalled();
+      });
+
+      it('calls the event handler when predicate returns true', () => {
+        const handler = jest.fn();
+        const predicate = jest.fn().mockReturnValue(true);
+        let capturedListener: ((payload: unknown) => void) | undefined;
+
+        const eventSocket = {
+          id: 'sock-pred2',
+          handshake: { auth: {}, query: {} },
+          on: jest.fn((_name: string, listener: (payload: unknown) => void) => {
+            capturedListener = listener;
+          }),
+        };
+
+        DynamicApiWsConfigStore.customEvents = [{ name: 'allowed', handler, predicate }];
+
+        connectionHandler(eventSocket);
+        capturedListener!({ data: 'ok' });
+
+        expect(handler).toHaveBeenCalledWith(eventSocket, { data: 'ok' }, undefined);
+      });
+
+      it('catches async custom event handler errors', async () => {
+        const error = new Error('event error');
+        const handler = jest.fn().mockRejectedValue(error);
+        const spyError = jest.spyOn(adapter['logger'], 'error').mockImplementation(() => {});
+        let capturedListener: ((payload: unknown) => void) | undefined;
+
+        const eventSocket = {
+          id: 'sock-err',
+          handshake: { auth: {}, query: {} },
+          on: jest.fn((_name: string, listener: (payload: unknown) => void) => {
+            capturedListener = listener;
+          }),
+        };
+
+        DynamicApiWsConfigStore.customEvents = [{ name: 'failing-event', handler }];
+
+        connectionHandler(eventSocket);
+        capturedListener!({});
+
+        await new Promise((r) => setTimeout(r, 10));
+
+        expect(spyError).toHaveBeenCalledWith(
+          expect.stringContaining("customEvent 'failing-event' handler error"),
+          expect.any(String),
+        );
+      });
+
+      it('logs debug warning when predicate blocks event and debug is true', () => {
+        DynamicApiWsConfigStore.debug = true;
+        const spyWarn = jest.spyOn(adapter['logger'], 'warn').mockImplementation(() => {});
+        const handler = jest.fn();
+        const predicate = jest.fn().mockReturnValue(false);
+        let capturedListener: ((payload: unknown) => void) | undefined;
+
+        const eventSocket = {
+          id: 'sock-dbg',
+          handshake: { auth: {}, query: {} },
+          on: jest.fn((_name: string, listener: (payload: unknown) => void) => {
+            capturedListener = listener;
+          }),
+        };
+
+        DynamicApiWsConfigStore.customEvents = [{ name: 'guarded', handler, predicate }];
+
+        connectionHandler(eventSocket);
+        capturedListener!({});
+
+        expect(spyWarn).toHaveBeenCalledWith(expect.stringContaining('blocked by predicate'));
+      });
+    });
   });
 });

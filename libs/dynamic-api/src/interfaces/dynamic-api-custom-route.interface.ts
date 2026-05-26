@@ -1,7 +1,8 @@
-import { CanActivate, Type, ValidationPipeOptions } from '@nestjs/common';
+import { CanActivate, NestInterceptor, Type, ValidationPipeOptions } from '@nestjs/common';
 import { Model } from 'mongoose';
 import { BaseEntity } from '../models';
 import { AbilityPredicate, PredicateBehavior } from './dynamic-api-ability.interface';
+import { DynamicApiRequest } from './dynamic-api-request.interface';
 import { Mappable } from './dynamic-api-route-dtos-bundle.type';
 import { DynamicApiWebSocketOptions } from './dynamic-api-web-socket.interface';
 
@@ -34,6 +35,26 @@ interface CustomRouteContext<
   body: Body;
   /** Parsed query string object. */
   query: Query;
+  /**
+   * The raw HTTP request object.
+   *
+   * Available **only** in HTTP context (not in WebSocket/gateway handlers, where it is `undefined`).
+   *
+   * Useful for accessing Multer file uploads (via `FileInterceptor`) or other low-level
+   * request properties that are not available through the typed `body`/`query` fields.
+   *
+   * @example — reading a Multer file added by `FileInterceptor`
+   * ```typescript
+   * import type { DynamicApiRequest } from 'mongodb-dynamic-api';
+   *
+   * const handleUpload = async ({ req }) => {
+   *   interface UploadRequest extends DynamicApiRequest { file?: Express.Multer.File }
+   *   const file = (req as UploadRequest)?.file;
+   *   // ...
+   * };
+   * ```
+   */
+  req?: DynamicApiRequest;
 }
 
 /**
@@ -139,6 +160,30 @@ interface CustomRouteConfig<
      */
     presenter?: Type & Partial<Mappable<Entity>>;
   };
+
+  /**
+   * Route-level NestJS interceptors applied **only** to this custom route.
+   *
+   * Use this to attach per-route interceptors such as `FileInterceptor` for multipart
+   * uploads without touching the controller-level `useInterceptors`.
+   *
+   * @example — multipart file upload via `FileInterceptor`
+   * ```typescript
+   * import { FileInterceptor } from '@nestjs/platform-express';
+   *
+   * {
+   *   method: 'POST',
+   *   path: ':id/attachments/upload',
+   *   useInterceptors: [FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } })],
+   *   handler: async ({ req }) => {
+   *     interface UploadRequest extends DynamicApiRequest { file?: Express.Multer.File }
+   *     const file = (req as UploadRequest).file;
+   *     // process file ...
+   *   },
+   * }
+   * ```
+   */
+  useInterceptors?: Type<NestInterceptor>[];
 }
 
 export type { HttpMethod, CustomRouteContext, CustomRouteConfig };

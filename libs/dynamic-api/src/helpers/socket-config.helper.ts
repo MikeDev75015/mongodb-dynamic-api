@@ -44,6 +44,7 @@ function enableDynamicAPIWebSockets(
 
   // Populate the static config store
   DynamicApiWsConfigStore.onConnection = resolvedOptions.onConnection;
+  DynamicApiWsConfigStore.customEvents = resolvedOptions.customEvents ?? [];
   DynamicApiWsConfigStore.debug = resolvedOptions.debug ?? false;
 
   // Read jwtSecret from global state (may be undefined when auth is not configured)
