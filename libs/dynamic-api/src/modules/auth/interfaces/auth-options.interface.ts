@@ -2,6 +2,7 @@ import { ModuleMetadata, NestInterceptor, Type, ValidationPipeOptions } from '@n
 import type { Request } from 'express';
 import {
   AuthAbilityPredicate,
+  BeforeRegisterContext,
   BroadcastAbilityPredicate,
   BroadcastRooms,
   DynamicApiResetPasswordCallback,
@@ -52,12 +53,33 @@ type DynamicApiGetAccountOptions<Entity extends BaseEntity = any> = {
   broadcast?: DynamicApiAuthBroadcastConfig<Entity>;
 };
 
-type DynamicApiRegisterOptions<Entity extends BaseEntity = any> = {
-  beforeSaveCallback?: BeforeSaveCallback<Entity>;
+/**
+ * Options for the `register` auth route.
+ *
+ * @typeParam Entity - The user entity class.
+ * @typeParam TExtra - Optional shape of extra request fields (e.g. `deviceToken`) that are
+ *   declared in `additionalFields` but not part of the entity type.
+ *   Defaults to `Record<never, never>` (no extras) so existing usage compiles unchanged.
+ *
+ * @example — typed extra fields, zero casts in callback
+ * ```typescript
+ * import { DynamicApiRegisterOptions, BeforeRegisterContext } from 'mongodb-dynamic-api';
+ *
+ * const registerOptions: DynamicApiRegisterOptions<User, { deviceToken?: string }> = {
+ *   additionalFields: [{ name: 'deviceToken', required: false }],
+ *   beforeSaveCallback: async (user, ctx, methods) => {
+ *     const token = user?.deviceToken; // ✅ fully typed, no cast
+ *     return { ...user, role: 'member' };
+ *   },
+ * };
+ * ```
+ */
+type DynamicApiRegisterOptions<Entity extends BaseEntity = any, TExtra = Record<never, never>> = {
+  beforeSaveCallback?: BeforeSaveCallback<Entity & TExtra, BeforeRegisterContext>;
   callback?: AfterSaveCallback<Entity>;
   protected?: boolean;
   abilityPredicate?: AuthAbilityPredicate;
-  additionalFields?: (keyof Entity | { name: keyof Entity; required?: boolean })[];
+  additionalFields?: (keyof (Entity & TExtra) | { name: keyof (Entity & TExtra); required?: boolean })[];
   useInterceptors?: Type<NestInterceptor>[];
   broadcast?: DynamicApiAuthBroadcastConfig<Entity>;
 };
@@ -129,12 +151,12 @@ type PasswordlessOptions<Entity extends BaseEntity = any> = {
   callback?: AfterSaveCallback<Entity>;
 };
 
-type DynamicApiAuthOptions<Entity extends BaseEntity = any> = {
+type DynamicApiAuthOptions<Entity extends BaseEntity = any, RegisterExtra = Record<never, never>> = {
   userEntity: Type<Entity>;
   jwt?: DynamicApiJWTOptions;
   login?: DynamicApiLoginOptions<Entity>;
   getAccount?: DynamicApiGetAccountOptions<Entity>;
-  register?: DynamicApiRegisterOptions<Entity>;
+  register?: DynamicApiRegisterOptions<Entity, RegisterExtra>;
   updateAccount?: DynamicApiUpdateAccountOptions<Entity>;
   resetPassword?: Partial<DynamicApiResetPasswordOptions<Entity>>;
   refreshToken?: DynamicApiRefreshTokenOptions<Entity>;

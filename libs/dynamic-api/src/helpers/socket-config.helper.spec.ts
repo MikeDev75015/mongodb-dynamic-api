@@ -44,6 +44,25 @@ describe('SocketConfigHelper', () => {
       expect(DynamicApiWsConfigStore.debug).toBe(true);
       expect(DynamicApiWsConfigStore.onConnection).toBe(onConnection);
       expect(DynamicApiWsConfigStore.jwtSecret).toBe('test-jwt-secret');
+      expect(DynamicApiWsConfigStore.customEvents).toEqual([]);
+    });
+
+    it('should populate customEvents in the config store', () => {
+      const handler = jest.fn();
+      const customEvents = [
+        { name: 'voice-call', handler },
+        { name: 'admin-action', predicate: jest.fn(), handler },
+      ];
+
+      enableDynamicAPIWebSockets(fakeApp, { customEvents });
+
+      expect(DynamicApiWsConfigStore.customEvents).toBe(customEvents);
+    });
+
+    it('should default customEvents to empty array when not provided', () => {
+      enableDynamicAPIWebSockets(fakeApp);
+
+      expect(DynamicApiWsConfigStore.customEvents).toEqual([]);
     });
 
     it('should accept a number (deprecated) and warn', () => {

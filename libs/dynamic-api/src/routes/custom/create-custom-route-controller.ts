@@ -92,6 +92,7 @@ function createCustomRouteController<
     predicateBehavior,
     validationPipeOptions: routeValidationPipeOptions,
     dTOs,
+    useInterceptors: routeInterceptors = [],
   } = customRouteConfig;
 
   const { path: controllerPath, apiTag } = controllerOptions;
@@ -150,6 +151,7 @@ function createCustomRouteController<
         params: params as Params,
         body: body as Body,
         query: query as QueryDto,
+        req,
       });
 
       const fromEntity = (presenterType as Mappable<Entity>).fromEntity;
@@ -198,6 +200,11 @@ function createCustomRouteController<
 
   if (allGuards.length > 0) {
     UseGuards(...allGuards)(CustomRouteController.prototype, 'handle', descriptor);
+  }
+
+  // ─── Route-level interceptors (e.g. FileInterceptor) ──────────────────────
+  if (routeInterceptors.length > 0) {
+    UseInterceptors(...routeInterceptors)(CustomRouteController.prototype, 'handle', descriptor);
   }
 
   if (isPublic) {

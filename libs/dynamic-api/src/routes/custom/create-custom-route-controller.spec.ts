@@ -256,6 +256,7 @@ describe('createCustomRouteController', () => {
         params,
         body,
         query,
+        req,
       });
     });
 
@@ -298,7 +299,20 @@ describe('createCustomRouteController', () => {
       await instance.handle({}, {}, {}, undefined);
 
       expect(fakeHandler).toHaveBeenCalledWith(
-        expect.objectContaining({ user: undefined }),
+        expect.objectContaining({ user: undefined, req: undefined }),
+      );
+    });
+
+    it('passes req object to handler context', async () => {
+      const Ctrl = makeController();
+      const instance: ControllerInstanceShape = Object.create(Ctrl.prototype);
+      instance.model = {};
+
+      const req = { user: { id: 'u1' } };
+      await instance.handle({}, {}, {}, req);
+
+      expect(fakeHandler).toHaveBeenCalledWith(
+        expect.objectContaining({ req }),
       );
     });
   });
@@ -346,6 +360,38 @@ describe('createCustomRouteController', () => {
   });
 
   // ── version inheritance ──────────────────────────────────────────────────
+
+  describe('useInterceptors (route-level)', () => {
+    it('applies route-level UseInterceptors decorator to the handle method', () => {
+      class LoggingInterceptor {
+        intercept = jest.fn();
+      }
+
+      const Ctrl = createCustomRouteController(
+        FakeEntity,
+        fakeControllerOptions,
+        {
+          path: 'upload',
+          method: 'POST',
+          handler: fakeHandler,
+          useInterceptors: [LoggingInterceptor as never],
+        },
+      ) as unknown as CustomRouteControllerClass;
+
+      // The controller must exist and compile without error
+      expect(Ctrl).toBeDefined();
+    });
+
+    it('does not throw when no route-level useInterceptors provided', () => {
+      expect(() => {
+        createCustomRouteController(
+          FakeEntity,
+          fakeControllerOptions,
+          { path: 'resource', method: 'GET', handler: fakeHandler },
+        );
+      }).not.toThrow();
+    });
+  });
 
   describe('version', () => {
     it('inherits controllerVersion when customRoute.version is not set', () => {

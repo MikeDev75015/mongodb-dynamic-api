@@ -1,5 +1,6 @@
 import { BaseEntity } from '../models';
 import {
+  BeforeRegisterContext,
   BeforeSaveCallback,
   BeforeSaveCreateContext,
   BeforeSaveCreateManyContext,
@@ -435,6 +436,72 @@ describe('deprecated aliases — BodyDTO propagation', () => {
       override: { tag: 'sale' },
     };
     expect(ctx.override?.tag).toBe('sale');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// BeforeRegisterContext
+// ---------------------------------------------------------------------------
+
+describe('BeforeRegisterContext', () => {
+  class UserEntity extends BaseEntity {
+    email: string;
+    password: string;
+    role?: string;
+  }
+
+  const fakeCallbackMethods = {} as import('./dynamic-api-service-callback.interface').CallbackMethods;
+
+  it('has hashedPassword as string', () => {
+    const ctx: BeforeRegisterContext = { hashedPassword: '$2b$10$hash' };
+    expect(ctx.hashedPassword).toBe('$2b$10$hash');
+  });
+
+  it('BeforeSaveCallback typed with BeforeRegisterContext — receives hashedPassword', async () => {
+    let receivedHash = '';
+
+    const cb: BeforeSaveCallback<UserEntity, BeforeRegisterContext> =
+      async (user, ctx, _methods) => {
+        receivedHash = ctx.hashedPassword;
+        return { ...user, role: 'member' };
+      };
+
+    const ctx: BeforeRegisterContext = { hashedPassword: 'hashed123' };
+    const fakeUser = Object.assign(new UserEntity(), { id: 'u1', email: 'a@b.com', password: '' });
+
+    await cb(fakeUser, ctx, fakeCallbackMethods);
+
+    expect(receivedHash).toBe('hashed123');
+  });
+
+  it('callback that ignores ctx is assignable to BeforeSaveCallback<User, BeforeRegisterContext>', async () => {
+    // contravariance: a callback typed with Record<string,unknown> context IS callable
+    // where BeforeRegisterContext is expected (duck typing / structural compatibility)
+    const cb: BeforeSaveCallback<UserEntity, BeforeRegisterContext> =
+      async (user, _ctx, _methods) => ({ role: 'user' });
+
+    const ctx: BeforeRegisterContext = { hashedPassword: 'h' };
+    const fakeUser = Object.assign(new UserEntity(), { id: 'u1', email: 'a@b.com', password: '' });
+    const result = await cb(fakeUser, ctx, fakeCallbackMethods);
+
+    expect(result.role).toBe('user');
+  });
+
+  it('BeforeRegisterContext + TExtra pattern — user typed as Entity & TExtra', async () => {
+    type WithDevice = UserEntity & { deviceToken?: string };
+
+    const cb: BeforeSaveCallback<WithDevice, BeforeRegisterContext> =
+      async (user, ctx, _methods) => {
+        const token = user?.deviceToken;
+        expect(token).toBe('tok123');
+        return { role: 'member', password: ctx.hashedPassword };
+      };
+
+    const fakeUser = Object.assign(new UserEntity(), {
+      id: 'u1', email: 'a@b.com', password: '', deviceToken: 'tok123',
+    }) as WithDevice;
+
+    await cb(fakeUser, { hashedPassword: 'h' }, fakeCallbackMethods);
   });
 });
 
