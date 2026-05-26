@@ -1,5 +1,11 @@
 Changelog
 
+## [4.13.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.12.0...v4.13.0) (2026-05-26)
+
+### route-config
+
+* **route-config:** replace flat DynamicApiRouteConfig with discriminated union ([6046c61](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/6046c6159eb43e68d9efec5bc5890fd9f4c1aadb))
+
 ## [4.12.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.11.0...v4.12.0) (2026-05-26)
 
 ### auth
