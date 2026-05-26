@@ -1,5 +1,11 @@
 Changelog
 
+## [4.12.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.11.0...v4.12.0) (2026-05-26)
+
+### auth
+
+* **auth:** add passwordless OTP flow ([858cd49](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/858cd49e348127412e8eaf86f06d94d0784bef63))
+
 ## [4.11.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.10.0...v4.11.0) (2026-05-25)
 
 ### callbacks
