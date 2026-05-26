@@ -1,5 +1,11 @@
 Changelog
 
+## [4.14.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.13.0...v4.14.0) (2026-05-26)
+
+### typing
+
+* **typing:** 6 upstream improvements — BeforeRegisterContext, TExtra, BodyDTO generics, customRoutes req/interceptors, WS customEvents ([bab7aec](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/bab7aecf5400954c6f21c1e99434174b892cde1d)), closes [#5](https://github.com/MikeDev75015/mongodb-dynamic-api/issues/5) [#2](https://github.com/MikeDev75015/mongodb-dynamic-api/issues/2) [#4](https://github.com/MikeDev75015/mongodb-dynamic-api/issues/4) [#3](https://github.com/MikeDev75015/mongodb-dynamic-api/issues/3) [#6](https://github.com/MikeDev75015/mongodb-dynamic-api/issues/6)
+
 ## [4.13.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.12.0...v4.13.0) (2026-05-26)
 
 ### route-config
