@@ -27,42 +27,54 @@ import { AuthPoliciesGuardMixin } from './auth-policies-guard.mixin';
 const REFRESH_TOKEN_COOKIE = 'refreshToken';
 const COOKIE_OPTIONS = { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict' as const };
 
+type AuthControllerMixinOptions<Entity extends BaseEntity> = {
+  loginOptions: DynamicApiLoginOptions<Entity>;
+  registerOptions?: DynamicApiRegisterOptions<Entity>;
+  resetPasswordOptions?: DynamicApiResetPasswordOptions<Entity>;
+  updateAccountOptions?: DynamicApiUpdateAccountOptions<Entity>;
+  getAccountOptions?: DynamicApiGetAccountOptions<Entity>;
+  refreshTokenOptions?: DynamicApiRefreshTokenOptions<Entity>;
+  passwordlessOptions?: PasswordlessOptions<Entity>;
+};
+
 function AuthControllerMixin<Entity extends BaseEntity>(
   userEntity: Type<Entity>,
   {
-    loginField,
-    passwordField,
-    additionalFields: additionalRequestFields = [],
-    useInterceptors: loginUseInterceptors = [],
-    broadcast: loginBroadcastConfig,
-  }: DynamicApiLoginOptions<Entity>,
-  {
-    additionalFields: additionalRegisterFields,
-    protected: registerProtected,
-    abilityPredicate: registerAbilityPredicate,
-    useInterceptors: registerUseInterceptors = [],
-    broadcast: registerBroadcastConfig,
-  }: DynamicApiRegisterOptions<Entity> = {},
-  {
-    resetPasswordUseInterceptors = [],
-    changePasswordUseInterceptors = [],
-    ...resetPasswordOptions
-  }: DynamicApiResetPasswordOptions<Entity> = {},
-  {
-    useInterceptors: updateAccountUseInterceptors = [],
-    broadcast: updateAccountBroadcastConfig,
-    refreshTokenOnUpdate = false,
-    ...updateAccountOptions
-  }: DynamicApiUpdateAccountOptions<Entity> = {},
-  {
-    useInterceptors: getAccountUseInterceptors = [],
-    broadcast: getAccountBroadcastConfig,
-  }: DynamicApiGetAccountOptions<Entity> = {},
-  {
-    useInterceptors: refreshTokenUseInterceptors = [],
-    useCookie = false,
-  }: DynamicApiRefreshTokenOptions<Entity> = {},
-  passwordlessOptions?: PasswordlessOptions<Entity>,
+    loginOptions: {
+      loginField,
+      passwordField,
+      additionalFields: additionalRequestFields = [],
+      useInterceptors: loginUseInterceptors = [],
+      broadcast: loginBroadcastConfig,
+    },
+    registerOptions: {
+      additionalFields: additionalRegisterFields,
+      protected: registerProtected,
+      abilityPredicate: registerAbilityPredicate,
+      useInterceptors: registerUseInterceptors = [],
+      broadcast: registerBroadcastConfig,
+    } = {},
+    resetPasswordOptions: {
+      resetPasswordUseInterceptors = [],
+      changePasswordUseInterceptors = [],
+      ...resetPasswordOptions
+    } = {},
+    updateAccountOptions: {
+      useInterceptors: updateAccountUseInterceptors = [],
+      broadcast: updateAccountBroadcastConfig,
+      refreshTokenOnUpdate = false,
+      ...updateAccountOptions
+    } = {},
+    getAccountOptions: {
+      useInterceptors: getAccountUseInterceptors = [],
+      broadcast: getAccountBroadcastConfig,
+    } = {},
+    refreshTokenOptions: {
+      useInterceptors: refreshTokenUseInterceptors = [],
+      useCookie = false,
+    } = {},
+    passwordlessOptions,
+  }: AuthControllerMixinOptions<Entity>,
 ): AuthControllerConstructor<Entity> {
   if (!loginField || !passwordField) {
     throw new Error('Login and password fields are required');

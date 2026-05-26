@@ -30,10 +30,7 @@ describe('AuthControllerMixin', () => {
   it('should throw error when invalid entity is provided', () => {
     expect(() => AuthControllerMixin<TestEntity>(
       null,
-      { loginField: 'loginField', passwordField: 'passwordField' },
-      undefined,
-      undefined,
-      undefined,
+      { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' } },
     ))
     .toThrow();
   });
@@ -41,30 +38,21 @@ describe('AuthControllerMixin', () => {
   it('should throw error when invalid loginField is provided', () => {
     expect(() => AuthControllerMixin(
       TestEntity,
-      { loginField: null, passwordField: 'passwordField' },
-      undefined,
-      undefined,
-      undefined,
+      { loginOptions: { loginField: null, passwordField: 'passwordField' } },
     )).toThrow();
   });
 
   it('should throw error when invalid passwordField is provided', () => {
     expect(() => AuthControllerMixin(
       TestEntity,
-      { loginField: 'loginField', passwordField: null },
-      undefined,
-      undefined,
-      undefined,
+      { loginOptions: { loginField: 'loginField', passwordField: null } },
     )).toThrow();
   });
 
   it('should create AuthController', () => {
     const AuthController = AuthControllerMixin(
       TestEntity,
-      { loginField: 'loginField', passwordField: 'passwordField' },
-      undefined,
-      undefined,
-      undefined,
+      { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' } },
     );
     const controller = new AuthController(service);
 
@@ -82,13 +70,14 @@ describe('AuthControllerMixin', () => {
   it('should create AuthController with additional fields', () => {
     const AuthController = AuthControllerMixin(
       TestEntity,
-      { loginField: 'loginField', passwordField: 'passwordField', additionalFields: ['field1'] },
       {
-        additionalFields: ['field1', { name: 'field2', required: true }, { name: 'field3', required: false }],
-        abilityPredicate: (user: TestEntity) => user.isAdmin,
-        protected: true,
+        loginOptions: { loginField: 'loginField', passwordField: 'passwordField', additionalFields: ['field1'] },
+        registerOptions: {
+          additionalFields: ['field1', { name: 'field2', required: true }, { name: 'field3', required: false }],
+          abilityPredicate: (user: TestEntity) => user.isAdmin,
+          protected: true,
+        },
       },
-      undefined
     );
     const controller = new AuthController(service);
 
@@ -104,10 +93,7 @@ describe('AuthControllerMixin', () => {
     it('should decode JWT from authorization header and call service getAccount with decoded user', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        { loginField: 'loginField', passwordField: 'passwordField' },
-        undefined,
-        undefined,
-        undefined,
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' } },
       );
       const decodedUser = { id: 'decoded-id', loginField: 'decoded-login', iat: 1, exp: 9999 };
       jwtService.decode.mockReturnValueOnce(decodedUser);
@@ -124,10 +110,7 @@ describe('AuthControllerMixin', () => {
     it('should fall back to req.user when jwtService is not available', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        { loginField: 'loginField', passwordField: 'passwordField' },
-        undefined,
-        undefined,
-        undefined,
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' } },
       );
       const controller = new AuthController(service);
       const user = new TestEntity();
@@ -140,10 +123,7 @@ describe('AuthControllerMixin', () => {
     it('should fall back to req.user when authorization header is missing', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        { loginField: 'loginField', passwordField: 'passwordField' },
-        undefined,
-        undefined,
-        undefined,
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' } },
       );
       const controller = new AuthController(service, undefined, jwtService);
       const user = new TestEntity();
@@ -156,10 +136,7 @@ describe('AuthControllerMixin', () => {
     it('should fall back to req.user when jwtService.decode returns null', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        { loginField: 'loginField', passwordField: 'passwordField' },
-        undefined,
-        undefined,
-        undefined,
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' } },
       );
       jwtService.decode.mockReturnValueOnce(null);
       const controller = new AuthController(service, undefined, jwtService);
@@ -173,10 +150,7 @@ describe('AuthControllerMixin', () => {
     it('should fall back to req.user when jwtService.decode throws', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        { loginField: 'loginField', passwordField: 'passwordField' },
-        undefined,
-        undefined,
-        undefined,
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' } },
       );
       jwtService.decode.mockImplementationOnce(() => { throw new Error('decode error'); });
       const controller = new AuthController(service, undefined, jwtService);
@@ -192,10 +166,7 @@ describe('AuthControllerMixin', () => {
     it('should decode JWT from authorization header and call service updateAccount with decoded user', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        { loginField: 'loginField', passwordField: 'passwordField' },
-        undefined,
-        undefined,
-        undefined,
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' } },
       );
       const decodedUser = { id: 'decoded-id', loginField: 'decoded-login', iat: 1, exp: 9999 };
       jwtService.decode.mockReturnValueOnce(decodedUser);
@@ -213,10 +184,7 @@ describe('AuthControllerMixin', () => {
     it('should fall back to req.user when jwtService is not available', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        { loginField: 'loginField', passwordField: 'passwordField' },
-        undefined,
-        undefined,
-        undefined,
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' } },
       );
       const controller = new AuthController(service);
       const user = new TestEntity();
@@ -230,10 +198,7 @@ describe('AuthControllerMixin', () => {
       it('should return LoginResponse when service returns accessToken', async () => {
         const AuthController = AuthControllerMixin(
           TestEntity,
-          { loginField: 'loginField', passwordField: 'passwordField' },
-          undefined,
-          undefined,
-          { refreshTokenOnUpdate: true },
+          { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' }, updateAccountOptions: { refreshTokenOnUpdate: true } },
         );
         const controller = new AuthController(service);
         const user = new TestEntity();
@@ -253,12 +218,11 @@ describe('AuthControllerMixin', () => {
       it('should set cookie and strip refreshToken when useCookie + refreshTokenOnUpdate', async () => {
         const AuthController = AuthControllerMixin(
           TestEntity,
-          { loginField: 'loginField', passwordField: 'passwordField' },
-          undefined,
-          undefined,
-          { refreshTokenOnUpdate: true },
-          undefined,
-          { useCookie: true },
+          {
+            loginOptions: { loginField: 'loginField', passwordField: 'passwordField' },
+            updateAccountOptions: { refreshTokenOnUpdate: true },
+            refreshTokenOptions: { useCookie: true },
+          },
         );
         const controller = new AuthController(service);
         const user = new TestEntity();
@@ -278,10 +242,7 @@ describe('AuthControllerMixin', () => {
       it('should return account entity when service returns entity (no accessToken)', async () => {
         const AuthController = AuthControllerMixin(
           TestEntity,
-          { loginField: 'loginField', passwordField: 'passwordField' },
-          undefined,
-          undefined,
-          { refreshTokenOnUpdate: true },
+          { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' }, updateAccountOptions: { refreshTokenOnUpdate: true } },
         );
         const controller = new AuthController(service);
         const user = new TestEntity();
@@ -304,7 +265,7 @@ describe('AuthControllerMixin', () => {
     it('should run login in "login" context', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        { loginField: 'loginField', passwordField: 'passwordField' },
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' } },
       );
       const controller = new AuthController(service);
       const fakeRes = { cookie: jest.fn() };
@@ -323,7 +284,7 @@ describe('AuthControllerMixin', () => {
     it('should run register in "register" context', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        { loginField: 'loginField', passwordField: 'passwordField' },
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' } },
       );
       const controller = new AuthController(service);
       const fakeRes = { cookie: jest.fn() };
@@ -342,7 +303,7 @@ describe('AuthControllerMixin', () => {
     it('should run updateAccount in "updateAccount" context', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        { loginField: 'loginField', passwordField: 'passwordField' },
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' } },
       );
       const controller = new AuthController(service);
       const fakeRes = { cookie: jest.fn() };
@@ -371,10 +332,7 @@ describe('AuthControllerMixin', () => {
     it('should call service login', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        { loginField: 'loginField', passwordField: 'passwordField' },
-        undefined,
-        undefined,
-        undefined,
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' } },
       );
       const controller = new AuthController(service);
       const user = new TestEntity();
@@ -389,9 +347,7 @@ describe('AuthControllerMixin', () => {
     it('should set cookie and return body without refreshToken when useCookie is true', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        { loginField: 'loginField', passwordField: 'passwordField' },
-        undefined, undefined, undefined, undefined,
-        { useCookie: true },
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' }, refreshTokenOptions: { useCookie: true } },
       );
       const controller = new AuthController(service);
       const user = new TestEntity();
@@ -409,10 +365,7 @@ describe('AuthControllerMixin', () => {
     it('should call service register', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        { loginField: 'loginField', passwordField: 'passwordField' },
-        undefined,
-        undefined,
-        undefined,
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' } },
       );
       const controller = new AuthController(service);
       const user = new TestEntity();
@@ -427,9 +380,7 @@ describe('AuthControllerMixin', () => {
     it('should set cookie and return body without refreshToken when useCookie is true', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        { loginField: 'loginField', passwordField: 'passwordField' },
-        undefined, undefined, undefined, undefined,
-        { useCookie: true },
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' }, refreshTokenOptions: { useCookie: true } },
       );
       const controller = new AuthController(service);
       const fakeRes = { cookie: jest.fn() };
@@ -446,10 +397,7 @@ describe('AuthControllerMixin', () => {
     it('should call service resetPassword', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        { loginField: 'loginField', passwordField: 'passwordField' },
-        undefined,
-        undefined,
-        undefined,
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' } },
       );
       const controller = new AuthController(service);
 
@@ -463,10 +411,7 @@ describe('AuthControllerMixin', () => {
     it('should call service changePassword', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        { loginField: 'loginField', passwordField: 'passwordField' },
-        undefined,
-        undefined,
-        undefined,
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' } },
       );
       const controller = new AuthController(service);
 
@@ -480,7 +425,7 @@ describe('AuthControllerMixin', () => {
     it('should call service refreshToken with user and raw Bearer token from request', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        { loginField: 'loginField', passwordField: 'passwordField' },
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' } },
       );
       const controller = new AuthController(service);
       const user = new TestEntity();
@@ -500,9 +445,7 @@ describe('AuthControllerMixin', () => {
     it('should call service refreshToken with cookie token when useCookie is true', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        { loginField: 'loginField', passwordField: 'passwordField' },
-        undefined, undefined, undefined, undefined,
-        { useCookie: true },
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' }, refreshTokenOptions: { useCookie: true } },
       );
       const controller = new AuthController(service);
       const user = new TestEntity();
@@ -525,7 +468,7 @@ describe('AuthControllerMixin', () => {
     it('should call service logout', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        { loginField: 'loginField', passwordField: 'passwordField' },
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' } },
       );
       const controller = new AuthController(service);
       const user = new TestEntity();
@@ -540,9 +483,7 @@ describe('AuthControllerMixin', () => {
     it('should clear cookie when useCookie is true', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        { loginField: 'loginField', passwordField: 'passwordField' },
-        undefined, undefined, undefined, undefined,
-        { useCookie: true },
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' }, refreshTokenOptions: { useCookie: true } },
       );
       const controller = new AuthController(service);
       const user = new TestEntity();
@@ -580,7 +521,7 @@ describe('AuthControllerMixin', () => {
       it('should call broadcastFromHttp with all user fields when broadcast enabled and no fields specified', async () => {
         const AuthController = AuthControllerMixin(
           TestEntity,
-          { loginField: 'loginField', passwordField: 'passwordField', broadcast: { enabled: true } },
+          { loginOptions: { loginField: 'loginField', passwordField: 'passwordField', broadcast: { enabled: true } } },
         );
         const controller = new AuthController(service, broadcastService, jwtService);
         const fakeRes = { cookie: jest.fn() };
@@ -597,7 +538,7 @@ describe('AuthControllerMixin', () => {
       it('should broadcast only specified fields', async () => {
         const AuthController = AuthControllerMixin(
           TestEntity,
-          { loginField: 'loginField', passwordField: 'passwordField', broadcast: { enabled: true, fields: ['id', 'loginField'] } },
+          { loginOptions: { loginField: 'loginField', passwordField: 'passwordField', broadcast: { enabled: true, fields: ['id', 'loginField'] } } },
         );
         const controller = new AuthController(service, broadcastService, jwtService);
         const fakeRes = { cookie: jest.fn() };
@@ -614,7 +555,7 @@ describe('AuthControllerMixin', () => {
       it('should use custom eventName when provided', async () => {
         const AuthController = AuthControllerMixin(
           TestEntity,
-          { loginField: 'loginField', passwordField: 'passwordField', broadcast: { enabled: true, eventName: 'custom-login' } },
+          { loginOptions: { loginField: 'loginField', passwordField: 'passwordField', broadcast: { enabled: true, eventName: 'custom-login' } } },
         );
         const controller = new AuthController(service, broadcastService, jwtService);
         const fakeRes = { cookie: jest.fn() };
@@ -631,7 +572,7 @@ describe('AuthControllerMixin', () => {
       it('should not broadcast when broadcast config is not set', async () => {
         const AuthController = AuthControllerMixin(
           TestEntity,
-          { loginField: 'loginField', passwordField: 'passwordField' },
+          { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' } },
         );
         const controller = new AuthController(service, broadcastService, jwtService);
         const fakeRes = { cookie: jest.fn() };
@@ -646,8 +587,7 @@ describe('AuthControllerMixin', () => {
       it('should decode JWT and broadcast user fields when broadcast enabled', async () => {
         const AuthController = AuthControllerMixin(
           TestEntity,
-          { loginField: 'loginField', passwordField: 'passwordField' },
-          { broadcast: { enabled: true, fields: ['id', 'loginField'] } },
+          { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' }, registerOptions: { broadcast: { enabled: true, fields: ['id', 'loginField'] } } },
         );
         const controller = new AuthController(service, broadcastService, jwtService);
         const fakeRes = { cookie: jest.fn() };
@@ -665,8 +605,7 @@ describe('AuthControllerMixin', () => {
       it('should broadcast all decoded JWT fields when no fields specified', async () => {
         const AuthController = AuthControllerMixin(
           TestEntity,
-          { loginField: 'loginField', passwordField: 'passwordField' },
-          { broadcast: { enabled: true } },
+          { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' }, registerOptions: { broadcast: { enabled: true } } },
         );
         const controller = new AuthController(service, broadcastService, jwtService);
         const fakeRes = { cookie: jest.fn() };
@@ -683,8 +622,7 @@ describe('AuthControllerMixin', () => {
       it('should not broadcast register when jwtService is absent', async () => {
         const AuthController = AuthControllerMixin(
           TestEntity,
-          { loginField: 'loginField', passwordField: 'passwordField' },
-          { broadcast: { enabled: true } },
+          { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' }, registerOptions: { broadcast: { enabled: true } } },
         );
         const controller = new AuthController(service, broadcastService, undefined);
         const fakeRes = { cookie: jest.fn() };
@@ -697,8 +635,7 @@ describe('AuthControllerMixin', () => {
       it('should broadcast with empty payload when jwtService.decode returns null', async () => {
         const AuthController = AuthControllerMixin(
           TestEntity,
-          { loginField: 'loginField', passwordField: 'passwordField' },
-          { broadcast: { enabled: true } },
+          { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' }, registerOptions: { broadcast: { enabled: true } } },
         );
         const controller = new AuthController(service, broadcastService, jwtService);
         const fakeRes = { cookie: jest.fn() };
@@ -718,11 +655,7 @@ describe('AuthControllerMixin', () => {
       it('should broadcast account with specified fields', async () => {
         const AuthController = AuthControllerMixin(
           TestEntity,
-          { loginField: 'loginField', passwordField: 'passwordField' },
-          undefined,
-          undefined,
-          undefined,
-          { broadcast: { enabled: true, fields: ['id'] } },
+          { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' }, getAccountOptions: { broadcast: { enabled: true, fields: ['id'] } } },
         );
         const controller = new AuthController(service, broadcastService, jwtService);
 
@@ -738,11 +671,7 @@ describe('AuthControllerMixin', () => {
       it('should broadcast all account fields when no fields specified', async () => {
         const AuthController = AuthControllerMixin(
           TestEntity,
-          { loginField: 'loginField', passwordField: 'passwordField' },
-          undefined,
-          undefined,
-          undefined,
-          { broadcast: { enabled: true } },
+          { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' }, getAccountOptions: { broadcast: { enabled: true } } },
         );
         const controller = new AuthController(service, broadcastService, jwtService);
 
@@ -758,11 +687,7 @@ describe('AuthControllerMixin', () => {
       it('should use custom eventName for getAccount broadcast', async () => {
         const AuthController = AuthControllerMixin(
           TestEntity,
-          { loginField: 'loginField', passwordField: 'passwordField' },
-          undefined,
-          undefined,
-          undefined,
-          { broadcast: { enabled: true, eventName: 'custom-get-account', fields: ['id'] } },
+          { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' }, getAccountOptions: { broadcast: { enabled: true, eventName: 'custom-get-account', fields: ['id'] } } },
         );
         const controller = new AuthController(service, broadcastService, jwtService);
 
@@ -778,11 +703,7 @@ describe('AuthControllerMixin', () => {
       it('should not broadcast getAccount when broadcast config is not set', async () => {
         const AuthController = AuthControllerMixin(
           TestEntity,
-          { loginField: 'loginField', passwordField: 'passwordField' },
-          undefined,
-          undefined,
-          undefined,
-          {},
+          { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' }, getAccountOptions: {} },
         );
         const controller = new AuthController(service, broadcastService, jwtService);
 
@@ -796,10 +717,7 @@ describe('AuthControllerMixin', () => {
       it('should broadcast updated account with specified fields', async () => {
         const AuthController = AuthControllerMixin(
           TestEntity,
-          { loginField: 'loginField', passwordField: 'passwordField' },
-          undefined,
-          undefined,
-          { broadcast: { enabled: true, fields: ['id', 'loginField'] } },
+          { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' }, updateAccountOptions: { broadcast: { enabled: true, fields: ['id', 'loginField'] } } },
         );
         const controller = new AuthController(service, broadcastService, jwtService);
 
@@ -815,10 +733,7 @@ describe('AuthControllerMixin', () => {
       it('should broadcast all updated account fields when no fields specified', async () => {
         const AuthController = AuthControllerMixin(
           TestEntity,
-          { loginField: 'loginField', passwordField: 'passwordField' },
-          undefined,
-          undefined,
-          { broadcast: { enabled: true } },
+          { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' }, updateAccountOptions: { broadcast: { enabled: true } } },
         );
         const controller = new AuthController(service, broadcastService, jwtService);
 
@@ -834,10 +749,7 @@ describe('AuthControllerMixin', () => {
       it('should use custom eventName for updateAccount broadcast', async () => {
         const AuthController = AuthControllerMixin(
           TestEntity,
-          { loginField: 'loginField', passwordField: 'passwordField' },
-          undefined,
-          undefined,
-          { broadcast: { enabled: true, eventName: 'custom-update-account', fields: ['id'] } },
+          { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' }, updateAccountOptions: { broadcast: { enabled: true, eventName: 'custom-update-account', fields: ['id'] } } },
         );
         const controller = new AuthController(service, broadcastService, jwtService);
 
@@ -853,10 +765,7 @@ describe('AuthControllerMixin', () => {
       it('should not broadcast updateAccount when broadcast config is not set', async () => {
         const AuthController = AuthControllerMixin(
           TestEntity,
-          { loginField: 'loginField', passwordField: 'passwordField' },
-          undefined,
-          undefined,
-          {},
+          { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' }, updateAccountOptions: {} },
         );
         const controller = new AuthController(service, broadcastService, jwtService);
 
@@ -871,7 +780,7 @@ describe('AuthControllerMixin', () => {
     it('should have sendOtpCode method', () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        { loginField: 'loginField', passwordField: 'passwordField' },
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' } },
       );
       const controller = new AuthController(service);
 
@@ -881,13 +790,7 @@ describe('AuthControllerMixin', () => {
     it('should call service.sendOtpCode with identifier', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        { loginField: 'loginField', passwordField: 'passwordField' },
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        { otpExpirationMinutes: 5, sendCodeCallback: jest.fn() },
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' }, passwordlessOptions: { otpExpirationMinutes: 5, sendCodeCallback: jest.fn() } },
       );
       const controller = new AuthController(service);
       service.sendOtpCode = jest.fn().mockResolvedValue(undefined);
@@ -902,7 +805,7 @@ describe('AuthControllerMixin', () => {
     it('should have verifyOtpCode method', () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        { loginField: 'loginField', passwordField: 'passwordField' },
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' } },
       );
       const controller = new AuthController(service);
 
@@ -912,13 +815,7 @@ describe('AuthControllerMixin', () => {
     it('should call service.verifyOtpCode and return tokens', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        { loginField: 'loginField', passwordField: 'passwordField' },
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        { otpExpirationMinutes: 5, sendCodeCallback: jest.fn() },
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' }, passwordlessOptions: { otpExpirationMinutes: 5, sendCodeCallback: jest.fn() } },
       );
       const controller = new AuthController(service);
       const tokenResult = { accessToken: 'at', refreshToken: 'rt' };
@@ -934,13 +831,11 @@ describe('AuthControllerMixin', () => {
     it('should set cookie and strip refreshToken when useCookie is true', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        { loginField: 'loginField', passwordField: 'passwordField' },
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        { useCookie: true },
-        { otpExpirationMinutes: 5, sendCodeCallback: jest.fn() },
+        {
+          loginOptions: { loginField: 'loginField', passwordField: 'passwordField' },
+          refreshTokenOptions: { useCookie: true },
+          passwordlessOptions: { otpExpirationMinutes: 5, sendCodeCallback: jest.fn() },
+        },
       );
       const controller = new AuthController(service);
       service.verifyOtpCode = jest.fn().mockResolvedValue({ accessToken: 'at', refreshToken: 'rt' });
