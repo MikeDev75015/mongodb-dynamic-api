@@ -20,6 +20,10 @@ interface AuthService<Entity extends BaseEntity> {
   refreshToken(user: Entity, rawToken?: string): Promise<LoginResponse>;
 
   logout(user: Entity): Promise<void>;
+
+  sendOtpCode(identifier: string): Promise<void>;
+
+  verifyOtpCode(identifier: string, code: string): Promise<LoginResponse>;
 }
 
 export type { AuthService, LoginResponse };

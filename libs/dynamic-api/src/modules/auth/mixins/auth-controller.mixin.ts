@@ -18,8 +18,10 @@ import {
 } from '../auth-events.constants';
 import { ChangePasswordDto } from '../dtos/change-password.dto';
 import { ResetPasswordDto } from '../dtos/reset-password.dto';
-import { JwtAuthGuard, JwtRefreshGuard, LocalAuthGuard, ResetPasswordGuard } from '../guards';
-import { AuthController, AuthControllerConstructor, AuthService, DynamicApiGetAccountOptions, DynamicApiLoginOptions, DynamicApiRefreshTokenOptions, DynamicApiRegisterOptions, DynamicApiResetPasswordOptions, DynamicApiUpdateAccountOptions } from '../interfaces';
+import { SendOtpCodeDto } from '../dtos/send-otp-code.dto';
+import { VerifyOtpCodeDto } from '../dtos/verify-otp-code.dto';
+import { JwtAuthGuard, JwtRefreshGuard, LocalAuthGuard, PasswordlessGuard, ResetPasswordGuard } from '../guards';
+import { AuthController, AuthControllerConstructor, AuthService, DynamicApiGetAccountOptions, DynamicApiLoginOptions, DynamicApiRefreshTokenOptions, DynamicApiRegisterOptions, DynamicApiResetPasswordOptions, DynamicApiUpdateAccountOptions, PasswordlessOptions } from '../interfaces';
 import { AuthPoliciesGuardMixin } from './auth-policies-guard.mixin';
 
 const REFRESH_TOKEN_COOKIE = 'refreshToken';
@@ -59,7 +61,8 @@ function AuthControllerMixin<Entity extends BaseEntity>(
   {
     useInterceptors: refreshTokenUseInterceptors = [],
     useCookie = false,
-  }: DynamicApiRefreshTokenOptions<Entity> = {}
+  }: DynamicApiRefreshTokenOptions<Entity> = {},
+  passwordlessOptions?: PasswordlessOptions<Entity>,
 ): AuthControllerConstructor<Entity> {
   if (!loginField || !passwordField) {
     throw new Error('Login and password fields are required');
@@ -367,6 +370,36 @@ function AuthControllerMixin<Entity extends BaseEntity>(
       if (useCookie) {
         res.clearCookie(REFRESH_TOKEN_COOKIE);
       }
+    }
+
+    @Public()
+    @ApiEndpointVisibility(!!passwordlessOptions)
+    @UseGuards(new PasswordlessGuard(!!passwordlessOptions))
+    @HttpCode(HttpStatus.NO_CONTENT)
+    @Post('passwordless/send-code')
+    sendOtpCode(@Body() { identifier }: SendOtpCodeDto): Promise<void> {
+      return this.service.sendOtpCode(identifier);
+    }
+
+    @Public()
+    @ApiEndpointVisibility(!!passwordlessOptions)
+    @UseGuards(new PasswordlessGuard(!!passwordlessOptions))
+    @HttpCode(HttpStatus.OK)
+    @ApiOkResponse({ type: AuthPresenter })
+    @Post('passwordless/verify-code')
+    async verifyOtpCode(
+      @Body() { identifier, code }: VerifyOtpCodeDto,
+      @Res({ passthrough: true }) res: Response,
+    ) {
+      const result = await this.service.verifyOtpCode(identifier, code);
+
+      if (useCookie) {
+        res.cookie(REFRESH_TOKEN_COOKIE, result.refreshToken, COOKIE_OPTIONS);
+        const { refreshToken: _rt, ...bodyResult } = result;
+        return bodyResult;
+      }
+
+      return result;
     }
   }
 

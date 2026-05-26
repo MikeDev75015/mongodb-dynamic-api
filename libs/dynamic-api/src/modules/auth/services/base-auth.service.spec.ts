@@ -88,8 +88,9 @@ describe('BaseAuthService', () => {
       protected readonly _: Model<any>,
       protected readonly jwtService: JwtService,
       protected readonly bcryptService: BcryptService,
+      protected readonly otpModel?: Model<any>,
     ) {
-      super(_, jwtService, bcryptService);
+      super(_, jwtService, bcryptService, otpModel);
     }
   }
 
@@ -948,6 +949,191 @@ describe('BaseAuthService', () => {
       expect(() => service['checkFieldsValidity']({})).toThrow(
         new BadRequestException([`${fakeLoginField} is required`, `${fakePasswordField} is required`]),
       );
+    });
+  });
+
+  describe('sendOtpCode', () => {
+    const identifier = 'user@test.co';
+    const plainCode = '123456';
+    const fakeExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    const sendCodeCallback = jest.fn().mockResolvedValue(undefined);
+
+    beforeEach(() => {
+      spyBcriptHashPassword.mockResolvedValue(fakeHash);
+    });
+
+    afterEach(() => {
+      sendCodeCallback.mockClear();
+    });
+
+    it('should do nothing if passwordlessOptions is not set', async () => {
+      await service.sendOtpCode(identifier);
+
+      expect(model.findOneAndUpdate).not.toHaveBeenCalled();
+      expect(sendCodeCallback).not.toHaveBeenCalled();
+    });
+
+    describe('with passwordlessOptions configured', () => {
+      let serviceWithPasswordless: AuthService;
+      let otpModel: { findOneAndUpdate: jest.Mock; findOne: jest.Mock; deleteOne: jest.Mock };
+
+      beforeEach(() => {
+        otpModel = {
+          findOneAndUpdate: jest.fn().mockReturnValue({ exec: jest.fn().mockResolvedValue(null) }),
+          findOne: jest.fn().mockReturnValue({ exec: jest.fn() }),
+          deleteOne: jest.fn().mockReturnValue({ exec: jest.fn() }),
+        };
+
+        serviceWithPasswordless = new AuthService(
+          model,
+          jwtService,
+          bcryptService,
+          otpModel as any,
+        );
+        serviceWithPasswordless['passwordlessOptions'] = {
+          otpExpirationMinutes: 5,
+          sendCodeCallback,
+        };
+      });
+
+      it('should hash code, upsert OTP doc, and call sendCodeCallback', async () => {
+        jest.spyOn(global.Math, 'random').mockReturnValue(0.123456);
+
+        await serviceWithPasswordless.sendOtpCode(identifier);
+
+        expect(spyBcriptHashPassword).toHaveBeenCalledWith(expect.stringMatching(/^\d{6}$/));
+        expect(otpModel.findOneAndUpdate).toHaveBeenCalledWith(
+          { identifier },
+          expect.objectContaining({ identifier, hashedCode: fakeHash }),
+          { upsert: true, new: true },
+        );
+        expect(sendCodeCallback).toHaveBeenCalledWith(identifier, expect.stringMatching(/^\d{6}$/));
+
+        jest.spyOn(global.Math, 'random').mockRestore();
+      });
+
+      it('should use custom generateCode when provided', async () => {
+        serviceWithPasswordless['passwordlessOptions'] = {
+          otpExpirationMinutes: 5,
+          generateCode: () => 'ABCDEF',
+          sendCodeCallback,
+        };
+
+        await serviceWithPasswordless.sendOtpCode(identifier);
+
+        expect(sendCodeCallback).toHaveBeenCalledWith(identifier, 'ABCDEF');
+      });
+
+      it('should throw BadRequestException if identifier is undefined', async () => {
+        await expect(serviceWithPasswordless.sendOtpCode(undefined)).rejects.toThrow();
+      });
+    });
+  });
+
+  describe('verifyOtpCode', () => {
+    const identifier = 'user@test.co';
+    const plainCode = '123456';
+    const futureDate = new Date(Date.now() + 10 * 60 * 1000);
+    const pastDate = new Date(Date.now() - 60 * 1000);
+    const tokenResult = { accessToken: 'at', refreshToken: 'rt' };
+
+    let serviceWithPasswordless: AuthService;
+    let otpModel: { findOneAndUpdate: jest.Mock; findOne: jest.Mock; deleteOne: jest.Mock };
+    let spyBcryptCompare: jest.SpyInstance;
+
+    beforeEach(() => {
+      otpModel = {
+        findOneAndUpdate: jest.fn().mockReturnValue({ exec: jest.fn() }),
+        findOne: jest.fn().mockReturnValue({ exec: jest.fn() }),
+        deleteOne: jest.fn().mockReturnValue({ exec: jest.fn() }),
+      };
+
+      serviceWithPasswordless = new AuthService(
+        model,
+        jwtService,
+        bcryptService,
+        otpModel as any,
+      );
+      serviceWithPasswordless['passwordlessOptions'] = {
+        otpExpirationMinutes: 10,
+        sendCodeCallback: jest.fn(),
+      };
+
+      spyBcryptCompare = jest.spyOn(bcryptService, 'comparePassword');
+      spyBuildUserFields.mockReturnValue(fakeLoginBuilt);
+      spyJwtSign.mockReturnValue('fake-token');
+    });
+
+    it('should return tokens when OTP is valid and user exists', async () => {
+      otpModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue({ identifier, hashedCode: fakeHash, expiresAt: futureDate }),
+      });
+      spyBcryptCompare.mockResolvedValue(true);
+      exec.mockResolvedValue({ ...fakeUser, login: identifier, _id: fakeUserId });
+      jest.spyOn(bcryptService, 'hashPassword').mockResolvedValue('hashed-jti');
+      otpModel.deleteOne.mockReturnValue({ exec: jest.fn().mockResolvedValue(null) });
+      jest.spyOn(DynamicApiModule.state, 'get').mockReturnValue(undefined);
+
+      const result = await serviceWithPasswordless.verifyOtpCode(identifier, plainCode);
+
+      expect(otpModel.findOne).toHaveBeenCalledWith({ identifier });
+      expect(spyBcryptCompare).toHaveBeenCalledWith(plainCode, fakeHash);
+      expect(otpModel.deleteOne).toHaveBeenCalledWith({ identifier });
+      expect(result).toHaveProperty('accessToken');
+    });
+
+    it('should throw UnauthorizedException if OTP doc not found', async () => {
+      otpModel.findOne.mockReturnValue({ exec: jest.fn().mockResolvedValue(null) });
+
+      await expect(serviceWithPasswordless.verifyOtpCode(identifier, plainCode))
+        .rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should throw UnauthorizedException if OTP is expired', async () => {
+      otpModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue({ identifier, hashedCode: fakeHash, expiresAt: pastDate }),
+      });
+
+      await expect(serviceWithPasswordless.verifyOtpCode(identifier, plainCode))
+        .rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should throw UnauthorizedException if code is wrong', async () => {
+      otpModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue({ identifier, hashedCode: fakeHash, expiresAt: futureDate }),
+      });
+      spyBcryptCompare.mockResolvedValue(false);
+
+      await expect(serviceWithPasswordless.verifyOtpCode(identifier, plainCode))
+        .rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should throw UnauthorizedException if user not found', async () => {
+      otpModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue({ identifier, hashedCode: fakeHash, expiresAt: futureDate }),
+      });
+      spyBcryptCompare.mockResolvedValue(true);
+      exec.mockResolvedValue(null);
+
+      await expect(serviceWithPasswordless.verifyOtpCode(identifier, plainCode))
+        .rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should call passwordlessOptions.callback if provided after verification', async () => {
+      const verifyCallback = jest.fn().mockResolvedValue(undefined);
+      serviceWithPasswordless['passwordlessOptions'].callback = verifyCallback;
+
+      otpModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue({ identifier, hashedCode: fakeHash, expiresAt: futureDate }),
+      });
+      spyBcryptCompare.mockResolvedValue(true);
+      exec.mockResolvedValue({ ...fakeUser, login: identifier, _id: fakeUserId });
+      otpModel.deleteOne.mockReturnValue({ exec: jest.fn().mockResolvedValue(null) });
+      jest.spyOn(DynamicApiModule.state, 'get').mockReturnValue(undefined);
+
+      await serviceWithPasswordless.verifyOtpCode(identifier, plainCode);
+
+      expect(verifyCallback).toHaveBeenCalled();
     });
   });
 });

@@ -104,6 +104,31 @@ type DynamicApiRefreshTokenOptions<Entity extends BaseEntity = any> = {
   useCookie?: boolean;
 };
 
+type PasswordlessOptions<Entity extends BaseEntity = any> = {
+  /**
+   * How long the OTP code stays valid, in minutes.
+   * Defaults to 10.
+   */
+  otpExpirationMinutes?: number;
+  /**
+   * Optional custom code generator.
+   * Defaults to a random 6-digit numeric string: "123456".
+   */
+  generateCode?: () => string;
+  /**
+   * Required callback that delivers the one-time code to the user
+   * (e.g. sends an email or SMS).
+   * Receives the identifier value (resolved via `loginField`) and the plain code.
+   */
+  sendCodeCallback: (identifier: string, code: string) => Promise<void>;
+  /**
+   * Optional callback invoked after successful OTP verification,
+   * just before the JWT tokens are returned.
+   * Receives the authenticated entity.
+   */
+  callback?: AfterSaveCallback<Entity>;
+};
+
 type DynamicApiAuthOptions<Entity extends BaseEntity = any> = {
   userEntity: Type<Entity>;
   jwt?: DynamicApiJWTOptions;
@@ -113,6 +138,7 @@ type DynamicApiAuthOptions<Entity extends BaseEntity = any> = {
   updateAccount?: DynamicApiUpdateAccountOptions<Entity>;
   resetPassword?: Partial<DynamicApiResetPasswordOptions<Entity>>;
   refreshToken?: DynamicApiRefreshTokenOptions<Entity>;
+  passwordless?: PasswordlessOptions<Entity>;
   validationPipeOptions?: ValidationPipeOptions;
   webSocket?: DynamicApiWebSocketOptions;
   extraImports?: ModuleMetadata['imports'];
@@ -130,4 +156,5 @@ export type {
   DynamicApiLoginOptions,
   DynamicApiRefreshTokenOptions,
   DynamicApiResetPasswordOptions,
+  PasswordlessOptions,
 };
