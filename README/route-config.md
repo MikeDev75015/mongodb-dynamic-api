@@ -460,20 +460,31 @@ Callbacks let you hook into the lifecycle of a service operation, either **befor
 
 ### beforeSaveCallback
 
-Four signatures depending on the route type:
+`DynamicApiRouteConfig` is a **discriminated union** — TypeScript narrows `beforeSaveCallback` to the exact context type for each `type` discriminant. No cast is ever needed in application code.
 
-| Callback type | Used by | Context type | Returns |
-|---|---|---|---|
-| `BeforeSaveCallback<E, Context, User>` | `CreateOne`, `UpdateOne`, `ReplaceOne`, `DuplicateOne` | `BeforeSave*Context<E, BodyDTO>` | `Partial<E>` |
-| `BeforeSaveListCallback<E, Context, User>` | `CreateMany`, `UpdateMany`, `DuplicateMany` | `BeforeSave*Context<E, BodyDTO>` | `Partial<E>[]` |
-| `BeforeSaveDeleteCallback<E, Context, User>` | `DeleteOne` | `BeforeSaveDeleteContext` | `void` |
-| `BeforeSaveDeleteManyCallback<E, Context, User>` | `DeleteMany` | `BeforeSaveDeleteManyContext` | `void` |
+| Route type | Config type | Callback type | Context type | Returns |
+|---|---|---|---|---|
+| `CreateOne` | `CreateOneRouteConfig<E>` | `BeforeSaveCallback<E, BeforeSaveCreateContext<E>>` | `BeforeSaveCreateContext<E, BodyDTO>` | `Partial<E>` |
+| `CreateMany` | `CreateManyRouteConfig<E>` | `BeforeSaveListCallback<E, BeforeSaveCreateManyContext<E>>` | `BeforeSaveCreateManyContext<E, BodyDTO>` | `Partial<E>[]` |
+| `UpdateOne` | `UpdateOneRouteConfig<E>` | `BeforeSaveCallback<E, BeforeSaveUpdateContext<E>>` | `BeforeSaveUpdateContext<E, BodyDTO>` | `Partial<E>` |
+| `UpdateMany` | `UpdateManyRouteConfig<E>` | `BeforeSaveListCallback<E, BeforeSaveUpdateManyContext<E>>` | `BeforeSaveUpdateManyContext<E, BodyDTO>` | `Partial<E>[]` |
+| `ReplaceOne` | `ReplaceOneRouteConfig<E>` | `BeforeSaveCallback<E, BeforeSaveReplaceContext<E>>` | `BeforeSaveReplaceContext<E, BodyDTO>` | `Partial<E>` |
+| `DuplicateOne` | `DuplicateOneRouteConfig<E>` | `BeforeSaveCallback<E, BeforeSaveDuplicateContext<E>>` | `BeforeSaveDuplicateContext<E, BodyDTO>` | `Partial<E>` |
+| `DuplicateMany` | `DuplicateManyRouteConfig<E>` | `BeforeSaveListCallback<E, BeforeSaveDuplicateManyContext<E>>` | `BeforeSaveDuplicateManyContext<E, BodyDTO>` | `Partial<E>[]` |
+| `DeleteOne` | `DeleteOneRouteConfig<E>` | `BeforeSaveDeleteCallback<E, BeforeSaveDeleteContext>` | `BeforeSaveDeleteContext` | `void` |
+| `DeleteMany` | `DeleteManyRouteConfig<E>` | `BeforeSaveDeleteManyCallback<E, BeforeSaveDeleteManyContext>` | `BeforeSaveDeleteManyContext` | `void` |
+| `GetOne` | `GetOneRouteConfig<E>` | — *(no beforeSaveCallback)* | — | — |
+| `GetMany` | `GetManyRouteConfig<E>` | — *(no beforeSaveCallback)* | — | — |
+| `Aggregate` | `AggregateRouteConfig<E>` | — *(no beforeSaveCallback)* | — | — |
+| `Custom` | `CustomOperationRouteConfig<E>` | — *(no beforeSaveCallback)* | — | — |
+
+> **`beforeDeleteCallback` and `cascade`** are only available on `DeleteOneRouteConfig` and `DeleteManyRouteConfig`.
 
 Each route provides a typed context (`BeforeSaveCreateContext`, `BeforeSaveUpdateContext`, etc.) and the authenticated `user` as the last parameter. The `User` generic defaults to `unknown` — pass your user entity type for full type safety (see [Callbacks guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/callbacks.md#typing-the-user-parameter)).
 
 Context types accept an optional **`BodyDTO` generic** (defaults to `Entity`). Pass your custom body DTO class when using `dTOs.body` to get full type safety on the body fields (see [Custom Body DTO](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/callbacks.md#custom-body-dto--bodydto-generic)).
 
-**Example — Hash a password before saving (typed context):**
+**Example — Hash a password before saving (typed context, no cast):**
 
 ```typescript
 import * as bcrypt from 'bcrypt';
@@ -485,14 +496,13 @@ class CreateUserDto {
   displayName?: string;
 }
 
-// ✅ BodyDTO generic — ctx.toCreate is Partial<CreateUserDto>, no cast needed
-const beforeCreate: BeforeSaveCallback<User, BeforeSaveCreateContext<User, CreateUserDto>> =
+// ✅ ctx.toCreate is Partial<User> — TS narrows automatically via discriminant type: 'CreateOne'
+const beforeCreate: BeforeSaveCallback<User, BeforeSaveCreateContext<User>> =
   async (_entity, ctx, _methods, _user) => {
-    const { toCreate } = ctx;
-    if (toCreate.password) {
-      toCreate.password = await bcrypt.hash(toCreate.password, 10);
+    if (ctx.toCreate.password) {
+      ctx.toCreate.password = await bcrypt.hash(ctx.toCreate.password, 10);
     }
-    return toCreate;
+    return ctx.toCreate;
   };
 
 DynamicApiModule.forFeature({

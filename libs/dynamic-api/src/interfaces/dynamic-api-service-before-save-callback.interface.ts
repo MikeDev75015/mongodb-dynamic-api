@@ -121,6 +121,13 @@ type BeforeSaveDeleteManyCallback<Entity extends BaseEntity, Context = Record<st
   user?: User,
 ) => Promise<void>;
 
+/**
+ * @deprecated
+ * `AnyBeforeSaveCallback` is no longer needed when using `DynamicApiRouteConfig` (discriminated union).
+ * Each per-route config type (`CreateOneRouteConfig`, `UpdateOneRouteConfig`, …) already carries a
+ * precisely-typed `beforeSaveCallback` — no cast or wide union type is required in application code.
+ * This type is kept for backwards compatibility with generic helpers and will be removed in v5.
+ */
 type AnyBeforeSaveCallback<Entity extends BaseEntity, User = unknown> =
   | BeforeSaveCallback<Entity, unknown, User>
   | BeforeSaveListCallback<Entity, unknown, User>

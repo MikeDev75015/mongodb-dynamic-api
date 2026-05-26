@@ -2,7 +2,7 @@ import { DynamicModule, Module, ModuleMetadata, Type, ValidationPipeOptions } fr
 import { GatewayMetadata } from '@nestjs/websockets';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { getDisplayedName, initializeConfigFromOptions } from '../../helpers';
-import { BeforeSaveDeleteManyCallback, BeforeDeleteManyCallback, BeforeSaveDeleteManyContext, DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiWebSocketOptions } from '../../interfaces';
+import { DeleteManyRouteConfig, DynamicApiControllerOptions, DynamicApiWebSocketOptions } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { DynamicApiBroadcastService } from '../../services';
 import {
@@ -18,7 +18,7 @@ export class DeleteManyModule {
     databaseModule: DynamicModule,
     entity: Type<Entity>,
     controllerOptions: DynamicApiControllerOptions<Entity>,
-    routeConfig: DynamicAPIRouteConfig<Entity>,
+    routeConfig: DeleteManyRouteConfig<Entity>,
     version?: string,
     validationPipeOptions?: ValidationPipeOptions,
     webSocket?: DynamicApiWebSocketOptions,
@@ -41,8 +41,8 @@ export class DeleteManyModule {
       displayedName,
       version,
       routeConfig.callback,
-      routeConfig.beforeSaveCallback as BeforeSaveDeleteManyCallback<Entity>,
-      routeConfig.beforeDeleteCallback as BeforeDeleteManyCallback<Entity, BeforeSaveDeleteManyContext>,
+      routeConfig.beforeSaveCallback,
+      routeConfig.beforeDeleteCallback,
       routeConfig.cascade,
     );
 

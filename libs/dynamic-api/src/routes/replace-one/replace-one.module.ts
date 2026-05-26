@@ -2,7 +2,7 @@ import { DynamicModule, Module, ModuleMetadata, Type, ValidationPipeOptions } fr
 import { GatewayMetadata } from '@nestjs/websockets';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { getDisplayedName, initializeConfigFromOptions } from '../../helpers';
-import { BeforeSaveCallback, DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiWebSocketOptions } from '../../interfaces';
+import { ReplaceOneRouteConfig, DynamicApiControllerOptions, DynamicApiWebSocketOptions } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { DynamicApiBroadcastService } from '../../services';
 import {
@@ -18,7 +18,7 @@ export class ReplaceOneModule {
     databaseModule: DynamicModule,
     entity: Type<Entity>,
     controllerOptions: DynamicApiControllerOptions<Entity>,
-    routeConfig: DynamicAPIRouteConfig<Entity>,
+    routeConfig: ReplaceOneRouteConfig<Entity>,
     version?: string,
     validationPipeOptions?: ValidationPipeOptions,
     webSocket?: DynamicApiWebSocketOptions,
@@ -36,7 +36,7 @@ export class ReplaceOneModule {
       version,
       validationPipeOptions,
     );
-    const ServiceProvider = createReplaceOneServiceProvider(entity, displayedName, version, routeConfig.callback, routeConfig.beforeSaveCallback as BeforeSaveCallback<Entity>);
+    const ServiceProvider = createReplaceOneServiceProvider(entity, displayedName, version, routeConfig.callback, routeConfig.beforeSaveCallback);
 
     const hasBroadcast = !!routeConfig.broadcast;
     const gatewayOptions = webSocket
