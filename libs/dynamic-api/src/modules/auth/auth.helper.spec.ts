@@ -366,13 +366,8 @@ describe('AuthHelper', () => {
       provider = createAuthServiceProvider<UserEntity>(
         UserEntity,
         {
-          loginField,
-          passwordField,
+          loginOptions: { loginField, passwordField },
         },
-        undefined,
-        undefined,
-        undefined,
-        undefined,
       );
 
       expect(provider).toEqual({
@@ -391,15 +386,17 @@ describe('AuthHelper', () => {
         provider = createAuthServiceProvider<UserEntity>(
           UserEntity,
           {
-            loginField,
-            passwordField,
-            callback: loginCallback,
-            additionalFields: additionalRequestFields,
+            loginOptions: {
+              loginField,
+              passwordField,
+              callback: loginCallback,
+              additionalFields: additionalRequestFields,
+            },
+            getAccountCallback: getAccountOptions.callback,
+            register: registerOptions,
+            resetPasswordOptions,
+            updateAccount: updateAccountOptions,
           },
-          getAccountOptions.callback,
-          registerOptions,
-          resetPasswordOptions,
-          updateAccountOptions,
         );
 
         AuthService = provider.useClass;

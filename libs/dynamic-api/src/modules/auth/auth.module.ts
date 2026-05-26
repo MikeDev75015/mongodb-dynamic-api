@@ -74,13 +74,15 @@ export class AuthModule implements NestModule {
 
     const AuthServiceProvider = createAuthServiceProvider(
       userEntity,
-      { loginField, passwordField, ...login },
-      getAccount?.callback,
-      register,
-      resetPasswordOptions,
-      updateAccount,
-      refreshToken,
-      passwordless,
+      {
+        loginOptions: { loginField, passwordField, ...login },
+        getAccountCallback: getAccount?.callback,
+        register,
+        resetPasswordOptions,
+        updateAccount,
+        refreshToken,
+        passwordlessOptions: passwordless,
+      },
     );
     const LocalStrategyProvider = createLocalStrategyProvider(
       loginField, passwordField, login.abilityPredicate, login.customValidate, login.useStrategy,

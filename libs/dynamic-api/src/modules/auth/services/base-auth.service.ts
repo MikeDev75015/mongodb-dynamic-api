@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Type, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { randomUUID } from 'node:crypto';
+import { randomInt, randomUUID } from 'node:crypto';
 import { Model, UpdateQuery, UpdateWithAggregationPipeline } from 'mongoose';
 import { DynamicApiResetPasswordCallbackMethods, BeforeSaveCallback, AfterSaveCallback } from '../../../interfaces';
 import { MongoDBDynamicApiLogger } from '../../../logger';
@@ -369,7 +369,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
 
     const { otpExpirationMinutes = 10, generateCode, sendCodeCallback } = this.passwordlessOptions;
 
-    const code = generateCode ? generateCode() : String(Math.floor(100000 + Math.random() * 900000));
+    const code = generateCode ? generateCode() : String(randomInt(100000, 1000000));
     const hashedCode = await this.bcryptService.hashPassword(code);
     const expiresAt = new Date(Date.now() + otpExpirationMinutes * 60 * 1000);
 
@@ -413,7 +413,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
       await this.passwordlessOptions.callback(instance, this.callbackMethods);
     }
 
-    return this.login(userWithId as Entity, true);
+    return this.login(userWithId, true);
   }
 
   private buildRefreshToken(payload: object): string {

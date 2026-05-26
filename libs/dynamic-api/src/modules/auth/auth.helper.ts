@@ -100,15 +100,27 @@ function createLocalStrategyProvider<Entity extends BaseEntity>(
   };
 }
 
+type AuthServiceProviderOptions<Entity extends BaseEntity> = {
+  loginOptions: DynamicApiLoginOptions<Entity>;
+  getAccountCallback?: AfterSaveCallback<Entity>;
+  register?: DynamicApiRegisterOptions<Entity>;
+  resetPasswordOptions?: DynamicApiResetPasswordOptions<Entity>;
+  updateAccount?: DynamicApiUpdateAccountOptions<Entity>;
+  refreshToken?: DynamicApiRefreshTokenOptions<Entity>;
+  passwordlessOptions?: PasswordlessOptions<Entity>;
+};
+
 function createAuthServiceProvider<Entity extends BaseEntity>(
   userEntity: Type<Entity>,
-  { loginField, passwordField, additionalFields = [], callback: loginCallback }: DynamicApiLoginOptions<Entity>,
-  getAccountCallback: AfterSaveCallback<Entity> | undefined,
-  register: DynamicApiRegisterOptions<Entity> | undefined,
-  resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined,
-  updateAccount: DynamicApiUpdateAccountOptions<Entity> | undefined,
-  refreshToken?: DynamicApiRefreshTokenOptions<Entity>,
-  passwordlessOptions?: PasswordlessOptions<Entity>,
+  {
+    loginOptions: { loginField, passwordField, additionalFields = [], callback: loginCallback },
+    getAccountCallback,
+    register,
+    resetPasswordOptions,
+    updateAccount,
+    refreshToken,
+    passwordlessOptions,
+  }: AuthServiceProviderOptions<Entity>,
 ): DynamicAPIServiceProvider {
   class AuthService extends BaseAuthService<Entity> {
     protected entity = userEntity;
@@ -189,13 +201,15 @@ function createAuthController<Entity extends BaseEntity>(
   @ValidatorPipe(validationPipeOptions)
   class AuthController extends AuthControllerMixin(
     userEntity,
-    loginOptions,
-    registerOptions,
-    resetPasswordOptions,
-    updateAccountOptions,
-    getAccountOptions,
-    refreshTokenOptions,
-    passwordlessOptions,
+    {
+      loginOptions,
+      registerOptions,
+      resetPasswordOptions,
+      updateAccountOptions,
+      getAccountOptions,
+      refreshTokenOptions,
+      passwordlessOptions,
+    },
   ) {
     constructor(
       @Inject(authServiceProviderName)
