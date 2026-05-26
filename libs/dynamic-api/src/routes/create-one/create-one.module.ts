@@ -2,7 +2,7 @@ import { DynamicModule, Module, ModuleMetadata, Type, ValidationPipeOptions } fr
 import { GatewayMetadata } from '@nestjs/websockets';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { getDisplayedName, initializeConfigFromOptions } from '../../helpers';
-import { BeforeSaveCallback, DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiWebSocketOptions } from '../../interfaces';
+import { CreateOneRouteConfig, DynamicApiControllerOptions, DynamicApiWebSocketOptions } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { DynamicApiBroadcastService } from '../../services';
 import { createCreateOneController, createCreateOneGateway, createCreateOneServiceProvider } from './create-one.helper';
@@ -14,7 +14,7 @@ export class CreateOneModule {
     databaseModule: DynamicModule,
     entity: Type<Entity>,
     controllerOptions: DynamicApiControllerOptions<Entity>,
-    routeConfig: DynamicAPIRouteConfig<Entity>,
+    routeConfig: CreateOneRouteConfig<Entity>,
     version?: string,
     validationPipeOptions?: ValidationPipeOptions,
     webSocket?: DynamicApiWebSocketOptions,
@@ -33,7 +33,7 @@ export class CreateOneModule {
       validationPipeOptions,
     );
     const ServiceProvider = createCreateOneServiceProvider(
-      entity, displayedName, version, routeConfig.callback, routeConfig.beforeSaveCallback as BeforeSaveCallback<Entity>,
+      entity, displayedName, version, routeConfig.callback, routeConfig.beforeSaveCallback,
     );
 
     const hasBroadcast = !!routeConfig.broadcast;

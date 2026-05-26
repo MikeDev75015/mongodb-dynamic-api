@@ -180,6 +180,8 @@ const onOrderCreatedAlt: AfterSaveCallback<Order> = async (order, methods, user)
 
 The `beforeSaveCallback` property is executed **before the database write**. Its purpose is to transform, enrich, or validate the data before it is persisted. The return value **replaces** the data that will be saved (except for delete callbacks which return `void`).
 
+> **✅ No cast needed — discriminated union:** Since `DynamicApiRouteConfig<E>` is a discriminated union, TypeScript narrows `beforeSaveCallback` to the exact context type for each `type` discriminant. You write `ctx.toCreate`, `ctx.update`, `ctx.replacement`, etc. with full autocompletion and no `as` cast.
+
 ### Four callback signatures
 
 The signature varies depending on whether the route operates on a single document, multiple documents, or a delete operation.
@@ -451,19 +453,25 @@ DynamicApiModule.forFeature({
 
 ### Signature-to-route compatibility
 
-| Route Type | Callback signature | Context type | `BodyDTO` supported | `entity` / `entities` | Returns |
-|---|---|---|---|---|---|
-| `CreateOne` | `BeforeSaveCallback` | `BeforeSaveCreateContext<E, BodyDTO>` | ✅ | `undefined` | `Partial<E>` |
-| `CreateMany` | `BeforeSaveListCallback` | `BeforeSaveCreateManyContext<E, BodyDTO>` | ✅ | `undefined` | `Partial<E>[]` |
-| `UpdateOne` | `BeforeSaveCallback` | `BeforeSaveUpdateContext<E, BodyDTO>` | ✅ | Existing entity | `Partial<E>` |
-| `UpdateMany` | `BeforeSaveListCallback` | `BeforeSaveUpdateManyContext<E, BodyDTO>` | ✅ | Existing entities | `Partial<E>[]` |
-| `ReplaceOne` | `BeforeSaveCallback` | `BeforeSaveReplaceContext<E, BodyDTO>` | ✅ | Existing entity | `Partial<E>` |
-| `DuplicateOne` | `BeforeSaveCallback` | `BeforeSaveDuplicateContext<E, BodyDTO>` | ✅ | Existing entity | `Partial<E>` |
-| `DuplicateMany` | `BeforeSaveListCallback` | `BeforeSaveDuplicateManyContext<E, BodyDTO>` | ✅ | Existing entities | `Partial<E>[]` |
-| `DeleteOne` | `BeforeSaveDeleteCallback` | `BeforeSaveDeleteContext` | — | Entity to delete | `void` |
-| `DeleteMany` | `BeforeSaveDeleteManyCallback` | `BeforeSaveDeleteManyContext` | — | Entities to delete | `void` |
+`DynamicApiRouteConfig<E>` is a **discriminated union** — TypeScript automatically narrows `beforeSaveCallback` to the exact callback type for each `type` discriminant, eliminating all manual casts in application code.
 
-> **⚠️ Note:** `GetOne` and `GetMany` do **not** support `beforeSaveCallback` — they only support the `callback` (after save) property.
+| Route Type | Config type | Callback signature | Context type | `BodyDTO` supported | Returns |
+|---|---|---|---|---|---|
+| `CreateOne` | `CreateOneRouteConfig<E>` | `BeforeSaveCallback<E, BeforeSaveCreateContext<E>>` | `BeforeSaveCreateContext<E, BodyDTO>` | ✅ | `Partial<E>` |
+| `CreateMany` | `CreateManyRouteConfig<E>` | `BeforeSaveListCallback<E, BeforeSaveCreateManyContext<E>>` | `BeforeSaveCreateManyContext<E, BodyDTO>` | ✅ | `Partial<E>[]` |
+| `UpdateOne` | `UpdateOneRouteConfig<E>` | `BeforeSaveCallback<E, BeforeSaveUpdateContext<E>>` | `BeforeSaveUpdateContext<E, BodyDTO>` | ✅ | `Partial<E>` |
+| `UpdateMany` | `UpdateManyRouteConfig<E>` | `BeforeSaveListCallback<E, BeforeSaveUpdateManyContext<E>>` | `BeforeSaveUpdateManyContext<E, BodyDTO>` | ✅ | `Partial<E>[]` |
+| `ReplaceOne` | `ReplaceOneRouteConfig<E>` | `BeforeSaveCallback<E, BeforeSaveReplaceContext<E>>` | `BeforeSaveReplaceContext<E, BodyDTO>` | ✅ | `Partial<E>` |
+| `DuplicateOne` | `DuplicateOneRouteConfig<E>` | `BeforeSaveCallback<E, BeforeSaveDuplicateContext<E>>` | `BeforeSaveDuplicateContext<E, BodyDTO>` | ✅ | `Partial<E>` |
+| `DuplicateMany` | `DuplicateManyRouteConfig<E>` | `BeforeSaveListCallback<E, BeforeSaveDuplicateManyContext<E>>` | `BeforeSaveDuplicateManyContext<E, BodyDTO>` | ✅ | `Partial<E>[]` |
+| `DeleteOne` | `DeleteOneRouteConfig<E>` | `BeforeSaveDeleteCallback<E, BeforeSaveDeleteContext>` | `BeforeSaveDeleteContext` | — | `void` |
+| `DeleteMany` | `DeleteManyRouteConfig<E>` | `BeforeSaveDeleteManyCallback<E, BeforeSaveDeleteManyContext>` | `BeforeSaveDeleteManyContext` | — | `void` |
+
+> **⚠️ Note:** `GetOne`, `GetMany`, `Aggregate` and `Custom` routes do **not** have a `beforeSaveCallback` field — they only support the `callback` (after-save) property.
+
+> **⚠️ Breaking change:** `beforeDeleteCallback` and `cascade` are now exclusive to `DeleteOneRouteConfig` and `DeleteManyRouteConfig`. Placing them on any other route type is a compile-time error.
+
+> **`AnyBeforeSaveCallback`** is `@deprecated` — it is no longer needed in application code when using the discriminated union. It remains exported for backward compatibility with generic third-party helpers and will be removed in v5.
 
 ---
 
