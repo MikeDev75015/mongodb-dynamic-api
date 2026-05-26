@@ -866,5 +866,95 @@ describe('AuthControllerMixin', () => {
       });
     });
   });
+
+  describe('sendOtpCode', () => {
+    it('should have sendOtpCode method', () => {
+      const AuthController = AuthControllerMixin(
+        TestEntity,
+        { loginField: 'loginField', passwordField: 'passwordField' },
+      );
+      const controller = new AuthController(service);
+
+      expect(controller).toHaveProperty('sendOtpCode', expect.any(Function));
+    });
+
+    it('should call service.sendOtpCode with identifier', async () => {
+      const AuthController = AuthControllerMixin(
+        TestEntity,
+        { loginField: 'loginField', passwordField: 'passwordField' },
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { otpExpirationMinutes: 5, sendCodeCallback: jest.fn() },
+      );
+      const controller = new AuthController(service);
+      service.sendOtpCode = jest.fn().mockResolvedValue(undefined);
+
+      await controller.sendOtpCode({ identifier: 'user@test.co' });
+
+      expect(service.sendOtpCode).toHaveBeenCalledWith('user@test.co');
+    });
+  });
+
+  describe('verifyOtpCode', () => {
+    it('should have verifyOtpCode method', () => {
+      const AuthController = AuthControllerMixin(
+        TestEntity,
+        { loginField: 'loginField', passwordField: 'passwordField' },
+      );
+      const controller = new AuthController(service);
+
+      expect(controller).toHaveProperty('verifyOtpCode', expect.any(Function));
+    });
+
+    it('should call service.verifyOtpCode and return tokens', async () => {
+      const AuthController = AuthControllerMixin(
+        TestEntity,
+        { loginField: 'loginField', passwordField: 'passwordField' },
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { otpExpirationMinutes: 5, sendCodeCallback: jest.fn() },
+      );
+      const controller = new AuthController(service);
+      const tokenResult = { accessToken: 'at', refreshToken: 'rt' };
+      service.verifyOtpCode = jest.fn().mockResolvedValue(tokenResult);
+      const fakeRes = { cookie: jest.fn() } as unknown as Response;
+
+      const result = await controller.verifyOtpCode({ identifier: 'user@test.co', code: '123456' }, fakeRes);
+
+      expect(service.verifyOtpCode).toHaveBeenCalledWith('user@test.co', '123456');
+      expect(result).toEqual(tokenResult);
+    });
+
+    it('should set cookie and strip refreshToken when useCookie is true', async () => {
+      const AuthController = AuthControllerMixin(
+        TestEntity,
+        { loginField: 'loginField', passwordField: 'passwordField' },
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { useCookie: true },
+        { otpExpirationMinutes: 5, sendCodeCallback: jest.fn() },
+      );
+      const controller = new AuthController(service);
+      service.verifyOtpCode = jest.fn().mockResolvedValue({ accessToken: 'at', refreshToken: 'rt' });
+      const fakeRes = { cookie: jest.fn() } as unknown as Response;
+
+      const result = await controller.verifyOtpCode({ identifier: 'user@test.co', code: '123456' }, fakeRes);
+
+      expect(fakeRes.cookie).toHaveBeenCalledWith(
+        'refreshToken',
+        'rt',
+        expect.objectContaining({ httpOnly: true }),
+      );
+      expect(result).toEqual({ accessToken: 'at' });
+    });
+  });
 });
 

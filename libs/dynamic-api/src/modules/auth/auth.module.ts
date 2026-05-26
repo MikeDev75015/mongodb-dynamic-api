@@ -11,6 +11,7 @@ import { GatewayOptions } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BcryptService, DynamicApiGlobalStateService, DynamicApiBroadcastService } from '../../services';
 import { authGatewayProviderName, createAuthController, createAuthGateway, createAuthServiceProvider, createLocalStrategyProvider } from './auth.helper';
+import { OtpCode, OtpCodeSchema } from './models/otp-code.model';
 import { DynamicApiAuthOptions, DynamicApiResetPasswordOptions } from './interfaces';
 import { JwtRefreshStrategy, JwtStrategy } from './strategies';
 
@@ -39,6 +40,7 @@ export class AuthModule implements NestModule {
       updateAccount,
       resetPassword,
       refreshToken,
+      passwordless,
       jwt: { secret, expiresIn },
       validationPipeOptions,
       webSocket,
@@ -54,6 +56,8 @@ export class AuthModule implements NestModule {
       ? { resetPasswordCallback, ...resetPasswordOptionsRest }
       : undefined;
 
+    const connectionName = DynamicApiModule.state.get<string>('connectionName');
+
     const AuthController = createAuthController(
       userEntity,
       { loginField, passwordField, ...login },
@@ -64,8 +68,10 @@ export class AuthModule implements NestModule {
         resetPasswordOptions,
         updateAccountOptions: updateAccount,
         refreshTokenOptions: refreshToken,
+        passwordlessOptions: passwordless,
       },
     );
+
     const AuthServiceProvider = createAuthServiceProvider(
       userEntity,
       { loginField, passwordField, ...login },
@@ -74,6 +80,7 @@ export class AuthModule implements NestModule {
       resetPasswordOptions,
       updateAccount,
       refreshToken,
+      passwordless,
     );
     const LocalStrategyProvider = createLocalStrategyProvider(
       loginField, passwordField, login.abilityPredicate, login.customValidate, login.useStrategy,
@@ -118,6 +125,13 @@ export class AuthModule implements NestModule {
       },
     ];
 
+    const otpFeatureModule = passwordless
+      ? MongooseModule.forFeature(
+          [{ name: OtpCode.name, schema: OtpCodeSchema }],
+          connectionName,
+        )
+      : undefined;
+
     return {
       module: AuthModule,
       imports: [
@@ -131,6 +145,7 @@ export class AuthModule implements NestModule {
           ],
           DynamicApiModule.state.get('connectionName'),
         ),
+        ...(otpFeatureModule ? [otpFeatureModule] : []),
         PassportModule,
         JwtModule.register({
           global: true,
@@ -161,6 +176,7 @@ export class AuthModule implements NestModule {
     getAccount,
     resetPassword,
     refreshToken,
+    passwordless,
     validationPipeOptions,
     webSocket,
     extraImports = [],
@@ -205,6 +221,12 @@ export class AuthModule implements NestModule {
         refreshTokenField: refreshToken?.refreshTokenField,
         useCookie: refreshToken?.useCookie ?? false,
       },
+      passwordless: passwordless
+        ? {
+            ...passwordless,
+            otpExpirationMinutes: passwordless.otpExpirationMinutes ?? 10,
+          }
+        : undefined,
       validationPipeOptions: validationPipeOptions,
       webSocket,
       extraImports,

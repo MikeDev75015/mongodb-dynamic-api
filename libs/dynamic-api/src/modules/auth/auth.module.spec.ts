@@ -190,6 +190,7 @@ describe('AuthModule', () => {
             resetPasswordOptions: undefined,
             updateAccountOptions: { additionalFieldsToExclude: [] },
             refreshTokenOptions: { useInterceptors: [], refreshTokenField: undefined, useCookie: false },
+            passwordlessOptions: undefined,
           },
         );
 
@@ -206,6 +207,7 @@ describe('AuthModule', () => {
           undefined,
           { additionalFieldsToExclude: [] },
           { useInterceptors: [], refreshTokenField: undefined, useCookie: false },
+          undefined,
         );
 
         expect(spyCreateLocalStrategyProvider).toHaveBeenCalledTimes(1);
@@ -266,6 +268,7 @@ describe('AuthModule', () => {
             resetPasswordOptions: fullOptions.resetPassword,
             updateAccountOptions: fullOptions.updateAccount,
             refreshTokenOptions: fullOptions.refreshToken,
+            passwordlessOptions: undefined,
           },
         );
 
@@ -278,6 +281,7 @@ describe('AuthModule', () => {
           fullOptions.resetPassword,
           fullOptions.updateAccount,
           fullOptions.refreshToken,
+          undefined,
         );
 
         expect(spyCreateLocalStrategyProvider).toHaveBeenCalledTimes(1);

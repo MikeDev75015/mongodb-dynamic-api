@@ -32,6 +32,7 @@ JWT authentication is built-in and provides secure, **dual-token** (access + ref
   - [Refresh Token Configuration](#refresh-token-configuration) ⭐ *New in v4*
   - [Cookie Mode](#cookie-mode) ⭐ *New in v4*
   - [Server-Side Token Revocation](#server-side-token-revocation) ⭐ *New in v4*
+  - [Passwordless / OTP Flow](#passwordless--otp-flow) ⭐ *New*
 - [Migration Guide (v3 → v4)](#migration-guide-v3--v4) ⚠️ *Breaking changes*
 - [Best Practices](#best-practices)
 - [Examples](#examples)
@@ -122,6 +123,14 @@ DynamicApiModule.forRoot('mongodb-uri', {
       refreshTokenField?: keyof Entity;        // Entity field to store the bcrypt hash of the refresh token
       useCookie?: boolean;                     // Send/read refresh token via httpOnly cookie (default: false)
       refreshTokenExpiresIn?: string | number; // Default: '7d'
+    },
+
+    // Passwordless / OTP Configuration
+    passwordless?: {
+      otpExpirationMinutes?: number;           // OTP validity window in minutes (default: 10)
+      generateCode?: () => string;             // Custom code generator (default: 6-digit numeric)
+      sendCodeCallback: (identifier: string, code: string) => Promise<void>; // Required — delivers the OTP
+      callback?: (user: Entity, methods: CallbackMethods) => Promise<void>;  // After successful verification
     },
     
     // Login Configuration
@@ -1718,6 +1727,144 @@ DynamicApiModule.forRoot('mongodb-uri', {
 4. Each successful refresh **rotates** the token, revoking the previous one.
 
 > Without `refreshTokenField`, the server cannot compare or revoke tokens. A warning is logged at startup when `POST /auth/logout` is called without this field configured.
+
+---
+
+### Passwordless / OTP Flow
+
+Enable a passwordless authentication flow using a one-time code (OTP / magic-link equivalent) delivered to the user by your own callback (email, SMS, push…). Users do not need a password — they receive a time-limited 6-digit code and exchange it for JWT tokens.
+
+#### How it works
+
+1. Client calls `POST /auth/passwordless/send-code` with `{ identifier }` (the user's `loginField` value, e.g. `email`).
+2. The library generates a 6-digit code, hashes it (bcrypt) and stores it in a dedicated `otp_codes` MongoDB collection with a TTL index (auto-deleted when expired).
+3. Your `sendCodeCallback` receives the plain code — you send it via email, SMS, etc.
+4. Client calls `POST /auth/passwordless/verify-code` with `{ identifier, code }`.
+5. On success: the OTP document is deleted (one-time use), and `{ accessToken, refreshToken }` is returned.
+
+#### `PasswordlessOptions` type signature
+
+```typescript
+import { AfterSaveCallback } from 'mongodb-dynamic-api';
+
+type PasswordlessOptions<Entity> = {
+  /**
+   * How long the OTP code stays valid, in minutes.
+   * Defaults to 10.
+   */
+  otpExpirationMinutes?: number;
+
+  /**
+   * Optional custom code generator.
+   * Defaults to a random 6-digit numeric string, e.g. "483921".
+   */
+  generateCode?: () => string;
+
+  /**
+   * Required — delivers the one-time code to the user.
+   * Receives the identifier value (resolved via `loginField`) and the plain code.
+   * @example async (email, code) => sendEmail(email, `Your code: ${code}`)
+   */
+  sendCodeCallback: (identifier: string, code: string) => Promise<void>;
+
+  /**
+   * Optional callback invoked after successful OTP verification,
+   * just before JWT tokens are returned. Receives the authenticated entity.
+   */
+  callback?: AfterSaveCallback<Entity>;
+};
+```
+
+#### Generated endpoints
+
+| Method | Path | Guard | Description |
+|--------|------|-------|-------------|
+| `POST` | `/auth/passwordless/send-code` | Public + `PasswordlessGuard` | Generate & send OTP |
+| `POST` | `/auth/passwordless/verify-code` | Public + `PasswordlessGuard` | Verify OTP → tokens |
+
+Both routes return `503 Service Unavailable` when `passwordless` is not configured.
+
+#### Complete example
+
+```typescript
+// src/users/user.entity.ts
+import { Prop, Schema } from '@nestjs/mongoose';
+import { BaseEntity } from 'mongodb-dynamic-api';
+
+@Schema({ collection: 'users' })
+export class User extends BaseEntity {
+  @Prop({ type: String, required: true, unique: true })
+  email: string;
+
+  // Password is optional for passwordless-only users
+  @Prop({ type: String })
+  password?: string;
+}
+```
+
+```typescript
+// app.module.ts
+import { DynamicApiModule } from 'mongodb-dynamic-api';
+import { MailService } from './mail/mail.service';
+import { User } from './users/user.entity';
+
+@Module({
+  imports: [
+    DynamicApiModule.forRoot(process.env.MONGO_DB_URL, {
+      useAuth: {
+        userEntity: User,
+
+        passwordless: {
+          otpExpirationMinutes: 10,
+
+          // Optional: customise the generated code (default = 6-digit numeric)
+          // generateCode: () => crypto.randomBytes(3).toString('hex').toUpperCase(),
+
+          sendCodeCallback: async (email, code) => {
+            // Inject MailService via NestJS DI or use any transporter here
+            await MailService.send({
+              to: email,
+              subject: 'Your one-time code',
+              text: `Code: ${code} (valid 10 min)`,
+            });
+          },
+
+          // Optional: runs after successful verification
+          callback: async (user, { updateOneDocument }) => {
+            await updateOneDocument(User, { _id: user.id }, {
+              $set: { lastLoginAt: new Date() },
+            });
+          },
+        },
+      },
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+**Send code:**
+```http
+POST /auth/passwordless/send-code
+Content-Type: application/json
+
+{ "identifier": "alice@example.com" }
+```
+Response: `204 No Content`
+
+**Verify code:**
+```http
+POST /auth/passwordless/verify-code
+Content-Type: application/json
+
+{ "identifier": "alice@example.com", "code": "483921" }
+```
+Response:
+```json
+{ "accessToken": "eyJ...", "refreshToken": "eyJ..." }
+```
+
+> **Note — OTP storage:** codes are stored in a dedicated `otp_codes` MongoDB collection with a MongoDB TTL index (auto-deleted). No Redis dependency required. A second `send-code` call **replaces** the existing OTP (one active code per identifier at any time).
 
 ---
 

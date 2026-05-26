@@ -12,7 +12,8 @@ import { DynamicAPIWsExceptionFilter } from '../../filters';
 import { AuthAbilityPredicate, AfterSaveCallback, DynamicAPIServiceProvider, GatewayOptions } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BcryptService, DynamicApiBroadcastService } from '../../services';
-import { AuthControllerConstructor, AuthGatewayConstructor, AuthService, DynamicApiGetAccountOptions, DynamicApiLoginOptions, DynamicApiRefreshTokenOptions, DynamicApiRegisterOptions, DynamicApiResetPasswordOptions, DynamicApiUpdateAccountOptions } from './interfaces';
+import { OtpCode } from './models/otp-code.model';
+import { AuthControllerConstructor, AuthGatewayConstructor, AuthService, DynamicApiGetAccountOptions, DynamicApiLoginOptions, DynamicApiRefreshTokenOptions, DynamicApiRegisterOptions, DynamicApiResetPasswordOptions, DynamicApiUpdateAccountOptions, PasswordlessOptions } from './interfaces';
 import { AuthControllerMixin, AuthGatewayMixin } from './mixins';
 import { BaseAuthService } from './services';
 
@@ -107,6 +108,7 @@ function createAuthServiceProvider<Entity extends BaseEntity>(
   resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined,
   updateAccount: DynamicApiUpdateAccountOptions<Entity> | undefined,
   refreshToken?: DynamicApiRefreshTokenOptions<Entity>,
+  passwordlessOptions?: PasswordlessOptions<Entity>,
 ): DynamicAPIServiceProvider {
   class AuthService extends BaseAuthService<Entity> {
     protected entity = userEntity;
@@ -124,6 +126,7 @@ function createAuthServiceProvider<Entity extends BaseEntity>(
     protected loginCallback = loginCallback;
     protected getAccountCallback = getAccountCallback;
     protected resetPasswordOptions = resetPasswordOptions;
+    protected passwordlessOptions = passwordlessOptions;
 
     constructor(
       @InjectModel(
@@ -133,8 +136,13 @@ function createAuthServiceProvider<Entity extends BaseEntity>(
       protected readonly model: Model<Entity>,
       protected readonly jwtService: JwtService,
       protected readonly bcryptService: BcryptService,
+      @Optional() @InjectModel(
+        OtpCode.name,
+        DynamicApiModule.state.get('connectionName'),
+      )
+      protected readonly otpModel?: Model<OtpCode>,
     ) {
-      super(model, jwtService, bcryptService);
+      super(model, jwtService, bcryptService, otpModel);
     }
   }
 
@@ -151,6 +159,7 @@ type CreateAuthControllerOptions<Entity extends BaseEntity> = {
   resetPasswordOptions?: DynamicApiResetPasswordOptions<Entity>;
   updateAccountOptions?: DynamicApiUpdateAccountOptions<Entity>;
   refreshTokenOptions?: DynamicApiRefreshTokenOptions<Entity>;
+  passwordlessOptions?: PasswordlessOptions<Entity>;
 };
 
 type CreateAuthGatewayOptions<Entity extends BaseEntity> = GatewayOptions & {
@@ -172,6 +181,7 @@ function createAuthController<Entity extends BaseEntity>(
     resetPasswordOptions,
     updateAccountOptions,
     refreshTokenOptions,
+    passwordlessOptions,
   }: CreateAuthControllerOptions<Entity> = {},
 ): AuthControllerConstructor<Entity> {
   @Controller('auth')
@@ -185,6 +195,7 @@ function createAuthController<Entity extends BaseEntity>(
     updateAccountOptions,
     getAccountOptions,
     refreshTokenOptions,
+    passwordlessOptions,
   ) {
     constructor(
       @Inject(authServiceProviderName)

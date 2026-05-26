@@ -7,7 +7,8 @@ import { MongoDBDynamicApiLogger } from '../../../logger';
 import { BaseEntity } from '../../../models';
 import { BaseService, BcryptService } from '../../../services';
 import { DynamicApiModule } from '../../../dynamic-api.module';
-import { DynamicApiResetPasswordOptions } from '../interfaces';
+import { OtpCode } from '../models/otp-code.model';
+import { DynamicApiResetPasswordOptions, PasswordlessOptions } from '../interfaces';
 
 export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseService<Entity> {
   protected entity: Type<Entity>;
@@ -22,6 +23,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
   protected getAccountCallback: AfterSaveCallback<Entity> | undefined;
   protected resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined;
   protected refreshTokenField: keyof Entity | undefined;
+  protected passwordlessOptions: PasswordlessOptions<Entity> | undefined;
 
   /** refreshTokenOnUpdate */
   protected refreshTokenOnUpdate = false;
@@ -34,6 +36,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     protected readonly model: Model<Entity>,
     protected readonly jwtService: JwtService,
     protected readonly bcryptService: BcryptService,
+    protected readonly otpModel?: Model<OtpCode>,
   ) {
     super(model);
   }
@@ -354,6 +357,63 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
       // @ts-ignore
       { $set: { [this.refreshTokenField]: null } },
     ).exec();
+  }
+
+  async sendOtpCode(identifier: string): Promise<void> {
+    this.logger.debug('Sending OTP code', { identifier });
+    this.verifyArguments(identifier);
+
+    if (!this.passwordlessOptions) {
+      return;
+    }
+
+    const { otpExpirationMinutes = 10, generateCode, sendCodeCallback } = this.passwordlessOptions;
+
+    const code = generateCode ? generateCode() : String(Math.floor(100000 + Math.random() * 900000));
+    const hashedCode = await this.bcryptService.hashPassword(code);
+    const expiresAt = new Date(Date.now() + otpExpirationMinutes * 60 * 1000);
+
+    await this.otpModel.findOneAndUpdate(
+      { identifier },
+      { identifier, hashedCode, expiresAt },
+      { upsert: true, new: true },
+    ).exec();
+
+    await sendCodeCallback(identifier, code);
+  }
+
+  async verifyOtpCode(identifier: string, code: string): Promise<import('../interfaces').LoginResponse> {
+    this.logger.debug('Verifying OTP code', { identifier });
+    this.verifyArguments(identifier, code);
+
+    const otpDoc = await this.otpModel.findOne({ identifier }).exec();
+
+    if (!otpDoc || otpDoc.expiresAt <= new Date()) {
+      throw new UnauthorizedException('OTP code has expired or does not exist. Please request a new one.');
+    }
+
+    const isCodeValid = await this.bcryptService.comparePassword(code, otpDoc.hashedCode);
+    if (!isCodeValid) {
+      throw new UnauthorizedException('Invalid OTP code.');
+    }
+
+    // @ts-ignore
+    const user = await this.model.findOne({ [this.loginField]: identifier }).lean<Entity>().exec();
+
+    if (!user) {
+      throw new UnauthorizedException('User not found.');
+    }
+
+    await this.otpModel.deleteOne({ identifier }).exec();
+
+    const userWithId = { ...user, id: user._id.toString() };
+
+    if (this.passwordlessOptions?.callback) {
+      const instance = this.buildInstance(user);
+      await this.passwordlessOptions.callback(instance, this.callbackMethods);
+    }
+
+    return this.login(userWithId as Entity, true);
   }
 
   private buildRefreshToken(payload: object): string {
