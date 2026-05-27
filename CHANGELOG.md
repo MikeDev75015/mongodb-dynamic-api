@@ -1,5 +1,7 @@
 Changelog
 
+## [4.14.1](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.14.0...v4.14.1) (2026-05-27)
+
 ## [4.14.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.13.0...v4.14.0) (2026-05-26)
 
 ### typing
