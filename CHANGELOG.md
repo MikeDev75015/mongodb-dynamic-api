@@ -1,5 +1,11 @@
 Changelog
 
+## [4.15.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.14.1...v4.15.0) (2026-05-31)
+
+### auth
+
+* **auth:** add grace window, rotate=false, and atomic CAS rotation for refresh tokens ([e62b77d](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/e62b77d3539abb3c7c50580a49888b5363bca310))
+
 ## [4.14.1](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.14.0...v4.14.1) (2026-05-27)
 
 ## [4.14.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.13.0...v4.14.0) (2026-05-26)
