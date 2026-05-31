@@ -1,7 +1,7 @@
 import { BadRequestException, ForbiddenException, Type, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { randomInt, randomUUID } from 'node:crypto';
-import { Model, UpdateQuery, UpdateWithAggregationPipeline } from 'mongoose';
+import { FilterQuery, Model, UpdateQuery, UpdateWithAggregationPipeline } from 'mongoose';
 import { DynamicApiResetPasswordCallbackMethods, BeforeSaveCallback, AfterSaveCallback } from '../../../interfaces';
 import { MongoDBDynamicApiLogger } from '../../../logger';
 import { BaseEntity } from '../../../models';
@@ -9,6 +9,21 @@ import { BaseService, BcryptService } from '../../../services';
 import { DynamicApiModule } from '../../../dynamic-api.module';
 import { OtpCode } from '../models/otp-code.model';
 import { DynamicApiResetPasswordOptions, PasswordlessOptions } from '../interfaces';
+
+/** Internal record stored in `refreshTokenField` (JSON-encoded). */
+interface RefreshTokenRecord {
+  /** bcrypt hash of the current valid jti. */
+  currentHash: string;
+  /** bcrypt hash of the previous jti — kept for grace-window reuse detection. */
+  previousHash?: string;
+  /** Epoch ms when the last rotation occurred — used to enforce `reuseWindowMs`. */
+  rotatedAt?: number;
+  /** Token pair cached at rotation time — returned on grace-window hits (idempotency). */
+  cachedTokens?: {
+    accessToken: string;
+    refreshToken: string;
+  };
+}
 
 export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseService<Entity> {
   protected entity: Type<Entity>;
@@ -27,6 +42,21 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
 
   /** refreshTokenOnUpdate */
   protected refreshTokenOnUpdate = false;
+
+  /**
+   * When false, the stored hash is NOT rotated on each refresh call.
+   * Enables persistent-token mode: same token valid until logout/revocation.
+   * Default: true.
+   */
+  protected rotate = true;
+
+  /**
+   * Grace-window in milliseconds.
+   * Within this window after a rotation, the superseded (previous) jti is still accepted
+   * and returns the cached token pair, preventing false-positive 401s on concurrent bursts.
+   * Default: 0 (disabled).
+   */
+  protected reuseWindowMs = 0;
 
   private resetPasswordCallbackMethods: DynamicApiResetPasswordCallbackMethods<Entity> | undefined;
 
@@ -84,10 +114,11 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
       const decodedRefresh = this.jwtService.decode(refreshToken);
       const jti: string = decodedRefresh && typeof decodedRefresh !== 'string' ? decodedRefresh['jti'] : '';
       const hashedRefreshToken = await this.bcryptService.hashPassword(jti);
+      const record: RefreshTokenRecord = { currentHash: hashedRefreshToken };
       await this.model.updateOne(
         { _id: user._id || user.id },
         // @ts-ignore
-        { $set: { [this.refreshTokenField]: hashedRefreshToken } },
+        { $set: { [this.refreshTokenField]: JSON.stringify(record) } },
       ).exec();
     }
 
@@ -297,45 +328,72 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     this.verifyArguments(user);
 
     if (this.refreshTokenField) {
-      const storedUser = await this.model.findOne({ _id: user._id || user.id }).lean<Entity>().exec();
-      const storedHash = storedUser?.[this.refreshTokenField] as string | undefined;
+      const userId = user._id || user.id;
+      const storedUser = await this.model.findOne({ _id: userId }).lean<Entity>().exec();
+      const storedRaw = storedUser?.[this.refreshTokenField] as string | undefined;
       const decodedRaw = rawToken ? this.jwtService.decode(rawToken) : undefined;
-      const jtiFromToken: string | undefined = decodedRaw && typeof decodedRaw !== 'string' ? decodedRaw['jti'] : undefined;
+      const incomingJti: string | undefined =
+        decodedRaw && typeof decodedRaw !== 'string' ? decodedRaw['jti'] : undefined;
 
-      if (!storedHash || !jtiFromToken) {
+      if (!storedRaw || !incomingJti) {
         throw new UnauthorizedException('Invalid refresh token');
       }
 
-      const isValid = await this.bcryptService.comparePassword(jtiFromToken, storedHash);
-      if (!isValid) {
+      const record = this.parseRefreshTokenRecord(storedRaw);
+      const isCurrentValid = await this.bcryptService.comparePassword(incomingJti, record.currentHash);
+
+      if (!isCurrentValid) {
+        // Current jti invalid — check grace window against previous jti.
+        const cached = await this.checkGraceWindow(incomingJti, record);
+        if (cached) {
+          this.logger.debug('Refresh token reused within grace window — returning cached pair', { userId });
+          return cached;
+        }
         throw new UnauthorizedException('Invalid refresh token');
       }
+
+      // Current jti valid.
+      if (this.rotate === false) {
+        // Persistent-token mode: validate only, no rotation.
+        return this.buildTokenPair(user);
+      }
+
+      // Build new token pair and attempt atomic CAS rotation.
+      const newPair = await this.buildTokenPair(user);
+      const newRecord = await this.buildRotatedRecord(record, newPair);
+      const newRecordJson = JSON.stringify(newRecord);
+
+      // findOneAndUpdate acts as compare-and-swap: only updates if the stored value
+      // still matches what we just read (prevents duplicate rotations under concurrency).
+      const casResult = await this.model.findOneAndUpdate(
+        // @ts-ignore — dynamic field key
+        { _id: userId, [this.refreshTokenField]: storedRaw } as FilterQuery<Entity>,
+        // @ts-ignore — dynamic field key
+        { $set: { [this.refreshTokenField]: newRecordJson } },
+        { new: false },
+      ).lean<Entity>().exec();
+
+      if (!casResult) {
+        // CAS missed — a concurrent rotation already happened.
+        // Re-read and check if the grace window of the winner covers this request.
+        this.logger.debug('CAS miss on refresh rotation — checking grace window of winning rotation', { userId });
+        const rereadUser = await this.model.findOne({ _id: userId }).lean<Entity>().exec();
+        const rereadRaw = rereadUser?.[this.refreshTokenField] as string | undefined;
+        if (rereadRaw) {
+          const rereadRecord = this.parseRefreshTokenRecord(rereadRaw);
+          const cached = await this.checkGraceWindow(incomingJti, rereadRecord);
+          if (cached) {
+            this.logger.debug('CAS miss covered by grace window — returning cached pair', { userId });
+            return cached;
+          }
+        }
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+
+      return newPair;
     }
 
-    const fieldsToBuild = [
-      '_id' as keyof Entity,
-      'id' as keyof Entity,
-      this.loginField,
-      ...this.additionalRequestFields,
-    ];
-
-    const payload: object = { ...this.buildUserFields(user, fieldsToBuild) };
-
-    const accessToken = this.jwtService.sign(payload);
-    const refreshToken = this.buildRefreshToken(payload);
-
-    if (this.refreshTokenField && (user._id || user.id)) {
-      const decodedRefresh = this.jwtService.decode(refreshToken);
-      const jti: string = decodedRefresh && typeof decodedRefresh !== 'string' ? decodedRefresh['jti'] : '';
-      const hashedRefreshToken = await this.bcryptService.hashPassword(jti);
-      await this.model.updateOne(
-        { _id: user._id || user.id },
-        // @ts-ignore
-        { $set: { [this.refreshTokenField]: hashedRefreshToken } },
-      ).exec();
-    }
-
-    return { accessToken, refreshToken };
+    return this.buildTokenPair(user);
   }
 
   protected async logout(user: Entity) {
@@ -429,6 +487,92 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
         ...(refreshTokenExpiresIn ? { expiresIn: refreshTokenExpiresIn } : {}),
       },
     );
+  }
+
+  /**
+   * Builds an `{ accessToken, refreshToken }` pair from the user's payload fields.
+   * Pure: does NOT update the database.
+   */
+  private async buildTokenPair(user: Entity): Promise<{ accessToken: string; refreshToken: string }> {
+    const fieldsToBuild = [
+      '_id' as keyof Entity,
+      'id' as keyof Entity,
+      this.loginField,
+      ...this.additionalRequestFields,
+    ];
+    const payload: object = { ...this.buildUserFields(user, fieldsToBuild) };
+    const accessToken = this.jwtService.sign(payload);
+    const refreshToken = this.buildRefreshToken(payload);
+    return { accessToken, refreshToken };
+  }
+
+  /**
+   * Parses the value stored in `refreshTokenField`.
+   * Supports both the legacy plain-bcrypt-hash format and the new JSON `RefreshTokenRecord` format.
+   */
+  private parseRefreshTokenRecord(storedRaw: string): RefreshTokenRecord {
+    try {
+      const parsed: unknown = JSON.parse(storedRaw);
+      if (
+        parsed !== null &&
+        typeof parsed === 'object' &&
+        'currentHash' in parsed &&
+        typeof (parsed as RefreshTokenRecord).currentHash === 'string'
+      ) {
+        return parsed as RefreshTokenRecord;
+      }
+    } catch {
+      // Not JSON — fall through to legacy plain-hash treatment.
+    }
+    // Legacy format: the entire stored string is the bcrypt hash of the jti.
+    return { currentHash: storedRaw };
+  }
+
+  /**
+   * Checks whether `incomingJti` matches the `previousHash` of `record` and the rotation
+   * occurred within the configured `reuseWindowMs` grace window.
+   * Returns the cached token pair if the window is active, `null` otherwise.
+   */
+  private async checkGraceWindow(
+    incomingJti: string,
+    record: RefreshTokenRecord,
+  ): Promise<{ accessToken: string; refreshToken: string } | null> {
+    if (this.reuseWindowMs <= 0 || !record.previousHash || !record.rotatedAt) {
+      return null;
+    }
+    if (Date.now() - record.rotatedAt > this.reuseWindowMs) {
+      return null;
+    }
+    const isPreviousValid = await this.bcryptService.comparePassword(incomingJti, record.previousHash);
+    if (!isPreviousValid) {
+      return null;
+    }
+    return record.cachedTokens ?? null;
+  }
+
+  /**
+   * Builds the `RefreshTokenRecord` that will replace the current stored record after rotation.
+   * When `reuseWindowMs > 0`, the current hash is preserved as `previousHash` together with
+   * the cached new token pair so that grace-window hits can return an idempotent response.
+   */
+  private async buildRotatedRecord(
+    currentRecord: RefreshTokenRecord,
+    newPair: { accessToken: string; refreshToken: string },
+  ): Promise<RefreshTokenRecord> {
+    const decodedNew = this.jwtService.decode(newPair.refreshToken);
+    const newJti: string =
+      decodedNew && typeof decodedNew !== 'string' ? (decodedNew['jti'] as string) : '';
+    const newHash = await this.bcryptService.hashPassword(newJti);
+
+    const newRecord: RefreshTokenRecord = { currentHash: newHash };
+
+    if (this.reuseWindowMs > 0) {
+      newRecord.previousHash = currentRecord.currentHash;
+      newRecord.rotatedAt = Date.now();
+      newRecord.cachedTokens = newPair;
+    }
+
+    return newRecord;
   }
 
   private buildUserFields(user: Entity, fieldsToBuild: (keyof Entity)[]) {

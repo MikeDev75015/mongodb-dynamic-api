@@ -124,6 +124,25 @@ type DynamicApiRefreshTokenOptions<Entity extends BaseEntity = any> = {
    * When false (default), the refresh token is sent/read via the Authorization Bearer header exclusively.
    */
   useCookie?: boolean;
+  /**
+   * When false, the stored refresh token hash is NOT rotated on each call.
+   * The same token remains valid until logout or an explicit revocation.
+   * Useful when you only want server-side revocation (logout) without strict single-use enforcement.
+   * Default: true (each refresh call issues a new token and invalidates the previous one).
+   * Only meaningful when `refreshTokenField` is configured.
+   */
+  rotate?: boolean;
+  /**
+   * Grace window in milliseconds during which the immediately preceding refresh token
+   * (the one superseded by the last rotation) is still accepted.
+   * When a token reuse is detected within this window, the cached token pair from the
+   * winning rotation is returned — making concurrent bursts (multi-tab, multi-device cold start)
+   * safe without triggering a false-positive theft detection.
+   * Set to 0 (default) to disable the grace window (strict single-use).
+   * Only meaningful when `refreshTokenField` is configured and `rotate` is true.
+   * Recommended value: 5000–15000 (5 s – 15 s).
+   */
+  reuseWindowMs?: number;
 };
 
 type PasswordlessOptions<Entity extends BaseEntity = any> = {

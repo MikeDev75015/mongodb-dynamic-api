@@ -189,4 +189,127 @@ describe('DynamicApiModule forRoot - POST /auth/refresh-token (e2e)', () => {
       expect(status).toBe(401);
     });
   });
+
+  describe('with reuseWindowMs configured (grace window)', () => {
+    let app: INestApplication;
+    let refreshToken: string;
+
+    beforeEach(async () => {
+      const User = createUserWithRefreshTokenEntity();
+      app = await initModule({
+        useAuth: {
+          userEntity: User,
+          jwt: {
+            secret: 'test-secret',
+            expiresIn: '15m',
+            refreshTokenExpiresIn: '7d',
+          },
+          refreshToken: {
+            refreshTokenField: 'refreshTokenHash',
+            reuseWindowMs: 10000, // 10 s grace window
+          },
+        },
+      });
+
+      await server.post('/auth/register', { email: 'grace@test.co', password: 'test' });
+      const { body } = await server.post('/auth/login', { email: 'grace@test.co', password: 'test' });
+      refreshToken = body.refreshToken;
+    });
+
+    it('should return new tokens on first use of refresh token', async () => {
+      const headers = { Authorization: `Bearer ${refreshToken}` };
+      const { body, status } = await server.post('/auth/refresh-token', {}, { headers });
+
+      expect(status).toBe(200);
+      expect(body).toEqual({ accessToken: expect.any(String), refreshToken: expect.any(String) });
+    });
+
+    it('should accept the same refresh token again within the grace window (concurrent burst)', async () => {
+      const headers = { Authorization: `Bearer ${refreshToken}` };
+
+      // First refresh — rotates the token.
+      const { status: s1 } = await server.post('/auth/refresh-token', {}, { headers });
+      expect(s1).toBe(200);
+
+      // Second refresh with SAME token — within grace window → must NOT return 401.
+      const { status: s2, body: b2 } = await server.post('/auth/refresh-token', {}, { headers });
+      expect(s2).toBe(200);
+      expect(b2).toHaveProperty('accessToken');
+      expect(b2).toHaveProperty('refreshToken');
+    });
+
+    it('should reject the same refresh token after grace window expires', async () => {
+      const User2 = createUserWithRefreshTokenEntity();
+      await closeTestingApp(mongoose.connections);
+      DynamicApiModule.state['resetState']();
+      app = await initModule({
+        useAuth: {
+          userEntity: User2,
+          jwt: { secret: 'test-secret', expiresIn: '15m', refreshTokenExpiresIn: '7d' },
+          refreshToken: { refreshTokenField: 'refreshTokenHash', reuseWindowMs: 1 },
+        },
+      });
+      await server.post('/auth/register', { email: 'grace-expired@test.co', password: 'test' });
+      const { body: loginBody } = await server.post('/auth/login', {
+        email: 'grace-expired@test.co',
+        password: 'test',
+      });
+      const shortWindowToken = loginBody.refreshToken;
+
+      const hdrs = { Authorization: `Bearer ${shortWindowToken}` };
+      await server.post('/auth/refresh-token', {}, { headers: hdrs });
+      await wait(50);
+
+      const { status } = await server.post('/auth/refresh-token', {}, { headers: hdrs });
+      expect(status).toBe(401);
+    }, 10000);
+  });
+
+  describe('with rotate=false (persistent token mode)', () => {
+    let app: INestApplication;
+    let refreshToken: string;
+
+    beforeEach(async () => {
+      const User = createUserWithRefreshTokenEntity();
+      app = await initModule({
+        useAuth: {
+          userEntity: User,
+          jwt: {
+            secret: 'test-secret',
+            expiresIn: '15m',
+            refreshTokenExpiresIn: '7d',
+          },
+          refreshToken: {
+            refreshTokenField: 'refreshTokenHash',
+            rotate: false,
+          },
+        },
+      });
+
+      await server.post('/auth/register', { email: 'norotate@test.co', password: 'test' });
+      const { body } = await server.post('/auth/login', { email: 'norotate@test.co', password: 'test' });
+      refreshToken = body.refreshToken;
+    });
+
+    it('should accept the same refresh token on multiple calls', async () => {
+      const headers = { Authorization: `Bearer ${refreshToken}` };
+
+      const { status: s1 } = await server.post('/auth/refresh-token', {}, { headers });
+      expect(s1).toBe(200);
+
+      const { status: s2 } = await server.post('/auth/refresh-token', {}, { headers });
+      expect(s2).toBe(200);
+
+      const { status: s3 } = await server.post('/auth/refresh-token', {}, { headers });
+      expect(s3).toBe(200);
+    });
+
+    it('should reject the refresh token after logout (revocation still works)', async () => {
+      const headers = { Authorization: `Bearer ${refreshToken}` };
+      await server.post('/auth/logout', {}, { headers });
+
+      const { status } = await server.post('/auth/refresh-token', {}, { headers });
+      expect(status).toBe(401);
+    });
+  });
 });

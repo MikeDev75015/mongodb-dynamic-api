@@ -129,6 +129,8 @@ function createAuthServiceProvider<Entity extends BaseEntity>(
     protected passwordField = passwordField;
     protected refreshTokenField = refreshToken?.refreshTokenField;
     protected refreshTokenOnUpdate = DynamicApiModule.state.get<boolean>('refreshTokenOnUpdate') ?? false;
+    protected rotate = refreshToken?.rotate ?? true;
+    protected reuseWindowMs = refreshToken?.reuseWindowMs ?? 0;
 
     protected beforeRegisterCallback = register?.beforeSaveCallback;
     protected registerCallback = register?.callback;
