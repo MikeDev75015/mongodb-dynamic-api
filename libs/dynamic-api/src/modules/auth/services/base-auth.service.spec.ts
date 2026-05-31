@@ -563,6 +563,97 @@ describe('BaseAuthService', () => {
     });
   });
 
+  describe('extractIncomingJti (private)', () => {
+    it('should return undefined when rawToken is absent', () => {
+      expect(service['extractIncomingJti'](undefined)).toBeUndefined();
+    });
+
+    it('should return undefined when decode returns null', () => {
+      jest.spyOn(jwtService, 'decode').mockReturnValueOnce(null);
+      expect(service['extractIncomingJti']('some-token')).toBeUndefined();
+    });
+
+    it('should return undefined when decode returns a plain string', () => {
+      jest.spyOn(jwtService, 'decode').mockReturnValueOnce('plain-string');
+      expect(service['extractIncomingJti']('some-token')).toBeUndefined();
+    });
+
+    it('should return undefined when decoded object has no jti', () => {
+      jest.spyOn(jwtService, 'decode').mockReturnValueOnce({ sub: '123' });
+      expect(service['extractIncomingJti']('some-token')).toBeUndefined();
+    });
+
+    it('should return jti when decoded object has jti', () => {
+      jest.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'abc-jti' });
+      expect(service['extractIncomingJti']('some-token')).toBe('abc-jti');
+    });
+  });
+
+  describe('handleInvalidCurrentJti (private)', () => {
+    const userId = 'user-123';
+
+    afterEach(() => jest.restoreAllMocks());
+
+    it('should return cached tokens when grace window is valid', async () => {
+      const cachedTokens = { accessToken: 'a', refreshToken: 'r' };
+      jest.spyOn<any, any>(service as any, 'checkGraceWindow').mockResolvedValueOnce(cachedTokens);
+
+      const result = await service['handleInvalidCurrentJti']('jti', { currentHash: 'h' }, userId);
+
+      expect(result).toEqual(cachedTokens);
+    });
+
+    it('should throw UnauthorizedException when grace window returns null', async () => {
+      jest.spyOn<any, any>(service as any, 'checkGraceWindow').mockResolvedValueOnce(null);
+
+      await expect(service['handleInvalidCurrentJti']('jti', { currentHash: 'h' }, userId))
+        .rejects.toThrow(new UnauthorizedException('Invalid refresh token'));
+    });
+  });
+
+  describe('handleCasMiss (private)', () => {
+    const userId = 'user-456';
+
+    beforeEach(() => {
+      service['refreshTokenField'] = 'nickname' as keyof User;
+    });
+
+    afterEach(() => jest.restoreAllMocks());
+
+    it('should return cached tokens when re-read record is within grace window', async () => {
+      const cachedTokens = { accessToken: 'ca', refreshToken: 'cr' };
+      const rereadRecord = { currentHash: 'h2', previousHash: 'prev', rotatedAt: Date.now() - 500, cachedTokens };
+      exec.mockResolvedValueOnce({ ...fakeUser, nickname: JSON.stringify(rereadRecord) });
+      jest.spyOn<any, any>(service as any, 'checkGraceWindow').mockResolvedValueOnce(cachedTokens);
+
+      const result = await service['handleCasMiss'](userId, 'jti');
+
+      expect(result).toEqual(cachedTokens);
+    });
+
+    it('should throw when re-read record grace window returns null', async () => {
+      exec.mockResolvedValueOnce({ ...fakeUser, nickname: JSON.stringify({ currentHash: 'h2' }) });
+      jest.spyOn<any, any>(service as any, 'checkGraceWindow').mockResolvedValueOnce(null);
+
+      await expect(service['handleCasMiss'](userId, 'jti'))
+        .rejects.toThrow(new UnauthorizedException('Invalid refresh token'));
+    });
+
+    it('should throw when re-read user has no stored value', async () => {
+      exec.mockResolvedValueOnce({ ...fakeUser, nickname: null });
+
+      await expect(service['handleCasMiss'](userId, 'jti'))
+        .rejects.toThrow(new UnauthorizedException('Invalid refresh token'));
+    });
+
+    it('should throw when re-read user not found', async () => {
+      exec.mockResolvedValueOnce(null);
+
+      await expect(service['handleCasMiss'](userId, 'jti'))
+        .rejects.toThrow(new UnauthorizedException('Invalid refresh token'));
+    });
+  });
+
   describe('logout', () => {
     let spyLoggerWarn: jest.SpyInstance;
 

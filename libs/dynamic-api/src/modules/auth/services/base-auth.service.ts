@@ -327,74 +327,127 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     this.logger.debug('Refreshing token', { userId: user?.id });
     this.verifyArguments(user);
 
-    if (this.refreshTokenField) {
-      const userId = user._id || user.id;
-      const storedUser = await this.model.findOne({ _id: userId }).lean<Entity>().exec();
-      const storedRaw = storedUser?.[this.refreshTokenField] as string | undefined;
-      const decodedRaw = rawToken ? this.jwtService.decode(rawToken) : undefined;
-      const incomingJti: string | undefined =
-        decodedRaw && typeof decodedRaw !== 'string' ? decodedRaw['jti'] : undefined;
-
-      if (!storedRaw || !incomingJti) {
-        throw new UnauthorizedException('Invalid refresh token');
-      }
-
-      const record = this.parseRefreshTokenRecord(storedRaw);
-      const isCurrentValid = await this.bcryptService.comparePassword(incomingJti, record.currentHash);
-
-      if (!isCurrentValid) {
-        // Current jti invalid — check grace window against previous jti.
-        const cached = await this.checkGraceWindow(incomingJti, record);
-        if (cached) {
-          this.logger.debug('Refresh token reused within grace window — returning cached pair', { userId });
-          return cached;
-        }
-        throw new UnauthorizedException('Invalid refresh token');
-      }
-
-      // Current jti valid.
-      if (this.rotate === false) {
-        // Persistent-token mode: validate only, no rotation.
-        return this.buildTokenPair(user);
-      }
-
-      // Build new token pair and attempt atomic CAS rotation.
-      const newPair = await this.buildTokenPair(user);
-      const newRecord = await this.buildRotatedRecord(record, newPair);
-      const newRecordJson = JSON.stringify(newRecord);
-
-      // findOneAndUpdate acts as compare-and-swap: only updates if the stored value
-      // still matches what we just read (prevents duplicate rotations under concurrency).
-      const casResult = await this.model.findOneAndUpdate(
-        // @ts-ignore — dynamic field key
-        { _id: userId, [this.refreshTokenField]: storedRaw } as FilterQuery<Entity>,
-        // @ts-ignore — dynamic field key
-        { $set: { [this.refreshTokenField]: newRecordJson } },
-        { new: false },
-      ).lean<Entity>().exec();
-
-      if (!casResult) {
-        // CAS missed — a concurrent rotation already happened.
-        // Re-read and check if the grace window of the winner covers this request.
-        this.logger.debug('CAS miss on refresh rotation — checking grace window of winning rotation', { userId });
-        const rereadUser = await this.model.findOne({ _id: userId }).lean<Entity>().exec();
-        const rereadRaw = rereadUser?.[this.refreshTokenField] as string | undefined;
-        if (rereadRaw) {
-          const rereadRecord = this.parseRefreshTokenRecord(rereadRaw);
-          const cached = await this.checkGraceWindow(incomingJti, rereadRecord);
-          if (cached) {
-            this.logger.debug('CAS miss covered by grace window — returning cached pair', { userId });
-            return cached;
-          }
-        }
-        throw new UnauthorizedException('Invalid refresh token');
-      }
-
-      return newPair;
+    if (!this.refreshTokenField) {
+      return this.buildTokenPair(user);
     }
 
-    return this.buildTokenPair(user);
+    const userId = user._id || user.id;
+    const storedUser = await this.model.findOne({ _id: userId }).lean<Entity>().exec();
+    const storedRaw = storedUser?.[this.refreshTokenField] as string | undefined;
+    const incomingJti = this.extractIncomingJti(rawToken);
+
+    if (!storedRaw || !incomingJti) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const record = this.parseRefreshTokenRecord(storedRaw);
+    const isCurrentValid = await this.bcryptService.comparePassword(incomingJti, record.currentHash);
+
+    if (!isCurrentValid) {
+      return this.handleInvalidCurrentJti(incomingJti, record, userId);
+    }
+
+    if (this.rotate === false) {
+      // Persistent-token mode: validate only, no rotation.
+      return this.buildTokenPair(user);
+    }
+
+    return this.rotateCasOrThrow(userId, storedRaw, incomingJti, user, record);
   }
+
+  /**
+   * Extracts the `jti` claim from a raw JWT string.
+   * Returns `undefined` when `rawToken` is absent, not decodable, or carries no `jti`.
+   */
+  private extractIncomingJti(rawToken?: string): string | undefined {
+    if (!rawToken) {
+      return undefined;
+    }
+    const decoded = this.jwtService.decode(rawToken);
+    if (!decoded || typeof decoded === 'string') {
+      return undefined;
+    }
+    return decoded['jti'] as string | undefined;
+  }
+
+  /**
+   * Called when the incoming jti does NOT match `record.currentHash`.
+   * Checks the grace window against `record.previousHash`; returns the cached pair
+   * if still valid, otherwise throws `UnauthorizedException`.
+   */
+  private async handleInvalidCurrentJti(
+    incomingJti: string,
+    record: RefreshTokenRecord,
+    userId: Entity['_id'] | string,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    const cached = await this.checkGraceWindow(incomingJti, record);
+    if (cached) {
+      this.logger.debug('Refresh token reused within grace window — returning cached pair', { userId });
+      return cached;
+    }
+    throw new UnauthorizedException('Invalid refresh token');
+  }
+
+  /**
+   * Builds a new token pair and attempts an atomic compare-and-swap (CAS) rotation.
+   * On a CAS miss (concurrent rotation), delegates to `handleCasMiss`.
+   */
+  private async rotateCasOrThrow(
+    userId: Entity['_id'] | string,
+    storedRaw: string,
+    incomingJti: string,
+    user: Entity,
+    record: RefreshTokenRecord,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    // Build new token pair and attempt atomic CAS rotation.
+    const newPair = await this.buildTokenPair(user);
+    const newRecord = await this.buildRotatedRecord(record, newPair);
+    const newRecordJson = JSON.stringify(newRecord);
+
+    // findOneAndUpdate acts as compare-and-swap: only updates if the stored value
+    // still matches what we just read (prevents duplicate rotations under concurrency).
+    const casResult = await this.model.findOneAndUpdate(
+      // @ts-ignore — dynamic field key
+      { _id: userId, [this.refreshTokenField]: storedRaw } as FilterQuery<Entity>,
+      // @ts-ignore — dynamic field key
+      { $set: { [this.refreshTokenField]: newRecordJson } },
+      { new: false },
+    ).lean<Entity>().exec();
+
+    if (!casResult) {
+      return this.handleCasMiss(userId, incomingJti);
+    }
+
+    return newPair;
+  }
+
+  /**
+   * Called when the CAS rotation missed (concurrent winner already rotated).
+   * Re-reads the stored record and checks whether the winner's grace window covers
+   * the incoming jti; returns the cached pair if so, otherwise throws.
+   */
+  private async handleCasMiss(
+    userId: Entity['_id'] | string,
+    incomingJti: string,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    // CAS missed — a concurrent rotation already happened.
+    // Re-read and check if the grace window of the winner covers this request.
+    this.logger.debug('CAS miss on refresh rotation — checking grace window of winning rotation', { userId });
+    const rereadUser = await this.model.findOne({ _id: userId }).lean<Entity>().exec();
+    const rereadRaw = rereadUser?.[this.refreshTokenField] as string | undefined;
+
+    if (rereadRaw) {
+      const rereadRecord = this.parseRefreshTokenRecord(rereadRaw);
+      const cached = await this.checkGraceWindow(incomingJti, rereadRecord);
+      if (cached) {
+        this.logger.debug('CAS miss covered by grace window — returning cached pair', { userId });
+        return cached;
+      }
+    }
+
+    throw new UnauthorizedException('Invalid refresh token');
+  }
+
 
   protected async logout(user: Entity) {
     this.logger.debug('Logging out user', { userId: user.id });
