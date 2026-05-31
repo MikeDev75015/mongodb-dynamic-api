@@ -123,6 +123,8 @@ DynamicApiModule.forRoot('mongodb-uri', {
       refreshTokenField?: keyof Entity;        // Entity field to store the bcrypt hash of the refresh token
       useCookie?: boolean;                     // Send/read refresh token via httpOnly cookie (default: false)
       refreshTokenExpiresIn?: string | number; // Default: '7d'
+      rotate?: boolean;                        // Rotate token on each use (default: true). Set false for persistent-token mode.
+      reuseWindowMs?: number;                  // Grace window in ms: accept previous jti within this period (default: 0). Recommended: 10000.
     },
 
     // Passwordless / OTP Configuration
@@ -1638,6 +1640,8 @@ DynamicApiModule.forRoot('mongodb-uri', {
       refreshTokenField: 'refreshToken',         // Entity field that stores the bcrypt hash
       useCookie: false,                          // false = Bearer header (default), true = httpOnly cookie
       refreshTokenExpiresIn: '7d',               // v4 default
+      rotate: true,                              // Rotate token on each use (default: true)
+      reuseWindowMs: 10000,                      // 10 s grace window for concurrent bursts (default: 0)
     },
   },
 })
@@ -1648,6 +1652,75 @@ DynamicApiModule.forRoot('mongodb-uri', {
 | `refreshTokenField` | `keyof Entity` | — | Field on the entity where the bcrypt hash of the refresh token is stored. Required for server-side revocation. |
 | `useCookie` | `boolean` | `false` | When `true`, the refresh token is transported via an httpOnly, SameSite=Strict cookie named `refreshToken` instead of the response body / `Authorization` header. |
 | `refreshTokenExpiresIn` | `string \| number` | `'7d'` | Expiration duration for the refresh token. |
+| `rotate` | `boolean` | `true` | When `false`, the stored hash is **not rotated** on each refresh call. The same token remains valid until logout or explicit revocation (persistent-token mode). Only meaningful when `refreshTokenField` is configured. |
+| `reuseWindowMs` | `number` | `0` | Grace window in milliseconds. Within this window after a rotation, the superseded (previous) jti is still accepted and returns the cached token pair. Prevents false-positive 401s on concurrent multi-tab / multi-device cold-start bursts. Set to `0` to disable (strict single-use). Recommended: `10000` (10 s). Only meaningful when `refreshTokenField` is set and `rotate` is `true`. |
+
+---
+
+### Grace Window (`reuseWindowMs`) — Concurrent Burst Protection
+
+By default, rotation is **strict single-use**: once a refresh token is used, it is immediately invalidated. This can cause false-positive 401s when multiple tabs or devices open simultaneously and all try to refresh with the same token at once.
+
+Setting `reuseWindowMs` enables a **grace window**: for N milliseconds after a rotation, the immediately preceding (superseded) jti is still accepted and returns the **same cached token pair** that was issued by the winning rotation. Concurrent losers get the winner's tokens instead of a 401.
+
+```typescript
+// src/app.module.ts
+import { Module } from '@nestjs/common';
+import { DynamicApiModule } from 'mongodb-dynamic-api';
+import { User } from './user.entity';
+
+@Module({
+  imports: [
+    DynamicApiModule.forRoot(process.env.MONGO_URI, {
+      useAuth: {
+        userEntity: User,
+        jwt: {
+          secret: process.env.JWT_SECRET,
+          expiresIn: '15m',
+          refreshTokenExpiresIn: '7d',
+        },
+        refreshToken: {
+          refreshTokenField: 'refreshTokenHash', // bcrypt hash stored in the User entity
+          reuseWindowMs: 10000,                  // 10 s grace window — recommended for multi-tab apps
+        },
+      },
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+**How it works:**
+1. Client A (tab 1) and Client B (tab 2) both start with the same refresh token `RT₀`.
+2. Both call `POST /auth/refresh-token` concurrently.
+3. The server processes Client A first → rotates `RT₀ → RT₁`, caches `{ RT₁, AT₁ }` in the stored record.
+4. Client B arrives with `RT₀` (now superseded). Server checks the grace window → `RT₀` is the previous jti, `rotatedAt` is within `reuseWindowMs` → returns the **cached `{ RT₁, AT₁ }`** instead of 401.
+5. Both clients end up with `{ RT₁, AT₁ }` — session intact.
+
+> **Security note:** A token that is truly stolen and replayed from a completely different session (where `RT₀` was superseded *more than* `reuseWindowMs` ago) will still receive a 401.
+
+---
+
+### Persistent Token Mode (`rotate: false`)
+
+Setting `rotate: false` disables per-call rotation. The stored hash is verified on each request but **never replaced**, so the same refresh token can be used multiple times until:
+- The user calls `POST /auth/logout` (server-side revocation still works).
+- The JWT itself expires (`refreshTokenExpiresIn`).
+
+```typescript
+DynamicApiModule.forRoot(process.env.MONGO_URI, {
+  useAuth: {
+    userEntity: User,
+    jwt: { secret: process.env.JWT_SECRET, expiresIn: '15m', refreshTokenExpiresIn: '7d' },
+    refreshToken: {
+      refreshTokenField: 'refreshTokenHash',
+      rotate: false, // Persistent token — valid until logout
+    },
+  },
+})
+```
+
+> **Use case:** Apps that need server-side revocation (logout) but where single-use token rotation is impractical — e.g., native mobile apps, IoT devices.
 
 ---
 

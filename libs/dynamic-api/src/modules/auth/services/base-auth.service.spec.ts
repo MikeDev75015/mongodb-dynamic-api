@@ -255,49 +255,310 @@ describe('BaseAuthService', () => {
         );
       });
 
-      it('should rotate refresh token and update hash in DB on valid token', async () => {
-        exec.mockResolvedValueOnce({ ...fakeUser, nickname: fakeHash });
-        spyBcryptCompare.mockResolvedValueOnce(true);
-        spyBcriptHashPassword.mockResolvedValueOnce('new-hashed-refresh');
-        jest.spyOn(jwtService, 'decode')
-          .mockReturnValueOnce({ jti: 'input-jti' })  // decode rawToken for validation
-          .mockReturnValueOnce({ jti: 'new-jti' });    // decode new refreshToken for storage
-
-        const result = await service['refreshToken'](fakeUser, 'valid-token');
-
-        expect(spyBcryptCompare).toHaveBeenCalledWith('input-jti', fakeHash);
-        expect(spyBcriptHashPassword).toHaveBeenCalledWith('new-jti');
-        expect(model.updateOne).toHaveBeenCalledWith(
-          { _id: fakeUser._id },
-          { $set: { nickname: 'new-hashed-refresh' } },
-        );
-        expect(result).toEqual({ accessToken, refreshToken });
-      });
-
-      it('should use user.id fallback when user._id is absent and update DB', async () => {
-        const userWithoutId = { ...fakeUser, _id: undefined as unknown as ObjectId, id: 'only-id' };
-        exec.mockResolvedValueOnce({ ...fakeUser, nickname: fakeHash });
-        spyBcryptCompare.mockResolvedValueOnce(true);
-        spyBcriptHashPassword.mockResolvedValueOnce('new-hashed-refresh');
-        jest.spyOn(jwtService, 'decode')
-          .mockReturnValueOnce({ jti: 'input-jti' })
-          .mockReturnValueOnce({ jti: 'new-jti' });
-
-        await service['refreshToken'](userWithoutId as unknown as User, 'valid-token');
-
-        expect(model.updateOne).toHaveBeenCalledWith(
-          { _id: 'only-id' },
-          { $set: { nickname: 'new-hashed-refresh' } },
-        );
-      });
-
       it('should handle rawToken without jti (decode returns object without jti)', async () => {
-        exec.mockResolvedValueOnce({ ...fakeUser, nickname: fakeHash });
+        exec.mockResolvedValueOnce({ ...fakeUser, nickname: JSON.stringify({ currentHash: fakeHash }) });
         jest.spyOn(jwtService, 'decode').mockReturnValueOnce({});
 
         await expect(service['refreshToken'](fakeUser, 'token-without-jti')).rejects.toThrow(
           new UnauthorizedException('Invalid refresh token'),
         );
+      });
+
+      it('should rotate via CAS on valid token', async () => {
+        const jsonRecord = JSON.stringify({ currentHash: fakeHash });
+        exec
+          .mockResolvedValueOnce({ ...fakeUser, nickname: jsonRecord })   // findOne
+          .mockResolvedValueOnce({ ...fakeUser, nickname: jsonRecord });  // CAS success
+        jest.spyOn(jwtService, 'decode')
+          .mockReturnValueOnce({ jti: 'input-jti' })
+          .mockReturnValueOnce({ jti: 'new-jti' });
+        spyBcryptCompare.mockResolvedValueOnce(true);
+        spyBcriptHashPassword.mockResolvedValueOnce('new-hash');
+
+        const result = await service['refreshToken'](fakeUser, 'valid-token');
+
+        expect(spyBcryptCompare).toHaveBeenCalledWith('input-jti', fakeHash);
+        expect(model.findOneAndUpdate).toHaveBeenCalledWith(
+          { _id: fakeUser._id, nickname: jsonRecord },
+          { $set: { nickname: JSON.stringify({ currentHash: 'new-hash' }) } },
+          { new: false },
+        );
+        expect(model.updateOne).not.toHaveBeenCalled();
+        expect(result).toEqual({ accessToken, refreshToken });
+      });
+
+      it('should support legacy plain hash format (backward compat)', async () => {
+        exec
+          .mockResolvedValueOnce({ ...fakeUser, nickname: fakeHash })  // findOne (legacy)
+          .mockResolvedValueOnce({ ...fakeUser, nickname: fakeHash }); // CAS success
+        jest.spyOn(jwtService, 'decode')
+          .mockReturnValueOnce({ jti: 'input-jti' })
+          .mockReturnValueOnce({ jti: 'new-jti' });
+        spyBcryptCompare.mockResolvedValueOnce(true);
+        spyBcriptHashPassword.mockResolvedValueOnce('new-hash');
+
+        const result = await service['refreshToken'](fakeUser, 'valid-token');
+
+        expect(spyBcryptCompare).toHaveBeenCalledWith('input-jti', fakeHash);
+        expect(model.findOneAndUpdate).toHaveBeenCalledWith(
+          { _id: fakeUser._id, nickname: fakeHash },
+          { $set: { nickname: JSON.stringify({ currentHash: 'new-hash' }) } },
+          { new: false },
+        );
+        expect(result).toEqual({ accessToken, refreshToken });
+      });
+
+      it('should use empty jti when decode returns null for new refreshToken in buildRotatedRecord', async () => {
+        const jsonRecord = JSON.stringify({ currentHash: fakeHash });
+        exec
+          .mockResolvedValueOnce({ ...fakeUser, nickname: jsonRecord })
+          .mockResolvedValueOnce({ ...fakeUser, nickname: jsonRecord });
+        jest.spyOn(jwtService, 'decode')
+          .mockReturnValueOnce({ jti: 'input-jti' })  // decode rawToken
+          .mockReturnValueOnce(null);                  // decode new refreshToken → null → jti=''
+        spyBcryptCompare.mockResolvedValueOnce(true);
+        spyBcriptHashPassword.mockResolvedValueOnce('hash-empty-jti');
+
+        await service['refreshToken'](fakeUser, 'valid-token');
+
+        expect(spyBcriptHashPassword).toHaveBeenCalledWith('');
+      });
+
+      it('should use user.id fallback when user._id is absent', async () => {
+        const userWithoutId = { ...fakeUser, _id: undefined as unknown as ObjectId, id: 'only-id' };
+        const jsonRecord = JSON.stringify({ currentHash: fakeHash });
+        exec
+          .mockResolvedValueOnce({ ...fakeUser, nickname: jsonRecord })
+          .mockResolvedValueOnce({ ...fakeUser, nickname: jsonRecord });
+        jest.spyOn(jwtService, 'decode')
+          .mockReturnValueOnce({ jti: 'input-jti' })
+          .mockReturnValueOnce({ jti: 'new-jti' });
+        spyBcryptCompare.mockResolvedValueOnce(true);
+        spyBcriptHashPassword.mockResolvedValueOnce('new-hash');
+
+        await service['refreshToken'](userWithoutId as unknown as User, 'valid-token');
+
+        expect(model.findOneAndUpdate).toHaveBeenCalledWith(
+          { _id: 'only-id', nickname: jsonRecord },
+          expect.anything(),
+          expect.anything(),
+        );
+      });
+
+      describe('rotate = false', () => {
+        beforeEach(() => { service['rotate'] = false; });
+        afterEach(() => { service['rotate'] = true; });
+
+        it('should validate and return new pair without updating DB', async () => {
+          const jsonRecord = JSON.stringify({ currentHash: fakeHash });
+          exec.mockResolvedValueOnce({ ...fakeUser, nickname: jsonRecord });
+          jest.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'input-jti' });
+          spyBcryptCompare.mockResolvedValueOnce(true);
+
+          const result = await service['refreshToken'](fakeUser, 'valid-token');
+
+          expect(model.findOneAndUpdate).not.toHaveBeenCalled();
+          expect(model.updateOne).not.toHaveBeenCalled();
+          expect(result).toEqual({ accessToken, refreshToken });
+        });
+
+        it('should throw 401 on invalid token even when rotate=false', async () => {
+          const jsonRecord = JSON.stringify({ currentHash: fakeHash });
+          exec.mockResolvedValueOnce({ ...fakeUser, nickname: jsonRecord });
+          jest.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'bad-jti' });
+          spyBcryptCompare.mockResolvedValueOnce(false);
+
+          await expect(service['refreshToken'](fakeUser, 'bad-token')).rejects.toThrow(
+            new UnauthorizedException('Invalid refresh token'),
+          );
+          expect(model.findOneAndUpdate).not.toHaveBeenCalled();
+        });
+      });
+
+      describe('reuseWindowMs > 0 (grace window)', () => {
+        const cachedTokens = { accessToken: 'cached-access', refreshToken: 'cached-refresh' };
+        const previousHash = 'prev-hash';
+        const rotatedRecently = Date.now() - 3000;
+
+        beforeEach(() => { service['reuseWindowMs'] = 10000; });
+        afterEach(() => { service['reuseWindowMs'] = 0; });
+
+        it('should return cached tokens when previous jti used within grace window', async () => {
+          const graceRecord = JSON.stringify({
+            currentHash: 'current-hash',
+            previousHash,
+            rotatedAt: rotatedRecently,
+            cachedTokens,
+          });
+          exec.mockResolvedValueOnce({ ...fakeUser, nickname: graceRecord });
+          jest.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'old-jti' });
+          spyBcryptCompare
+            .mockResolvedValueOnce(false)  // vs currentHash
+            .mockResolvedValueOnce(true);  // vs previousHash
+
+          const result = await service['refreshToken'](fakeUser, 'old-token');
+
+          expect(result).toEqual(cachedTokens);
+          expect(model.findOneAndUpdate).not.toHaveBeenCalled();
+        });
+
+        it('should throw 401 when previous jti used but grace window expired', async () => {
+          const expiredRecord = JSON.stringify({
+            currentHash: 'current-hash',
+            previousHash,
+            rotatedAt: Date.now() - 20000,
+            cachedTokens,
+          });
+          exec.mockResolvedValueOnce({ ...fakeUser, nickname: expiredRecord });
+          jest.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'old-jti' });
+          spyBcryptCompare.mockResolvedValueOnce(false);
+
+          await expect(service['refreshToken'](fakeUser, 'old-token')).rejects.toThrow(
+            new UnauthorizedException('Invalid refresh token'),
+          );
+        });
+
+        it('should throw 401 when previous jti used within window but hash does not match', async () => {
+          const graceRecord = JSON.stringify({
+            currentHash: 'current-hash',
+            previousHash,
+            rotatedAt: rotatedRecently,
+            cachedTokens,
+          });
+          exec.mockResolvedValueOnce({ ...fakeUser, nickname: graceRecord });
+          jest.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'wrong-jti' });
+          spyBcryptCompare
+            .mockResolvedValueOnce(false)  // vs currentHash
+            .mockResolvedValueOnce(false); // vs previousHash
+
+          await expect(service['refreshToken'](fakeUser, 'bad-token')).rejects.toThrow(
+            new UnauthorizedException('Invalid refresh token'),
+          );
+        });
+
+        it('should throw 401 when no previousHash in record', async () => {
+          const noGraceRecord = JSON.stringify({ currentHash: 'current-hash' });
+          exec.mockResolvedValueOnce({ ...fakeUser, nickname: noGraceRecord });
+          jest.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'old-jti' });
+          spyBcryptCompare.mockResolvedValueOnce(false);
+
+          await expect(service['refreshToken'](fakeUser, 'old-token')).rejects.toThrow(
+            new UnauthorizedException('Invalid refresh token'),
+          );
+        });
+
+        it('should throw 401 when grace window matches but cachedTokens absent in record', async () => {
+          // Record has previousHash + rotatedAt but no cachedTokens (e.g. migrated record)
+          const noCacheRecord = JSON.stringify({
+            currentHash: 'current-hash',
+            previousHash,
+            rotatedAt: rotatedRecently,
+            // no cachedTokens
+          });
+          exec.mockResolvedValueOnce({ ...fakeUser, nickname: noCacheRecord });
+          jest.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'old-jti' });
+          spyBcryptCompare
+            .mockResolvedValueOnce(false)  // vs currentHash
+            .mockResolvedValueOnce(true);  // vs previousHash (matches)
+
+          await expect(service['refreshToken'](fakeUser, 'old-token')).rejects.toThrow(
+            new UnauthorizedException('Invalid refresh token'),
+          );
+        });
+
+        it('should store previousHash + rotatedAt + cachedTokens in rotated record', async () => {
+          const simpleRecord = JSON.stringify({ currentHash: fakeHash });
+          exec
+            .mockResolvedValueOnce({ ...fakeUser, nickname: simpleRecord })
+            .mockResolvedValueOnce({ ...fakeUser, nickname: simpleRecord });
+          jest.spyOn(jwtService, 'decode')
+            .mockReturnValueOnce({ jti: 'input-jti' })
+            .mockReturnValueOnce({ jti: 'new-jti' });
+          spyBcryptCompare.mockResolvedValueOnce(true);
+          spyBcriptHashPassword.mockResolvedValueOnce('new-hash');
+
+          await service['refreshToken'](fakeUser, 'valid-token');
+
+          const casCall = model.findOneAndUpdate.mock.calls[0];
+          const stored = JSON.parse(casCall[1].$set.nickname);
+          expect(stored.currentHash).toBe('new-hash');
+          expect(stored.previousHash).toBe(fakeHash);
+          expect(stored.rotatedAt).toBeGreaterThan(0);
+          expect(stored.cachedTokens).toEqual({ accessToken, refreshToken });
+        });
+      });
+
+      describe('CAS race condition handling', () => {
+        const cachedTokens = { accessToken: 'cached-access', refreshToken: 'cached-refresh' };
+        const winnerRotatedAt = Date.now() - 1000;
+
+        beforeEach(() => { service['reuseWindowMs'] = 10000; });
+        afterEach(() => { service['reuseWindowMs'] = 0; });
+
+        it('should return cached tokens from winner when CAS misses within grace window', async () => {
+          const storedRecord = JSON.stringify({ currentHash: fakeHash });
+          const winnerRecord = JSON.stringify({
+            currentHash: 'winner-hash',
+            previousHash: fakeHash,
+            rotatedAt: winnerRotatedAt,
+            cachedTokens,
+          });
+          exec
+            .mockResolvedValueOnce({ ...fakeUser, nickname: storedRecord })  // first findOne
+            .mockResolvedValueOnce(null)                                       // CAS miss
+            .mockResolvedValueOnce({ ...fakeUser, nickname: winnerRecord });   // re-read
+          jest.spyOn(jwtService, 'decode')
+            .mockReturnValueOnce({ jti: 'input-jti' })
+            .mockReturnValueOnce({ jti: 'new-jti' });
+          spyBcryptCompare
+            .mockResolvedValueOnce(true)    // vs storedRecord.currentHash (valid, proceed to rotate)
+            .mockResolvedValueOnce(true);   // grace: winnerRecord.previousHash vs input-jti
+          spyBcriptHashPassword.mockResolvedValueOnce('new-hash');
+
+          const result = await service['refreshToken'](fakeUser, 'valid-token');
+
+          expect(result).toEqual(cachedTokens);
+        });
+
+        it('should throw 401 when CAS misses and grace window expired in winner record', async () => {
+          const storedRecord = JSON.stringify({ currentHash: fakeHash });
+          const expiredWinner = JSON.stringify({
+            currentHash: 'winner-hash',
+            previousHash: fakeHash,
+            rotatedAt: Date.now() - 20000,
+            cachedTokens,
+          });
+          exec
+            .mockResolvedValueOnce({ ...fakeUser, nickname: storedRecord })
+            .mockResolvedValueOnce(null)
+            .mockResolvedValueOnce({ ...fakeUser, nickname: expiredWinner });
+          jest.spyOn(jwtService, 'decode')
+            .mockReturnValueOnce({ jti: 'input-jti' })
+            .mockReturnValueOnce({ jti: 'new-jti' });
+          spyBcryptCompare.mockResolvedValueOnce(true);
+          spyBcriptHashPassword.mockResolvedValueOnce('new-hash');
+
+          await expect(service['refreshToken'](fakeUser, 'valid-token')).rejects.toThrow(
+            new UnauthorizedException('Invalid refresh token'),
+          );
+        });
+
+        it('should throw 401 when CAS misses and re-read returns null stored value', async () => {
+          const storedRecord = JSON.stringify({ currentHash: fakeHash });
+          exec
+            .mockResolvedValueOnce({ ...fakeUser, nickname: storedRecord })
+            .mockResolvedValueOnce(null)
+            .mockResolvedValueOnce(null);  // user gone
+          jest.spyOn(jwtService, 'decode')
+            .mockReturnValueOnce({ jti: 'input-jti' })
+            .mockReturnValueOnce({ jti: 'new-jti' });
+          spyBcryptCompare.mockResolvedValueOnce(true);
+          spyBcriptHashPassword.mockResolvedValueOnce('new-hash');
+
+          await expect(service['refreshToken'](fakeUser, 'valid-token')).rejects.toThrow(
+            new UnauthorizedException('Invalid refresh token'),
+          );
+        });
       });
     });
   });
@@ -429,7 +690,7 @@ describe('BaseAuthService', () => {
       expect(spyBcriptHashPassword).toHaveBeenCalledWith('fake-jti');
       expect(model.updateOne).toHaveBeenCalledWith(
         { _id: fakeUser._id },
-        { $set: { nickname: 'hashed-refresh' } },
+        { $set: { nickname: JSON.stringify({ currentHash: 'hashed-refresh' }) } },
       );
       service['refreshTokenField'] = undefined;
     });
@@ -454,7 +715,24 @@ describe('BaseAuthService', () => {
 
       expect(model.updateOne).toHaveBeenCalledWith(
         { _id: 'only-id' },
-        { $set: { nickname: 'hashed-refresh' } },
+        { $set: { nickname: JSON.stringify({ currentHash: 'hashed-refresh' }) } },
+      );
+      service['refreshTokenField'] = undefined;
+    });
+
+    it('should store hash with empty jti when decode returns null for refreshToken', async () => {
+      jest.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
+      // decode returns null (defensive branch)
+      jest.spyOn(jwtService, 'decode').mockReturnValueOnce(null);
+      service['refreshTokenField'] = 'nickname' as keyof User;
+      spyBcriptHashPassword.mockResolvedValueOnce('hash-empty');
+
+      await service['login'](fakeUser);
+
+      expect(spyBcriptHashPassword).toHaveBeenCalledWith('');
+      expect(model.updateOne).toHaveBeenCalledWith(
+        { _id: fakeUser._id },
+        { $set: { nickname: JSON.stringify({ currentHash: 'hash-empty' }) } },
       );
       service['refreshTokenField'] = undefined;
     });
