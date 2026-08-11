@@ -259,7 +259,7 @@ Register `UsersModule` in `AppModule`, run `npm run start:dev` — your API is l
 | 🔐 **Authentication** | Dual-token JWT, 8 endpoints, cookie mode, revocation, OTP ⭐ | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/authentication.md) |
 | 🛡️ **Authorization** | Ability predicates, `filter` vs `throw` mode | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/authorization.md) |
 | ⚡ **Caching** | Global cache, auto-purge endpoint, `disableCache` option ⭐ | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/caching.md) |
-| ✅ **Validation** | `class-validator`, global + per-route `ValidationPipe` | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/validation.md) |
+| ✅ **Validation** | `class-validator`, global + per-route `ValidationPipe`, DB-aware `@IsUnique`/`@EntityExists` ⭐ | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/validation.md) |
 | 📡 **WebSockets** | Socket.IO, room-targeted broadcast, `onConnection`, debug ⭐ | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/websockets.md) |
 | 🟢 **Presence** | Online/offline tracking, InMemory & Redis adapters ⭐ | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/presence.md) |
 | 🔁 **Callbacks** | `beforeSave`, `afterSave`, `beforeDelete`, typed contexts ⭐ | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/callbacks.md) |
