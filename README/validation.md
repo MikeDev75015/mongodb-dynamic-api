@@ -312,74 +312,130 @@ export class User extends BaseEntity {
 
 ## Custom Validation
 
-### Custom Validator
+### Strong Password
+
+Don't roll your own — `class-validator` already ships a configurable `@IsStrongPassword()` decorator:
 
 ```typescript
-import { registerDecorator, ValidationOptions, ValidationArguments } from 'class-validator';
+import { IsStrongPassword } from 'class-validator';
 
-export function IsStrongPassword(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
-    registerDecorator({
-      name: 'isStrongPassword',
-      target: object.constructor,
-      propertyName: propertyName,
-      options: validationOptions,
-      validator: {
-        validate(value: any, args: ValidationArguments) {
-          if (typeof value !== 'string') return false;
-          
-          const hasUpperCase = /[A-Z]/.test(value);
-          const hasLowerCase = /[a-z]/.test(value);
-          const hasNumber = /\d/.test(value);
-          const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(value);
-          const isLongEnough = value.length >= 8;
-          
-          return hasUpperCase && hasLowerCase && hasNumber && hasSpecialChar && isLongEnough;
-        },
-        defaultMessage(args: ValidationArguments) {
-          return 'Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number, and one special character';
-        },
-      },
-    });
-  };
-}
-
-// Usage
 @Schema({ collection: 'users' })
 export class User extends BaseEntity {
-  @IsStrongPassword()
+  @IsStrongPassword({
+    minLength: 8,
+    minLowercase: 1,
+    minUppercase: 1,
+    minNumbers: 1,
+    minSymbols: 1,
+  })
   @Prop({ type: String, required: true })
   password: string;
 }
 ```
 
+### `@IsUnique` — DB-aware uniqueness
+
+Async, database-backed decorator ensuring no other document in an entity's collection already
+has the same value for the decorated field. Uses the schema registered by `DynamicApiModule` —
+the target entity must be registered via `forFeature`/`forRoot` before any request reaches it.
+
+```typescript
+import { Prop, Schema } from '@nestjs/mongoose';
+import { BaseEntity, IsUnique } from 'mongodb-dynamic-api';
+import { IsEmail } from 'class-validator';
+
+@Schema({ collection: 'users' })
+export class User extends BaseEntity {
+  @IsEmail()
+  @IsUnique(User, { caseInsensitive: true })
+  @Prop({ type: String, required: true })
+  email: string;
+}
+```
+
+Update scenarios must exclude the entity's own current value via `ignoreId` (the DTO must carry
+the id under that property name — e.g. via `entity.param.ts`'s `id` merged into the body, or an
+explicit field):
+
+```typescript
+export class UpdateUserDto {
+  @IsUnique(User, { ignoreId: 'id' })
+  email: string;
+
+  id: string;
+}
+```
+
+| Option | Type | Default | Description |
+|:--|:--|:--|:--|
+| `field` | `keyof Entity` | decorated property name | Field checked in the target collection |
+| `caseInsensitive` | `boolean` | `false` | Case-insensitive comparison (recommended for emails/usernames) |
+| `ignoreId` | `string` | — | Sibling DTO property holding the current entity's id, excluded from the check |
+
+### `@EntityExists` — DB-aware existence
+
+Async, database-backed decorator ensuring a document referenced by the decorated field (an id,
+by default) exists in another entity's collection. The optional `filter` callback lets you scope
+the check beyond plain existence — e.g. requiring the referenced document to be active, not
+archived, or matching another sibling field on the DTO:
+
+```typescript
+import { BaseEntity, EntityExists } from 'mongodb-dynamic-api';
+
+@Schema({ collection: 'conversations' })
+export class Conversation extends BaseEntity {
+  @EntityExists(Family, { filter: () => ({ isActive: true }) })
+  @Prop({ type: String, required: true })
+  familyId: string;
+}
+```
+
+```typescript
+// Scope existence to a document owned by the current record — filter receives
+// the decorated value and the full DTO instance being validated.
+@EntityExists(Family, {
+  filter: (_value, dto: JoinFamilyDto) => ({ members: dto.userId }),
+})
+familyId: string;
+```
+
+> [!NOTE]
+> `filter` only sees the DTO being validated, not the authenticated request user — checks that
+> depend on the *current user* (ownership, membership) belong to an `abilityPredicate`
+> ([Authorization](./authorization.md)), not to a validator. Use `@EntityExists`/`@IsUnique` for
+> data-shape and reference-integrity checks; use ability predicates for who-is-allowed-to checks.
+
+| Option | Type | Default | Description |
+|:--|:--|:--|:--|
+| `field` | `keyof Entity` | `'_id'` | Field matched against the decorated value |
+| `filter` | `(value, dto) => FilterQuery<Entity>` | — | Extra conditions merged into the existence query |
+
 ### Custom Validation Class
+
+For anything not covered by `@IsUnique`/`@EntityExists`, class-validator's async constraint
+classes remain the escape hatch:
 
 ```typescript
 import { ValidatorConstraint, ValidatorConstraintInterface, ValidationArguments } from 'class-validator';
 
-@ValidatorConstraint({ name: 'isUniqueEmail', async: true })
-export class IsUniqueEmailConstraint implements ValidatorConstraintInterface {
-  async validate(email: string, args: ValidationArguments) {
-    // Check if email exists in database
-    // Return false if exists, true if unique
-    // const user = await userRepository.findOne({ email });
-    // return !user;
+@ValidatorConstraint({ name: 'isBusinessRule', async: true })
+export class IsBusinessRuleConstraint implements ValidatorConstraintInterface {
+  async validate(value: string, args: ValidationArguments) {
+    // custom async check
     return true;
   }
 
   defaultMessage(args: ValidationArguments) {
-    return 'Email already exists';
+    return 'Business rule violated';
   }
 }
 
 // Usage
 @Schema({ collection: 'users' })
 export class User extends BaseEntity {
-  @Validate(IsUniqueEmailConstraint)
-  @IsEmail()
+  @Validate(IsBusinessRuleConstraint)
   @Prop({ type: String, required: true })
-  email: string;
+  someField: string;
 }
 ```
 
