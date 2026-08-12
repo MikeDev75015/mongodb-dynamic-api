@@ -87,7 +87,7 @@ function EntityExists<Entity extends BaseEntity>(
 
           const filter = {
             [field]: value,
-            ...(opts.filter?.(value, args.object) ?? {}),
+            ...opts.filter?.(value, args.object),
           } as FilterQuery<Entity>;
 
           const existing = await model.exists(filter);
