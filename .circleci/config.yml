@@ -1,6 +1,6 @@
 version: 2.1
 orbs:
-  sonarcloud: sonarsource/sonarcloud@2.0.0
+  sonarcloud: sonarsource/sonarcloud@4.0.0
   slack: circleci/slack@4.12.6
   jq: circleci/jq@2.2.0
   docker: circleci/docker@2.6.0
@@ -310,13 +310,6 @@ jobs:
       - attach_workspace:
           at: .
       - merge-coverage-command
-      - run:
-          name: Install Java 21
-          command: |
-            sudo apt-get update -qq
-            sudo apt-get install -y openjdk-21-jdk-headless
-            echo 'export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64' >> $BASH_ENV
-            echo 'export PATH=$JAVA_HOME/bin:$PATH' >> $BASH_ENV
       - sonarcloud/scan
       - *notify-fail
       - *notify-success
