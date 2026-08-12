@@ -12,6 +12,7 @@ export * from './mixins';
 export * from './models';
 export * from './modules';
 export * from './modules/presence';
+export * from './predicates';
 export * from './routes';
 export * from './services';
 export * from './utils';
