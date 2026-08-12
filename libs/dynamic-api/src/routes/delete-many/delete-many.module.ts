@@ -40,11 +40,10 @@ export class DeleteManyModule {
       entity,
       displayedName,
       version,
-      routeConfig.callback,
+      { callback: routeConfig.callback, retry: routeConfig.callbackRetry },
       routeConfig.beforeSaveCallback,
       routeConfig.beforeDeleteCallback,
       routeConfig.cascade,
-      routeConfig.callbackRetry,
     );
 
     const hasBroadcast = !!routeConfig.broadcast;

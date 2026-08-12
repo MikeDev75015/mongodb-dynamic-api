@@ -56,7 +56,7 @@ describe('CreateOneModule', () => {
       expect(spyCreateCreateOneController)
       .toHaveBeenCalledWith(Entity, fakeDisplayedName, controllerOptions, routeConfig, version, validationPipeOptions);
       expect(spyCreateCreateOneServiceProvider)
-      .toHaveBeenCalledWith(Entity, fakeDisplayedName, version, routeConfigCallback, routeConfigBeforeSaveCallback, routeConfig.callbackRetry);
+      .toHaveBeenCalledWith(Entity, fakeDisplayedName, version, { callback: routeConfigCallback, retry: routeConfig.callbackRetry }, routeConfigBeforeSaveCallback);
     });
 
     it('should return a DynamicModule with gateway', () => {
@@ -80,7 +80,7 @@ describe('CreateOneModule', () => {
       expect(spyCreateCreateOneController)
       .toHaveBeenCalledWith(Entity, fakeDisplayedName, controllerOptions, routeConfig, version, validationPipeOptions);
       expect(spyCreateCreateOneServiceProvider)
-      .toHaveBeenCalledWith(Entity, fakeDisplayedName, version, routeConfigCallback, routeConfigBeforeSaveCallback, routeConfig.callbackRetry);
+      .toHaveBeenCalledWith(Entity, fakeDisplayedName, version, { callback: routeConfigCallback, retry: routeConfig.callbackRetry }, routeConfigBeforeSaveCallback);
       expect(spyCreateCreateOneGateway)
       .toHaveBeenCalledWith(
         Entity,

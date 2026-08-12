@@ -19,7 +19,7 @@ import {
   DynamicAPIRouteConfig,
   AbilityPredicate,
   AfterSaveCallback,
-  CallbackRetryOptions,
+  AfterSaveCallbackConfig,
   DynamicAPIServiceProvider, GatewayOptions,
   PredicateBehavior,
 } from '../../interfaces';
@@ -35,17 +35,16 @@ function createAggregateServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
   displayedName: string,
   version: string | undefined,
-  callback: AfterSaveCallback<Entity> | undefined,
+  afterSave: AfterSaveCallbackConfig<Entity> | undefined,
   abilityPredicate?: AbilityPredicate<Entity>,
   predicateBehavior?: PredicateBehavior,
-  callbackRetry?: CallbackRetryOptions,
 ): DynamicAPIServiceProvider {
   class AggregateService extends BaseAggregateService<Entity> {
     protected readonly entity = entity;
-    protected readonly callback = callback;
+    protected readonly callback = afterSave?.callback;
     protected readonly abilityPredicate = abilityPredicate;
     protected readonly predicateBehavior = predicateBehavior;
-    protected readonly callbackRetry = callbackRetry;
+    protected readonly callbackRetry = afterSave?.retry;
 
     constructor(
       @InjectModel(
