@@ -31,6 +31,7 @@ describe('DynamicApiModule forRoot - Initialization (e2e)', () => {
       jwtRefreshTokenExpiresIn: undefined,
       jwtRefreshSecret: undefined,
       jwtRefreshUseCookie: undefined,
+      onAfterSaveError: undefined,
       jwtSecret: undefined,
       routesConfig: {
         defaults: [
@@ -77,6 +78,7 @@ describe('DynamicApiModule forRoot - Initialization (e2e)', () => {
       jwtRefreshTokenExpiresIn: undefined,
       jwtRefreshSecret: undefined,
       jwtRefreshUseCookie: undefined,
+      onAfterSaveError: undefined,
       jwtSecret: undefined,
       routesConfig: {
         defaults: ['GetMany', 'GetOne', 'CreateOne', 'UpdateOne', 'DeleteOne'],

@@ -44,6 +44,7 @@ describe('DynamicApiModule forRoot - Authentication API Basic (e2e)', () => {
         jwtRefreshTokenExpiresIn: '7d',
         jwtRefreshSecret: undefined,
         jwtRefreshUseCookie: false,
+        onAfterSaveError: undefined,
         refreshTokenOnUpdate: false,
         jwtSecret: 'dynamic-api-jwt-secret',
         routesConfig: {
@@ -272,6 +273,7 @@ describe('DynamicApiModule forRoot - Authentication API Basic (e2e)', () => {
         jwtRefreshTokenExpiresIn: '7d',
         jwtRefreshSecret: undefined,
         jwtRefreshUseCookie: false,
+        onAfterSaveError: undefined,
         refreshTokenOnUpdate: false,
         jwtSecret: 'test-secret',
         routesConfig: {

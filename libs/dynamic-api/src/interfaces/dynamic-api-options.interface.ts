@@ -7,6 +7,7 @@ import { DynamicApiCacheOptions } from './dynamic-api-cache-options.interface';
 import { CustomRouteConfig } from './dynamic-api-custom-route.interface';
 import { RoutesConfig } from './dynamic-api-global-state.interface';
 import { DynamicAPIRouteConfig } from './dynamic-api-route-config.interface';
+import { OnAfterSaveErrorHook } from './dynamic-api-service-callback.interface';
 import { DynamicApiWebSocketOptions } from './dynamic-api-web-socket.interface';
 
 /** @deprecated Internal API — will be removed from public exports in v5. */
@@ -19,6 +20,11 @@ interface DynamicApiForRootOptions<Entity extends BaseEntity = any, RegisterExtr
   routesConfig?: Partial<RoutesConfig>;
   webSocket?: DynamicApiWebSocketOptions;
   broadcastGatewayOptions?: GatewayMetadata;
+  /**
+   * Global hook invoked whenever `callback` (the after-save hook) fails on any route,
+   * after any configured `callbackRetry` attempts are exhausted. See {@link OnAfterSaveErrorHook}.
+   */
+  onAfterSaveError?: OnAfterSaveErrorHook;
 }
 
 interface DynamicApiForFeatureOptions<Entity extends BaseEntity> {

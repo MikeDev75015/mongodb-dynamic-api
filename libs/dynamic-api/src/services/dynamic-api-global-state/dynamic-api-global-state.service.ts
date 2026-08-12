@@ -23,6 +23,7 @@ export class DynamicApiGlobalStateService {
     jwtRefreshTokenExpiresIn: undefined,
     jwtRefreshSecret: undefined,
     jwtRefreshUseCookie: undefined,
+    onAfterSaveError: undefined,
     cacheExcludedPaths: [],
     routesConfig: {
       excluded: [],
