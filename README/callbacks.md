@@ -14,6 +14,9 @@ Both `beforeSaveCallback` and `callback` (after save) **receive the authenticate
 - [afterSave Callback (`callback`)](#aftersave-callback-callback)
   - [Signature](#aftersave-signature)
   - [Compatibility](#aftersave-compatibility)
+  - [Failure isolation guarantee](#failure-isolation-guarantee)
+    - [Retrying `callback`](#retrying-callback)
+    - [Global error hook (`onAfterSaveError`)](#global-error-hook-onaftersaveerror)
   - [Example — Audit log after creation](#example--audit-log-after-creation)
   - [Example — Audit log with authenticated user](#example--audit-log-with-authenticated-user)
 - [beforeSave Callback (`beforeSaveCallback`)](#beforesave-callback-beforesavecallback)
@@ -128,6 +131,67 @@ The `callback` property is available on **all route types**:
 | `DeleteMany` | Called once per deleted entity |
 | `GetOne` | The fetched entity |
 | `GetMany` | Called once per fetched entity |
+| `Aggregate` | Called once per aggregated document |
+
+### Failure isolation guarantee
+
+If `callback` throws or rejects — for any route type, single-document or batch — the error is caught, logged, and **never affects the response of the already-successful primary operation**. The entity was already created/updated/replaced/duplicated/fetched/deleted in the database; a broken side effect (a failing audit-log write, a timing-out webhook, …) no longer turns that success into an HTTP error.
+
+For `DeleteOne`/`DeleteMany` specifically, the response still reports the **real** `deletedCount` — it is never masked to `0` because of a `callback` failure (only a genuine database failure during the delete itself still results in `deletedCount: 0`).
+
+For batch routes (`CreateMany`, `UpdateMany`, `DuplicateMany`, `DeleteMany`, `GetMany`), each document's `callback` invocation is isolated from the others: one document's callback failing never affects the other documents' callback invocations or the batch response.
+
+Because of this guarantee, the audit-trail pattern shown below (and in [Audit trail across all routes](#audit-trail-across-all-routes)) is safe to use in production — a transient failure writing the audit log can no longer produce a false error response or a masked delete result.
+
+#### Retrying `callback`
+
+Pass `callbackRetry` alongside `callback` to retry a failing invocation before it is given up on:
+
+```typescript
+type CallbackRetryOptions = {
+  /** Total number of attempts, including the first one. @default 1 (no retry) */
+  attempts?: number;
+  /** Fixed delay in milliseconds between attempts. @default 0 (no delay) */
+  delayMs?: number;
+};
+```
+
+```typescript
+DynamicApiModule.forFeature({
+  entity: Order,
+  controllerOptions: { path: 'orders' },
+  routes: [
+    {
+      type: 'CreateOne',
+      callback: onOrderCreated,
+      callbackRetry: { attempts: 3, delayMs: 200 },
+    },
+  ],
+})
+```
+
+`callbackRetry` only applies to `callback` (the after-save hook) — `beforeSaveCallback`/`beforeDeleteCallback` are never retried, since they are meant to abort the operation on failure, not to be retried.
+
+#### Global error hook (`onAfterSaveError`)
+
+Configure a single, app-wide hook via `DynamicApiModule.forRoot` to observe every `callback` failure (after any configured `callbackRetry` attempts are exhausted) beyond the internal log line — useful for alerting, metrics, or a dead-letter queue:
+
+```typescript
+type OnAfterSaveErrorHook = (
+  error: unknown,
+  context: { entityName: string | undefined; entity: unknown; user: unknown },
+) => void | Promise<void>;
+```
+
+```typescript
+DynamicApiModule.forRoot(uri, {
+  onAfterSaveError: (error, { entityName, entity, user }) => {
+    myTelemetryClient.captureException(error, { entityName, entity, user });
+  },
+})
+```
+
+`onAfterSaveError` is global (one hook for the whole app, not configurable per route) and is itself failure-isolated: if it throws, that error is caught and logged too — it can never affect the response either.
 
 ### Example — Audit log after creation
 
