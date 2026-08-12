@@ -26,6 +26,8 @@ function ReplaceOneControllerMixin<Entity extends BaseEntity>(
     entity,
     controllerOptions,
     routeConfig,
+    false,
+    broadcastConfig,
   );
 
   class ReplaceOneBody extends (

@@ -29,6 +29,7 @@ function DeleteManyGatewayMixin<Entity extends BaseEntity>(
     controllerOptions,
     routeConfig,
     true,
+    broadcastConfig,
   );
 
   class DeleteManyResponse extends (dTOs?.presenter ?? DeletePresenter) {}

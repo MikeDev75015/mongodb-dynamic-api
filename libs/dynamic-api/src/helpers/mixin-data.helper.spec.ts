@@ -1,6 +1,7 @@
 import { plainToInstance } from 'class-transformer';
 import { BaseEntity } from '../models';
 import { CreateManyBodyMixin } from '../routes';
+import { DynamicApiEventRegistryStore } from './event-registry.store';
 import { getMixinData } from './mixin-data.helper';
 
 describe('getMixinData', () => {
@@ -8,6 +9,10 @@ describe('getMixinData', () => {
   const controllerOptions = { path: '/', apiTag: 'Test', isPublic: true, abilityPredicates: [] };
   const routeConfig = { description: 'Test', dTOs: {}, isPublic: true, abilityPredicate: () => true };
   class CustomDTO {}
+
+  beforeEach(() => {
+    DynamicApiEventRegistryStore.reset();
+  });
 
   it('should return valid controller mixin data for CreateMany route type', () => {
     const result = getMixinData(
@@ -220,5 +225,111 @@ describe('getMixinData', () => {
     );
 
     expect(result.disableCache).toBe(true);
+  });
+
+  describe('broadcast event registration', () => {
+    it('should not register anything when broadcastConfig is not provided', () => {
+      getMixinData(TestEntity, controllerOptions, { type: 'CreateOne', ...routeConfig });
+
+      expect(DynamicApiEventRegistryStore.getAll()).toEqual([]);
+    });
+
+    it('should register the default event name on the http channel for a controller mixin', () => {
+      getMixinData(
+        TestEntity,
+        controllerOptions,
+        { type: 'CreateOne', ...routeConfig },
+        false,
+        { enabled: true },
+      );
+
+      expect(DynamicApiEventRegistryStore.getAll()).toEqual([
+        {
+          event: 'create-one-test',
+          routeType: 'CreateOne',
+          entityName: 'TestEntity',
+          displayedName: 'Test',
+          channels: ['http'],
+          hasRoomTargeting: false,
+          hasAbilityPredicate: false,
+          isCustomEventName: false,
+        },
+      ]);
+    });
+
+    it('should register on the ws channel for a gateway mixin', () => {
+      getMixinData(
+        TestEntity,
+        controllerOptions,
+        { type: 'CreateOne', ...routeConfig },
+        true,
+        { enabled: true },
+      );
+
+      expect(DynamicApiEventRegistryStore.getAll()[0].channels).toEqual(['ws']);
+    });
+
+    it('should register the broadcastConfig.eventName override rather than the default event name', () => {
+      getMixinData(
+        TestEntity,
+        controllerOptions,
+        { type: 'CreateOne', ...routeConfig },
+        false,
+        { enabled: true, eventName: 'custom-event' },
+      );
+
+      expect(DynamicApiEventRegistryStore.getAll()[0]).toMatchObject({
+        event: 'custom-event',
+        isCustomEventName: true,
+      });
+    });
+
+    it('should reflect rooms and ability predicate flags in the descriptor', () => {
+      getMixinData(
+        TestEntity,
+        controllerOptions,
+        { type: 'CreateOne', ...routeConfig },
+        false,
+        { enabled: () => true, rooms: 'room-a' },
+      );
+
+      expect(DynamicApiEventRegistryStore.getAll()[0]).toMatchObject({
+        hasRoomTargeting: true,
+        hasAbilityPredicate: true,
+      });
+    });
+
+    it('should merge channels when the same route registers on both http and ws', () => {
+      const broadcastConfig = { enabled: true };
+
+      getMixinData(TestEntity, controllerOptions, { type: 'CreateOne', ...routeConfig }, false, broadcastConfig);
+      getMixinData(TestEntity, controllerOptions, { type: 'CreateOne', ...routeConfig }, true, broadcastConfig);
+
+      expect(DynamicApiEventRegistryStore.getAll()).toHaveLength(1);
+      expect(DynamicApiEventRegistryStore.getAll()[0].channels).toEqual(['http', 'ws']);
+    });
+
+    it('should log a collision when two different routes resolve to the same event name', () => {
+      jest.spyOn(DynamicApiEventRegistryStore['logger'], 'warn').mockImplementation();
+
+      getMixinData(
+        TestEntity,
+        controllerOptions,
+        { type: 'CreateOne', ...routeConfig, eventName: 'shared' },
+        false,
+        { enabled: true },
+      );
+
+      class OtherEntity extends BaseEntity {}
+      getMixinData(
+        OtherEntity,
+        controllerOptions,
+        { type: 'CreateOne', ...routeConfig, eventName: 'shared' },
+        false,
+        { enabled: true },
+      );
+
+      expect(DynamicApiEventRegistryStore.getCollisions()).toHaveLength(1);
+    });
   });
 });

@@ -29,6 +29,7 @@ function DuplicateManyGatewayMixin<Entity extends BaseEntity>(
     controllerOptions,
     routeConfig,
     true,
+    broadcastConfig,
   );
 
   class DuplicateManyData extends (

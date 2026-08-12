@@ -1,6 +1,7 @@
 import { createMock } from '@golevelup/ts-jest';
 import { JwtService } from '@nestjs/jwt';
 import { Response } from 'express';
+import { DynamicApiEventRegistryStore } from '../../../helpers/event-registry.store';
 import { BaseEntity } from '../../../models';
 import { DynamicApiBroadcastService } from '../../../services';
 import { authOperationStorage, getAuthOperationContext } from '../auth-operation-context';
@@ -849,6 +850,60 @@ describe('AuthControllerMixin', () => {
         expect.objectContaining({ httpOnly: true }),
       );
       expect(result).toEqual({ accessToken: 'at' });
+    });
+  });
+
+  describe('event registry registration', () => {
+    beforeEach(() => {
+      DynamicApiEventRegistryStore.reset();
+    });
+
+    it('should not register anything when no broadcast option is configured', () => {
+      AuthControllerMixin(
+        TestEntity,
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' } },
+      );
+
+      expect(DynamicApiEventRegistryStore.getAll()).toEqual([]);
+    });
+
+    it('should register login/register/getAccount/updateAccount broadcast events once at setup time', () => {
+      AuthControllerMixin(
+        TestEntity,
+        {
+          loginOptions: { loginField: 'loginField', passwordField: 'passwordField', broadcast: { enabled: true } },
+          registerOptions: { broadcast: { enabled: true } },
+          getAccountOptions: { broadcast: { enabled: true } },
+          updateAccountOptions: { broadcast: { enabled: true } },
+        },
+      );
+
+      const events = DynamicApiEventRegistryStore.getAll().map(({ event, channels }) => ({ event, channels }));
+
+      expect(events).toEqual(expect.arrayContaining([
+        { event: 'auth-login-broadcast', channels: ['http'] },
+        { event: 'auth-register-broadcast', channels: ['http'] },
+        { event: 'auth-get-account-broadcast', channels: ['http'] },
+        { event: 'auth-update-account-broadcast', channels: ['http'] },
+      ]));
+      expect(events).toHaveLength(4);
+    });
+
+    it('should register the broadcast.eventName override rather than the default event name', () => {
+      AuthControllerMixin(
+        TestEntity,
+        {
+          loginOptions: {
+            loginField: 'loginField',
+            passwordField: 'passwordField',
+            broadcast: { enabled: true, eventName: 'custom-login' },
+          },
+        },
+      );
+
+      expect(DynamicApiEventRegistryStore.getAll()).toEqual([
+        expect.objectContaining({ event: 'custom-login', isCustomEventName: true }),
+      ]);
     });
   });
 });

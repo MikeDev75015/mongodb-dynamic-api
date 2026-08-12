@@ -25,6 +25,8 @@ function DuplicateManyControllerMixin<Entity extends BaseEntity>(
     entity,
     controllerOptions,
     routeConfig,
+    false,
+    broadcastConfig,
   );
 
   class DuplicateManyBody extends (

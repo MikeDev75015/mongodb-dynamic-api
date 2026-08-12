@@ -27,6 +27,8 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
     entity,
     controllerOptions,
     routeConfig,
+    false,
+    broadcastConfig,
   );
 
   class CreateManyBody extends CreateManyBodyMixin(entity, dTOs?.body) {}
