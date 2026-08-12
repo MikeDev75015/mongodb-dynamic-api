@@ -15,8 +15,11 @@ import 'dotenv/config';
  *
  * Strategy: use afterSave callbacks that apply a raw MongoDB operator
  * to a SideEffectEntity, then verify the result via GET requests.
- * Invalid-key guard is tested by having the callback throw and
- * checking the HTTP route returns 500 / the guard kicks in.
+ * The invalid-key guard is tested by having the callback throw and
+ * checking that the primary route's response is unaffected — thrown/
+ * rejected afterSaveCallback errors are caught and logged, never
+ * corrupting an already-successful response (see README/callbacks.md
+ * "Failure isolation guarantee").
  */
 
 // ── Entities ──────────────────────────────────────────────────────
@@ -372,7 +375,7 @@ describe('rawUpdateOneDocument & rawUpdateManyDocuments in callbacks (e2e)', () 
   // ── Invalid key guard ────────────────────────────────────────────
 
   describe('runtime guard — invalid key without $', () => {
-    it('rawUpdateOneDocument should propagate BadRequestException when a key does not start with $', async () => {
+    it('rawUpdateOneDocument guard failure should not corrupt the CreateOne response (afterSaveCallback failure isolation)', async () => {
       const callback: AfterSaveCallback<ProductEntity> = async (product, methods) => {
         await (methods.rawUpdateOneDocument as (
           entity: unknown,
@@ -381,18 +384,20 @@ describe('rawUpdateOneDocument & rawUpdateManyDocuments in callbacks (e2e)', () 
         ) => Promise<unknown>)(
           ProductEntity,
           { _id: product.id },
-          { name: 'injected' },  // ← invalid: no $ prefix
+          { name: 'injected' },  // ← invalid: no $ prefix, rawUpdateOneDocument throws BadRequestException
         );
       };
 
       await buildApp([{ type: 'CreateOne', callback }]);
 
-      const { status } = await server.post('/products', { name: 'evil', stock: 0, tags: [] }) as any;
-      // The callback throws BadRequestException which NestJS wraps as 500 (uncaught in afterSave)
-      expect(status).toBeGreaterThanOrEqual(400);
+      const { body: product, status } = await server.post('/products', { name: 'evil', stock: 0, tags: [] }) as any;
+      // The callback's guard failure is caught and logged — it no longer corrupts the
+      // already-successful CreateOne response.
+      expect(status).toBe(201);
+      expect(product.name).toBe('evil');
     });
 
-    it('rawUpdateManyDocuments should propagate BadRequestException when a key does not start with $', async () => {
+    it('rawUpdateManyDocuments guard failure should not corrupt the CreateOne response (afterSaveCallback failure isolation)', async () => {
       const callback: AfterSaveCallback<ProductEntity> = async (_product, methods) => {
         await (methods.rawUpdateManyDocuments as (
           entity: unknown,
@@ -401,14 +406,15 @@ describe('rawUpdateOneDocument & rawUpdateManyDocuments in callbacks (e2e)', () 
         ) => Promise<unknown>)(
           ProductEntity,
           {},
-          { name: 'injected' },  // ← invalid: no $ prefix
+          { name: 'injected' },  // ← invalid: no $ prefix, rawUpdateManyDocuments throws BadRequestException
         );
       };
 
       await buildApp([{ type: 'CreateOne', callback }]);
 
-      const { status } = await server.post('/products', { name: 'evil2', stock: 0, tags: [] }) as any;
-      expect(status).toBeGreaterThanOrEqual(400);
+      const { body: product, status } = await server.post('/products', { name: 'evil2', stock: 0, tags: [] }) as any;
+      expect(status).toBe(201);
+      expect(product.name).toBe('evil2');
     });
   });
 });
