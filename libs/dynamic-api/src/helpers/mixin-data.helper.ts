@@ -1,7 +1,9 @@
 import { Type } from '@nestjs/common';
 import { kebabCase } from './lodash.helper';
+import { DynamicApiEventRegistryStore } from './event-registry.store';
 import {
   AbilityPredicate,
+  BroadcastConfig,
   DynamicApiControllerOptions,
   DynamicAPIRouteConfig,
   PredicateBehavior,
@@ -31,6 +33,7 @@ function getMixinData<Entity extends BaseEntity>(
     eventName,
   }: DynamicAPIRouteConfig<Entity>,
   isGateway = false,
+  broadcastConfig?: BroadcastConfig<Entity>,
 ): {
   routeType: RouteType;
   displayedName: string;
@@ -67,6 +70,19 @@ function getMixinData<Entity extends BaseEntity>(
   );
 
   const event = eventName ?? kebabCase(`${routeType}/${displayedName}`);
+
+  if (broadcastConfig) {
+    DynamicApiEventRegistryStore.register({
+      event: broadcastConfig.eventName || event,
+      routeType,
+      entityName: entity.name,
+      displayedName,
+      channel: isGateway ? 'ws' : 'http',
+      hasRoomTargeting: !!broadcastConfig.rooms,
+      hasAbilityPredicate: typeof broadcastConfig.enabled === 'function',
+      isCustomEventName: !!broadcastConfig.eventName,
+    });
+  }
 
   return {
     routeType,

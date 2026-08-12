@@ -4,6 +4,7 @@ import { ApiProperty, IntersectionType, PartialType, PickType } from '@nestjs/sw
 import { ConnectedSocket, MessageBody, SubscribeMessage, WsException } from '@nestjs/websockets';
 import { BaseGateway } from '../../../gateways';
 import { isEmpty, isNotEmptyObject } from '../../../helpers';
+import { DynamicApiEventRegistryStore } from '../../../helpers/event-registry.store';
 import { ExtendedSocket } from '../../../interfaces';
 import { EntityBodyMixin } from '../../../mixins';
 import { BaseEntity } from '../../../models';
@@ -63,6 +64,58 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
     useInterceptors: refreshTokenUseInterceptors = [],
   }: DynamicApiRefreshTokenOptions<Entity> = {}
 ): AuthGatewayConstructor<Entity> {
+  if (loginBroadcastConfig) {
+    DynamicApiEventRegistryStore.register({
+      event: loginBroadcastConfig.eventName || AUTH_LOGIN_BROADCAST_EVENT,
+      routeType: 'Auth',
+      entityName: userEntity.name,
+      displayedName: userEntity.name,
+      channel: 'ws',
+      hasRoomTargeting: !!loginBroadcastConfig.rooms,
+      hasAbilityPredicate: typeof loginBroadcastConfig.enabled === 'function',
+      isCustomEventName: !!loginBroadcastConfig.eventName,
+    });
+  }
+
+  if (registerBroadcastConfig) {
+    DynamicApiEventRegistryStore.register({
+      event: registerBroadcastConfig.eventName || AUTH_REGISTER_BROADCAST_EVENT,
+      routeType: 'Auth',
+      entityName: userEntity.name,
+      displayedName: userEntity.name,
+      channel: 'ws',
+      hasRoomTargeting: !!registerBroadcastConfig.rooms,
+      hasAbilityPredicate: typeof registerBroadcastConfig.enabled === 'function',
+      isCustomEventName: !!registerBroadcastConfig.eventName,
+    });
+  }
+
+  if (getAccountBroadcastConfig) {
+    DynamicApiEventRegistryStore.register({
+      event: getAccountBroadcastConfig.eventName || AUTH_GET_ACCOUNT_BROADCAST_EVENT,
+      routeType: 'Auth',
+      entityName: userEntity.name,
+      displayedName: userEntity.name,
+      channel: 'ws',
+      hasRoomTargeting: !!getAccountBroadcastConfig.rooms,
+      hasAbilityPredicate: typeof getAccountBroadcastConfig.enabled === 'function',
+      isCustomEventName: !!getAccountBroadcastConfig.eventName,
+    });
+  }
+
+  if (updateAccountBroadcastConfig) {
+    DynamicApiEventRegistryStore.register({
+      event: updateAccountBroadcastConfig.eventName || AUTH_UPDATE_ACCOUNT_BROADCAST_EVENT,
+      routeType: 'Auth',
+      entityName: userEntity.name,
+      displayedName: userEntity.name,
+      channel: 'ws',
+      hasRoomTargeting: !!updateAccountBroadcastConfig.rooms,
+      hasAbilityPredicate: typeof updateAccountBroadcastConfig.enabled === 'function',
+      isCustomEventName: !!updateAccountBroadcastConfig.eventName,
+    });
+  }
+
   // @ts-ignore
   class AuthSocketBodyPasswordFieldDto extends PickType(userEntity, [passwordField]) {
     @ApiProperty()

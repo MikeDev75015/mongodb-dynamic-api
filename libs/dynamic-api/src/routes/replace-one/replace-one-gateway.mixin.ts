@@ -29,6 +29,7 @@ function ReplaceOneGatewayMixin<Entity extends BaseEntity>(
     controllerOptions,
     routeConfig,
     true,
+    broadcastConfig,
   );
 
   class ReplaceOneData extends (

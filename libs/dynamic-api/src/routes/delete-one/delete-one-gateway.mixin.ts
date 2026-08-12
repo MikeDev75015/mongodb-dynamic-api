@@ -29,6 +29,7 @@ function DeleteOneGatewayMixin<Entity extends BaseEntity>(
     controllerOptions,
     routeConfig,
     true,
+    broadcastConfig,
   );
 
   class DeleteOneResponse extends (

@@ -25,6 +25,8 @@ function UpdateManyControllerMixin<Entity extends BaseEntity>(
     entity,
     controllerOptions,
     routeConfig,
+    false,
+    broadcastConfig,
   );
 
   class UpdateManyBody extends (

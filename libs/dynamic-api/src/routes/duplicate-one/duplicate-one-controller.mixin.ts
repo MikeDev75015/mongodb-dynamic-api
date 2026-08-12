@@ -26,6 +26,8 @@ function DuplicateOneControllerMixin<Entity extends BaseEntity>(
     entity,
     controllerOptions,
     routeConfig,
+    false,
+    broadcastConfig,
   );
 
   class DuplicateOneBody extends (

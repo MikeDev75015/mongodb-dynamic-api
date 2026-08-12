@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
 import { ObjectId } from 'mongoose';
 import { getFullAuthOptionsMock } from '../../../../__mocks__/auth-full-options.mock';
+import { DynamicApiEventRegistryStore } from '../../../helpers/event-registry.store';
 import { ExtendedSocket } from '../../../interfaces';
 import { BaseEntity } from '../../../models';
 import { AuthGateway, AuthService, LoginResponse } from '../interfaces';
@@ -698,6 +699,50 @@ describe('AuthGatewayMixin', () => {
 
         expect(socket.broadcast.emit).not.toHaveBeenCalled();
       });
+    });
+  });
+
+  describe('event registry registration', () => {
+    beforeEach(() => {
+      DynamicApiEventRegistryStore.reset();
+    });
+
+    it('should not register anything when no broadcast option is configured', () => {
+      AuthGatewayMixin(TestEntity, login, register, undefined, updateAccount);
+
+      expect(DynamicApiEventRegistryStore.getAll()).toEqual([]);
+    });
+
+    it('should register login/register/getAccount/updateAccount broadcast events once at setup time', () => {
+      AuthGatewayMixin(
+        TestEntity,
+        { ...login, abilityPredicate: undefined, broadcast: { enabled: true } },
+        { ...register, broadcast: { enabled: true } },
+        undefined,
+        { ...updateAccount, broadcast: { enabled: true } },
+        { broadcast: { enabled: true } },
+      );
+
+      const events = DynamicApiEventRegistryStore.getAll().map(({ event, channels }) => ({ event, channels }));
+
+      expect(events).toEqual(expect.arrayContaining([
+        { event: 'auth-login-broadcast', channels: ['ws'] },
+        { event: 'auth-register-broadcast', channels: ['ws'] },
+        { event: 'auth-get-account-broadcast', channels: ['ws'] },
+        { event: 'auth-update-account-broadcast', channels: ['ws'] },
+      ]));
+      expect(events).toHaveLength(4);
+    });
+
+    it('should register the broadcast.eventName override rather than the default event name', () => {
+      AuthGatewayMixin(
+        TestEntity,
+        { ...login, abilityPredicate: undefined, broadcast: { enabled: true, eventName: 'custom-login' } },
+      );
+
+      expect(DynamicApiEventRegistryStore.getAll()).toEqual([
+        expect.objectContaining({ event: 'custom-login', isCustomEventName: true }),
+      ]);
     });
   });
 });

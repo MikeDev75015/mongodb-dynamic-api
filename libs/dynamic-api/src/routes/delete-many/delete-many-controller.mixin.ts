@@ -26,6 +26,8 @@ function DeleteManyControllerMixin<Entity extends BaseEntity>(
     entity,
     controllerOptions,
     routeConfig,
+    false,
+    broadcastConfig,
   );
 
   class DeleteManyPresenter extends (dTOs?.presenter ?? DeletePresenter) {}

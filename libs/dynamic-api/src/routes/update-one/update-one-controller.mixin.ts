@@ -26,6 +26,8 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
     entity,
     controllerOptions,
     routeConfig,
+    false,
+    broadcastConfig,
   );
 
   class UpdateOneBody extends (

@@ -28,6 +28,7 @@ function CreateOneGatewayMixin<Entity extends BaseEntity>(
     controllerOptions,
     routeConfig,
     true,
+    broadcastConfig,
   );
 
   class CreateOneData extends (dTOs?.body ?? EntityBodyMixin(entity)) {}

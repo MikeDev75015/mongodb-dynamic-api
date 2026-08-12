@@ -29,6 +29,7 @@ function UpdateManyGatewayMixin<Entity extends BaseEntity>(
     controllerOptions,
     routeConfig,
     true,
+    broadcastConfig,
   );
 
   class UpdateManyData extends (

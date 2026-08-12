@@ -29,6 +29,7 @@ function UpdateOneGatewayMixin<Entity extends BaseEntity>(
     controllerOptions,
     routeConfig,
     true,
+    broadcastConfig,
   );
 
   class UpdateOneData extends (

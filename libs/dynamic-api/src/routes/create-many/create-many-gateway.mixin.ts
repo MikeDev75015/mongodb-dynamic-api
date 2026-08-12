@@ -36,6 +36,7 @@ function CreateManyGatewayMixin<Entity extends BaseEntity>(
     controllerOptions,
     routeConfig,
     true,
+    broadcastConfig,
   );
 
   class CreateManyData extends CreateManyBodyMixin(entity, dTOs?.body) {}

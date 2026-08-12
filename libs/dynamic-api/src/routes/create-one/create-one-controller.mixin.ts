@@ -25,6 +25,8 @@ function CreateOneControllerMixin<Entity extends BaseEntity>(
     entity,
     controllerOptions,
     routeConfig,
+    false,
+    broadcastConfig,
   );
 
   class CreateOneBody extends (dTOs?.body ?? EntityBodyMixin(entity)) {}

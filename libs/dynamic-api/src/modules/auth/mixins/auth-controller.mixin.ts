@@ -5,6 +5,7 @@ import { Response } from 'express';
 import { AuthDecoratorsBuilder } from '../../../builders';
 import { ApiEndpointVisibility, Public } from '../../../decorators';
 import { RouteDecoratorsHelper } from '../../../helpers';
+import { DynamicApiEventRegistryStore } from '../../../helpers/event-registry.store';
 import { EntityBodyMixin } from '../../../mixins';
 import { BaseEntity } from '../../../models';
 import { DynamicApiBroadcastService } from '../../../services';
@@ -78,6 +79,58 @@ function AuthControllerMixin<Entity extends BaseEntity>(
 ): AuthControllerConstructor<Entity> {
   if (!loginField || !passwordField) {
     throw new Error('Login and password fields are required');
+  }
+
+  if (loginBroadcastConfig) {
+    DynamicApiEventRegistryStore.register({
+      event: loginBroadcastConfig.eventName || AUTH_LOGIN_BROADCAST_EVENT,
+      routeType: 'Auth',
+      entityName: userEntity.name,
+      displayedName: userEntity.name,
+      channel: 'http',
+      hasRoomTargeting: !!loginBroadcastConfig.rooms,
+      hasAbilityPredicate: typeof loginBroadcastConfig.enabled === 'function',
+      isCustomEventName: !!loginBroadcastConfig.eventName,
+    });
+  }
+
+  if (registerBroadcastConfig) {
+    DynamicApiEventRegistryStore.register({
+      event: registerBroadcastConfig.eventName || AUTH_REGISTER_BROADCAST_EVENT,
+      routeType: 'Auth',
+      entityName: userEntity.name,
+      displayedName: userEntity.name,
+      channel: 'http',
+      hasRoomTargeting: !!registerBroadcastConfig.rooms,
+      hasAbilityPredicate: typeof registerBroadcastConfig.enabled === 'function',
+      isCustomEventName: !!registerBroadcastConfig.eventName,
+    });
+  }
+
+  if (getAccountBroadcastConfig) {
+    DynamicApiEventRegistryStore.register({
+      event: getAccountBroadcastConfig.eventName || AUTH_GET_ACCOUNT_BROADCAST_EVENT,
+      routeType: 'Auth',
+      entityName: userEntity.name,
+      displayedName: userEntity.name,
+      channel: 'http',
+      hasRoomTargeting: !!getAccountBroadcastConfig.rooms,
+      hasAbilityPredicate: typeof getAccountBroadcastConfig.enabled === 'function',
+      isCustomEventName: !!getAccountBroadcastConfig.eventName,
+    });
+  }
+
+  if (updateAccountBroadcastConfig) {
+    DynamicApiEventRegistryStore.register({
+      event: updateAccountBroadcastConfig.eventName || AUTH_UPDATE_ACCOUNT_BROADCAST_EVENT,
+      routeType: 'Auth',
+      entityName: userEntity.name,
+      displayedName: userEntity.name,
+      channel: 'http',
+      hasRoomTargeting: !!updateAccountBroadcastConfig.rooms,
+      hasAbilityPredicate: typeof updateAccountBroadcastConfig.enabled === 'function',
+      isCustomEventName: !!updateAccountBroadcastConfig.eventName,
+    });
   }
 
   // @ts-ignore
