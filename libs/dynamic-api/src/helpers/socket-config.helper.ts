@@ -1,6 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { SocketAdapter } from '../adapters/socket-adapter';
 import { DynamicApiWebSocketOptions, DynamicApiWebSocketSetupOptions, GatewayOptions } from '../interfaces';
+import { DynamicApiEventRegistryStore } from './event-registry.store';
 import { DynamicApiWsConfigStore } from './ws-config.store';
 
 function initEventsListeners(maxListeners = 10) {
@@ -38,6 +39,21 @@ function enableDynamicAPIWebSockets(
     resolvedOptions = { maxListeners: optionsOrMaxListeners };
   } else if (optionsOrMaxListeners) {
     resolvedOptions = optionsOrMaxListeners;
+  }
+
+  if (resolvedOptions.failOnEventCollision) {
+    const collisions = DynamicApiEventRegistryStore.getCollisions();
+
+    if (collisions.length) {
+      const details = collisions
+        .map(({ event, registrations }) => `"${event}" (${registrations.map((r) => `${r.routeType}/${r.entityName}`).join(', ')})`)
+        .join('; ');
+
+      throw new Error(
+        `[DynamicAPI] enableDynamicAPIWebSockets: broadcast event name collision detected: ${details}. `
+        + 'Set a unique "eventName" on the conflicting routes, or disable failOnEventCollision.',
+      );
+    }
   }
 
   initEventsListeners(resolvedOptions.maxListeners);

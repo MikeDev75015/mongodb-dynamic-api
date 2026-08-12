@@ -1,6 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import * as Adapter from '../adapters/socket-adapter';
 import { GatewayOptions } from '../interfaces';
+import { DynamicApiEventRegistryStore } from './event-registry.store';
 import { enableDynamicAPIWebSockets, initializeConfigFromOptions } from './socket-config.helper';
 import { DynamicApiWsConfigStore } from './ws-config.store';
 
@@ -22,6 +23,7 @@ describe('SocketConfigHelper', () => {
   beforeEach(() => {
     spySocketAdapter = jest.spyOn(Adapter, 'SocketAdapter');
     DynamicApiWsConfigStore.reset();
+    DynamicApiEventRegistryStore.reset();
     jest.clearAllMocks();
   });
 
@@ -97,6 +99,54 @@ describe('SocketConfigHelper', () => {
       expect(spyConsoleWarn).toHaveBeenCalledWith(
         '>>> enableDynamicAPIWebSockets(app, { maxListeners: 15 });\n\n',
       );
+    });
+
+    describe('failOnEventCollision', () => {
+      const registerCollision = () => {
+        jest.spyOn(DynamicApiEventRegistryStore['logger'], 'warn').mockImplementation();
+
+        DynamicApiEventRegistryStore.register({
+          event: 'shared-event',
+          routeType: 'CreateOne',
+          entityName: 'User',
+          displayedName: 'User',
+          channel: 'http',
+          hasRoomTargeting: false,
+          hasAbilityPredicate: false,
+          isCustomEventName: true,
+        });
+        DynamicApiEventRegistryStore.register({
+          event: 'shared-event',
+          routeType: 'CreateOne',
+          entityName: 'Company',
+          displayedName: 'Company',
+          channel: 'http',
+          hasRoomTargeting: false,
+          hasAbilityPredicate: false,
+          isCustomEventName: true,
+        });
+      };
+
+      it('should throw when failOnEventCollision is true and a collision was registered', () => {
+        registerCollision();
+
+        expect(() => enableDynamicAPIWebSockets(fakeApp, { failOnEventCollision: true })).toThrow(
+          /broadcast event name collision detected.*shared-event/,
+        );
+        expect(fakeApp.useWebSocketAdapter).not.toHaveBeenCalled();
+      });
+
+      it('should not throw when failOnEventCollision is true and there are no collisions', () => {
+        expect(() => enableDynamicAPIWebSockets(fakeApp, { failOnEventCollision: true })).not.toThrow();
+        expect(fakeApp.useWebSocketAdapter).toHaveBeenCalledTimes(1);
+      });
+
+      it('should not throw when failOnEventCollision is not set, even if collisions exist', () => {
+        registerCollision();
+
+        expect(() => enableDynamicAPIWebSockets(fakeApp)).not.toThrow();
+        expect(fakeApp.useWebSocketAdapter).toHaveBeenCalledTimes(1);
+      });
     });
   });
 

@@ -102,6 +102,21 @@ interface DynamicApiWebSocketSetupOptions {
    * ```
    */
   customEvents?: CustomSocketEventConfig[];
+  /**
+   * When `true`, throws at bootstrap if two unrelated routes resolve to the same broadcast
+   * event name (e.g. two different entities using the same custom `eventName`). A warning is
+   * always logged for such collisions regardless of this option; set this to `true` to turn
+   * that warning into a hard startup failure. Defaults to `false`.
+   *
+   * Only catches collisions registered by the time `enableDynamicAPIWebSockets` runs — routes
+   * registered by modules loaded lazily afterwards are not covered.
+   *
+   * @example
+   * ```typescript
+   * enableDynamicAPIWebSockets(app, { failOnEventCollision: true });
+   * ```
+   */
+  failOnEventCollision?: boolean;
 }
 
 export type {
