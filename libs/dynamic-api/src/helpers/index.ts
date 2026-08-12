@@ -4,6 +4,7 @@ export * from './from-user.helper';
 export * from './lodash.helper';
 export * from './mixin-data.helper';
 export * from './repository.helper';
+export * from './resolve-broadcast.helper';
 export * from './resolve-rooms.helper';
 export * from './route-decorators.helper';
 export * from './route-description.helper';
