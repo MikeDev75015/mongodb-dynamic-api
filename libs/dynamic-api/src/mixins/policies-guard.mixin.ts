@@ -14,7 +14,7 @@ import {
 } from '../interfaces';
 import { BaseEntity } from '../models';
 
-/** @deprecated Internal API — will be removed from public exports in v5. */
+/** @internal Not part of the public API — will be removed from the package's public exports in v5. */
 function RoutePoliciesGuardMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   routeType: RouteType,
@@ -58,7 +58,7 @@ interface SocketPoliciesGuardMixinOptions {
   predicateBehavior?: PredicateBehavior;
 }
 
-/** @deprecated Internal API — will be removed from public exports in v5. */
+/** @internal Not part of the public API — will be removed from the package's public exports in v5. */
 function SocketPoliciesGuardMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   routeType: RouteType,
