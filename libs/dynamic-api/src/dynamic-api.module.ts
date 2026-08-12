@@ -58,11 +58,7 @@ export class DynamicApiModule {
         uri,
         useGlobalCache,
         cacheOptions,
-        useAuth,
-        routesConfig,
-        webSocket,
-        broadcastGatewayOptions,
-        onAfterSaveError,
+        { useAuth, routesConfig, webSocket, broadcastGatewayOptions, onAfterSaveError },
       ),
     ]);
 
@@ -289,22 +285,31 @@ export class DynamicApiModule {
    * @param uri
    * @param {boolean} useGlobalCache - Whether to use global cache.
    * @param {DynamicApiCacheOptions} cacheOptions - The cache options.
-   * @param {DynamicApiAuthOptions} useAuth - The auth options.
-   * @param routesConfig - The route's configurations.
-   * @param webSocket - The web socket options.
-   * @param broadcastGatewayOptions
-   * @param onAfterSaveError - Global hook invoked when `callback` fails on any route.
+   * @param options - The remaining `forRoot` options.
+   * @param {DynamicApiAuthOptions} options.useAuth - The auth options.
+   * @param options.routesConfig - The route's configurations.
+   * @param options.webSocket - The web socket options.
+   * @param options.broadcastGatewayOptions
+   * @param options.onAfterSaveError - Global hook invoked when `callback` fails on any route.
    * @returns {{ initialized: boolean; isGlobalCacheEnabled: boolean }} - The built state.
    */
   private static buildStateFromOptions(
     uri: string,
     useGlobalCache: boolean,
     cacheOptions: DynamicApiCacheOptions,
-    useAuth?: DynamicApiAuthOptions,
-    routesConfig?: Partial<RoutesConfig>,
-    webSocket?: DynamicApiWebSocketOptions,
-    broadcastGatewayOptions?: GatewayOptions,
-    onAfterSaveError?: OnAfterSaveErrorHook,
+    {
+      useAuth,
+      routesConfig,
+      webSocket,
+      broadcastGatewayOptions,
+      onAfterSaveError,
+    }: {
+      useAuth?: DynamicApiAuthOptions;
+      routesConfig?: Partial<RoutesConfig>;
+      webSocket?: DynamicApiWebSocketOptions;
+      broadcastGatewayOptions?: GatewayOptions;
+      onAfterSaveError?: OnAfterSaveErrorHook;
+    },
   ): Partial<DynamicApiGlobalState> {
     const routesConfigState = this.state.get<RoutesConfig>('routesConfig');
 
