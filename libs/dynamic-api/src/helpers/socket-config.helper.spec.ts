@@ -154,22 +154,22 @@ describe('SocketConfigHelper', () => {
     it('should return empty object when options is undefined', () => {
       const result = initializeConfigFromOptions(undefined);
 
-      expect(result).toEqual(undefined);
+      expect(result).toBeUndefined();
     });
 
     it('should return empty object when options is null', () => {
       const result = initializeConfigFromOptions(null);
 
-      expect(result).toEqual(undefined);
+      expect(result).toBeUndefined();
     });
 
-    it('should return empty object when options is boolean', () => {
+    it('should return undefined when options is the boolean false', () => {
       const result = initializeConfigFromOptions(false);
 
-      expect(result).toEqual(undefined);
+      expect(result).toBeUndefined();
     });
 
-    it('should return empty object when options is boolean', () => {
+    it('should return empty object when options is the boolean true', () => {
       const result = initializeConfigFromOptions(true);
 
       expect(result).toEqual({});
