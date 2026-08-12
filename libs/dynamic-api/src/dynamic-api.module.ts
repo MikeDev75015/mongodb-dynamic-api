@@ -8,7 +8,7 @@ import { createDynamicApiBroadcastGateway } from './gateways';
 import { DynamicApiJwtAuthGuard } from './guards';
 import { buildSchemaFromEntity, getDefaultRouteDescription, initializeConfigFromOptions, isValidVersion } from './helpers';
 import { DynamicApiCacheInterceptor } from './interceptors';
-import { DYNAMIC_API_GLOBAL_STATE, DynamicApiCacheOptions, DynamicApiForFeatureOptions, DynamicApiForRootOptions, DynamicApiGlobalState, DynamicAPIRouteConfig, DynamicApiWebSocketOptions, GatewayOptions, RouteModule, RoutesConfig, RouteType } from './interfaces';
+import { DYNAMIC_API_GLOBAL_STATE, DynamicApiCacheOptions, DynamicApiForFeatureOptions, DynamicApiForRootOptions, DynamicApiGlobalState, DynamicAPIRouteConfig, DynamicApiWebSocketOptions, GatewayOptions, OnAfterSaveErrorHook, RouteModule, RoutesConfig, RouteType } from './interfaces';
 import { BaseEntity } from './models';
 import { AuthModule, DynamicApiAuthOptions, DynamicApiConfigModule } from './modules';
 import { AggregateModule, createCachePurgeController, CreateManyModule, CreateOneModule, DeleteManyModule, DeleteOneModule, DuplicateManyModule, DuplicateOneModule, GetManyModule, GetOneModule, ReplaceOneModule, UpdateManyModule, UpdateOneModule, createCustomRouteController, createCustomRouteGateway } from './routes';
@@ -43,6 +43,7 @@ export class DynamicApiModule {
       routesConfig,
       webSocket,
       broadcastGatewayOptions,
+      onAfterSaveError,
     }: DynamicApiForRootOptions<Entity> = {},
   ): DynamicModule {
     if (!uri) {
@@ -61,6 +62,7 @@ export class DynamicApiModule {
         routesConfig,
         webSocket,
         broadcastGatewayOptions,
+        onAfterSaveError,
       ),
     ]);
 
@@ -291,6 +293,7 @@ export class DynamicApiModule {
    * @param routesConfig - The route's configurations.
    * @param webSocket - The web socket options.
    * @param broadcastGatewayOptions
+   * @param onAfterSaveError - Global hook invoked when `callback` fails on any route.
    * @returns {{ initialized: boolean; isGlobalCacheEnabled: boolean }} - The built state.
    */
   private static buildStateFromOptions(
@@ -301,6 +304,7 @@ export class DynamicApiModule {
     routesConfig?: Partial<RoutesConfig>,
     webSocket?: DynamicApiWebSocketOptions,
     broadcastGatewayOptions?: GatewayOptions,
+    onAfterSaveError?: OnAfterSaveErrorHook,
   ): Partial<DynamicApiGlobalState> {
     const routesConfigState = this.state.get<RoutesConfig>('routesConfig');
 
@@ -308,6 +312,9 @@ export class DynamicApiModule {
       uri,
       initialized: true,
       isGlobalCacheEnabled: useGlobalCache,
+      ...(
+        onAfterSaveError ? { onAfterSaveError } : {}
+      ),
       ...(
         cacheOptions?.excludePaths ? { cacheExcludedPaths: cacheOptions?.excludePaths } : {}
       ),

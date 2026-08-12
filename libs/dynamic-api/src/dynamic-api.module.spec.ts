@@ -165,6 +165,21 @@ describe('DynamicApiModule', () => {
       });
     });
 
+    describe('with onAfterSaveError', () => {
+      it('should not set onAfterSaveError when not provided', () => {
+        DynamicApiModule.forRoot(uri);
+
+        expect(DynamicApiModule.state.get('onAfterSaveError')).toBeUndefined();
+      });
+
+      it('should set onAfterSaveError when provided', () => {
+        const onAfterSaveError = jest.fn();
+        DynamicApiModule.forRoot(uri, { onAfterSaveError });
+
+        expect(DynamicApiModule.state.get('onAfterSaveError')).toBe(onAfterSaveError);
+      });
+    });
+
     it('should provide APP_GUARD with DynamicApiJwtAuthGuard factory in forRoot', () => {
       const rootModule = DynamicApiModule.forRoot(uri);
       const reflector = {} as Reflector;

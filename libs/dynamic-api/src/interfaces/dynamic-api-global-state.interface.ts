@@ -1,5 +1,6 @@
 import { GatewayMetadata } from '@nestjs/websockets';
 import { Schema } from 'mongoose';
+import { OnAfterSaveErrorHook } from './dynamic-api-service-callback.interface';
 import { RouteType } from './dynamic-api-route-type.type';
 
 /** @deprecated Internal API — will be removed from public exports in v5. */
@@ -32,6 +33,7 @@ interface DynamicApiGlobalState {
   jwtRefreshTokenExpiresIn: string | number | undefined;
   jwtRefreshSecret: string | undefined;
   jwtRefreshUseCookie: boolean | undefined;
+  onAfterSaveError: OnAfterSaveErrorHook | undefined;
   refreshTokenOnUpdate: boolean;
   routesConfig: RoutesConfig;
   gatewayOptions: GatewayMetadata | undefined;
