@@ -50,7 +50,7 @@ describe('GetManyModule', () => {
       expect(spyCreateGetManyController)
       .toHaveBeenCalledWith(Entity, fakeDisplayedName, controllerOptions, routeConfig, version, validationPipeOptions);
       expect(spyCreateGetManyServiceProvider)
-      .toHaveBeenCalledWith(Entity, fakeDisplayedName, version, routeConfigCallback, undefined, undefined);
+      .toHaveBeenCalledWith(Entity, fakeDisplayedName, version, routeConfigCallback, undefined, undefined, routeConfig.callbackRetry);
     });
 
     it('should return a DynamicModule with gateway', () => {
@@ -74,7 +74,7 @@ describe('GetManyModule', () => {
       expect(spyCreateGetManyController)
       .toHaveBeenCalledWith(Entity, fakeDisplayedName, controllerOptions, routeConfig, version, validationPipeOptions);
       expect(spyCreateGetManyServiceProvider)
-      .toHaveBeenCalledWith(Entity, fakeDisplayedName, version, routeConfigCallback, undefined, undefined);
+      .toHaveBeenCalledWith(Entity, fakeDisplayedName, version, routeConfigCallback, undefined, undefined, routeConfig.callbackRetry);
       expect(spyCreateGetManyGateway)
       .toHaveBeenCalledWith(
         Entity,

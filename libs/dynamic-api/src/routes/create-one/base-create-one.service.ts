@@ -5,6 +5,7 @@ import {
   BeforeSaveCallback,
   BeforeSaveCreateContext,
   AfterSaveCallback,
+  CallbackRetryOptions,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseService } from '../../services';
@@ -19,6 +20,7 @@ export abstract class BaseCreateOneService<Entity extends BaseEntity>
     BeforeSaveCreateContext<Entity>
   > | undefined;
   protected readonly callback: AfterSaveCallback<Entity> | undefined;
+  protected readonly callbackRetry: CallbackRetryOptions | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
     super(model);
@@ -41,9 +43,7 @@ export abstract class BaseCreateOneService<Entity extends BaseEntity>
 
       const document = await this.model.findOne({ _id }).lean<Entity>().exec();
 
-      if (this.callback) {
-        await this.callback(this.addDocumentId(document), this.callbackMethods, user);
-      }
+      await this.invokeAfterSaveCallback(this.callback, this.addDocumentId(document), user, this.callbackRetry);
 
       return this.buildInstance(document);
     } catch (error) {

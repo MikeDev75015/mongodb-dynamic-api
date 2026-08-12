@@ -1,6 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { Model } from 'mongoose';
-import { CallbackMethods, AfterSaveCallback } from '../../interfaces';
+import { CallbackMethods, AfterSaveCallback, CallbackRetryOptions } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseGetOneService } from './base-get-one.service';
 
@@ -16,6 +16,7 @@ class TestService extends BaseGetOneService<TestEntity> {
 
 type InternalService = {
   callback: AfterSaveCallback<TestEntity> | undefined;
+  callbackRetry: CallbackRetryOptions | undefined;
   callbackMethods: CallbackMethods;
 };
 
@@ -76,6 +77,35 @@ describe('BaseGetOneService', () => {
       await service.getOne('ObjectId', user);
 
       expect(callback).toHaveBeenCalledWith({ ...response, id: response._id }, internal(service).callbackMethods, user);
+    });
+
+    it('should not throw and should still return the entity when callback rejects', async () => {
+      const exec = jest.fn().mockResolvedValueOnce(response);
+      service = initService(exec);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      internal(service).callback = jest.fn(() => Promise.reject(new Error('boom')));
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { _id, __v, ...documentWithoutIdAndVersion } = response;
+
+      await expect(service.getOne('ObjectId')).resolves.toStrictEqual({
+        ...documentWithoutIdAndVersion,
+        id: response._id,
+      });
+    });
+
+    it('should succeed on retry when callbackRetry is configured', async () => {
+      const exec = jest.fn().mockResolvedValueOnce(response);
+      service = initService(exec);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const callback = jest.fn()
+        .mockRejectedValueOnce(new Error('transient'))
+        .mockResolvedValueOnce(undefined);
+      internal(service).callback = callback;
+      internal(service).callbackRetry = { attempts: 2 };
+
+      await service.getOne('ObjectId');
+
+      expect(callback).toHaveBeenCalledTimes(2);
     });
 
     it('should throw error if document not found', async () => {

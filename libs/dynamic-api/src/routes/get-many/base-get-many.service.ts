@@ -1,5 +1,5 @@
 import { Model } from 'mongoose';
-import { AbilityPredicate, AfterSaveCallback, PredicateBehavior } from '../../interfaces';
+import { AbilityPredicate, AfterSaveCallback, CallbackRetryOptions, PredicateBehavior } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseService } from '../../services';
 import { GetManyService } from './get-many-service.interface';
@@ -8,6 +8,7 @@ export abstract class BaseGetManyService<Entity extends BaseEntity>
   extends BaseService<Entity>
   implements GetManyService<Entity> {
   protected readonly callback: AfterSaveCallback<Entity> | undefined;
+  protected readonly callbackRetry: CallbackRetryOptions | undefined;
   protected readonly abilityPredicate: AbilityPredicate<Entity> | undefined;
   protected readonly predicateBehavior: PredicateBehavior | undefined;
 
@@ -28,10 +29,12 @@ export abstract class BaseGetManyService<Entity extends BaseEntity>
     .lean<Entity[]>()
     .exec();
 
-    if (this.callback && documents.length) {
+    if (documents.length) {
       await Promise.all(
         documents.map(
-          (document) => this.callback(this.addDocumentId(document), this.callbackMethods, user),
+          (document) => this.invokeAfterSaveCallback(
+            this.callback, this.addDocumentId(document), user, this.callbackRetry,
+          ),
         ),
       );
     }

@@ -4,6 +4,7 @@ import {
   BeforeSaveListCallback,
   BeforeSaveUpdateManyContext,
   AfterSaveCallback,
+  CallbackRetryOptions,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseService } from '../../services';
@@ -17,6 +18,7 @@ export abstract class BaseUpdateManyService<Entity extends BaseEntity>
     BeforeSaveUpdateManyContext<Entity>
   > | undefined;
   protected readonly callback: AfterSaveCallback<Entity> | undefined;
+  protected readonly callbackRetry: CallbackRetryOptions | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
     super(model);
@@ -72,10 +74,12 @@ export abstract class BaseUpdateManyService<Entity extends BaseEntity>
 
       const documents = await this.model.find({ _id: { $in: ids } }).lean<Entity[]>().exec();
 
-      if (this.callback && documents.length) {
+      if (documents.length) {
         await Promise.all(
           documents.map(
-            (document) => this.callback(this.addDocumentId(document), this.callbackMethods, user),
+            (document) => this.invokeAfterSaveCallback(
+              this.callback, this.addDocumentId(document), user, this.callbackRetry,
+            ),
           ),
         );
       }

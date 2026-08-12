@@ -7,6 +7,7 @@ import {
   BeforeSaveDeleteContext,
   BeforeDeleteCallback,
   AfterSaveCallback,
+  CallbackRetryOptions,
   CascadeConfig,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
@@ -26,6 +27,7 @@ export abstract class BaseDeleteOneService<Entity extends BaseEntity>
     BeforeSaveDeleteContext
   > | undefined;
   protected readonly callback: AfterSaveCallback<Entity> | undefined;
+  protected readonly callbackRetry: CallbackRetryOptions | undefined;
   protected readonly cascade: CascadeConfig[] | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
@@ -78,8 +80,8 @@ export abstract class BaseDeleteOneService<Entity extends BaseEntity>
         op = await this.model.deleteOne({ _id: id }).exec();
       }
 
-      if (this.callback && document) {
-        await this.callback(this.addDocumentId(document), this.callbackMethods, user);
+      if (document) {
+        await this.invokeAfterSaveCallback(this.callback, this.addDocumentId(document), user, this.callbackRetry);
       }
 
       deletedCount = op.deletedCount;

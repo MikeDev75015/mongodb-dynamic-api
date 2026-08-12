@@ -3,6 +3,7 @@ import {
   CallbackMethods,
   BeforeSaveListCallback,
   AfterSaveCallback,
+  CallbackRetryOptions,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseDuplicateManyService } from './base-duplicate-many.service';
@@ -19,6 +20,7 @@ class TestService extends BaseDuplicateManyService<TestEntity> {
 
 type InternalService = {
   callback: AfterSaveCallback<TestEntity> | undefined;
+  callbackRetry: CallbackRetryOptions | undefined;
   callbackMethods: CallbackMethods;
   beforeSaveCallback: BeforeSaveListCallback<TestEntity> | undefined;
 };
@@ -122,6 +124,36 @@ describe('BaseDuplicateManyService', () => {
         internal(service).callbackMethods,
         fakeUser,
       );
+    });
+
+    it('should not throw and should still return the full batch when one document\'s callback rejects', async () => {
+      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(duplicatedDocuments);
+      service = initService(exec, duplicatedDocuments);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
+      internal(service).callback = jest.fn((entity: TestEntity) => (
+        (entity as unknown as { id: string }).id === duplicatedDocuments[0]._id
+          ? Promise.reject(new Error('boom'))
+          : Promise.resolve()
+      ));
+
+      await expect(service.duplicateMany(ids, undefined)).resolves.toStrictEqual(
+        duplicatedDocuments.map(({ _id: id, name }) => ({ name, id })),
+      );
+    });
+
+    it('should succeed on retry when callbackRetry is configured', async () => {
+      const exec = jest.fn().mockResolvedValueOnce([documents[0]]).mockResolvedValueOnce([duplicatedDocuments[0]]);
+      service = initService(exec, [duplicatedDocuments[0]]);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
+      const callback = jest.fn()
+        .mockRejectedValueOnce(new Error('transient'))
+        .mockResolvedValueOnce(undefined);
+      internal(service).callback = callback;
+      internal(service).callbackRetry = { attempts: 2 };
+
+      await service.duplicateMany([ids[0]], undefined);
+
+      expect(callback).toHaveBeenCalledTimes(2);
     });
 
     it('should call beforeSaveCallback if it is defined', async () => {

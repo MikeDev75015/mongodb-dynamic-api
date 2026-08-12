@@ -3,6 +3,7 @@ import {
   CallbackMethods,
   BeforeSaveListCallback,
   AfterSaveCallback,
+  CallbackRetryOptions,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseCreateManyService } from './base-create-many.service';
@@ -19,6 +20,7 @@ class TestService extends BaseCreateManyService<TestEntity> {
 
 type InternalService = {
   callback: AfterSaveCallback<TestEntity> | undefined;
+  callbackRetry: CallbackRetryOptions | undefined;
   callbackMethods: CallbackMethods;
   beforeSaveCallback: BeforeSaveListCallback<TestEntity> | undefined;
 };
@@ -77,6 +79,38 @@ describe('BaseCreateManyService', () => {
       await service.createMany([toCreate], fakeUser);
 
       expect(callback).toHaveBeenCalledWith({ ...created, id: created._id }, internal(service).callbackMethods, fakeUser);
+    });
+
+    it('should not throw and should still return the full batch when one document\'s callback rejects', async () => {
+      const created2 = { _id: 'ObjectId2', __v: 1, name: 'test2' };
+      service = initService([created, created2]);
+      internal(service).callback = jest.fn((entity: TestEntity) => (
+        (entity as unknown as { id: string }).id === created._id
+          ? Promise.reject(new Error('boom'))
+          : Promise.resolve()
+      ));
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { _id: id1, __v: v1, ...doc1 } = created;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { _id: id2, __v: v2, ...doc2 } = created2;
+
+      await expect(service.createMany([toCreate, toCreate])).resolves.toStrictEqual([
+        { ...doc1, id: created._id },
+        { ...doc2, id: created2._id },
+      ]);
+    });
+
+    it('should succeed on retry when callbackRetry is configured', async () => {
+      service = initService([created]);
+      const callback = jest.fn()
+        .mockRejectedValueOnce(new Error('transient'))
+        .mockResolvedValueOnce(undefined);
+      internal(service).callback = callback;
+      internal(service).callbackRetry = { attempts: 2 };
+
+      await service.createMany([toCreate]);
+
+      expect(callback).toHaveBeenCalledTimes(2);
     });
 
     it('should throw an error if the document already exists', async () => {

@@ -42,6 +42,7 @@ export class AggregateModule {
       routeConfig.callback,
       routeConfig.abilityPredicate,
       routeConfig.predicateBehavior,
+      routeConfig.callbackRetry,
     );
 
     const gatewayOptions = webSocket

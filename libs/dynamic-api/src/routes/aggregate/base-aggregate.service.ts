@@ -1,7 +1,7 @@
 import { Type } from '@nestjs/common';
 import { GetPagingResult, GetResult, PipelineStage } from 'mongodb-pipeline-builder';
 import { Model } from 'mongoose';
-import { AbilityPredicate, AfterSaveCallback, PredicateBehavior } from '../../interfaces';
+import { AbilityPredicate, AfterSaveCallback, CallbackRetryOptions, PredicateBehavior } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseService } from '../../services';
 import { AggregateService } from './aggregate-service.interface';
@@ -12,6 +12,7 @@ export abstract class BaseAggregateService<Entity extends BaseEntity>
 {
   protected readonly entity: Type<Entity>;
   protected readonly callback: AfterSaveCallback<Entity> | undefined;
+  protected readonly callbackRetry: CallbackRetryOptions | undefined;
   protected readonly abilityPredicate: AbilityPredicate<Entity> | undefined;
   protected readonly predicateBehavior: PredicateBehavior | undefined;
 
@@ -37,10 +38,12 @@ export abstract class BaseAggregateService<Entity extends BaseEntity>
         totalPage = 1;
       }
 
-      if (this.callback && documents.length) {
+      if (documents.length) {
         await Promise.all(
           documents.map(
-            (document) => this.callback(this.addDocumentId(document), this.callbackMethods, user),
+            (document) => this.invokeAfterSaveCallback(
+              this.callback, this.addDocumentId(document), user, this.callbackRetry,
+            ),
           ),
         );
       }

@@ -38,6 +38,7 @@ export class GetManyModule {
       routeConfig.callback,
       routeConfig.abilityPredicate,
       routeConfig.predicateBehavior,
+      routeConfig.callbackRetry,
     );
 
     const gatewayOptions = webSocket

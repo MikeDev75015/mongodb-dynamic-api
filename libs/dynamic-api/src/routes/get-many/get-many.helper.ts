@@ -19,6 +19,7 @@ import {
   DynamicAPIRouteConfig,
   AbilityPredicate,
   AfterSaveCallback,
+  CallbackRetryOptions,
   DynamicAPIServiceProvider,
   GatewayOptions,
   PredicateBehavior,
@@ -38,12 +39,14 @@ function createGetManyServiceProvider<Entity extends BaseEntity>(
   callback: AfterSaveCallback<Entity> | undefined,
   abilityPredicate?: AbilityPredicate<Entity>,
   predicateBehavior?: PredicateBehavior,
+  callbackRetry?: CallbackRetryOptions,
 ): DynamicAPIServiceProvider {
   class GetManyService extends BaseGetManyService<Entity> {
     protected readonly entity = entity;
     protected readonly callback = callback;
     protected readonly abilityPredicate = abilityPredicate;
     protected readonly predicateBehavior = predicateBehavior;
+    protected readonly callbackRetry = callbackRetry;
 
     constructor(
       @InjectModel(

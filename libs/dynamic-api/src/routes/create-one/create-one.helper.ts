@@ -19,6 +19,7 @@ import {
   DynamicApiControllerOptions,
   DynamicAPIRouteConfig, BeforeSaveCallback,
   AfterSaveCallback,
+  CallbackRetryOptions,
   DynamicAPIServiceProvider, GatewayOptions,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
@@ -36,11 +37,13 @@ function createCreateOneServiceProvider<Entity extends BaseEntity>(
   version: string | undefined,
   callback: AfterSaveCallback<Entity> | undefined,
   beforeSaveCallback: BeforeSaveCallback<Entity> | undefined,
+  callbackRetry?: CallbackRetryOptions,
 ): DynamicAPIServiceProvider {
   class CreateOneService extends BaseCreateOneService<Entity> {
     protected readonly entity = entity;
     protected readonly beforeSaveCallback = beforeSaveCallback;
     protected readonly callback = callback;
+    protected readonly callbackRetry = callbackRetry;
 
     constructor(
       @InjectModel(

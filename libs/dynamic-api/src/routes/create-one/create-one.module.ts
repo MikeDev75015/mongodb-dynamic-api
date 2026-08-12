@@ -33,7 +33,7 @@ export class CreateOneModule {
       validationPipeOptions,
     );
     const ServiceProvider = createCreateOneServiceProvider(
-      entity, displayedName, version, routeConfig.callback, routeConfig.beforeSaveCallback,
+      entity, displayedName, version, routeConfig.callback, routeConfig.beforeSaveCallback, routeConfig.callbackRetry,
     );
 
     const hasBroadcast = !!routeConfig.broadcast;

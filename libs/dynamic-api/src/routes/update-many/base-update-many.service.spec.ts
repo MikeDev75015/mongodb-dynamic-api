@@ -3,6 +3,7 @@ import {
   CallbackMethods,
   BeforeSaveListCallback,
   AfterSaveCallback,
+  CallbackRetryOptions,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseUpdateManyService } from './base-update-many.service';
@@ -19,6 +20,7 @@ class TestService extends BaseUpdateManyService<TestEntity> {
 
 type InternalService = {
   callback: AfterSaveCallback<TestEntity> | undefined;
+  callbackRetry: CallbackRetryOptions | undefined;
   callbackMethods: CallbackMethods;
   beforeSaveCallback: BeforeSaveListCallback<TestEntity> | undefined;
 };
@@ -132,6 +134,36 @@ describe('BaseUpdateManyService', () => {
         internal(service).callbackMethods,
         fakeUser,
       );
+    });
+
+    it('should not throw and should still return the full batch when one document\'s callback rejects', async () => {
+      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedDocuments);
+      service = initService(exec);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      internal(service).callback = jest.fn((entity: TestEntity) => (
+        (entity as unknown as { id: string }).id === updatedDocuments[0]._id
+          ? Promise.reject(new Error('boom'))
+          : Promise.resolve()
+      ));
+
+      await expect(
+        service.updateMany(ids, { name: 'updated' } as Partial<TestEntity>),
+      ).resolves.toStrictEqual(updatedDocuments.map(({ _id: id, name }) => ({ name, id })));
+    });
+
+    it('should succeed on retry when callbackRetry is configured', async () => {
+      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedDocuments);
+      service = initService(exec);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const callback = jest.fn()
+        .mockRejectedValueOnce(new Error('transient'))
+        .mockResolvedValue(undefined);
+      internal(service).callback = callback;
+      internal(service).callbackRetry = { attempts: 2 };
+
+      await service.updateMany(ids, { name: 'updated' } as Partial<TestEntity>);
+
+      expect(callback).toHaveBeenCalledTimes(3);
     });
 
     it('should call beforeSaveCallback if it is defined and use findByIdAndUpdate per entity', async () => {

@@ -1,5 +1,5 @@
 import { Model } from 'mongoose';
-import { AfterSaveCallback } from '../../interfaces';
+import { AfterSaveCallback, CallbackRetryOptions } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseService } from '../../services';
 import { GetOneService } from './get-one-service.interface';
@@ -8,6 +8,7 @@ export abstract class BaseGetOneService<Entity extends BaseEntity>
   extends BaseService<Entity>
   implements GetOneService<Entity> {
   protected readonly callback: AfterSaveCallback<Entity> | undefined;
+  protected readonly callbackRetry: CallbackRetryOptions | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
     super(model);
@@ -29,9 +30,7 @@ export abstract class BaseGetOneService<Entity extends BaseEntity>
         this.handleDocumentNotFound();
       }
 
-      if (this.callback) {
-        await this.callback(this.addDocumentId(document), this.callbackMethods, user);
-      }
+      await this.invokeAfterSaveCallback(this.callback, this.addDocumentId(document), user, this.callbackRetry);
 
       return this.buildInstance(document);
     } catch (error) {

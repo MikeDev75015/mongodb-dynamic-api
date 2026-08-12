@@ -20,6 +20,7 @@ import {
   DynamicAPIRouteConfig,
   BeforeSaveCallback,
   AfterSaveCallback,
+  CallbackRetryOptions,
   DynamicAPIServiceProvider,
   GatewayOptions,
 } from '../../interfaces';
@@ -38,11 +39,13 @@ function createUpdateOneServiceProvider<Entity extends BaseEntity>(
   version: string | undefined,
   callback: AfterSaveCallback<Entity> | undefined,
   beforeSaveCallback: BeforeSaveCallback<Entity> | undefined,
+  callbackRetry?: CallbackRetryOptions,
 ): DynamicAPIServiceProvider {
   class UpdateOneService extends BaseUpdateOneService<Entity> {
     protected readonly entity = entity;
     protected readonly beforeSaveCallback = beforeSaveCallback;
     protected readonly callback = callback;
+    protected readonly callbackRetry = callbackRetry;
 
     constructor(
       @InjectModel(
