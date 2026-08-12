@@ -22,7 +22,7 @@ import {
   BeforeDeleteManyCallback,
   BeforeSaveDeleteManyContext,
   AfterSaveCallback,
-  CallbackRetryOptions,
+  AfterSaveCallbackConfig,
   DynamicAPIServiceProvider,
   GatewayOptions,
   CascadeConfig,
@@ -38,19 +38,18 @@ function createDeleteManyServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
   displayedName: string,
   version: string | undefined,
-  callback: AfterSaveCallback<Entity> | undefined,
+  afterSave: AfterSaveCallbackConfig<Entity> | undefined,
   beforeSaveCallback: BeforeSaveDeleteManyCallback<Entity> | undefined,
   beforeDeleteCallback?: BeforeDeleteManyCallback<Entity, BeforeSaveDeleteManyContext> | undefined,
   cascade?: CascadeConfig[] | undefined,
-  callbackRetry?: CallbackRetryOptions,
 ): DynamicAPIServiceProvider {
   class DeleteManyService extends BaseDeleteManyService<Entity> {
     protected readonly entity = entity;
     protected readonly beforeSaveCallback = beforeSaveCallback;
     protected readonly beforeDeleteCallback = beforeDeleteCallback;
-    protected readonly callback = callback;
+    protected readonly callback = afterSave?.callback;
     protected readonly cascade = cascade;
-    protected readonly callbackRetry = callbackRetry;
+    protected readonly callbackRetry = afterSave?.retry;
 
     constructor(
       @InjectModel(

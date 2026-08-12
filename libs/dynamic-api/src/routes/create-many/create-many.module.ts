@@ -37,7 +37,8 @@ export class CreateManyModule {
       validationPipeOptions,
     );
     const ServiceProvider = createCreateManyServiceProvider(
-      entity, displayedName, version, routeConfig.callback, routeConfig.beforeSaveCallback, routeConfig.callbackRetry,
+      entity, displayedName, version,
+      { callback: routeConfig.callback, retry: routeConfig.callbackRetry }, routeConfig.beforeSaveCallback,
     );
 
     const hasBroadcast = !!routeConfig.broadcast;

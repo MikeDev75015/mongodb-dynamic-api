@@ -84,6 +84,18 @@ type CallbackRetryOptions = {
 };
 
 /**
+ * Bundles `callback` (the after-save hook) with its retry policy — passed as a single object
+ * to each route's internal `createXServiceProvider` factory so the two stay together instead of
+ * traveling as separate positional parameters.
+ *
+ * @internal Not part of the public API — will be removed from the package's public exports in v5.
+ */
+type AfterSaveCallbackConfig<Entity extends BaseEntity, User = unknown> = {
+  callback: AfterSaveCallback<Entity, User> | undefined;
+  retry?: CallbackRetryOptions;
+};
+
+/**
  * Global hook invoked when `callback` (the after-save hook) has exhausted all configured
  * retry attempts (or failed once, when no retry is configured) and its error was swallowed
  * to protect the primary operation's response. Configured once via `DynamicApiModule.forRoot`.
@@ -125,6 +137,7 @@ export type {
   DynamicApiResetPasswordCallbackMethods,
   CallbackMethods,
   CallbackRetryOptions,
+  AfterSaveCallbackConfig,
   OnAfterSaveErrorHook,
   MongoUpdateOperators,
 };
