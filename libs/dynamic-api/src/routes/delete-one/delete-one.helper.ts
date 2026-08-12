@@ -21,7 +21,6 @@ import {
   BeforeSaveDeleteCallback,
   BeforeDeleteCallback,
   BeforeSaveDeleteContext,
-  AfterSaveCallback,
   AfterSaveCallbackConfig,
   DynamicAPIServiceProvider,
   GatewayOptions,

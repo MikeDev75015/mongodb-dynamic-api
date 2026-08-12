@@ -19,7 +19,6 @@ import {
   DynamicApiControllerOptions,
   DynamicAPIRouteConfig,
   BeforeSaveListCallback,
-  AfterSaveCallback,
   AfterSaveCallbackConfig,
   DynamicAPIServiceProvider, GatewayOptions,
 } from '../../interfaces';
