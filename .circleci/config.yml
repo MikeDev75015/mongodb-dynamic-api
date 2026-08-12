@@ -317,6 +317,7 @@ jobs:
             sudo apt-get install -y openjdk-21-jdk-headless
             echo 'export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64' >> $BASH_ENV
             echo 'export PATH=$JAVA_HOME/bin:$PATH' >> $BASH_ENV
+            echo 'export SONAR_JAVA_PATH=/usr/lib/jvm/java-21-openjdk-amd64/bin/java' >> $BASH_ENV
       - sonarcloud/scan
       - *notify-fail
       - *notify-success
