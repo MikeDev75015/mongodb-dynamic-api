@@ -33,7 +33,7 @@ export class UpdateOneModule {
       validationPipeOptions,
     );
     const ServiceProvider = createUpdateOneServiceProvider(
-      entity, displayedName, version, routeConfig.callback, routeConfig.beforeSaveCallback,
+      entity, displayedName, version, routeConfig.callback, routeConfig.beforeSaveCallback, routeConfig.callbackRetry,
     );
 
     const hasBroadcast = !!routeConfig.broadcast;

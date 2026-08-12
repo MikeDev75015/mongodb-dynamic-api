@@ -22,6 +22,7 @@ import {
   BeforeDeleteCallback,
   BeforeSaveDeleteContext,
   AfterSaveCallback,
+  CallbackRetryOptions,
   DynamicAPIServiceProvider,
   GatewayOptions,
   CascadeConfig,
@@ -43,6 +44,7 @@ function createDeleteOneServiceProvider<Entity extends BaseEntity>(
   beforeSaveCallback: BeforeSaveDeleteCallback<Entity> | undefined,
   beforeDeleteCallback?: BeforeDeleteCallback<Entity, BeforeSaveDeleteContext> | undefined,
   cascade?: CascadeConfig[] | undefined,
+  callbackRetry?: CallbackRetryOptions,
 ): DynamicAPIServiceProvider {
   class DeleteOneService extends BaseDeleteOneService<Entity> {
     protected readonly entity = entity;
@@ -50,6 +52,7 @@ function createDeleteOneServiceProvider<Entity extends BaseEntity>(
     protected readonly beforeDeleteCallback = beforeDeleteCallback;
     protected readonly callback = callback;
     protected readonly cascade = cascade;
+    protected readonly callbackRetry = callbackRetry;
 
     constructor(
       @InjectModel(

@@ -3,6 +3,7 @@ import {
   CallbackMethods,
   BeforeSaveCallback,
   AfterSaveCallback,
+  CallbackRetryOptions,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseReplaceOneService } from './base-replace-one.service';
@@ -19,6 +20,7 @@ class TestService extends BaseReplaceOneService<TestEntity> {
 
 type InternalService = {
   callback: AfterSaveCallback<TestEntity> | undefined;
+  callbackRetry: CallbackRetryOptions | undefined;
   callbackMethods: CallbackMethods;
   beforeSaveCallback: BeforeSaveCallback<TestEntity> | undefined;
 };
@@ -114,6 +116,38 @@ describe('BaseReplaceOneService', () => {
         internal(service).callbackMethods,
         fakeUser,
       );
+    });
+
+    it('should not throw and should still return the replaced entity when callback rejects', async () => {
+      service = initService(
+        jest.fn().mockResolvedValueOnce(document),
+        jest.fn().mockResolvedValueOnce(replacedDocument),
+      );
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      internal(service).callback = jest.fn(() => Promise.reject(new Error('boom')));
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { _id, __v, ...documentWithoutIdAndVersion } = replacedDocument;
+
+      await expect(
+        service.replaceOne(document._id, { name: replacedDocument.name } as Partial<TestEntity>),
+      ).resolves.toStrictEqual({ ...documentWithoutIdAndVersion, id: replacedDocument._id });
+    });
+
+    it('should succeed on retry when callbackRetry is configured', async () => {
+      service = initService(
+        jest.fn().mockResolvedValueOnce(document),
+        jest.fn().mockResolvedValueOnce(replacedDocument),
+      );
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const callback = jest.fn()
+        .mockRejectedValueOnce(new Error('transient'))
+        .mockResolvedValueOnce(undefined);
+      internal(service).callback = callback;
+      internal(service).callbackRetry = { attempts: 2 };
+
+      await service.replaceOne(document._id, { name: replacedDocument.name } as Partial<TestEntity>);
+
+      expect(callback).toHaveBeenCalledTimes(2);
     });
 
     it('should call beforeSaveCallback if it is defined', async () => {

@@ -34,7 +34,9 @@ export class GetOneModule {
       version,
       validationPipeOptions,
     );
-    const ServiceProvider = createGetOneServiceProvider(entity, displayedName, version, routeConfig.callback);
+    const ServiceProvider = createGetOneServiceProvider(
+      entity, displayedName, version, routeConfig.callback, routeConfig.callbackRetry,
+    );
 
     const gatewayOptions = webSocket
       ? initializeConfigFromOptions(webSocket)

@@ -36,7 +36,9 @@ export class UpdateManyModule {
       version,
       validationPipeOptions,
     );
-    const ServiceProvider = createUpdateManyServiceProvider(entity, displayedName, version, routeConfig.callback, routeConfig.beforeSaveCallback);
+    const ServiceProvider = createUpdateManyServiceProvider(
+      entity, displayedName, version, routeConfig.callback, routeConfig.beforeSaveCallback, routeConfig.callbackRetry,
+    );
 
     const hasBroadcast = !!routeConfig.broadcast;
     const gatewayOptions = webSocket

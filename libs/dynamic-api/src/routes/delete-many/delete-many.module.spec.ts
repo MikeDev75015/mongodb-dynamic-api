@@ -49,7 +49,7 @@ describe('DeleteManyModule', () => {
 
       expect(spyCreateDeleteManyController)
       .toHaveBeenCalledWith(Entity, fakeDisplayedName, controllerOptions, routeConfig, version, validationPipeOptions);
-      expect(spyCreateDeleteManyServiceProvider).toHaveBeenCalledWith(Entity, fakeDisplayedName, version, routeConfig.callback, routeConfig.beforeSaveCallback, routeConfig.beforeDeleteCallback, routeConfig.cascade);
+      expect(spyCreateDeleteManyServiceProvider).toHaveBeenCalledWith(Entity, fakeDisplayedName, version, routeConfig.callback, routeConfig.beforeSaveCallback, routeConfig.beforeDeleteCallback, routeConfig.cascade, routeConfig.callbackRetry);
     });
 
     it('should return a DynamicModule with gateway', () => {
@@ -72,7 +72,7 @@ describe('DeleteManyModule', () => {
 
       expect(spyCreateDeleteManyController)
       .toHaveBeenCalledWith(Entity, fakeDisplayedName, controllerOptions, routeConfig, version, validationPipeOptions);
-      expect(spyCreateDeleteManyServiceProvider).toHaveBeenCalledWith(Entity, fakeDisplayedName, version, routeConfig.callback, routeConfig.beforeSaveCallback, routeConfig.beforeDeleteCallback, routeConfig.cascade);
+      expect(spyCreateDeleteManyServiceProvider).toHaveBeenCalledWith(Entity, fakeDisplayedName, version, routeConfig.callback, routeConfig.beforeSaveCallback, routeConfig.beforeDeleteCallback, routeConfig.cascade, routeConfig.callbackRetry);
       expect(spyCreateDeleteManyGateway).toHaveBeenCalledWith(
         Entity,
         fakeDisplayedName,

@@ -6,6 +6,7 @@ import {
   BeforeSaveDuplicateManyContext,
   BeforeSaveListCallback,
   AfterSaveCallback,
+  CallbackRetryOptions,
 } from '../../interfaces';
 import { baseEntityKeysToExclude } from '../../mixins';
 import { BaseEntity } from '../../models';
@@ -22,6 +23,7 @@ export abstract class BaseDuplicateManyService<Entity extends BaseEntity>
     BeforeSaveDuplicateManyContext<Entity>
   > | undefined;
   protected readonly callback: AfterSaveCallback<Entity> | undefined;
+  protected readonly callbackRetry: CallbackRetryOptions | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
     super(model);
@@ -75,10 +77,12 @@ export abstract class BaseDuplicateManyService<Entity extends BaseEntity>
       .lean<Entity[]>()
       .exec();
 
-      if (this.callback && documents.length) {
+      if (documents.length) {
         await Promise.all(
           documents.map(
-            (document) => this.callback(this.addDocumentId(document), this.callbackMethods, user),
+            (document) => this.invokeAfterSaveCallback(
+              this.callback, this.addDocumentId(document), user, this.callbackRetry,
+            ),
           ),
         );
       }

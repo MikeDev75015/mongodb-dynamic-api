@@ -18,6 +18,7 @@ import {
   DynamicApiControllerOptions,
   DynamicAPIRouteConfig,
   AfterSaveCallback,
+  CallbackRetryOptions,
   DynamicAPIServiceProvider,
   GatewayOptions,
 } from '../../interfaces';
@@ -34,10 +35,12 @@ function createGetOneServiceProvider<Entity extends BaseEntity>(
   displayedName: string,
   version: string | undefined,
   callback: AfterSaveCallback<Entity> | undefined,
+  callbackRetry?: CallbackRetryOptions,
 ): DynamicAPIServiceProvider {
   class GetOneService extends BaseGetOneService<Entity> {
     protected readonly entity = entity;
     protected readonly callback = callback;
+    protected readonly callbackRetry = callbackRetry;
 
     constructor(
       @InjectModel(

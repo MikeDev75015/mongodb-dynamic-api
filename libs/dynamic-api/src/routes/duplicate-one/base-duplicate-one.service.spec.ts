@@ -3,6 +3,7 @@ import {
   CallbackMethods,
   BeforeSaveCallback,
   AfterSaveCallback,
+  CallbackRetryOptions,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseDuplicateOneService } from './base-duplicate-one.service';
@@ -19,6 +20,7 @@ class TestService extends BaseDuplicateOneService<TestEntity> {
 
 type InternalService = {
   callback: AfterSaveCallback<TestEntity> | undefined;
+  callbackRetry: CallbackRetryOptions | undefined;
   callbackMethods: CallbackMethods;
   beforeSaveCallback: BeforeSaveCallback<TestEntity> | undefined;
 };
@@ -101,6 +103,35 @@ describe('BaseDuplicateOneService', () => {
         internal(service).callbackMethods,
         fakeUser,
       );
+    });
+
+    it('should not throw and should still return the duplicated entity when callback rejects', async () => {
+      const exec = jest.fn().mockResolvedValueOnce(document).mockResolvedValueOnce(duplicatedDocument);
+      service = initService(exec, duplicatedDocument);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      internal(service).callback = jest.fn(() => Promise.reject(new Error('boom')));
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { _id, __v, ...documentWithoutIdAndVersion } = duplicatedDocument;
+
+      await expect(service.duplicateOne(document._id, undefined)).resolves.toStrictEqual({
+        ...documentWithoutIdAndVersion,
+        id: duplicatedDocument._id,
+      });
+    });
+
+    it('should succeed on retry when callbackRetry is configured', async () => {
+      const exec = jest.fn().mockResolvedValueOnce(document).mockResolvedValueOnce(duplicatedDocument);
+      service = initService(exec, duplicatedDocument);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const callback = jest.fn()
+        .mockRejectedValueOnce(new Error('transient'))
+        .mockResolvedValueOnce(undefined);
+      internal(service).callback = callback;
+      internal(service).callbackRetry = { attempts: 2 };
+
+      await service.duplicateOne(document._id, undefined);
+
+      expect(callback).toHaveBeenCalledTimes(2);
     });
 
     it('should call beforeSaveCallback if it is defined', async () => {

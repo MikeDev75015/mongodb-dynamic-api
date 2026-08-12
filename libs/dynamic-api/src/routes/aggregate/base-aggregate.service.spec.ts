@@ -1,7 +1,7 @@
 import { Type } from '@nestjs/common';
 import { PipelineStage } from 'mongodb-pipeline-builder';
 import { Model, ObjectId } from 'mongoose';
-import { AfterSaveCallback } from '../../interfaces';
+import { AfterSaveCallback, CallbackRetryOptions } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseAggregateService } from './base-aggregate.service';
 
@@ -13,6 +13,7 @@ describe('BaseAggregateService', () => {
   class TestService extends BaseAggregateService<Entity> {
     protected entity: Type<Entity>;
     protected callback: AfterSaveCallback<Entity> | undefined;
+    protected callbackRetry: CallbackRetryOptions | undefined;
 
     constructor(protected readonly _: Model<Entity>) {
       super(_);
@@ -82,6 +83,32 @@ describe('BaseAggregateService', () => {
       await service.aggregate(pipelineStages, user);
 
       expect(callback).toHaveBeenCalledWith({ ...aggregated, id: aggregated._id }, service['callbackMethods'], user);
+    });
+
+    it('should not throw and should still return the full list when callback rejects', async () => {
+      service = initService([aggregated]);
+      service['callback'] = jest.fn(() => Promise.reject(new Error('boom')));
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { _id, __v, ...documentWithoutIdAndVersion } = aggregated;
+
+      await expect(service.aggregate(pipelineStages)).resolves.toStrictEqual({
+        list: [{ ...documentWithoutIdAndVersion, id: aggregated._id }],
+        count: 1,
+        totalPage: 1,
+      });
+    });
+
+    it('should succeed on retry when callbackRetry is configured', async () => {
+      service = initService([aggregated]);
+      const callback = jest.fn()
+        .mockRejectedValueOnce(new Error('transient'))
+        .mockResolvedValueOnce(undefined);
+      service['callback'] = callback;
+      service['callbackRetry'] = { attempts: 2 };
+
+      await service.aggregate(pipelineStages);
+
+      expect(callback).toHaveBeenCalledTimes(2);
     });
 
     it('should filter documents when predicateBehavior is filter and abilityPredicate rejects some', async () => {

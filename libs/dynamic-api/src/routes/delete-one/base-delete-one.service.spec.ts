@@ -8,6 +8,7 @@ import {
   BeforeDeleteCallback,
   BeforeSaveDeleteContext,
   AfterSaveCallback,
+  CallbackRetryOptions,
   CascadeConfig,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
@@ -30,6 +31,7 @@ class TestService extends BaseDeleteOneService<TestEntity> {
 
 type InternalService = {
   callback: AfterSaveCallback<TestEntity> | undefined;
+  callbackRetry: CallbackRetryOptions | undefined;
   callbackMethods: CallbackMethods;
   beforeSaveCallback: BeforeSaveDeleteCallback<TestEntity> | undefined;
   beforeDeleteCallback: BeforeDeleteCallback<TestEntity, BeforeSaveDeleteContext> | undefined;
@@ -150,6 +152,29 @@ describe('BaseDeleteOneService', () => {
       internal(service).callbackMethods,
       fakeUser,
     );
+  });
+
+  it('should return the real deletedCount (not 0) when callback rejects — masking bug fix', async () => {
+    service = initService();
+    jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+    internal(service).callback = jest.fn(() => Promise.reject(new Error('boom')));
+
+    await expect(service.deleteOne(id)).resolves.toStrictEqual(presenter);
+    expect(presenter.deletedCount).toBe(1);
+  });
+
+  it('should succeed on retry when callbackRetry is configured', async () => {
+    service = initService();
+    jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+    const callback = jest.fn()
+      .mockRejectedValueOnce(new Error('transient'))
+      .mockResolvedValueOnce(undefined);
+    internal(service).callback = callback;
+    internal(service).callbackRetry = { attempts: 2 };
+
+    await service.deleteOne(id);
+
+    expect(callback).toHaveBeenCalledTimes(2);
   });
 
   it('should call beforeSaveCallback if it is defined', async () => {

@@ -6,6 +6,7 @@ import {
   BeforeSaveCallback,
   BeforeSaveDuplicateContext,
   AfterSaveCallback,
+  CallbackRetryOptions,
 } from '../../interfaces';
 import { baseEntityKeysToExclude } from '../../mixins';
 import { BaseEntity } from '../../models';
@@ -22,6 +23,7 @@ export abstract class BaseDuplicateOneService<Entity extends BaseEntity>
     BeforeSaveDuplicateContext<Entity>
   > | undefined;
   protected readonly callback: AfterSaveCallback<Entity> | undefined;
+  protected readonly callbackRetry: CallbackRetryOptions | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
     super(model);
@@ -66,9 +68,7 @@ export abstract class BaseDuplicateOneService<Entity extends BaseEntity>
       const { _id } = await this.model.create(plainToInstance(this.entity, toCreate));
       const document = await this.model.findOne({ _id }).lean<Entity>().exec();
 
-      if (this.callback) {
-        await this.callback(this.addDocumentId(document), this.callbackMethods, user);
-      }
+      await this.invokeAfterSaveCallback(this.callback, this.addDocumentId(document), user, this.callbackRetry);
 
       return this.buildInstance(document);
     } catch (error: unknown) {

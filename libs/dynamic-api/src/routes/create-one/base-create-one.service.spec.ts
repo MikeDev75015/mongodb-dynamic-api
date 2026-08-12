@@ -3,6 +3,7 @@ import {
   CallbackMethods,
   BeforeSaveCallback,
   AfterSaveCallback,
+  CallbackRetryOptions,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseCreateOneService } from './base-create-one.service';
@@ -19,6 +20,7 @@ class TestService extends BaseCreateOneService<TestEntity> {
 
 type InternalService = {
   callback: AfterSaveCallback<TestEntity> | undefined;
+  callbackRetry: CallbackRetryOptions | undefined;
   callbackMethods: CallbackMethods;
   beforeSaveCallback: BeforeSaveCallback<TestEntity> | undefined;
 };
@@ -79,6 +81,31 @@ describe('BaseCreateOneService', () => {
 
       expect(callback).toHaveBeenCalledTimes(1);
       expect(callback).toHaveBeenCalledWith({ ...created, id: created._id }, internal(service).callbackMethods, fakeUser);
+    });
+
+    it('should not throw and should still return the created entity when callback rejects', async () => {
+      service = initService(created);
+      internal(service).callback = jest.fn(() => Promise.reject(new Error('boom')));
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { _id, __v, ...documentWithoutIdAndVersion } = created;
+
+      await expect(service.createOne(toCreate)).resolves.toStrictEqual({
+        ...documentWithoutIdAndVersion,
+        id: created._id,
+      });
+    });
+
+    it('should succeed on retry when callbackRetry is configured', async () => {
+      service = initService(created);
+      const callback = jest.fn()
+        .mockRejectedValueOnce(new Error('transient'))
+        .mockResolvedValueOnce(undefined);
+      internal(service).callback = callback;
+      internal(service).callbackRetry = { attempts: 2 };
+
+      await service.createOne(toCreate);
+
+      expect(callback).toHaveBeenCalledTimes(2);
     });
 
     it('should throw an error if the document already exists', async () => {

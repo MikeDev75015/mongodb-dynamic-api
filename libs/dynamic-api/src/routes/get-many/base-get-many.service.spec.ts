@@ -1,5 +1,5 @@
 import { Model } from 'mongoose';
-import { CallbackMethods, AfterSaveCallback } from '../../interfaces';
+import { CallbackMethods, AfterSaveCallback, CallbackRetryOptions } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseGetManyService } from './base-get-many.service';
 
@@ -15,6 +15,7 @@ class TestService extends BaseGetManyService<TestEntity> {
 
 type InternalService = {
   callback: AfterSaveCallback<TestEntity> | undefined;
+  callbackRetry: CallbackRetryOptions | undefined;
   callbackMethods: CallbackMethods;
 };
 
@@ -73,6 +74,34 @@ describe('BaseGetManyService', () => {
       await service.getMany(undefined, user);
 
       expect(callback).toHaveBeenCalledWith({ ...response[0], id: response[0]._id }, internal(service).callbackMethods, user);
+    });
+
+    it('should not throw and should still return the full list when callback rejects', async () => {
+      const exec = jest.fn().mockResolvedValueOnce(response);
+      service = initService(exec);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      internal(service).callback = jest.fn(() => Promise.reject(new Error('boom')));
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { _id, __v, ...documentWithoutIdAndVersion } = response[0];
+
+      await expect(service.getMany()).resolves.toStrictEqual([
+        { ...documentWithoutIdAndVersion, id: response[0]._id },
+      ]);
+    });
+
+    it('should succeed on retry when callbackRetry is configured', async () => {
+      const exec = jest.fn().mockResolvedValueOnce(response);
+      service = initService(exec);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const callback = jest.fn()
+        .mockRejectedValueOnce(new Error('transient'))
+        .mockResolvedValueOnce(undefined);
+      internal(service).callback = callback;
+      internal(service).callbackRetry = { attempts: 2 };
+
+      await service.getMany();
+
+      expect(callback).toHaveBeenCalledTimes(2);
     });
 
     it('should filter documents when predicateBehavior is filter and abilityPredicate rejects some', async () => {

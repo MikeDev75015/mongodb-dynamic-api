@@ -7,6 +7,7 @@ import {
   BeforeSaveDeleteManyContext,
   BeforeDeleteManyCallback,
   AfterSaveCallback,
+  CallbackRetryOptions,
   CascadeConfig,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
@@ -26,6 +27,7 @@ export abstract class BaseDeleteManyService<Entity extends BaseEntity>
     BeforeSaveDeleteManyContext
   > | undefined;
   protected readonly callback: AfterSaveCallback<Entity> | undefined;
+  protected readonly callbackRetry: CallbackRetryOptions | undefined;
   protected readonly cascade: CascadeConfig[] | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
@@ -78,10 +80,12 @@ export abstract class BaseDeleteManyService<Entity extends BaseEntity>
         op = await this.model.deleteMany({ _id: { $in: ids } }).exec();
       }
 
-      if (this.callback && documents?.length) {
+      if (documents?.length) {
         await Promise.all(
           documents.map(
-            (document) => this.callback(this.addDocumentId(document), this.callbackMethods, user),
+            (document) => this.invokeAfterSaveCallback(
+              this.callback, this.addDocumentId(document), user, this.callbackRetry,
+            ),
           ),
         );
       }

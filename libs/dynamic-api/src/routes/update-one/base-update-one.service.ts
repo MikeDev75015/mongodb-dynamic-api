@@ -1,6 +1,6 @@
 import { cloneDeep } from '../../helpers';
 import { Model } from 'mongoose';
-import { BeforeSaveCallback, BeforeSaveUpdateContext, AfterSaveCallback } from '../../interfaces';
+import { BeforeSaveCallback, BeforeSaveUpdateContext, AfterSaveCallback, CallbackRetryOptions } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseService } from '../../services';
 import { UpdateOneService } from './update-one-service.interface';
@@ -14,6 +14,7 @@ export abstract class BaseUpdateOneService<Entity extends BaseEntity>
   > | undefined;
 
   protected readonly callback: AfterSaveCallback<Entity> | undefined;
+  protected readonly callbackRetry: CallbackRetryOptions | undefined;
 
   protected constructor(
     protected readonly model: Model<Entity>,
@@ -57,9 +58,9 @@ export abstract class BaseUpdateOneService<Entity extends BaseEntity>
       .lean<Entity>()
       .exec();
 
-      if (this.callback) {
-        await this.callback(this.addDocumentId(updatedDocument), this.callbackMethods, user);
-      }
+      await this.invokeAfterSaveCallback(
+        this.callback, this.addDocumentId(updatedDocument), user, this.callbackRetry,
+      );
 
       return this.buildInstance(updatedDocument);
     } catch (error) {
