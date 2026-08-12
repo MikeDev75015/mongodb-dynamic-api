@@ -21,7 +21,7 @@ import {
   BeforeSaveUpdateContext,
   BeforeSaveUpdateManyContext,
 } from './dynamic-api-service-before-save-callback.interface';
-import { AfterSaveCallback } from './dynamic-api-service-callback.interface';
+import { AfterSaveCallback, CallbackRetryOptions } from './dynamic-api-service-callback.interface';
 import { DynamicApiWebSocketOptions } from './dynamic-api-web-socket.interface';
 
 /**
@@ -53,6 +53,11 @@ interface BaseRouteConfig<Entity extends BaseEntity> {
   abilityPredicate?: AbilityPredicate<Entity>;
   predicateBehavior?: PredicateBehavior;
   callback?: AfterSaveCallback<Entity>;
+  /**
+   * Retry options for `callback`. Only applies to `callback` — `beforeSaveCallback`/
+   * `beforeDeleteCallback` are never retried. See {@link CallbackRetryOptions}.
+   */
+  callbackRetry?: CallbackRetryOptions;
   webSocket?: DynamicApiWebSocketOptions;
   eventName?: string;
   broadcast?: BroadcastConfig<Entity>;
