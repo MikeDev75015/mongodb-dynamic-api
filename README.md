@@ -267,6 +267,7 @@ Register `UsersModule` in `AppModule`, run `npm run start:dev` — your API is l
 | 📚 **Swagger UI** | Auto-generated OpenAPI docs, visibility decorators | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/swagger-ui.md) |
 | 🗂️ **Route Config** | DTOs, cascade delete, predicates, subPath, interceptors ⭐ | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/route-config.md) |
 | 🎛️ **Controller Config** | `forFeature` options, `customRoutes`, `extraProviders` ⭐ | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/controller-config.md) |
+| 🐞 **Debugging** | `MONGODB_DYNAMIC_API_LOGGER` levels, WS debug mode, where each log comes from ⭐ | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/debugging.md) |
 
 > [!NOTE]
 > **Key reminders:**

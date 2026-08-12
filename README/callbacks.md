@@ -1277,6 +1277,12 @@ The following verbose names are still exported for backward compatibility but ar
 
 ---
 
+## Related Documentation
+
+- 🐞 **[Debugging](./debugging.md)** - See `[AfterSaveCallback] Failed …` and `[onAfterSaveError] …` log lines with `MONGODB_DYNAMIC_API_LOGGER`
+
+---
+
 [Back to README](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README.md)
 
 
