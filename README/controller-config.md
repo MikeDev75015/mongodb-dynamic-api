@@ -22,6 +22,7 @@
   - [extraProviders](#extraproviders)
   - [extraControllers](#extracontrollers)
   - [customRoutes](#customroutes)
+    - [`customRoutes` vs. a native CRUD route](#customroutes-vs-a-native-crud-route)
 - [controllerOptions Reference](#controlleroptions-reference)
   - [path](#path)
   - [apiTag](#apitag)
@@ -184,6 +185,21 @@ DynamicApiModule.forFeature({
 **Optional.** An array of custom endpoint configurations registered at the same controller `path` and `version` as the MDA standard routes. Each entry generates a fully typed NestJS controller method with automatic Mongoose model injection, Swagger documentation, optional guards and `abilityPredicate` support.
 
 > The Mongoose model is automatically available in the handler via `ctx.model`. No extra providers or module imports are needed.
+
+#### `customRoutes` vs. a native CRUD route
+
+Both let you attach `abilityPredicate`, guards, DTOs, and WebSocket exposure — the difference is *what runs the request*: a native route's behavior (query shape, cascade, callbacks, broadcast) is entirely declarative, driven by MDA's generated service; a custom route's `handler` is your own function with direct model access and no generated behavior at all.
+
+| | Native route (`routes: [...]`) + hooks | `customRoutes` |
+|---|---|---|
+| Request handling | MDA-generated (find/create/update/delete logic) | Your own `handler` function, full control |
+| Typical use | Standard CRUD, optionally reshaped via `beforeSaveCallback`/`callback`/`fromUser`/`@DerivedField` | An endpoint whose logic doesn't fit the CRUD shape at all (e.g. `PATCH /:id/e2ee-wrapped-keys`, a computed/aggregated read, a multi-collection write) |
+| Response DTO | Standard entity presenter, or `dTOs.presenter` to reshape | Whatever `handler` returns, optionally through `dTOs.presenter` |
+| Cascade delete, soft-delete filtering, `predicateBehavior: 'filter'` | ✅ Built in | ❌ You implement it yourself if needed |
+| `beforeSaveCallback`/`callback`/`broadcast` | ✅ Built in | ❌ Not applicable — call `ctx.model` / broadcast yourself inside `handler` |
+| Swagger docs | Auto-generated from the route type + DTOs | Auto-generated from `method`/`path`/`dTOs` |
+
+**Rule of thumb:** if what you need is "a CRUD route, but slightly different" (extra validation, a derived field, blocking non-owners, notifying on success), reach for `abilityPredicate` + `beforeSaveCallback`/`callback` on a **native route** first — see [Route Configuration](./route-config.md) and [Callbacks](./callbacks.md). Reach for `customRoutes` only when the operation genuinely isn't a single-entity CRUD operation (spans collections, has no direct entity-shaped body, or needs bespoke query logic) — the E2EE-wrapped-key example below is a good template for that case.
 
 #### `CustomRouteConfig<Entity>` reference
 
