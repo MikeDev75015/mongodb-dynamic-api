@@ -18,7 +18,6 @@ import { provideName } from '../../helpers';
 import {
   DynamicApiControllerOptions,
   DynamicAPIRouteConfig, BeforeSaveCallback,
-  AfterSaveCallback,
   AfterSaveCallbackConfig,
   DynamicAPIServiceProvider, GatewayOptions,
 } from '../../interfaces';

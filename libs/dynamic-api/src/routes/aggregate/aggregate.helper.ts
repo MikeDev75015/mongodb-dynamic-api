@@ -18,7 +18,6 @@ import {
   DynamicApiControllerOptions,
   DynamicAPIRouteConfig,
   AbilityPredicate,
-  AfterSaveCallback,
   AfterSaveCallbackConfig,
   DynamicAPIServiceProvider, GatewayOptions,
   PredicateBehavior,

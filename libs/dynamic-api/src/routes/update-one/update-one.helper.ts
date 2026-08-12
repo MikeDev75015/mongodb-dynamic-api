@@ -19,7 +19,6 @@ import {
   DynamicApiControllerOptions,
   DynamicAPIRouteConfig,
   BeforeSaveCallback,
-  AfterSaveCallback,
   AfterSaveCallbackConfig,
   DynamicAPIServiceProvider,
   GatewayOptions,
