@@ -393,7 +393,7 @@ describe('DynamicApiModule', () => {
 
         const module = await DynamicApiModule.forFeature(options);
 
-        expect(module.imports.length).toStrictEqual(12);
+        expect(module.imports).toHaveLength(12);
         expect(spyCreateManyModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
           options.entity,
@@ -661,7 +661,7 @@ describe('DynamicApiModule', () => {
 
         const module = await DynamicApiModule.forFeature(options);
 
-        expect(module.imports.length).toStrictEqual(12);
+        expect(module.imports).toHaveLength(12);
         expect(spyCreateManyModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
           options.entity,
@@ -937,7 +937,7 @@ describe('DynamicApiModule', () => {
 
         const module = await DynamicApiModule.forFeature(options);
 
-        expect(module.imports.length).toStrictEqual(12);
+        expect(module.imports).toHaveLength(12);
         expect(spyCreateManyModule).toHaveBeenCalledWith(
           fakeDatabaseModule,
           options.entity,

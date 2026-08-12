@@ -96,33 +96,22 @@ describe('getMixinData', () => {
     expect(result.routeType).toEqual('DuplicateOne');
   });
 
-  it('should return valid controller mixin data for DeleteMany route type', () => {
-    const result = getMixinData(
-      TestEntity,
-      controllerOptions,
-      {
-        type: 'DeleteMany',
-        ...routeConfig,
-      },
-    );
+  it.each(['DeleteMany', 'DeleteOne', 'ReplaceOne', 'UpdateMany', 'UpdateOne'] as const)(
+    'should return valid controller mixin data for %s route type',
+    (type) => {
+      const result = getMixinData(
+        TestEntity,
+        controllerOptions,
+        {
+          type,
+          ...routeConfig,
+        },
+      );
 
-    expect(result).toBeDefined();
-    expect(result.routeType).toEqual('DeleteMany');
-  });
-
-  it('should return valid controller mixin data for DeleteOne route type', () => {
-    const result = getMixinData(
-      TestEntity,
-      controllerOptions,
-      {
-        type: 'DeleteOne',
-        ...routeConfig,
-      },
-    );
-
-    expect(result).toBeDefined();
-    expect(result.routeType).toEqual('DeleteOne');
-  });
+      expect(result).toBeDefined();
+      expect(result.routeType).toEqual(type);
+    },
+  );
 
   it('should return valid controller mixin data for GetMany route type', () => {
     const result = getMixinData(
@@ -155,48 +144,6 @@ describe('getMixinData', () => {
     expect(result.description).toEqual('Test');
     expect(result.isPublic).toEqual(true);
     expect(result.abilityPredicate).toBeDefined();
-  });
-
-  it('should return valid controller mixin data for ReplaceOne route type', () => {
-    const result = getMixinData(
-      TestEntity,
-      controllerOptions,
-      {
-        type: 'ReplaceOne',
-        ...routeConfig,
-      },
-    );
-
-    expect(result).toBeDefined();
-    expect(result.routeType).toEqual('ReplaceOne');
-  });
-
-  it('should return valid controller mixin data for UpdateMany route type', () => {
-    const result = getMixinData(
-      TestEntity,
-      controllerOptions,
-      {
-        type: 'UpdateMany',
-        ...routeConfig,
-      },
-    );
-
-    expect(result).toBeDefined();
-    expect(result.routeType).toEqual('UpdateMany');
-  });
-
-  it('should return valid controller mixin data for UpdateOne route type', () => {
-    const result = getMixinData(
-      TestEntity,
-      controllerOptions,
-      {
-        type: 'UpdateOne',
-        ...routeConfig,
-      },
-    );
-
-    expect(result).toBeDefined();
-    expect(result.routeType).toEqual('UpdateOne');
   });
 
   it('should use route-level disableCache when it is a boolean', () => {
