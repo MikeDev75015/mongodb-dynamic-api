@@ -1,9 +1,16 @@
 import { BadRequestException, ConflictException, ForbiddenException, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { Model, ObjectId } from 'mongoose';
-import { AbilityPredicate, DeleteResult, MongoUpdateOperators, UpdateResult } from '../../interfaces';
+import { AbilityPredicate, AfterSaveCallback, DeleteResult, MongoUpdateOperators, UpdateResult } from '../../interfaces';
 import { BaseEntity, SoftDeletableEntity } from '../../models';
 import { DynamicApiGlobalStateService } from '../dynamic-api-global-state/dynamic-api-global-state.service';
 import { BaseService } from './base.service';
+
+jest.mock('../../dynamic-api.module', () => ({
+  DynamicApiModule: { state: { get: jest.fn() } },
+}));
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { DynamicApiModule } = require('../../dynamic-api.module');
 
 class TestEntity extends BaseEntity {
   name: string;
@@ -927,6 +934,124 @@ describe('BaseService', () => {
       const result = svc['applyDerivedFields']({ x: 10, y: 3 }, 'save');
       expect(result.sumXY).toBe(13);
       expect(result.diff).toBe(7);
+    });
+  });
+
+  describe('invokeAfterSaveCallback', () => {
+    let errorSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      (service as unknown as { entity: typeof TestEntity }).entity = TestEntity;
+      errorSpy = jest.spyOn(service['baseServiceLogger'], 'error').mockImplementation();
+      (DynamicApiModule.state.get as jest.Mock).mockReset();
+    });
+
+    it('should do nothing when callback is undefined', async () => {
+      await service['invokeAfterSaveCallback'](undefined, expectedEntity, undefined);
+
+      expect(errorSpy).not.toHaveBeenCalled();
+      expect(DynamicApiModule.state.get).not.toHaveBeenCalled();
+    });
+
+    it('should call the callback once and not log on success', async () => {
+      const callback: AfterSaveCallback<TestEntity> = jest.fn().mockResolvedValue(undefined);
+
+      await service['invokeAfterSaveCallback'](callback, expectedEntity, 'user-1');
+
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledWith(expectedEntity, service['callbackMethods'], 'user-1');
+      expect(errorSpy).not.toHaveBeenCalled();
+    });
+
+    it('should log and call the global onAfterSaveError hook when callback rejects without retry', async () => {
+      const error = new Error('boom');
+      const callback: AfterSaveCallback<TestEntity> = jest.fn().mockRejectedValue(error);
+      const onAfterSaveError = jest.fn();
+      (DynamicApiModule.state.get as jest.Mock).mockReturnValue(onAfterSaveError);
+
+      await expect(
+        service['invokeAfterSaveCallback'](callback, expectedEntity, 'user-1'),
+      ).resolves.toBeUndefined();
+
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('boom'), error.stack);
+      expect(DynamicApiModule.state.get).toHaveBeenCalledWith('onAfterSaveError');
+      expect(onAfterSaveError).toHaveBeenCalledWith(error, {
+        entityName: 'TestEntity',
+        entity: expectedEntity,
+        user: 'user-1',
+      });
+    });
+
+    it('should not log or call the hook when a failing attempt is followed by a successful retry', async () => {
+      const callback: AfterSaveCallback<TestEntity> = jest.fn()
+        .mockRejectedValueOnce(new Error('transient'))
+        .mockResolvedValueOnce(undefined);
+
+      await service['invokeAfterSaveCallback'](callback, expectedEntity, undefined, { attempts: 2 });
+
+      expect(callback).toHaveBeenCalledTimes(2);
+      expect(errorSpy).not.toHaveBeenCalled();
+      expect(DynamicApiModule.state.get).not.toHaveBeenCalled();
+    });
+
+    it('should log once after exhausting all retry attempts', async () => {
+      const error = new Error('always fails');
+      const callback: AfterSaveCallback<TestEntity> = jest.fn().mockRejectedValue(error);
+      (DynamicApiModule.state.get as jest.Mock).mockReturnValue(undefined);
+
+      await service['invokeAfterSaveCallback'](callback, expectedEntity, undefined, { attempts: 3 });
+
+      expect(callback).toHaveBeenCalledTimes(3);
+      expect(errorSpy).toHaveBeenCalledTimes(1);
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('3 attempt(s)'), error.stack);
+    });
+
+    it('should wait delayMs between attempts', async () => {
+      const callback: AfterSaveCallback<TestEntity> = jest.fn()
+        .mockRejectedValueOnce(new Error('transient'))
+        .mockResolvedValueOnce(undefined);
+      const start = Date.now();
+
+      await service['invokeAfterSaveCallback'](callback, expectedEntity, undefined, { attempts: 2, delayMs: 30 });
+
+      expect(Date.now() - start).toBeGreaterThanOrEqual(25);
+    });
+
+    it('should not delay after the last attempt', async () => {
+      const callback: AfterSaveCallback<TestEntity> = jest.fn().mockRejectedValue(new Error('boom'));
+      (DynamicApiModule.state.get as jest.Mock).mockReturnValue(undefined);
+      const start = Date.now();
+
+      await service['invokeAfterSaveCallback'](callback, expectedEntity, undefined, { attempts: 1, delayMs: 1000 });
+
+      expect(Date.now() - start).toBeLessThan(100);
+    });
+
+    it('should catch and log when the global onAfterSaveError hook itself throws', async () => {
+      const error = new Error('boom');
+      const callback: AfterSaveCallback<TestEntity> = jest.fn().mockRejectedValue(error);
+      const hookError = new Error('hook failed');
+      (DynamicApiModule.state.get as jest.Mock).mockReturnValue(jest.fn().mockRejectedValue(hookError));
+
+      await expect(
+        service['invokeAfterSaveCallback'](callback, expectedEntity, undefined),
+      ).resolves.toBeUndefined();
+
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('boom'), error.stack);
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('hook failed'), hookError.stack);
+    });
+
+    it('should treat a missing onAfterSaveError hook as a no-op', async () => {
+      const error = new Error('boom');
+      const callback: AfterSaveCallback<TestEntity> = jest.fn().mockRejectedValue(error);
+      (DynamicApiModule.state.get as jest.Mock).mockReturnValue(undefined);
+
+      await expect(
+        service['invokeAfterSaveCallback'](callback, expectedEntity, undefined),
+      ).resolves.toBeUndefined();
+
+      expect(errorSpy).toHaveBeenCalledTimes(1);
     });
   });
 });

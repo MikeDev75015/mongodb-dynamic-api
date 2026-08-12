@@ -71,6 +71,40 @@ type AfterSaveCallback<Entity extends BaseEntity, User = unknown> = (
 /** @deprecated Use `AfterSaveCallback` instead. Will be removed in v5. */
 type DynamicApiServiceCallback<Entity extends BaseEntity, User = unknown> = AfterSaveCallback<Entity, User>;
 
+/**
+ * Retry options for `callback` (the after-save hook).
+ * Only applies to `callback` — `beforeSaveCallback`/`beforeDeleteCallback` keep their
+ * existing fail-fast/abort behavior and are never retried.
+ */
+type CallbackRetryOptions = {
+  /** Total number of attempts, including the first one. @default 1 (no retry) */
+  attempts?: number;
+  /** Fixed delay in milliseconds between attempts. @default 0 (no delay) */
+  delayMs?: number;
+};
+
+/**
+ * Global hook invoked when `callback` (the after-save hook) has exhausted all configured
+ * retry attempts (or failed once, when no retry is configured) and its error was swallowed
+ * to protect the primary operation's response. Configured once via `DynamicApiModule.forRoot`.
+ *
+ * If this hook itself throws, the error is caught and logged — it can never affect the
+ * response either.
+ *
+ * @example
+ * ```typescript
+ * DynamicApiModule.forRoot(uri, {
+ *   onAfterSaveError: (error, { entityName, entity, user }) => {
+ *     console.error(`[audit] afterSaveCallback failed for ${entityName}`, error);
+ *   },
+ * });
+ * ```
+ */
+type OnAfterSaveErrorHook = (
+  error: unknown,
+  context: { entityName: string | undefined; entity: unknown; user: unknown },
+) => void | Promise<void>;
+
 type DynamicApiResetPasswordCallbackMethods<Entity extends BaseEntity, UpdateBy = 'userId'> = {
   findUserByEmail: () => Promise<Entity>;
   updateUserByEmail: (
@@ -90,5 +124,7 @@ export type {
   DynamicApiCallbackMethods,
   DynamicApiResetPasswordCallbackMethods,
   CallbackMethods,
+  CallbackRetryOptions,
+  OnAfterSaveErrorHook,
   MongoUpdateOperators,
 };

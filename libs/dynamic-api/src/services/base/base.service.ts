@@ -3,7 +3,7 @@ import { plainToInstance } from 'class-transformer';
 import { PipelineStage } from 'mongodb-pipeline-builder';
 import { FilterQuery, Model, PipelineStage as MongoosePipelineStage, Schema, UpdateQuery, UpdateWithAggregationPipeline } from 'mongoose';
 import { DERIVED_FIELD_KEYS_METADATA, DERIVED_FIELD_METADATA, DerivedFieldMeta } from '../../decorators';
-import { AbilityPredicate, AuthAbilityPredicate, CascadeConfig, DeleteResult, DynamicApiCallbackMethods, MongoUpdateOperators, UpdateResult } from '../../interfaces';
+import { AbilityPredicate, AfterSaveCallback, AuthAbilityPredicate, CallbackRetryOptions, CascadeConfig, DeleteResult, DynamicApiCallbackMethods, MongoUpdateOperators, UpdateResult } from '../../interfaces';
 import { MongoDBDynamicApiLogger } from '../../logger';
 import { BaseEntity, SoftDeletableEntity } from '../../models';
 import { DynamicApiResetPasswordOptions } from '../../modules';
@@ -343,6 +343,64 @@ export abstract class BaseService<Entity extends BaseEntity> {
     if (!isAllowed) {
       throw new ForbiddenException('Forbidden resource');
     }
+  }
+
+  /**
+   * Invokes `callback` (the after-save hook) with failure isolation: any error it throws —
+   * even after exhausting `retry` — is caught, logged, and forwarded to the global
+   * `onAfterSaveError` hook if configured. It never rejects, so a broken `callback` can never
+   * corrupt the response of an already-successful primary operation.
+   */
+  protected async invokeAfterSaveCallback(
+    callback: AfterSaveCallback<Entity> | undefined,
+    entity: Entity,
+    user: unknown,
+    retry?: CallbackRetryOptions,
+  ): Promise<void> {
+    if (!callback) {
+      return;
+    }
+
+    const attempts = Math.max(1, retry?.attempts ?? 1);
+    const delayMs = retry?.delayMs ?? 0;
+    let lastError: unknown;
+
+    for (let attempt = 1; attempt <= attempts; attempt++) {
+      try {
+        await callback(entity, this.callbackMethods, user);
+        return;
+      } catch (error) {
+        lastError = error;
+        if (attempt < attempts && delayMs > 0) {
+          await this.sleep(delayMs);
+        }
+      }
+    }
+
+    this.baseServiceLogger.error(
+      `[AfterSaveCallback] Failed for ${this.entity?.name ?? 'entity'} after ${attempts} attempt(s): `
+      + `${(lastError as Error)?.message}`,
+      (lastError as Error)?.stack,
+    );
+
+    try {
+      // Lazy-require to avoid circular dependency at module load time (same pattern as
+      // helpers/socket-config.helper.ts).
+      const { DynamicApiModule } = require('../../dynamic-api.module');
+      await DynamicApiModule.state.get('onAfterSaveError')?.(
+        lastError,
+        { entityName: this.entity?.name, entity, user },
+      );
+    } catch (hookError) {
+      this.baseServiceLogger.error(
+        `[onAfterSaveError] Global hook itself threw: ${(hookError as Error)?.message}`,
+        (hookError as Error)?.stack,
+      );
+    }
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   protected handleDuplicateKeyError(error: unknown, reThrow = true) {
