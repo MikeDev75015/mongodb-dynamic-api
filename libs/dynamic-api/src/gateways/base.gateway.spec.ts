@@ -424,5 +424,33 @@ describe('BaseGateway', () => {
         expect(spyLog).not.toHaveBeenCalled();
       });
     });
+
+    describe('emit failures', () => {
+      it('should catch and log an error when socket.broadcast.emit throws (no rooms)', () => {
+        const errorSpy = jest.spyOn(gateway['logger'], 'error').mockImplementation();
+        (mockSocket.broadcast.emit as jest.Mock).mockImplementation(() => {
+          throw new Error('boom');
+        });
+        const data = [{ id: '1', name: 'Entity 1' } as Entity];
+        const broadcastConfig = { enabled: true };
+
+        expect(() => gateway['broadcastIfNeeded'](mockSocket, event, data, broadcastConfig)).not.toThrow();
+        expect(errorSpy).toHaveBeenCalledTimes(1);
+        expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining(event), expect.any(String));
+      });
+
+      it('should catch and log an error when socket.nsp.to(...).emit throws (rooms)', () => {
+        const errorSpy = jest.spyOn(gateway['logger'], 'error').mockImplementation();
+        mockNspToEmit.mockImplementation(() => {
+          throw new Error('boom');
+        });
+        const data = [{ id: '1', name: 'Entity 1' } as Entity];
+        const broadcastConfig = { enabled: true, rooms: 'room-a' };
+
+        expect(() => gateway['broadcastIfNeeded'](mockSocket, event, data, broadcastConfig)).not.toThrow();
+        expect(errorSpy).toHaveBeenCalledTimes(1);
+        expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining(event), expect.any(String));
+      });
+    });
   });
 });

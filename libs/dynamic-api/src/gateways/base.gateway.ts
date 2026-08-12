@@ -2,7 +2,7 @@ import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
 import { ManyEntityQuery } from '../dtos';
 import { DynamicApiModule } from '../dynamic-api.module';
-import { isEmpty, resolveRooms, DynamicApiWsConfigStore } from '../helpers';
+import { isEmpty, resolveBroadcast, DynamicApiWsConfigStore } from '../helpers';
 import { BroadcastConfig, ExtendedSocket } from '../interfaces';
 import { MongoDBDynamicApiLogger } from '../logger';
 import { BaseEntity } from '../models';
@@ -63,40 +63,33 @@ export abstract class BaseGateway<Entity extends BaseEntity> {
     data: ResponseData[],
     broadcastConfig?: BroadcastConfig<ResponseData>,
   ): void {
-    if (!broadcastConfig) {
+    const resolved = resolveBroadcast(event, data, broadcastConfig, socket.user);
+
+    if (!resolved) {
       return;
     }
 
-    const { enabled, eventName, rooms } = broadcastConfig;
-
-    if (typeof enabled === 'boolean' && !enabled) {
-      return;
-    }
-
-    const broadcastData = typeof enabled === 'function'
-      ? data.filter((item) => enabled(item, socket.user))
-      : data;
-
-    if (!broadcastData.length) {
-      return;
-    }
-
-    const broadcastEvent = eventName || event;
-    const resolvedRooms = resolveRooms(rooms, broadcastData, socket.user);
+    const { event: broadcastEvent, rooms, data: broadcastData } = resolved;
 
     if (DynamicApiWsConfigStore.debug) {
       this.logger.log(
         `[WS] broadcastIfNeeded – event=${broadcastEvent}, rooms=${
-          resolvedRooms ? JSON.stringify(resolvedRooms) : 'all'
+          rooms ? JSON.stringify(rooms) : 'all'
         }, items=${broadcastData.length}`,
       );
     }
 
-    if (resolvedRooms) {
-      const nsp = socket.nsp;
-      nsp.to(resolvedRooms).emit(broadcastEvent, broadcastData);
-    } else {
-      socket.broadcast.emit(broadcastEvent, broadcastData);
+    try {
+      if (rooms) {
+        socket.nsp.to(rooms).emit(broadcastEvent, broadcastData);
+      } else {
+        socket.broadcast.emit(broadcastEvent, broadcastData);
+      }
+    } catch (error) {
+      this.logger.error(
+        `[WS] Failed to emit "${broadcastEvent}": ${(error as Error).message}`,
+        (error as Error).stack,
+      );
     }
   }
 }

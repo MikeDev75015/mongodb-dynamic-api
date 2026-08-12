@@ -18,8 +18,9 @@ describe('DynamicApiBroadcastService', () => {
     };
   });
 
-  it('should be defined', () => {
+  it('should be defined and have a logger', () => {
     expect(service).toBeDefined();
+    expect(service['logger']).toBeDefined();
   });
 
   describe('setWsServer', () => {
@@ -198,6 +199,33 @@ describe('DynamicApiBroadcastService', () => {
 
         expect(mockServer.to).toHaveBeenCalledWith(['room-a']);
         expect(mockToEmit).toHaveBeenCalledWith('custom-event', data);
+      });
+    });
+
+    describe('emit failures', () => {
+      it('should catch and log an error when server.emit throws (no rooms)', () => {
+        service.setWsServer(mockServer as unknown as Server);
+        const errorSpy = jest.spyOn(service['logger'], 'error').mockImplementation();
+        mockServer.emit.mockImplementation(() => {
+          throw new Error('boom');
+        });
+
+        expect(() => service.broadcastFromHttp('my-event', [{ id: '1' }], { enabled: true })).not.toThrow();
+        expect(errorSpy).toHaveBeenCalledTimes(1);
+        expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('my-event'), expect.any(String));
+      });
+
+      it('should catch and log an error when server.to(...).emit throws (rooms)', () => {
+        service.setWsServer(mockServer as unknown as Server);
+        const errorSpy = jest.spyOn(service['logger'], 'error').mockImplementation();
+        mockToEmit.mockImplementation(() => {
+          throw new Error('boom');
+        });
+
+        expect(() => service.broadcastFromHttp('my-event', [{ id: '1' }], { enabled: true, rooms: 'room-a' }))
+          .not.toThrow();
+        expect(errorSpy).toHaveBeenCalledTimes(1);
+        expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('my-event'), expect.any(String));
       });
     });
   });

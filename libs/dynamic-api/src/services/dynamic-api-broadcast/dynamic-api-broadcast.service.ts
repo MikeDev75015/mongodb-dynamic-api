@@ -1,12 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { Server } from 'socket.io';
-import { resolveRooms } from '../../helpers';
-import { BroadcastAbilityPredicate, BroadcastConfig } from '../../interfaces';
+import { resolveBroadcast } from '../../helpers';
+import { BroadcastConfig } from '../../interfaces';
+import { MongoDBDynamicApiLogger } from '../../logger';
 
 @Injectable()
 /** @deprecated Internal API — will be removed from public exports in v5. */
 export class DynamicApiBroadcastService {
   private static wsServer: Server | null = null;
+
+  private readonly logger = new MongoDBDynamicApiLogger(DynamicApiBroadcastService.name);
 
   setWsServer(server: Server): void {
     DynamicApiBroadcastService.wsServer = server;
@@ -17,31 +20,29 @@ export class DynamicApiBroadcastService {
     data: T[],
     broadcastConfig: BroadcastConfig<T>,
   ): void {
-    if (!DynamicApiBroadcastService.wsServer || !broadcastConfig || !data?.length) {
+    if (!DynamicApiBroadcastService.wsServer) {
       return;
     }
 
-    const { enabled, eventName, rooms } = broadcastConfig;
+    const resolved = resolveBroadcast(event, data, broadcastConfig);
 
-    if (typeof enabled === 'boolean' && !enabled) {
+    if (!resolved) {
       return;
     }
 
-    const broadcastData = typeof enabled === 'function'
-      ? data.filter((item) => (enabled as BroadcastAbilityPredicate<T>)(item, undefined))
-      : data;
+    const { event: broadcastEvent, rooms, data: broadcastData } = resolved;
 
-    if (!broadcastData.length) {
-      return;
-    }
-
-    const broadcastEvent = eventName || event;
-    const resolvedRooms = resolveRooms(rooms, broadcastData);
-
-    if (resolvedRooms) {
-      DynamicApiBroadcastService.wsServer.to(resolvedRooms).emit(broadcastEvent, broadcastData);
-    } else {
-      DynamicApiBroadcastService.wsServer.emit(broadcastEvent, broadcastData);
+    try {
+      if (rooms) {
+        DynamicApiBroadcastService.wsServer.to(rooms).emit(broadcastEvent, broadcastData);
+      } else {
+        DynamicApiBroadcastService.wsServer.emit(broadcastEvent, broadcastData);
+      }
+    } catch (error) {
+      this.logger.error(
+        `[Broadcast] Failed to emit "${broadcastEvent}": ${(error as Error).message}`,
+        (error as Error).stack,
+      );
     }
   }
 }
