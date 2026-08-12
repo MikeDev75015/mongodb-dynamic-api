@@ -12,6 +12,7 @@ Authorization provides fine-grained access control for your API routes based on 
 - [Configuration Levels](#configuration-levels)
 - [Filter Mode vs Throw Mode](#filter-mode-vs-throw-mode)
 - [Advanced Predicates](#advanced-predicates)
+- [Standard Predicates](#standard-predicates)
 - [Best Practices](#best-practices)
 - [Examples](#examples)
 
@@ -523,6 +524,129 @@ DynamicApiModule.forFeature({
 
 ---
 
+## Standard Predicates
+
+The patterns shown above (ownership checks, admin/role checks, group scoping, soft-delete awareness, public-or-owner visibility, and combining predicates) are common enough that `mongodb-dynamic-api` ships them as ready-to-use, fully generic `AbilityPredicate` factories. Every factory accepts field-name options — none of them assume a specific schema, since `BaseEntity` only guarantees `id`/`createdAt`/`updatedAt`.
+
+All predicates below are pure, synchronous `(entity, user) => boolean` functions, exactly like the hand-written ones in the sections above — they compose with `abilityPredicates`, route-level `abilityPredicate`, and `predicateBehavior: 'filter'` the same way.
+
+### `isOwner`
+
+Grants access when the entity's owner field matches the authenticated user's identifier field.
+
+| Option | Default | Description |
+|---|---|---|
+| `entityField` | `'ownerId'` | Entity field holding the owner's identifier |
+| `userField` | `'id'` | User field holding the current user's identifier |
+
+```typescript
+import { isOwner } from 'mongodb-dynamic-api';
+
+routes: [
+  { type: 'UpdateOne', abilityPredicate: isOwner() },
+  { type: 'DeleteOne', abilityPredicate: isOwner({ entityField: 'authorId' }) },
+]
+```
+
+### `isAdmin`
+
+Grants access to admin users — supports either a boolean flag convention (`user.isAdmin === true`) or a role-string convention (`user.role === 'admin'`), picked via options.
+
+| Option | Default | Description |
+|---|---|---|
+| `field` | `'isAdmin'` | User field holding a boolean admin flag. Ignored when `roleField` is set |
+| `roleField` | — | User field holding a role string. Setting this switches to role mode |
+| `role` | `'admin'` | Role value(s) considered "admin" in role mode — a string or an array |
+
+```typescript
+import { isAdmin } from 'mongodb-dynamic-api';
+
+abilityPredicate: isAdmin() // flag mode: user.isAdmin === true
+abilityPredicate: isAdmin({ roleField: 'role' }) // role mode: user.role === 'admin'
+abilityPredicate: isAdmin({ roleField: 'role', role: ['admin', 'superadmin'] })
+```
+
+### `isGroupMember`
+
+Grants access when the entity's group matches (one of) the authenticated user's group(s). Generic enough to model family membership, team membership, organization/tenant scoping, or any "belongs to the same group" relationship — the user-side field can hold a single id or an array of ids, auto-detected at runtime.
+
+| Option | Default | Description |
+|---|---|---|
+| `entityField` | `'groupId'` | Entity field holding the group identifier |
+| `userField` | `'groupId'` | User field holding the group id(s) — single value or array |
+
+```typescript
+import { isGroupMember } from 'mongodb-dynamic-api';
+
+// entity.groupId === user.groupId
+abilityPredicate: isGroupMember()
+
+// user.groupIds: string[] — entity.groupId checked against that array
+abilityPredicate: isGroupMember({ userField: 'groupIds' })
+
+// organization/tenant scoping
+abilityPredicate: isGroupMember({ entityField: 'organizationId', userField: 'organizationId' })
+```
+
+### `isNotDeleted`
+
+Denies access to soft-deleted entities. Works out of the box for entities extending `SoftDeletableEntity` (field `isDeleted`), or any entity with a custom flag via `field`.
+
+| Option | Default | Description |
+|---|---|---|
+| `field` | `'isDeleted'` | Entity field flagging soft-deletion |
+
+```typescript
+import { isNotDeleted } from 'mongodb-dynamic-api';
+
+abilityPredicate: isNotDeleted()
+abilityPredicate: isNotDeleted({ field: 'archived' })
+```
+
+### `isPublic`
+
+Grants access when the entity is flagged public. Meant to be combined with other predicates (typically `isOwner`) rather than used alone.
+
+| Option | Default | Description |
+|---|---|---|
+| `field` | `'isPublic'` | Entity field flagging public visibility |
+
+```typescript
+import { isPublic } from 'mongodb-dynamic-api';
+
+abilityPredicate: isPublic({ field: 'visibility' })
+```
+
+### `allOf`, `anyOf`, `not`
+
+Combine any number of `AbilityPredicate`s — including the factories above and your own hand-written ones — into one:
+
+- `allOf(...predicates)` — grants access only when **all** predicates pass (logical AND).
+- `anyOf(...predicates)` — grants access when **any** predicate passes (logical OR).
+- `not(predicate)` — inverts a predicate (logical NOT).
+
+```typescript
+import { allOf, anyOf, isGroupMember, isNotDeleted, isOwner, isPublic } from 'mongodb-dynamic-api';
+
+routes: [
+  {
+    // Public entities, or the owner's own — non-public, non-owned entities are hidden
+    type: 'GetMany',
+    predicateBehavior: 'filter',
+    abilityPredicate: anyOf(isPublic(), isOwner()),
+  },
+  {
+    // Must be an active (non-deleted) member of the entity's group
+    type: 'GetOne',
+    abilityPredicate: allOf(isNotDeleted(), isGroupMember()),
+  },
+]
+```
+
+> **Note:** `isOwner`/`isAdmin`/`isGroupMember` all deny access (return `false`) rather than throw when `user` is `null`/`undefined` — the case for an anonymous request on a public route combined with `predicateBehavior: 'filter'`.
+
+---
+
 ## Best Practices
 
 ### 1. Keep Predicates Simple
@@ -554,37 +678,34 @@ abilityPredicate: canManageResource
 
 ### 2. Use Helper Functions
 
+The most common patterns — `isOwner`, `isAdmin`, `isGroupMember`, `isNotDeleted`, `isPublic`, plus the `allOf`/`anyOf`/`not` composers — ship with the library (see [Standard Predicates](#standard-predicates)). Only write your own for the patterns that don't fit those, and compose them together with `allOf`/`anyOf`:
+
 ```typescript
 // src/auth/ability-predicates.ts
-export const isAdmin = (entity, user) => user.role === 'admin';
-export const isModerator = (entity, user) => user.role === 'moderator';
-export const isActive = (entity, user) => user.isActive === true;
+import { AbilityPredicate } from 'mongodb-dynamic-api';
 
-// Higher-order function for role checking
-export const hasRole = (...roles: string[]) => (entity, user) => 
+export const isModerator: AbilityPredicate<any> = (entity, user) => user.role === 'moderator';
+export const isActive: AbilityPredicate<any> = (entity, user) => user.isActive === true;
+
+// Higher-order function for role checking not covered by isAdmin's `role` option
+export const hasAnyRole = (...roles: string[]): AbilityPredicate<any> => (entity, user) =>
   roles.includes(user.role);
 
-export const hasAnyRole = (...roles: string[]) => (entity, user) => 
-  roles.some(role => user.role === role);
-
-export const hasAllRoles = (...roles: string[]) => (entity, user) => 
+export const hasAllRoles = (...roles: string[]): AbilityPredicate<any> => (entity, user) =>
   roles.every(role => user.roles?.includes(role));
 
-// Entity-based predicates
-export const isOwner = (entity, user) => entity.ownerId === user.id;
-export const canEdit = (entity, user) => 
-  entity.ownerId === user.id || user.role === 'admin';
-
 // Usage
-import { isAdmin, hasRole, canEdit } from './auth/ability-predicates';
+import { anyOf, isAdmin, isOwner } from 'mongodb-dynamic-api';
+import { hasAnyRole, isActive } from './auth/ability-predicates';
 
 DynamicApiModule.forFeature({
   entity: User,
   routes: [
     { type: 'GetMany', abilityPredicate: isActive },
-    { type: 'UpdateOne', abilityPredicate: canEdit },
-    { type: 'CreateOne', abilityPredicate: hasRole('admin', 'moderator') },
-    { type: 'DeleteOne', abilityPredicate: isAdmin },
+    // Owner or admin can edit
+    { type: 'UpdateOne', abilityPredicate: anyOf(isOwner(), isAdmin({ roleField: 'role' })) },
+    { type: 'CreateOne', abilityPredicate: hasAnyRole('admin', 'moderator') },
+    { type: 'DeleteOne', abilityPredicate: isAdmin({ roleField: 'role' }) },
   ],
 })
 ```
@@ -696,28 +817,22 @@ describe('Authorization Predicates', () => {
 
 ### Complete Authorization Setup
 
+`isAdmin` and the `allOf`/`anyOf` composers come from the library; only the patterns it doesn't cover (`isAuthor`, `isModerator`, `isActive`, `isVerified`, permission checks) are hand-written — note they follow the real `(entity, user) => boolean` signature, not just `(user) => boolean`:
+
 ```typescript
 // src/auth/ability-predicates.ts
-export const isAdmin = (user: any) => user.role === 'admin';
-export const isModerator = (user: any) => user.role === 'moderator';
-export const isAuthor = (user: any) => user.role === 'author';
-export const isActive = (user: any) => user.isActive === true;
-export const isVerified = (user: any) => user.isVerified === true;
+import { AbilityPredicate } from 'mongodb-dynamic-api';
 
-export const hasRole = (...roles: string[]) => (user: any) => 
-  roles.includes(user.role);
+export const isModerator: AbilityPredicate<any> = (entity, user) => user.role === 'moderator';
+export const isAuthor: AbilityPredicate<any> = (entity, user) => user.role === 'author';
+export const isActive: AbilityPredicate<any> = (entity, user) => user.isActive === true;
+export const isVerified: AbilityPredicate<any> = (entity, user) => user.isVerified === true;
 
-export const hasPermission = (permission: string) => (user: any) => 
+export const hasPermission = (permission: string): AbilityPredicate<any> => (entity, user) =>
   user.permissions?.includes(permission);
 
-export const hasAnyPermission = (...permissions: string[]) => (user: any) => 
+export const hasAnyPermission = (...permissions: string[]): AbilityPredicate<any> => (entity, user) =>
   permissions.some(p => user.permissions?.includes(p));
-
-export const allOf = (...predicates: Function[]) => (user: any) => 
-  predicates.every(pred => pred(user));
-
-export const anyOf = (...predicates: Function[]) => (user: any) => 
-  predicates.some(pred => pred(user));
 
 // src/users/user.entity.ts
 import { Prop, Schema } from '@nestjs/mongoose';
@@ -775,18 +890,16 @@ export class AppModule {}
 
 // src/posts/posts.module.ts
 import { Module } from '@nestjs/common';
-import { DynamicApiModule } from 'mongodb-dynamic-api';
+import { allOf, anyOf, DynamicApiModule, isAdmin } from 'mongodb-dynamic-api';
 import { Post } from './post.entity';
-import { 
-  isAdmin, 
-  isAuthor, 
-  isModerator, 
-  isActive, 
+import {
+  isAuthor,
+  isModerator,
+  isActive,
   isVerified,
-  hasPermission,
-  allOf,
-  anyOf,
 } from '../auth/ability-predicates';
+
+const isAdminRole = isAdmin({ roleField: 'role' });
 
 @Module({
   imports: [
@@ -814,18 +927,18 @@ import {
           abilityPredicate: allOf(
             isActive,
             isVerified,
-            anyOf(isAuthor, isModerator, isAdmin)
+            anyOf(isAuthor, isModerator, isAdminRole)
           ),
         },
         {
           type: 'UpdateOne',
           // Moderators or admins
-          abilityPredicate: anyOf(isModerator, isAdmin),
+          abilityPredicate: anyOf(isModerator, isAdminRole),
         },
         {
           type: 'DeleteOne',
           // Only admins
-          abilityPredicate: isAdmin,
+          abilityPredicate: isAdminRole,
         },
       ],
     }),
