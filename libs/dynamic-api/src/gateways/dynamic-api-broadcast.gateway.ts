@@ -8,7 +8,7 @@ import { ExtendedSocket, GatewayOptions } from '../interfaces';
 import { MongoDBDynamicApiLogger } from '../logger';
 import { DynamicApiBroadcastService } from '../services';
 
-/** @deprecated Internal API — will be removed from public exports in v5. */
+/** @internal Not part of the public API — will be removed from the package's public exports in v5. */
 function createDynamicApiBroadcastGateway(options: GatewayOptions = {}) {
   @WebSocketGateway(options)
   class DynamicApiBroadcastGateway implements OnGatewayInit {

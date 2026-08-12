@@ -1,6 +1,6 @@
 import { INestApplication, VersioningOptions, VersioningType } from '@nestjs/common';
 
-/** @deprecated Internal API — will be removed from public exports in v5. */
+/** @internal Not part of the public API — will be removed from the package's public exports in v5. */
 function enableDynamicAPIVersioning(
   app: INestApplication,
   options?: VersioningOptions,
@@ -11,7 +11,7 @@ function enableDynamicAPIVersioning(
   });
 }
 
-/** @deprecated Internal API — will be removed from public exports in v5. */
+/** @internal Not part of the public API — will be removed from the package's public exports in v5. */
 function addVersionSuffix(version?: string) {
   return version ? `V${version}` : '';
 }

@@ -8,7 +8,7 @@ import { DISABLE_CACHE_KEY } from '../decorators';
 import { DynamicApiGlobalState } from '../interfaces';
 
 @Injectable()
-/** @deprecated Internal API — will be removed from public exports in v5. */
+/** @internal Not part of the public API — will be removed from the package's public exports in v5. */
 export class DynamicApiCacheInterceptor extends CacheInterceptor {
   private readonly excludePaths = [
     '/',
