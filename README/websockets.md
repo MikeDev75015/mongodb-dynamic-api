@@ -19,6 +19,7 @@ Add WebSocket support to your API to make your routes accessible via Socket.IO i
     - [Broadcasting for Auth Routes](#broadcasting-for-auth-routes)
     - [Room-Targeted Broadcasting](#room-targeted-broadcasting)
 - [Available Events](#available-events)
+  - [Event Name Collisions](#event-name-collisions)
   - [Authentication Events](#authentication-events-1)
 - [Authentication with WebSockets](#authentication-with-websockets)
 - [Server-Side Room Assignment (onConnection)](#server-side-room-assignment-onconnection)
@@ -225,6 +226,8 @@ async function bootstrap() {
   await app.listen(3000);
 }
 ```
+
+> **Resilient broadcasting:** if the underlying Socket.IO emit throws (e.g. a room-resolution function throws, or the socket server is in a bad state), the failure is caught and logged — it never surfaces to the HTTP or WebSocket caller. The HTTP response (or WebSocket acknowledgement) for the route that triggered the broadcast always completes normally, whether or not the broadcast itself succeeded.
 
 **Example: broadcast on HTTP-only routes (no `webSocket: true` required)**
 
@@ -976,6 +979,24 @@ You can customize event names using the `eventName` parameter in route configura
 | DeleteMany | `delete-many-{displayed-name}` | `delete-many-user` | `delete-many-items` | `delete-many-admin-user` |
 | DuplicateOne | `duplicate-one-{displayed-name}` | `duplicate-one-user` | `duplicate-one-items` | `duplicate-one-admin-user` |
 | DuplicateMany | `duplicate-many-{displayed-name}` | `duplicate-many-user` | `duplicate-many-items` | `duplicate-many-admin-user` |
+
+### Event Name Collisions
+
+Because `eventName` (and `broadcast.eventName`) are free-text, two unrelated routes can accidentally resolve to the same event name — for example two different entities both using a custom `eventName: 'item-updated'`. When that happens:
+
+- A warning is always logged at application bootstrap, identifying the colliding routes (route type + entity name), so you can rename one of them. This happens automatically — no configuration needed, and it is **not** gated by `debug`.
+- The app still starts and both routes keep working normally; a collision only means clients listening on that event name will receive broadcasts from more than one route.
+
+If you'd rather fail fast instead of relying on the log, pass `failOnEventCollision: true` to `enableDynamicAPIWebSockets`:
+
+```typescript
+// src/main.ts
+enableDynamicAPIWebSockets(app, { failOnEventCollision: true });
+// Throws at bootstrap, before the app starts listening, if any two routes
+// registered by that point resolve to the same broadcast event name.
+```
+
+> **Note:** this only catches collisions between routes registered by the time `enableDynamicAPIWebSockets` runs (i.e. all synchronously-imported modules). Routes added by modules loaded lazily afterwards aren't covered.
 
 ### Authentication Events
 
