@@ -1,5 +1,37 @@
 Changelog
 
+## [4.16.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.15.0...v4.16.0) (2026-08-12)
+
+### routes
+
+* **routes:** remove unused AfterSaveCallback import left by the callbackRetry bundling ([a2bb491](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/a2bb491fb214c958fb93e831cef3278ca4c99954))
+
+### callbacks
+
+* **callbacks:** add global onAfterSaveError hook via forRoot ([a206e64](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/a206e64eedcaf5779cd145d668a48156edec04b9))
+* **callbacks:** add invokeAfterSaveCallback failure-isolation helper ([f5199be](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/f5199be7fab5220739af6e7d92954ea7b8d4b4a3))
+* **callbacks:** isolate afterSaveCallback failures across all route types ([5886f67](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/5886f67c9bcfbc6896b0086280770ffd0597f2f6))
+
+### predicates
+
+* **predicates:** add standard ability predicate factories ([f55973e](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/f55973e720b076bc4116436cd6b5b051a9f62a4d))
+
+### websockets
+
+* **websockets:** add failOnEventCollision option to enableDynamicAPIWebSockets ([cfb71a1](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/cfb71a1dc0b4bd1eb2d1ee0c7d7b5f13324b6180))
+
+### broadcast
+
+* **broadcast:** add internal event registry with collision detection ([503c514](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/503c514a9d4253bc1d1358f0591a5108ba687fb8))
+* **broadcast:** catch and log emit failures in HTTP and WS broadcast paths ([9981d89](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/9981d8933925e6ca5ea00404e3a797b705354888))
+* **broadcast:** extract shared resolveBroadcast helper ([3890e95](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/3890e95caf85b94c1145b9be9fa8bbf74820f545))
+* **broadcast:** register broadcast events in a central registry at mixin-setup time ([47fa642](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/47fa642866e9cace9d4f4caed0a66ee7e916d8bb))
+
+### decorators
+
+* **decorators:** add EntityExists DB-aware existence validator ([d070e2e](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/d070e2e4bf5987283690eceb6fe1be1abfb33ec8))
+* **decorators:** add IsUnique DB-aware uniqueness validator ([e2c978b](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/e2c978b4eead14286403c901a95f38a71ffc63f7))
+
 ## [4.15.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.14.1...v4.15.0) (2026-05-31)
 
 ### auth
