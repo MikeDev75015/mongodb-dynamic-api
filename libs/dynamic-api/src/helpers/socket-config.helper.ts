@@ -46,7 +46,10 @@ function enableDynamicAPIWebSockets(
 
     if (collisions.length) {
       const details = collisions
-        .map(({ event, registrations }) => `"${event}" (${registrations.map((r) => `${r.routeType}/${r.entityName}`).join(', ')})`)
+        .map(({ event, registrations }) => {
+          const sources = registrations.map((r) => `${r.routeType}/${r.entityName}`).join(', ');
+          return `"${event}" (${sources})`;
+        })
         .join('; ');
 
       throw new Error(
