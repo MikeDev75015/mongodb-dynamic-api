@@ -2204,6 +2204,7 @@ socket.on('user-update-one', handleUpdate);
 - 📚 **[Swagger UI](./swagger-ui.md)** - API documentation
 - 🏗️ **[Entities](./entities.md)** - Define your data models
 - 🔐 **[Authentication](./authentication.md)** - Secure WebSocket connections
+- 🐞 **[Debugging](./debugging.md)** - `MONGODB_DYNAMIC_API_LOGGER` and where each internal log line comes from
 
 ---
 
