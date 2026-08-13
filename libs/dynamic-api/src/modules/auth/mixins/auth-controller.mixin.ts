@@ -4,7 +4,7 @@ import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiProperty, Intersec
 import { Response } from 'express';
 import { AuthDecoratorsBuilder } from '../../../builders';
 import { ApiEndpointVisibility, Public } from '../../../decorators';
-import { RouteDecoratorsHelper } from '../../../helpers';
+import { RouteDecoratorsHelper, stripBusinessValidators } from '../../../helpers';
 import { DynamicApiEventRegistryStore } from '../../../helpers/event-registry.store';
 import { EntityBodyMixin } from '../../../mixins';
 import { BaseEntity } from '../../../models';
@@ -140,9 +140,15 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     [passwordField]: string;
   }
 
+  const AuthLoginFieldDto = PickType(userEntity, [loginField]);
+  // Login only matches credentials against the DB — it must never re-run the login field's
+  // own DB-aware business validators (e.g. `@IsUnique` on `email`), which PickType otherwise
+  // copies verbatim and which would wrongly reject login for any account that already exists.
+  stripBusinessValidators(AuthLoginFieldDto);
+
   // @ts-ignore
   class AuthLoginDto extends IntersectionType(
-    PickType(userEntity, [loginField]),
+    AuthLoginFieldDto,
     AuthBodyPasswordFieldDto,
   ) {
     @ApiProperty({
