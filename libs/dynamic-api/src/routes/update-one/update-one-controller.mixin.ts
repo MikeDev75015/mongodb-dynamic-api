@@ -1,7 +1,10 @@
-import { Body, Optional, Param, Request, Type, UseGuards, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Optional, Param, Request, Type, UseGuards, UseInterceptors } from '@nestjs/common';
+import { ApiHideProperty } from '@nestjs/swagger';
+import { IsOptional, IsString } from 'class-validator';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { EntityParam } from '../../dtos';
 import { applyFromUser, addVersionSuffix, getMixinData, isEmpty, provideName, RouteDecoratorsHelper } from '../../helpers';
+import { MergeIdParamInterceptor } from '../../interceptors';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiRequest, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin, stripProtectedFields } from '../../mixins';
 import { BaseEntity } from '../../models';
@@ -32,7 +35,16 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
 
   class UpdateOneBody extends (
     dTOs?.body ?? EntityBodyMixin(entity, true)
-  ) {}
+  ) {
+    // Populated internally by `MergeIdParamInterceptor` from the `:id` route param, never sent
+    // by the client — not part of the public request shape. Declared (with a decorator, so
+    // `whitelist: true` doesn't strip it) purely so `@IsUnique(Entity, { ignoreId: 'id' })` can
+    // read it off the validated DTO instance, the same way it already can on WebSocket updates.
+    @ApiHideProperty()
+    @IsOptional()
+    @IsString()
+    id?: string;
+  }
 
   Object.defineProperty(UpdateOneBody, 'name', {
     value: `UpdateOne${displayedName}${addVersionSuffix(version)}Dto`,
@@ -82,17 +94,21 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
 
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(UpdateOnePoliciesGuard)
-    @UseInterceptors(...useInterceptors)
+    @UseInterceptors(new MergeIdParamInterceptor(), ...useInterceptors)
     async updateOne(@Param('id') id: string, @Body() body: UpdateOneBody, @Request() req?: DynamicApiRequest) {
-      if (isEmpty(body)) {
-        throw new Error('Invalid request body');
+      // `body.id` only exists for `@IsUnique`'s `ignoreId` (see `MergeIdParamInterceptor`) — it's
+      // never real update data, so it must not count towards emptiness nor reach the DB write.
+      const { id: _ignoredId, ...bodyData } = body as UpdateOneBody & { id?: string };
+
+      if (isEmpty(bodyData)) {
+        throw new BadRequestException('Invalid request body');
       }
 
       const toEntity = (
         UpdateOneBody as Mappable<Entity>
       ).toEntity;
 
-      const rawPartial = toEntity ? toEntity(body) : body as Partial<Entity>;
+      const rawPartial = toEntity ? toEntity(bodyData) : bodyData as Partial<Entity>;
       const partial = applyFromUser(stripProtectedFields(rawPartial, this.entity), fromUser, req?.user);
 
       const entity = await this.service.updateOne(id, partial, req?.user);

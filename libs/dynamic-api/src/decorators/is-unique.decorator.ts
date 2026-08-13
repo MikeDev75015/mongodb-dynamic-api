@@ -23,6 +23,10 @@ interface IsUniqueOptions<Entity extends BaseEntity> {
    * Name of the sibling property on the DTO holding the current entity's id.
    * When set, that id is excluded from the uniqueness check — required for update
    * scenarios where the entity is allowed to keep its own current value.
+   *
+   * On MDA's own `UpdateOne` route (HTTP and WebSocket), `'id'` works out of the box with no DTO
+   * changes needed: the current entity's id — which HTTP puts in the URL, never the body — is
+   * automatically merged onto the validated DTO instance before this decorator runs.
    */
   ignoreId?: string;
 }
@@ -53,11 +57,11 @@ function escapeRegExp(value: string): string {
  *
  * @example — unique username, ignoring the current entity on update
  * ```typescript
- * class UpdateUserDto {
+ * // Declared once, on the entity itself — MDA's UpdateOne route (HTTP and WebSocket) merges the
+ * // current entity's id onto the DTO instance automatically; no `id` field needed on your DTO.
+ * class User extends BaseEntity {
  *   @IsUnique(User, { ignoreId: 'id' })
  *   username: string;
- *
- *   id: string;
  * }
  * ```
  */
