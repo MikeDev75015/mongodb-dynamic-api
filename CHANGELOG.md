@@ -1,5 +1,30 @@
 Changelog
 
+## [4.18.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.17.0...v4.18.0) (2026-08-13)
+
+### predicates
+
+* **predicates:** coercion, fallback fields and custom compare for isOwner/isGroupMember ([dc391ef](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/dc391ef9e388ccbf12b97dcda71b7f28c1b2b9eb))
+* **predicates:** guard identifiersMatch's String() fallback against plain objects ([9ac365b](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/9ac365b6d0d172499b0821497acbd09f31e363a1))
+* **predicates:** narrow identifiersMatch's operands to a stringifiable type ([7c8030d](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/7c8030d9310757f19b0b806e554050fbdfa3ad28))
+
+### routes
+
+* **routes:** merge the :id route param into UpdateOne's body before validation ([26bbf26](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/26bbf261c2fd306c8d094b54feb28a7446dd5d50))
+* **routes:** return 400 instead of 500 on invalid *Many input ([c92c708](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/c92c708cee36a5336c185eb881348b05e8af7ea5))
+
+### broadcast
+
+* **broadcast:** catch a throwing resolveBroadcast() in broadcastFromHttp/broadcastIfNeeded ([582e7fb](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/582e7fbbe377a364c591b9895e96bf2fb2331ade))
+
+### validators
+
+* **validators:** guard IsUnique/EntityExists against malformed ObjectIds ([8c5096e](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/8c5096e70a3a63c59d9fb94784231f92e107745e))
+
+### auth
+
+* **auth:** strip DB-aware business validators from the generated login DTO ([1794b47](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/1794b473d1a70d57814b7b45d6f7ebc39880865b))
+
 ## [4.17.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.15.0...v4.17.0) (2026-08-12)
 
 ### routes
