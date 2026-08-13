@@ -336,6 +336,11 @@ Authenticate and receive a JWT token.
 
 > **💡 Alias:** You can send `login` instead of the configured `loginField` name. For example, `{ "login": "john.doe@example.com", "password": "..." }` is equivalent to `{ "email": "john.doe@example.com", "password": "..." }` when `loginField` is `'email'`. MDA maps `body.login` → `body[loginField]` automatically if `body[loginField]` is not already present.
 
+> **💡 `@IsUnique`/`@EntityExists` on the login field:** if your entity's `loginField` also carries
+> one of these ([Validation](./validation.md)), login still works — MDA strips those DB-aware
+> validators from the generated login DTO, so an existing account's own `email`/`username` doesn't
+> get rejected as "already taken" on login. Register keeps the full check.
+
 **Response (200 OK):**
 ```json
 {
