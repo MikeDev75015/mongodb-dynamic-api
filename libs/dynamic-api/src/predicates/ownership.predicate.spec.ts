@@ -41,4 +41,38 @@ describe('isOwner', () => {
 
     expect(isOwner<TestEntity, User>()(entity, undefined)).toBe(false);
   });
+
+  it('should match a Mongoose ObjectId entity field against its string form on the user (default coercion)', () => {
+    class EntityWithObjectId extends BaseEntity {
+      ownerId?: { toString(): string };
+    }
+
+    const entity = Object.assign(new EntityWithObjectId(), { ownerId: { toString: () => 'u1' } });
+
+    expect(isOwner<EntityWithObjectId, User>()(entity, { id: 'u1' })).toBe(true);
+  });
+
+  it('should fall back across an array of userField candidates', () => {
+    interface FallbackUser {
+      id?: string;
+      sub?: string;
+    }
+
+    const entity = Object.assign(new TestEntity(), { ownerId: 'u1' });
+
+    expect(
+      isOwner<TestEntity, FallbackUser>({ userField: ['id', 'sub'] })(entity, { sub: 'u1' }),
+    ).toBe(true);
+  });
+
+  it('should use a custom compare function when provided', () => {
+    const entity = Object.assign(new TestEntity(), { ownerId: 'U1' });
+
+    expect(
+      isOwner<TestEntity, User>({
+        compare: (entityValue, userValue) =>
+          String(entityValue).toLowerCase() === String(userValue).toLowerCase(),
+      })(entity, { id: 'u1' }),
+    ).toBe(true);
+  });
 });

@@ -63,4 +63,50 @@ describe('isGroupMember', () => {
 
     expect(isGroupMember<TestEntity, User>()(entity, undefined)).toBe(false);
   });
+
+  it('should match a Mongoose ObjectId entity field against its string form on the user (default coercion)', () => {
+    class EntityWithObjectId extends BaseEntity {
+      groupId?: { toString(): string };
+    }
+
+    const entity = Object.assign(new EntityWithObjectId(), { groupId: { toString: () => 'g1' } });
+
+    expect(isGroupMember<EntityWithObjectId, User>()(entity, { groupId: 'g1' })).toBe(true);
+  });
+
+  it('should apply the default coercion element-wise against an array of user groups', () => {
+    class EntityWithObjectId extends BaseEntity {
+      groupId?: { toString(): string };
+    }
+
+    const entity = Object.assign(new EntityWithObjectId(), { groupId: { toString: () => 'g2' } });
+
+    expect(
+      isGroupMember<EntityWithObjectId, User>({ userField: 'groupIds' })(entity, { groupIds: ['g1', 'g2'] }),
+    ).toBe(true);
+  });
+
+  it('should fall back across an array of userField candidates', () => {
+    interface FallbackUser {
+      groupIds?: string[];
+      groupId?: string;
+    }
+
+    const entity = Object.assign(new TestEntity(), { groupId: 'g1' });
+
+    expect(
+      isGroupMember<TestEntity, FallbackUser>({ userField: ['groupIds', 'groupId'] })(entity, { groupId: 'g1' }),
+    ).toBe(true);
+  });
+
+  it('should use a custom compare function when provided', () => {
+    const entity = Object.assign(new TestEntity(), { groupId: 'G1' });
+
+    expect(
+      isGroupMember<TestEntity, User>({
+        compare: (entityValue, userValue) =>
+          String(entityValue).toLowerCase() === String(userValue).toLowerCase(),
+      })(entity, { groupId: 'g1' }),
+    ).toBe(true);
+  });
 });
