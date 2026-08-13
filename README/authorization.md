@@ -533,11 +533,15 @@ All predicates below are pure, synchronous `(entity, user) => boolean` functions
 ### `isOwner`
 
 Grants access when the entity's owner field matches the authenticated user's identifier field.
+The comparison isn't a strict `===` by default: it falls back to a string-coerced comparison, so a
+Mongoose `ObjectId` on the entity side (e.g. `family._id`) matches its string form on the user side
+(e.g. `user.familyId`) with no extra configuration.
 
 | Option | Default | Description |
 |---|---|---|
 | `entityField` | `'ownerId'` | Entity field holding the owner's identifier |
-| `userField` | `'id'` | User field holding the current user's identifier |
+| `userField` | `'id'` | User field holding the current user's identifier. Also accepts an array of fallback field names, tried in order |
+| `compare` | strict equality + string-coerced fallback | Custom `(entityValue, userValue) => boolean` comparison, for anything the default doesn't cover |
 
 ```typescript
 import { isOwner } from 'mongodb-dynamic-api';
@@ -546,6 +550,9 @@ routes: [
   { type: 'UpdateOne', abilityPredicate: isOwner() },
   { type: 'DeleteOne', abilityPredicate: isOwner({ entityField: 'authorId' }) },
 ]
+
+// identifier field name varies by auth flow (HTTP vs a raw JWT payload) — first match wins
+abilityPredicate: isOwner({ userField: ['id', 'sub'] })
 ```
 
 ### `isAdmin`
@@ -568,12 +575,13 @@ abilityPredicate: isAdmin({ roleField: 'role', role: ['admin', 'superadmin'] })
 
 ### `isGroupMember`
 
-Grants access when the entity's group matches (one of) the authenticated user's group(s). Generic enough to model family membership, team membership, organization/tenant scoping, or any "belongs to the same group" relationship — the user-side field can hold a single id or an array of ids, auto-detected at runtime.
+Grants access when the entity's group matches (one of) the authenticated user's group(s). Generic enough to model family membership, team membership, organization/tenant scoping, or any "belongs to the same group" relationship — the user-side field can hold a single id or an array of ids, auto-detected at runtime. Same default comparison as `isOwner`: strict equality with a string-coerced fallback, applied element-wise when the user side is an array.
 
 | Option | Default | Description |
 |---|---|---|
 | `entityField` | `'groupId'` | Entity field holding the group identifier |
-| `userField` | `'groupId'` | User field holding the group id(s) — single value or array |
+| `userField` | `'groupId'` | User field holding the group id(s) — single value or array. Also accepts an array of fallback field names, tried in order |
+| `compare` | strict equality + string-coerced fallback | Custom `(entityValue, userValue) => boolean` comparison, for anything the default doesn't cover |
 
 ```typescript
 import { isGroupMember } from 'mongodb-dynamic-api';
@@ -586,6 +594,9 @@ abilityPredicate: isGroupMember({ userField: 'groupIds' })
 
 // organization/tenant scoping
 abilityPredicate: isGroupMember({ entityField: 'organizationId', userField: 'organizationId' })
+
+// group field name varies by auth flow — first match wins, whether scalar or array
+abilityPredicate: isGroupMember({ userField: ['groupIds', 'groupId'] })
 ```
 
 ### `isNotDeleted`
