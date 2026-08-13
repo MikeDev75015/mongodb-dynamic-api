@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { createMock } from '@golevelup/ts-jest';
 import { validate } from 'class-validator';
-import { Model } from 'mongoose';
+import { Error as MongooseError, Model } from 'mongoose';
 import { BaseEntity } from '../models';
 import { DynamicApiGlobalStateService } from '../services';
 import { EntityExists } from './entity-exists.decorator';
@@ -117,5 +117,35 @@ describe('EntityExists', () => {
     await validate(dto);
 
     expect(model.exists).toHaveBeenCalledWith({ _id: 'ref-id' });
+  });
+
+  it('should fail cleanly with the default message when the id is malformed (Mongoose CastError)', async () => {
+    model.exists = jest.fn().mockRejectedValue(new MongooseError.CastError('ObjectId', 'not-an-id', '_id'));
+
+    class Dto {
+      @EntityExists(TargetEntity)
+      targetId: string;
+    }
+
+    const dto = Object.assign(new Dto(), { targetId: 'not-an-id' });
+    const errors = await validate(dto);
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0].constraints).toEqual({
+      entityExists: 'Referenced TargetEntity does not exist',
+    });
+  });
+
+  it('should not swallow a non-CastError raised while querying', async () => {
+    model.exists = jest.fn().mockRejectedValue(new Error('connection lost'));
+
+    class Dto {
+      @EntityExists(TargetEntity)
+      targetId: string;
+    }
+
+    const dto = Object.assign(new Dto(), { targetId: 'ref-id' });
+
+    await expect(validate(dto)).rejects.toThrow('connection lost');
   });
 });

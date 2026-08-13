@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { createMock } from '@golevelup/ts-jest';
 import { validate } from 'class-validator';
-import { Model } from 'mongoose';
+import { Error as MongooseError, Model } from 'mongoose';
 import { BaseEntity } from '../models';
 import { DynamicApiGlobalStateService } from '../services';
 import { IsUnique } from './is-unique.decorator';
@@ -132,5 +132,37 @@ describe('IsUnique', () => {
     await validate(dto);
 
     expect(model.exists).toHaveBeenCalledWith({ email: 'me@test.com' });
+  });
+
+  it('should fail cleanly with the default message when the query raises a Mongoose CastError', async () => {
+    model.exists = jest.fn().mockRejectedValue(new MongooseError.CastError('ObjectId', 'not-an-id', '_id'));
+
+    class Dto {
+      @IsUnique(TargetEntity, { ignoreId: 'id' })
+      email: string;
+
+      id: string;
+    }
+
+    const dto = Object.assign(new Dto(), { email: 'me@test.com', id: 'not-an-id' });
+    const errors = await validate(dto);
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0].constraints).toEqual({
+      isUnique: 'email must be unique for TargetEntity',
+    });
+  });
+
+  it('should not swallow a non-CastError raised while querying', async () => {
+    model.exists = jest.fn().mockRejectedValue(new Error('connection lost'));
+
+    class Dto {
+      @IsUnique(TargetEntity)
+      email: string;
+    }
+
+    const dto = Object.assign(new Dto(), { email: 'me@test.com' });
+
+    await expect(validate(dto)).rejects.toThrow('connection lost');
   });
 });
