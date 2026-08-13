@@ -41,6 +41,18 @@ describe('identifiersMatch', () => {
     expect(identifiersMatch(objectIdLike, 'u1')).toBe(true);
   });
 
+  it('returns true when a numeric id is coerced against its string form', () => {
+    expect(identifiersMatch(42, '42')).toBe(true);
+  });
+
+  it('returns true when a boolean is coerced against its string form', () => {
+    expect(identifiersMatch(true, 'true')).toBe(true);
+  });
+
+  it('returns true when a bigint is coerced against its string form', () => {
+    expect(identifiersMatch(42n, '42')).toBe(true);
+  });
+
   it('returns false when either value is null or undefined', () => {
     expect(identifiersMatch(null, 'u1')).toBe(false);
     expect(identifiersMatch('u1', undefined)).toBe(false);
