@@ -46,4 +46,16 @@ describe('identifiersMatch', () => {
     expect(identifiersMatch('u1', undefined)).toBe(false);
     expect(identifiersMatch(null, undefined)).toBe(false);
   });
+
+  it('returns false for two different plain objects instead of colliding on "[object Object]"', () => {
+    expect(identifiersMatch({ a: 1 }, { b: 2 })).toBe(false);
+  });
+
+  it('returns false when only the entity value is a plain object without a custom toString', () => {
+    expect(identifiersMatch({ a: 1 }, 'u1')).toBe(false);
+  });
+
+  it('returns false when only the user value is a plain object without a custom toString', () => {
+    expect(identifiersMatch('u1', { b: 2 })).toBe(false);
+  });
 });

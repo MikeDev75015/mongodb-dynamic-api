@@ -22,6 +22,16 @@ function resolveIdentifierField<T>(source: T, fields: keyof T | (keyof T)[]): un
 }
 
 /**
+ * True for values that stringify to something meaningful: primitives, or objects that override
+ * `Object.prototype.toString` (e.g. a Mongoose `ObjectId`). False for a plain object, which would
+ * otherwise stringify to the generic `'[object Object]'` — two unrelated plain objects would then
+ * look equal to {@link identifiersMatch}'s string-coerced fallback.
+ */
+function hasMeaningfulStringForm(value: object): boolean {
+  return value.toString !== Object.prototype.toString;
+}
+
+/**
  * Default comparison used by `isOwner`/`isGroupMember`: strict equality, falling back to a
  * string-coerced comparison when that fails. Covers the most common owner/group mismatch without
  * any configuration — a Mongoose `ObjectId` on the entity side (`family._id`) compared against its
@@ -36,6 +46,13 @@ function identifiersMatch(entityValue: unknown, userValue: unknown): boolean {
   }
 
   if (entityValue == null || userValue == null) {
+    return false;
+  }
+
+  if (
+    (typeof entityValue === 'object' && !hasMeaningfulStringForm(entityValue)) ||
+    (typeof userValue === 'object' && !hasMeaningfulStringForm(userValue))
+  ) {
     return false;
   }
 
