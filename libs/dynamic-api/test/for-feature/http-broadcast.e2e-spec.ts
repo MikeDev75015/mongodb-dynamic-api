@@ -267,12 +267,14 @@ describe('DynamicApiModule forFeature - HTTP Broadcast (e2e)', () => {
     const { body: products } = await server.get('/hb-products');
     const ids = products.map((p: HbProductEntity) => p.id);
 
-    const response = await server.patch(
-      `/hb-products/many?ids=${ids.join('&ids=')}`,
+    // UpdateMany has no path suffix (PATCH /hb-products?ids=...) - it's the HTTP verb, not the
+    // path, that distinguishes it from GetMany/CreateOne on the same collection route.
+    const { status } = await server.patch(
+      `/hb-products?ids=${ids.join('&ids=')}`,
       { status: 'updated' },
     );
 
-    expect(response).toBeDefined();
+    expect(status).toBe(200);
     expect(handleSocketBroadcast).not.toHaveBeenCalled();
   });
 
@@ -282,6 +284,44 @@ describe('DynamicApiModule forFeature - HTTP Broadcast (e2e)', () => {
     expect(status).toBe(201);
     expect(body).toMatchObject({ name: 'unstoppable' });
     expect(handleSocketBroadcast).not.toHaveBeenCalled();
+  });
+
+  describe('invalid input returns a clean 400, not a raw 500', () => {
+    it('[UpdateMany] should return 400 when ids is missing', async () => {
+      const { status, body } = await server.patch('/hb-products', { status: 'updated' });
+
+      expect(status).toBe(400);
+      expect(body.message).toContain('Invalid query');
+    });
+
+    it('[UpdateMany] should return 400 when body is empty', async () => {
+      const { body: products } = await server.get('/hb-products');
+      const ids = products.map((p: HbProductEntity) => p.id);
+
+      const { status, body } = await server.patch(`/hb-products?ids=${ids.join('&ids=')}`, {});
+
+      expect(status).toBe(400);
+      expect(body.message).toContain('Invalid request body');
+    });
+
+    it('[DeleteMany] should return 400 (not 500) when ids is missing', async () => {
+      // `ManyEntityQuery`'s own class-validator decorators reject a missing `ids` before the
+      // controller's internal guard even runs - still a clean 400, never the raw 500 this patch
+      // is about, just via NestJS's regular DTO validation rather than the manual check.
+      const { status, body } = await server.delete('/hb-products');
+
+      expect(status).toBe(400);
+      expect(body.message).toEqual(
+        expect.arrayContaining([expect.stringContaining('ids')]),
+      );
+    });
+
+    it('[DuplicateMany] should return 400 when ids is missing', async () => {
+      const { status, body } = await server.post('/hb-products/duplicate', {});
+
+      expect(status).toBe(400);
+      expect(body.message).toContain('Invalid query');
+    });
   });
 });
 
