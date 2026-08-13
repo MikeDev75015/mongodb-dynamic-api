@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ApiProperty, IntersectionType, PartialType, PickType } from '@nestjs/swagger';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WsException } from '@nestjs/websockets';
 import { BaseGateway } from '../../../gateways';
-import { isEmpty, isNotEmptyObject } from '../../../helpers';
+import { isEmpty, isNotEmptyObject, stripBusinessValidators } from '../../../helpers';
 import { DynamicApiEventRegistryStore } from '../../../helpers/event-registry.store';
 import { ExtendedSocket } from '../../../interfaces';
 import { EntityBodyMixin } from '../../../mixins';
@@ -123,9 +123,15 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
     [passwordField]: string;
   }
 
+  const AuthSocketLoginFieldDto = PickType(userEntity, [loginField]);
+  // Login only matches credentials against the DB — it must never re-run the login field's
+  // own DB-aware business validators (e.g. `@IsUnique` on `email`), which PickType otherwise
+  // copies verbatim and which would wrongly reject login for any account that already exists.
+  stripBusinessValidators(AuthSocketLoginFieldDto);
+
   // @ts-ignore
   class AuthSocketLoginDto extends IntersectionType(
-    PickType(userEntity, [loginField]),
+    AuthSocketLoginFieldDto,
     AuthSocketBodyPasswordFieldDto,
   ) {}
 
