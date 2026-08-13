@@ -135,5 +135,17 @@ describe('DynamicApiModule forFeature - IsUnique & EntityExists validators (e2e)
         expect.arrayContaining([expect.stringContaining('Referenced FamilyEntity does not exist')]),
       );
     });
+
+    it('should reject a malformed familyId with a clean 400 instead of a 500 (Mongoose CastError)', async () => {
+      const { status, body } = await server.post('/members', {
+        email: 'malformed-ref@test.com',
+        familyId: 'not-a-valid-object-id',
+      }) as SupertestResponse;
+
+      expect(status).toBe(400);
+      expect(body.message).toEqual(
+        expect.arrayContaining([expect.stringContaining('Referenced FamilyEntity does not exist')]),
+      );
+    });
   });
 });
