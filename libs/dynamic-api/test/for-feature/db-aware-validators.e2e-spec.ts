@@ -25,7 +25,7 @@ class FamilyEntity extends BaseEntity {
 @Schema({ collection: 'e2e-validator-members' })
 class MemberEntity extends BaseEntity {
   @Prop({ type: String, required: true })
-  @IsUnique(MemberEntity, { caseInsensitive: true })
+  @IsUnique(MemberEntity, { caseInsensitive: true, ignoreId: 'id' })
   email: string;
 
   @Prop({ type: String, required: true })
@@ -40,6 +40,8 @@ type SupertestResponse = { status: number; body: Record<string, unknown> };
 describe('DynamicApiModule forFeature - IsUnique & EntityExists validators (e2e)', () => {
   let activeFamilyId: string;
   let inactiveFamilyId: string;
+  let memberId: string;
+  let otherMemberId: string;
 
   beforeEach(() => {
     DynamicApiModule.state['resetState']();
@@ -57,7 +59,7 @@ describe('DynamicApiModule forFeature - IsUnique & EntityExists validators (e2e)
           path: 'members',
           validationPipeOptions: { whitelist: true, transform: true },
         },
-        routes: [{ type: 'CreateOne' }],
+        routes: [{ type: 'CreateOne' }, { type: 'UpdateOne' }],
         extraImports: [
           DynamicApiModule.forFeature({ entity: FamilyEntity, controllerOptions: { path: 'families' }, routes: [] }),
         ],
@@ -71,7 +73,12 @@ describe('DynamicApiModule forFeature - IsUnique & EntityExists validators (e2e)
         inactiveFamilyId = inactiveFamily._id.toString();
 
         const memberModel = await getModelFromEntity(MemberEntity);
-        await memberModel.insertMany([{ email: 'existing@test.com', familyId: activeFamilyId }]);
+        const [member, otherMember] = await memberModel.insertMany([
+          { email: 'existing@test.com', familyId: activeFamilyId },
+          { email: 'other@test.com', familyId: activeFamilyId },
+        ]);
+        memberId = member.id.toString();
+        otherMemberId = otherMember.id.toString();
       },
     );
   });
@@ -145,6 +152,59 @@ describe('DynamicApiModule forFeature - IsUnique & EntityExists validators (e2e)
       expect(status).toBe(400);
       expect(body.message).toEqual(
         expect.arrayContaining([expect.stringContaining('Referenced FamilyEntity does not exist')]),
+      );
+    });
+  });
+
+  describe('PATCH /members/:id — @IsUnique ignoreId sourced from the URL, not the body', () => {
+    it('should allow a self-update that keeps the same email (self-exclusion via ignoreId)', async () => {
+      const { status, body } = await server.patch(`/members/${memberId}`, {
+        email: 'existing@test.com',
+      }) as SupertestResponse;
+
+      expect(status).toBe(200);
+      expect(body).toMatchObject({ email: 'existing@test.com' });
+    });
+
+    it('should still reject renaming to another member\'s email with 400', async () => {
+      const { status, body } = await server.patch(`/members/${memberId}`, {
+        email: 'other@test.com',
+      }) as SupertestResponse;
+
+      expect(status).toBe(400);
+      expect(body.message).toEqual(
+        expect.arrayContaining([expect.stringContaining('email must be unique')]),
+      );
+    });
+
+    it('should allow renaming to a genuinely unused email', async () => {
+      const { status, body } = await server.patch(`/members/${memberId}`, {
+        email: 'brand-new@test.com',
+      }) as SupertestResponse;
+
+      expect(status).toBe(200);
+      expect(body).toMatchObject({ email: 'brand-new@test.com' });
+    });
+
+    it('should still reject an empty body with 400 (id injection must not fake a non-empty body)', async () => {
+      const { status, body } = await server.patch(`/members/${memberId}`, {}) as SupertestResponse;
+
+      expect(status).toBe(400);
+      expect(body.message).toContain('Invalid request body');
+    });
+
+    it('should ignore a client-supplied id in the body and use the URL id instead', async () => {
+      // Spoofing another member's id in the body must not let this update escape ITS OWN
+      // self-exclusion — the email is still checked against the URL member (memberId), so
+      // renaming to otherMember's email must still be rejected.
+      const { status, body } = await server.patch(`/members/${memberId}`, {
+        id: otherMemberId,
+        email: 'other@test.com',
+      }) as SupertestResponse;
+
+      expect(status).toBe(400);
+      expect(body.message).toEqual(
+        expect.arrayContaining([expect.stringContaining('email must be unique')]),
       );
     });
   });
