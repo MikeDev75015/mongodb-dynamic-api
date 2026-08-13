@@ -25,10 +25,19 @@ function resolveIdentifierField<T>(source: T, fields: keyof T | (keyof T)[]): un
  * True for values that stringify to something meaningful: primitives, or objects that override
  * `Object.prototype.toString` (e.g. a Mongoose `ObjectId`). False for a plain object, which would
  * otherwise stringify to the generic `'[object Object]'` — two unrelated plain objects would then
- * look equal to {@link identifiersMatch}'s string-coerced fallback.
+ * look equal to {@link identifiersMatch}'s string-coerced fallback. A real type guard (not just a
+ * boolean check) so `entityValue`/`userValue` are narrowed away from `unknown` at the `String()`
+ * call site below — the point isn't just the runtime safety, it's giving `String()` an argument
+ * type that's actually known to declare `toString()`.
  */
-function hasMeaningfulStringForm(value: object): boolean {
-  return value.toString !== Object.prototype.toString;
+function isStringifiable(value: unknown): value is string | number | boolean | bigint | { toString(): string } {
+  const type = typeof value;
+
+  if (type === 'string' || type === 'number' || type === 'boolean' || type === 'bigint') {
+    return true;
+  }
+
+  return type === 'object' && value !== null && (value as object).toString !== Object.prototype.toString;
 }
 
 /**
@@ -49,10 +58,7 @@ function identifiersMatch(entityValue: unknown, userValue: unknown): boolean {
     return false;
   }
 
-  if (
-    (typeof entityValue === 'object' && !hasMeaningfulStringForm(entityValue)) ||
-    (typeof userValue === 'object' && !hasMeaningfulStringForm(userValue))
-  ) {
+  if (!isStringifiable(entityValue) || !isStringifiable(userValue)) {
     return false;
   }
 
