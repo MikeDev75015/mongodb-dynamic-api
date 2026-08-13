@@ -1,4 +1,5 @@
 import { createMock } from '@golevelup/ts-jest';
+import { BadRequestException } from '@nestjs/common';
 import { DeleteResult, DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { DeleteManyController } from './delete-many-controller.interface';
@@ -41,11 +42,11 @@ describe('DeleteManyControllerMixin', () => {
     expect(controller['entity']).toBe(Entity);
   });
 
-  it('should throw error if ids is invalid', async () => {
+  it('should throw a BadRequestException (400) if ids is invalid', async () => {
     controller = initController();
     const ids = [];
 
-    await expect(controller.deleteMany({ ids })).rejects.toThrow(new Error('Invalid query'));
+    await expect(controller.deleteMany({ ids })).rejects.toThrow(new BadRequestException('Invalid query'));
     expect(service.deleteMany).toHaveBeenCalledTimes(0);
   });
 

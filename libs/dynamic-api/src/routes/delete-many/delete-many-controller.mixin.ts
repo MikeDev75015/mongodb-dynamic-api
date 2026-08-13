@@ -1,4 +1,4 @@
-import { Optional, Query, Request, Type, UseGuards, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Optional, Query, Request, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { ManyEntityQuery, DeletePresenter } from '../../dtos';
 import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
@@ -72,7 +72,7 @@ function DeleteManyControllerMixin<Entity extends BaseEntity>(
     @UseInterceptors(...useInterceptors)
     async deleteMany(@Query() { ids }: ManyEntityQuery, @Request() req?: DynamicApiRequest) {
       if (!ids?.length) {
-        throw new Error('Invalid query');
+        throw new BadRequestException('Invalid query');
       }
 
       const deleteResult = await this.service.deleteMany(ids, req?.user);

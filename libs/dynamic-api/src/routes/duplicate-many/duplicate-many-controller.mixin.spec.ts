@@ -1,4 +1,5 @@
 import { createMock } from '@golevelup/ts-jest';
+import { BadRequestException } from '@nestjs/common';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { DuplicateManyController } from './duplicate-many-controller.interface';
@@ -43,11 +44,11 @@ describe('DuplicateManyControllerMixin', () => {
     expect(controller['entity']).toBe(Entity);
   });
 
-  it('should throw error if ids is invalid', async () => {
+  it('should throw a BadRequestException (400) if ids is invalid', async () => {
     controller = initController();
     const ids = [];
 
-    await expect(controller.duplicateMany(ids, {})).rejects.toThrow(new Error('Invalid query'));
+    await expect(controller.duplicateMany(ids, {})).rejects.toThrow(new BadRequestException('Invalid query'));
     expect(service.duplicateMany).toHaveBeenCalledTimes(0);
   });
 
