@@ -63,31 +63,34 @@ export abstract class BaseGateway<Entity extends BaseEntity> {
     data: ResponseData[],
     broadcastConfig?: BroadcastConfig<ResponseData>,
   ): void {
-    const resolved = resolveBroadcast(event, data, broadcastConfig, socket.user);
-
-    if (!resolved) {
-      return;
-    }
-
-    const { event: broadcastEvent, rooms, data: broadcastData } = resolved;
-
-    if (DynamicApiWsConfigStore.debug) {
-      this.logger.log(
-        `[WS] broadcastIfNeeded – event=${broadcastEvent}, rooms=${
-          rooms ? JSON.stringify(rooms) : 'all'
-        }, items=${broadcastData.length}`,
-      );
-    }
-
     try {
+      const resolved = resolveBroadcast(event, data, broadcastConfig, socket.user);
+
+      if (!resolved) {
+        return;
+      }
+
+      const { event: broadcastEvent, rooms, data: broadcastData } = resolved;
+
+      if (DynamicApiWsConfigStore.debug) {
+        this.logger.log(
+          `[WS] broadcastIfNeeded – event=${broadcastEvent}, rooms=${
+            rooms ? JSON.stringify(rooms) : 'all'
+          }, items=${broadcastData.length}`,
+        );
+      }
+
       if (rooms) {
         socket.nsp.to(rooms).emit(broadcastEvent, broadcastData);
       } else {
         socket.broadcast.emit(broadcastEvent, broadcastData);
       }
     } catch (error) {
+      // Covers both a throwing `rooms`/`enabled` resolver (inside resolveBroadcast) and a
+      // throwing `emit()` — either way, the primary WS operation already succeeded and its
+      // response must not be corrupted by a broadcast-only failure.
       this.logger.error(
-        `[WS] Failed to emit "${broadcastEvent}": ${(error as Error).message}`,
+        `[WS] Failed to emit "${event}": ${(error as Error).message}`,
         (error as Error).stack,
       );
     }

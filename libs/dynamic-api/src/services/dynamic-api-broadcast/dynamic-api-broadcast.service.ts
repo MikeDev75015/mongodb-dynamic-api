@@ -24,23 +24,26 @@ export class DynamicApiBroadcastService {
       return;
     }
 
-    const resolved = resolveBroadcast(event, data, broadcastConfig);
-
-    if (!resolved) {
-      return;
-    }
-
-    const { event: broadcastEvent, rooms, data: broadcastData } = resolved;
-
     try {
+      const resolved = resolveBroadcast(event, data, broadcastConfig);
+
+      if (!resolved) {
+        return;
+      }
+
+      const { event: broadcastEvent, rooms, data: broadcastData } = resolved;
+
       if (rooms) {
         DynamicApiBroadcastService.wsServer.to(rooms).emit(broadcastEvent, broadcastData);
       } else {
         DynamicApiBroadcastService.wsServer.emit(broadcastEvent, broadcastData);
       }
     } catch (error) {
+      // Covers both a throwing `rooms`/`enabled` resolver (inside resolveBroadcast) and a
+      // throwing `emit()` — either way, the primary HTTP operation already succeeded and its
+      // response must not be corrupted by a broadcast-only failure.
       this.logger.error(
-        `[Broadcast] Failed to emit "${broadcastEvent}": ${(error as Error).message}`,
+        `[Broadcast] Failed to emit "${event}": ${(error as Error).message}`,
         (error as Error).stack,
       );
     }

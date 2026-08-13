@@ -227,6 +227,37 @@ describe('DynamicApiBroadcastService', () => {
         expect(errorSpy).toHaveBeenCalledTimes(1);
         expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('my-event'), expect.any(String));
       });
+
+      it('should catch and log an error when a custom `rooms` resolver throws, without emitting', () => {
+        service.setWsServer(mockServer as unknown as Server);
+        const errorSpy = jest.spyOn(service['logger'], 'error').mockImplementation();
+
+        expect(() => service.broadcastFromHttp('my-event', [{ id: '1' }], {
+          enabled: true,
+          rooms: () => { throw new Error('rooms resolver boom'); },
+        })).not.toThrow();
+
+        expect(errorSpy).toHaveBeenCalledTimes(1);
+        expect(errorSpy).toHaveBeenCalledWith(
+          expect.stringContaining('rooms resolver boom'),
+          expect.any(String),
+        );
+        expect(mockServer.emit).not.toHaveBeenCalled();
+        expect(mockServer.to).not.toHaveBeenCalled();
+      });
+
+      it('should catch and log an error when a custom `enabled` predicate throws, without emitting', () => {
+        service.setWsServer(mockServer as unknown as Server);
+        const errorSpy = jest.spyOn(service['logger'], 'error').mockImplementation();
+
+        expect(() => service.broadcastFromHttp('my-event', [{ id: '1' }], {
+          enabled: () => { throw new Error('predicate boom'); },
+        })).not.toThrow();
+
+        expect(errorSpy).toHaveBeenCalledTimes(1);
+        expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('predicate boom'), expect.any(String));
+        expect(mockServer.emit).not.toHaveBeenCalled();
+      });
     });
   });
 });
