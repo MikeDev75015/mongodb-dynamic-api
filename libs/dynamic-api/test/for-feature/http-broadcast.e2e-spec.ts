@@ -37,6 +37,12 @@ describe('DynamicApiModule forFeature - HTTP Broadcast (e2e)', () => {
     status?: string;
   }
 
+  @Schema({ collection: 'hb_flaky_broadcast_items' })
+  class HbFlakyBroadcastItemEntity extends BaseEntity {
+    @Prop({ type: String, required: true })
+    name: string;
+  }
+
   const customEvent = 'hb-product-custom-event';
   let firstProduct: HbProductEntity;
   let secondProduct: HbProductEntity;
@@ -99,6 +105,21 @@ describe('DynamicApiModule forFeature - HTTP Broadcast (e2e)', () => {
             type: 'DeleteMany',
             broadcast: { enabled: true },
           },
+        ],
+        extraImports: [
+          DynamicApiModule.forFeature({
+            entity: HbFlakyBroadcastItemEntity,
+            controllerOptions: { path: 'hb-flaky-items', isPublic: true },
+            routes: [
+              {
+                type: 'CreateOne',
+                broadcast: {
+                  enabled: true,
+                  rooms: () => { throw new Error('boom from a broken rooms resolver'); },
+                },
+              },
+            ],
+          }),
         ],
       },
       undefined,
@@ -252,6 +273,14 @@ describe('DynamicApiModule forFeature - HTTP Broadcast (e2e)', () => {
     );
 
     expect(response).toBeDefined();
+    expect(handleSocketBroadcast).not.toHaveBeenCalled();
+  });
+
+  it('should still return a successful response when the broadcast rooms resolver throws', async () => {
+    const { status, body } = await server.post('/hb-flaky-items', { name: 'unstoppable' });
+
+    expect(status).toBe(201);
+    expect(body).toMatchObject({ name: 'unstoppable' });
     expect(handleSocketBroadcast).not.toHaveBeenCalled();
   });
 });
