@@ -353,16 +353,30 @@ export class User extends BaseEntity {
 }
 ```
 
-Update scenarios must exclude the entity's own current value via `ignoreId` (the DTO must carry
-the id under that property name — e.g. via `entity.param.ts`'s `id` merged into the body, or an
-explicit field):
+Update scenarios must exclude the entity's own current value via `ignoreId` — the DTO must carry
+the id under that property name. On MDA's own `UpdateOne` route (HTTP and WebSocket), `'id'` works
+with **zero DTO changes**: the current entity's id — which HTTP puts in the URL (`PATCH /users/:id`),
+never the body — is merged onto the validated DTO instance automatically, so declaring it once on
+the entity is enough:
+
+```typescript
+@Schema({ collection: 'users' })
+export class User extends BaseEntity {
+  @IsUnique(User, { ignoreId: 'id' })
+  @Prop({ type: String, required: true })
+  email: string;
+}
+```
+
+If you supply your own `UpdateOne` body DTO (via `dTOs.body`) instead of letting MDA generate one,
+add an `id` field yourself so the merged value has somewhere to land:
 
 ```typescript
 export class UpdateUserDto {
   @IsUnique(User, { ignoreId: 'id' })
   email: string;
 
-  id: string;
+  id?: string;
 }
 ```
 
