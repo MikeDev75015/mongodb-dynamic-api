@@ -10,7 +10,14 @@ import {
 } from '../e2e.setup';
 import 'dotenv/config';
 import { getModelFromEntity } from '../utils';
-import { createLoginUserEntity, initModule, LOGIN_ADMIN, LOGIN_CLIENT, LOGIN_USER } from '../shared';
+import {
+  createLoginUserEntity,
+  createUniqueLoginUserEntity,
+  initModule,
+  LOGIN_ADMIN,
+  LOGIN_CLIENT,
+  LOGIN_USER,
+} from '../shared';
 
 describe('DynamicApiModule forRoot - Websockets EVENT auth-login with login options (e2e)', () => {
   const User = createLoginUserEntity();
@@ -134,6 +141,51 @@ describe('DynamicApiModule forRoot - Websockets EVENT auth-login with login opti
         { id: expect.any(String), username: 'admin', role: 'admin', isVerified: true },
       );
     });
+  });
+});
+
+describe('DynamicApiModule forRoot - Websockets EVENT auth-login with @IsUnique on the login field (e2e)', () => {
+  const User = createUniqueLoginUserEntity();
+  type User = InstanceType<typeof User>;
+
+  const admin = LOGIN_ADMIN;
+
+  beforeEach(() => {
+    DynamicApiModule.state['resetState']();
+  });
+
+  afterEach(async () => {
+    await closeTestingApp(mongoose.connections);
+  });
+
+  beforeEach(async () => {
+    const bcryptService = new BcryptService();
+
+    const fixtures = async (_: Connection) => {
+      const model = await getModelFromEntity(User);
+      await model.insertMany([{ ...admin, pass: await bcryptService.hashPassword(admin.pass) }]);
+    };
+
+    await initModule(
+      {
+        useAuth: {
+          userEntity: User,
+          login: { loginField: 'username', passwordField: 'pass' },
+        },
+        webSocket: true,
+      }, fixtures,
+      async (_: INestApplication) => {
+        _.useWebSocketAdapter(new SocketAdapter(_));
+      },
+    );
+  });
+
+  it('should still log in an existing account when its login field also carries @IsUnique', async () => {
+    const { username, pass } = admin;
+    const { accessToken } = await server.emit('auth-login', { username, pass });
+
+    expect(handleSocketException).not.toHaveBeenCalled();
+    expect(accessToken).toEqual(expect.any(String));
   });
 });
 

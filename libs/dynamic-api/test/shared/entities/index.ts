@@ -6,3 +6,4 @@ export * from './passwordless-user.factory';
 export * from './reset-password-user.factory';
 export * from './broadcast-user.factory';
 export * from './refresh-token-user.factory';
+export * from './unique-login-user.factory';
