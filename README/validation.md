@@ -417,6 +417,12 @@ familyId: string;
 | `field` | `keyof Entity` | `'_id'` | Field matched against the decorated value |
 | `filter` | `(value, dto) => FilterQuery<Entity>` | — | Extra conditions merged into the existence query |
 
+> [!NOTE]
+> A malformed id (e.g. `familyId: "not-an-object-id"` against the default `_id` field) is handled
+> cleanly: `@EntityExists` reports it as a normal "does not exist" validation failure (`400`), and
+> `@IsUnique`'s `ignoreId` reports it as "not unique" — neither ever surfaces as a raw `500` from an
+> uncaught Mongoose cast error.
+
 ### Custom Validation Class
 
 For anything not covered by `@IsUnique`/`@EntityExists`, class-validator's async constraint
