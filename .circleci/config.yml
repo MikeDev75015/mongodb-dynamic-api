@@ -334,7 +334,11 @@ jobs:
       - run:
           name: Install mongosh
           command: |
-            npm install -g mongosh
+            # Pinned: mongosh@2.10.0 (2026-08-13) crashes after every --eval command with
+            # "TypeError: (0 , logging_2.getAiAgent) is not a function" (broken telemetry/AI-agent
+            # hook) — the command itself succeeds server-side, but mongosh exits 1 regardless,
+            # failing this step. 2.9.2 is the last version confirmed working in this pipeline.
+            npm install -g mongosh@2.9.2
             mongosh --version
       - run:
           name: Create dam-db database with dam-user as dbOwner
