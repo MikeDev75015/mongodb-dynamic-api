@@ -1,4 +1,4 @@
-import { Body, Optional, Query, Request, Type, UseGuards, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Optional, Query, Request, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { applyFromUser, addVersionSuffix, getMixinData, isEmpty, provideName, RouteDecoratorsHelper } from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiRequest, Mappable } from '../../interfaces';
@@ -83,11 +83,11 @@ function UpdateManyControllerMixin<Entity extends BaseEntity>(
     @UseInterceptors(...useInterceptors)
     async updateMany(@Query('ids') ids: string[], @Body() body: UpdateManyBody, @Request() req?: DynamicApiRequest) {
       if (!ids?.length) {
-        throw new Error('Invalid query');
+        throw new BadRequestException('Invalid query');
       }
 
       if (isEmpty(body)) {
-        throw new Error('Invalid request body');
+        throw new BadRequestException('Invalid request body');
       }
 
       const toEntity = (

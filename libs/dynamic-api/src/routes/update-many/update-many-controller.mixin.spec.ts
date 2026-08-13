@@ -1,4 +1,5 @@
 import { createMock } from '@golevelup/ts-jest';
+import { BadRequestException } from '@nestjs/common';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { UpdateManyController } from './update-many-controller.interface';
@@ -43,23 +44,23 @@ describe('UpdateManyControllerMixin', () => {
     expect(controller['entity']).toBe(Entity);
   });
 
-  it('should throw error if ids is invalid', async () => {
+  it('should throw a BadRequestException (400) if ids is invalid', async () => {
     controller = initController();
     const ids = [];
 
     await expect(controller.updateMany(ids, {})).rejects.toThrow(
-      new Error('Invalid query'),
+      new BadRequestException('Invalid query'),
     );
     expect(service.updateMany).toHaveBeenCalledTimes(0);
   });
 
-  it('should throw error if body is empty', async () => {
+  it('should throw a BadRequestException (400) if body is empty', async () => {
     controller = initController();
     const ids = ['fakeId'];
     const body = {};
 
     await expect(controller.updateMany(ids, body)).rejects.toThrow(
-      new Error('Invalid request body'),
+      new BadRequestException('Invalid request body'),
     );
     expect(service.updateMany).toHaveBeenCalledTimes(0);
   });
