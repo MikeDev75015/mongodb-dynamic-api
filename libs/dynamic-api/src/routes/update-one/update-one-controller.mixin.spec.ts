@@ -1,4 +1,5 @@
 import { createMock } from '@golevelup/ts-jest';
+import { BadRequestException } from '@nestjs/common';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { UpdateOneController } from './update-one-controller.interface';
@@ -43,13 +44,24 @@ describe('UpdateOneControllerMixin', () => {
     expect(controller['entity']).toBe(Entity);
   });
 
-  it('should throw error if body is empty', async () => {
+  it('should throw a BadRequestException (400) if body is empty', async () => {
     controller = initController();
     const id = 'fakeId';
     const body = {};
 
     await expect(controller.updateOne(id, body)).rejects.toThrow(
-      new Error('Invalid request body'),
+      new BadRequestException('Invalid request body'),
+    );
+    expect(service.updateOne).toHaveBeenCalledTimes(0);
+  });
+
+  it('should throw a BadRequestException (400) when the body only carries the injected id', async () => {
+    controller = initController();
+    const id = 'fakeId';
+    const body = { id: 'fakeId' };
+
+    await expect(controller.updateOne(id, body)).rejects.toThrow(
+      new BadRequestException('Invalid request body'),
     );
     expect(service.updateOne).toHaveBeenCalledTimes(0);
   });
