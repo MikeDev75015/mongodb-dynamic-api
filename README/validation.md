@@ -372,6 +372,13 @@ export class UpdateUserDto {
 | `caseInsensitive` | `boolean` | `false` | Case-insensitive comparison (recommended for emails/usernames) |
 | `ignoreId` | `string` | — | Sibling DTO property holding the current entity's id, excluded from the check |
 
+> [!NOTE]
+> If your `loginField` (e.g. `email`) also carries `@IsUnique`/`@EntityExists`, [Login](./authentication.md)
+> is unaffected: MDA automatically strips those DB-aware validators from the generated login DTO,
+> since matching credentials against an *existing* account is the opposite of proving the value is
+> unused. No escape hatch needed on your side — this only touches the login DTO's copy of the
+> decorator, not the entity's own.
+
 ### `@EntityExists` — DB-aware existence
 
 Async, database-backed decorator ensuring a document referenced by the decorated field (an id,
