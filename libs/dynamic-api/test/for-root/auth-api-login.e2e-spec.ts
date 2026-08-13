@@ -6,7 +6,14 @@ import { BcryptService, DynamicApiModule } from '../../src';
 import { closeTestingApp, server } from '../e2e.setup';
 import 'dotenv/config';
 import { getModelFromEntity } from '../utils';
-import { createLoginUserEntity, initModule, LOGIN_ADMIN, LOGIN_CLIENT, LOGIN_USER } from '../shared';
+import {
+  createLoginUserEntity,
+  createUniqueLoginUserEntity,
+  initModule,
+  LOGIN_ADMIN,
+  LOGIN_CLIENT,
+  LOGIN_USER,
+} from '../shared';
 
 describe('DynamicApiModule forRoot - POST /auth/login with login options (e2e)', () => {
   const User = createLoginUserEntity();
@@ -141,6 +148,45 @@ describe('DynamicApiModule forRoot - POST /auth/login with login options (e2e)',
     });
   });
 
+});
+
+describe('DynamicApiModule forRoot - POST /auth/login with @IsUnique on the login field (e2e)', () => {
+  const User = createUniqueLoginUserEntity();
+  type User = InstanceType<typeof User>;
+
+  const admin = LOGIN_ADMIN;
+
+  beforeEach(() => {
+    DynamicApiModule.state['resetState']();
+  });
+
+  afterEach(async () => {
+    await closeTestingApp(mongoose.connections);
+  });
+
+  beforeEach(async () => {
+    const bcryptService = new BcryptService();
+
+    const fixtures = async (_: Connection) => {
+      const model = await getModelFromEntity(User);
+      await model.insertMany([{ ...admin, pass: await bcryptService.hashPassword(admin.pass) }]);
+    };
+
+    await initModule({
+      useAuth: {
+        userEntity: User,
+        login: { loginField: 'username', passwordField: 'pass' },
+      },
+    }, fixtures);
+  });
+
+  it('should still log in an existing account when its login field also carries @IsUnique', async () => {
+    const { username, pass } = admin;
+    const { body, status } = await server.post('/auth/login', { username, pass });
+
+    expect(status).toBe(200);
+    expect(body).toHaveProperty('accessToken');
+  });
 });
 
 describe('DynamicApiModule forRoot - POST /auth/login with customValidate (e2e)', () => {
