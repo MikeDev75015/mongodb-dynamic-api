@@ -1,3 +1,4 @@
+import { identifiersMatch, resolveIdentifierField } from '../helpers/predicate-identifier.helper';
 import { AbilityPredicate } from '../interfaces';
 import { BaseEntity } from '../models';
 
@@ -12,10 +13,19 @@ interface IsGroupMemberOptions<Entity extends BaseEntity, User = any> {
   entityField?: keyof Entity;
   /**
    * User field holding the group identifier(s) the user belongs to — either a single id or
-   * an array of ids (both are supported transparently).
+   * an array of ids (both are supported transparently). Also accepts an ordered array of
+   * fallback field names — the first one with a defined, non-null value is used — for group
+   * identifiers that live under different names depending on context.
    * @default 'groupId'
    */
-  userField?: keyof User;
+  userField?: keyof User | (keyof User)[];
+  /**
+   * Custom comparison between the entity's group value and each candidate user group value.
+   * Defaults to strict equality with a string-coerced fallback, which already matches a
+   * Mongoose `ObjectId` on the entity side against its string form on the user side — set this
+   * only for anything beyond that (e.g. case-insensitive comparison).
+   */
+  compare?: (entityValue: unknown, userValue: unknown) => boolean;
 }
 
 /**
@@ -41,6 +51,11 @@ interface IsGroupMemberOptions<Entity extends BaseEntity, User = any> {
  * abilityPredicate: isGroupMember({ entityField: 'organizationId', userField: 'organizationId' })
  * ```
  *
+ * @example — fallback across user fields (group field missing on some auth flows)
+ * ```typescript
+ * abilityPredicate: isGroupMember({ userField: ['groupIds', 'groupId'] })
+ * ```
+ *
  * Denies access when `user` is `null`/`undefined` (e.g. an anonymous request on a public
  * route combined with `predicateBehavior: 'filter'`) instead of throwing.
  */
@@ -48,21 +63,22 @@ function isGroupMember<Entity extends BaseEntity, User = any>(
   options: IsGroupMemberOptions<Entity, User> = {},
 ): AbilityPredicate<Entity, User> {
   const entityField = (options.entityField ?? 'groupId') as keyof Entity;
-  const userField = (options.userField ?? 'groupId') as keyof User;
+  const userField = options.userField ?? ('groupId' as keyof User);
+  const compare = options.compare ?? identifiersMatch;
 
   return (entity: Entity, user: User): boolean => {
     if (user == null) {
       return false;
     }
 
-    const entityGroup = entity[entityField] as unknown;
-    const userGroup = user[userField] as unknown;
+    const entityGroup = entity[entityField];
+    const userGroup = resolveIdentifierField(user, userField);
 
     if (Array.isArray(userGroup)) {
-      return userGroup.includes(entityGroup);
+      return userGroup.some((candidate) => compare(entityGroup, candidate));
     }
 
-    return entityGroup === userGroup;
+    return compare(entityGroup, userGroup);
   };
 }
 
