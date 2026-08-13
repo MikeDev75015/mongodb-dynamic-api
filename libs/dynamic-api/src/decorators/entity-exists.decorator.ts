@@ -1,6 +1,7 @@
 import { Type } from '@nestjs/common';
 import { registerDecorator, ValidationArguments, ValidationOptions } from 'class-validator';
 import { FilterQuery } from 'mongoose';
+import { isMongooseCastError } from '../helpers/mongoose-cast-error.helper';
 import { BaseEntity } from '../models';
 import { DynamicApiGlobalStateService } from '../services';
 
@@ -90,8 +91,18 @@ function EntityExists<Entity extends BaseEntity>(
             ...opts.filter?.(value, args.object),
           } as FilterQuery<Entity>;
 
-          const existing = await model.exists(filter);
-          return !!existing;
+          try {
+            const existing = await model.exists(filter);
+            return !!existing;
+          } catch (error) {
+            // A malformed id (the default `field` matches `_id`, an ObjectId path) can never
+            // reference a real document — fail closed instead of a raw 500.
+            if (isMongooseCastError(error)) {
+              return false;
+            }
+
+            throw error;
+          }
         },
         defaultMessage(args: ValidationArguments): string {
           const [targetEntity] = args.constraints as [Type<Entity>];

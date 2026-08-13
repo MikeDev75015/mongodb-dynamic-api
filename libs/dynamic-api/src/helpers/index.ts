@@ -3,6 +3,7 @@ export * from './format.helper';
 export * from './from-user.helper';
 export * from './lodash.helper';
 export * from './mixin-data.helper';
+export * from './mongoose-cast-error.helper';
 export * from './repository.helper';
 export * from './resolve-broadcast.helper';
 export * from './resolve-rooms.helper';

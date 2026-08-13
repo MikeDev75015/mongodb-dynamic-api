@@ -1,6 +1,7 @@
 import { Type } from '@nestjs/common';
 import { registerDecorator, ValidationArguments, ValidationOptions } from 'class-validator';
 import { FilterQuery } from 'mongoose';
+import { isMongooseCastError } from '../helpers/mongoose-cast-error.helper';
 import { BaseEntity } from '../models';
 import { DynamicApiGlobalStateService } from '../services';
 
@@ -96,8 +97,18 @@ function IsUnique<Entity extends BaseEntity>(
             }
           }
 
-          const existing = await model.exists(filter);
-          return !existing;
+          try {
+            const existing = await model.exists(filter);
+            return !existing;
+          } catch (error) {
+            // A malformed id (e.g. a bad `ignoreId`, or `field` matched against an ObjectId path)
+            // can never safely be proven unique — fail closed instead of a raw 500.
+            if (isMongooseCastError(error)) {
+              return false;
+            }
+
+            throw error;
+          }
         },
         defaultMessage(args: ValidationArguments): string {
           const [targetEntity, opts, defaultField] =
