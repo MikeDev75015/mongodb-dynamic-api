@@ -70,6 +70,12 @@ describe('DynamicApiModule forFeature - Standard Ability Predicates (e2e)', () =
     groupId?: string;
   }
 
+  @Schema({ collection: 'pred_self_ref_items' })
+  class PredSelfRefItemEntity extends BaseEntity {
+    @Prop({ type: String, required: true })
+    label: string;
+  }
+
   const registerAndLogin = async (email: string, role: string, groupId: string) => {
     await server.post('/auth/register', { email, password: 'password123', role, groupId });
     const { body: { accessToken } } = await server.post('/auth/login', { email, password: 'password123' });
@@ -99,6 +105,15 @@ describe('DynamicApiModule forFeature - Standard Ability Predicates (e2e)', () =
             controllerOptions: { path: 'pred-group-items' },
             routes: [
               { type: 'GetOne', abilityPredicate: allOf(isNotDeleted(), isGroupMember()) },
+            ],
+          }),
+          DynamicApiModule.forFeature({
+            entity: PredSelfRefItemEntity,
+            controllerOptions: { path: 'pred-self-ref-items' },
+            routes: [
+              // Compares the item's real Mongo `_id` (ObjectId) against `user.groupId` (string) —
+              // reproduces the default ObjectId-vs-string coercion, no `compare` override needed.
+              { type: 'GetOne', abilityPredicate: isOwner({ entityField: '_id', userField: 'groupId' }) },
             ],
           }),
         ],
@@ -211,6 +226,22 @@ describe('DynamicApiModule forFeature - Standard Ability Predicates (e2e)', () =
       expect(allowed.status).toBe(200);
       expect(deniedDeleted.status).toBe(403);
       expect(deniedOtherGroup.status).toBe(403);
+    });
+  });
+
+  describe('isOwner — default ObjectId-vs-string coercion (entityField: "_id")', () => {
+    it('should allow access when the entity ObjectId matches its string form on the user, and deny a mismatch', async () => {
+      const model = await getModelFromEntity(PredSelfRefItemEntity);
+      const [item] = await model.insertMany([{ label: 'self-ref-item' }]);
+
+      const matching = await registerAndLogin('matching@pred.co', 'user', item.id.toString());
+      const mismatched = await registerAndLogin('mismatched@pred.co', 'user', 'not-this-items-id');
+
+      const allowed = await server.get(`/pred-self-ref-items/${item.id}`, { authToken: matching.accessToken });
+      const denied = await server.get(`/pred-self-ref-items/${item.id}`, { authToken: mismatched.accessToken });
+
+      expect(allowed.status).toBe(200);
+      expect(denied.status).toBe(403);
     });
   });
 });
