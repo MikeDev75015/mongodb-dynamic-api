@@ -677,6 +677,11 @@ socket.emit('join-rooms', { rooms: 'clothing' }, () => {
 // This client will NOT receive broadcasts for electronics products
 ```
 
+> **Note — broadcast failures never affect the response:** if a `rooms` function or `enabled`
+> predicate throws (a bug in your own callback), or the socket emit itself fails, the error is
+> caught and logged — never propagated. The HTTP response or WebSocket acknowledgement for the
+> underlying operation (which already succeeded) is unaffected either way.
+
 #### User-Aware Rooms (WebSocket only)
 
 When using **WebSocket routes**, the `rooms` function receives the authenticated user as its second argument (`user?: User`). This lets you compute the target room(s) based on **who triggered the action**, not just the entity data.
