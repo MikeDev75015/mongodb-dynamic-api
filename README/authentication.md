@@ -19,6 +19,7 @@ JWT authentication is built-in and provides secure, **dual-token** (access + ref
   - [Ability Predicates for Authentication Routes](#ability-predicates-for-authentication-routes)
   - [Custom Login Validation (`customValidate`)](#custom-login-validation-customvalidate)
   - [Custom Passport Strategy (`useStrategy`)](#custom-passport-strategy-usestrategy)
+  - [Minting Tokens Outside `/auth/login` (`mintTokenPair`)](#minting-tokens-outside-authlogin-minttokenpair) ⭐ *New*
   - [JWT Payload Customization](#jwt-payload-customization)
   - [Update Account Configuration](#update-account-configuration)
   - [Automatic Token Refresh on Update (`refreshTokenOnUpdate`)](#automatic-token-refresh-on-update-refreshtokenonupdate) ⭐ *New*
@@ -839,6 +840,51 @@ DynamicApiModule.forRoot('mongodb-uri', {
 | `loginField` / `passwordField` | Change which entity fields are used — simple renaming |
 | `customValidate` | Add a bypass / alternate path before standard password validation |
 | `useStrategy` | Fully replace the Passport strategy (LDAP, API key, OTP, etc.) |
+
+---
+
+### Minting Tokens Outside `/auth/login` (`mintTokenPair`)
+
+Every built-in auth route (`/auth/login`, `/auth/register`, `/auth/refresh-token`, …) goes through `/auth/login`'s internal logic to issue tokens. If you need to issue MDA-compatible tokens from a flow that bypasses it entirely — an OAuth/social login callback, SSO, a magic-link verification endpoint, or any custom authentication you wire up yourself — use the exported `mintTokenPair` function instead of reverse-engineering the JWT payload shape and the refresh-token storage format.
+
+`mintTokenPair(entity, user, options?)` builds the exact same `{ accessToken, refreshToken }` pair `/auth/login` returns: same JWT payload fields, same secrets/expirations (read from the `useAuth` options passed to `forRoot`), and — when `refreshToken.refreshTokenField` is configured — the same server-side refresh-token record, so the minted pair works out of the box with `POST /auth/refresh-token` and `POST /auth/logout`.
+
+```typescript
+import { Controller, Get, Query } from '@nestjs/common';
+import { mintTokenPair, Public } from 'mongodb-dynamic-api';
+import { User } from './user.entity';
+import { GoogleOAuthService } from './google-oauth.service';
+import { UserService } from './user.service';
+
+@Controller('auth/google')
+class GoogleAuthController {
+  constructor(
+    private readonly googleOAuthService: GoogleOAuthService,
+    private readonly userService: UserService,
+  ) {}
+
+  @Public() // exempts this route from the global DynamicApiJwtAuthGuard
+  @Get('callback')
+  async callback(@Query('code') code: string) {
+    const googleProfile = await this.googleOAuthService.exchangeCode(code);
+    const user = await this.userService.findOrCreateFromGoogle(googleProfile);
+
+    return mintTokenPair(User, user);
+  }
+}
+```
+
+Register `GoogleAuthController` the same way as any hand-written controller — e.g. via `useAuth.extraControllers` or your own feature module.
+
+**Options** (all default to whatever `useAuth` already has configured, so `mintTokenPair(User, user)` alone is usually enough):
+
+| Option | Defaults to | When to override |
+|---|---|---|
+| `loginField` | `useAuth.login.loginField` | The minted token should key off a different field than the configured one |
+| `additionalFields` | `useAuth.login.additionalFields` | Include different extra payload fields for this particular flow |
+| `refreshTokenField` | `useAuth.refreshToken.refreshTokenField` | Store the refresh-token record on a different field, or force server-side storage without a global default |
+
+> **Requirements:** `useAuth` must be configured in `forRoot` (that's where the JWT secrets/expirations come from — `mintTokenPair` throws a descriptive error otherwise), and `entity` must be registered via `forRoot`/`forFeature`. `user` must carry `_id`/`id` and the login field — typically a document you already fetched or created via your own `Model`/service.
 
 ---
 

@@ -18,6 +18,8 @@ describe('DynamicApiConfigModule', () => {
     jwtRefreshUseCookie: undefined,
     onAfterSaveError: undefined,
     refreshTokenOnUpdate: false,
+    refreshTokenField: undefined,
+    additionalRequestFields: [],
     routesConfig: undefined,
     uri: '',
     gatewayOptions: undefined,

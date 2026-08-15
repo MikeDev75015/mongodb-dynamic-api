@@ -99,6 +99,21 @@ describe('DynamicApiModule', () => {
       expect(spyAuthModule).toHaveBeenCalledWith(options);
     });
 
+    it('should store refreshTokenField and additionalRequestFields in state when configured', () => {
+      jest.spyOn(AuthModule, 'forRoot').mockImplementationOnce(() => null);
+
+      DynamicApiModule.forRoot(uri, {
+        useAuth: {
+          userEntity: UserEntity,
+          login: { additionalFields: ['name'] },
+          refreshToken: { refreshTokenField: 'pass' },
+        },
+      });
+
+      expect(DynamicApiModule.state.get('refreshTokenField')).toBe('pass');
+      expect(DynamicApiModule.state.get('additionalRequestFields')).toStrictEqual(['name']);
+    });
+
     describe('with cache', () => {
       let spyCacheModuleRegister: jest.SpyInstance;
 
