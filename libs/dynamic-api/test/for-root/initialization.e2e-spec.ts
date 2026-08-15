@@ -33,6 +33,8 @@ describe('DynamicApiModule forRoot - Initialization (e2e)', () => {
       jwtRefreshUseCookie: undefined,
       onAfterSaveError: undefined,
       jwtSecret: undefined,
+      refreshTokenField: undefined,
+      additionalRequestFields: [],
       routesConfig: {
         defaults: [
           'GetMany',
@@ -80,6 +82,8 @@ describe('DynamicApiModule forRoot - Initialization (e2e)', () => {
       jwtRefreshUseCookie: undefined,
       onAfterSaveError: undefined,
       jwtSecret: undefined,
+      refreshTokenField: undefined,
+      additionalRequestFields: [],
       routesConfig: {
         defaults: ['GetMany', 'GetOne', 'CreateOne', 'UpdateOne', 'DeleteOne'],
         excluded: ['CreateMany', 'UpdateMany', 'DeleteMany'],

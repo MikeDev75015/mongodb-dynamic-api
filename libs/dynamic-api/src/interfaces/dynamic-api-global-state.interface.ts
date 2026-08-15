@@ -35,6 +35,10 @@ interface DynamicApiGlobalState {
   jwtRefreshUseCookie: boolean | undefined;
   onAfterSaveError: OnAfterSaveErrorHook | undefined;
   refreshTokenOnUpdate: boolean;
+  /** `useAuth.refreshToken.refreshTokenField`, if configured — used by {@link mintTokenPair} to default its own `refreshTokenField` option. */
+  refreshTokenField: string | undefined;
+  /** `useAuth.login.additionalFields`, if configured — used by {@link mintTokenPair} to default its own `additionalFields` option. */
+  additionalRequestFields: string[];
   routesConfig: RoutesConfig;
   gatewayOptions: GatewayMetadata | undefined;
   broadcastGatewayOptions: GatewayMetadata | undefined;
