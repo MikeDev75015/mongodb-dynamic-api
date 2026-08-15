@@ -268,6 +268,7 @@ Register `UsersModule` in `AppModule`, run `npm run start:dev` — your API is l
 | 🗂️ **Route Config** | DTOs, cascade delete, predicates, subPath, interceptors ⭐ | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/route-config.md) |
 | 🎛️ **Controller Config** | `forFeature` options, `customRoutes`, `extraProviders` ⭐ | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/controller-config.md) |
 | 🐞 **Debugging** | `MONGODB_DYNAMIC_API_LOGGER` levels, WS debug mode, where each log comes from ⭐ | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/debugging.md) |
+| 🩺 **Health Check** | `GET /health` readiness probe, `DynamicApiHealthModule` ⭐ *New* | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/health-check.md) |
 
 > [!NOTE]
 > **Key reminders:**

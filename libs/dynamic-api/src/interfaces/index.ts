@@ -22,3 +22,4 @@ export * from './dynamic-api-service-provider.interface';
 export * from './dynamic-api-swagger-options.type';
 export * from './dynamic-api-web-socket.interface';
 export * from './dynamic-api-presence.interface';
+export * from './dynamic-api-health-check.interface';
