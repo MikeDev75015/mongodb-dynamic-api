@@ -1,5 +1,5 @@
 import { Model } from 'mongoose';
-import { CallbackMethods, AfterSaveCallback, CallbackRetryOptions } from '../../interfaces';
+import { CallbackMethods, AfterSaveCallback, CallbackRetryOptions, PopulateConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseGetManyService } from './base-get-many.service';
 
@@ -17,6 +17,7 @@ type InternalService = {
   callback: AfterSaveCallback<TestEntity> | undefined;
   callbackRetry: CallbackRetryOptions | undefined;
   callbackMethods: CallbackMethods;
+  populate: PopulateConfig | undefined;
 };
 
 const internal = (svc: TestService) => svc as unknown as InternalService;
@@ -102,6 +103,25 @@ describe('BaseGetManyService', () => {
       await service.getMany();
 
       expect(callback).toHaveBeenCalledTimes(2);
+    });
+
+    it('should populate the query when populate is configured', async () => {
+      const exec = jest.fn().mockResolvedValueOnce(response);
+      const findQueryMock: { populate: jest.Mock; lean: jest.Mock } = {
+        populate: jest.fn(),
+        lean: jest.fn(() => ({ exec })),
+      };
+      findQueryMock.populate.mockReturnValue(findQueryMock);
+      modelMock = {
+        find: jest.fn(() => findQueryMock),
+      } as unknown as Model<TestEntity>;
+      service = new TestService(modelMock);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      internal(service).populate = ['author', 'comments'];
+
+      await service.getMany();
+
+      expect(findQueryMock.populate).toHaveBeenCalledWith(['author', 'comments']);
     });
 
     it('should filter documents when predicateBehavior is filter and abilityPredicate rejects some', async () => {

@@ -2,7 +2,7 @@ import { DynamicModule, Module, ModuleMetadata, Type, ValidationPipeOptions } fr
 import { GatewayMetadata } from '@nestjs/websockets';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { getDisplayedName, initializeConfigFromOptions } from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiWebSocketOptions } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicApiWebSocketOptions, GetManyRouteConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { createGetManyController, createGetManyGateway, createGetManyServiceProvider } from './get-many.helper';
 
@@ -13,7 +13,7 @@ export class GetManyModule {
     databaseModule: DynamicModule,
     entity: Type<Entity>,
     controllerOptions: DynamicApiControllerOptions<Entity>,
-    routeConfig: DynamicAPIRouteConfig<Entity>,
+    routeConfig: GetManyRouteConfig<Entity>,
     version?: string,
     validationPipeOptions?: ValidationPipeOptions,
     webSocket?: DynamicApiWebSocketOptions,
@@ -38,6 +38,7 @@ export class GetManyModule {
       { callback: routeConfig.callback, retry: routeConfig.callbackRetry },
       routeConfig.abilityPredicate,
       routeConfig.predicateBehavior,
+      routeConfig.populate,
     );
 
     const gatewayOptions = webSocket

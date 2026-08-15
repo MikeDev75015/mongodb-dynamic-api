@@ -1,6 +1,6 @@
 import { DynamicModule, ValidationPipeOptions } from '@nestjs/common';
 import * as Helpers from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicAPIServiceProvider, GetManyRouteConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import * as GetManyHelpers from './get-many.helper';
 import { GetManyModule } from './get-many.module';
@@ -22,7 +22,7 @@ describe('GetManyModule', () => {
   const routeConfigCallback = jest.fn();
   const databaseModule = { module: 'databaseModule' } as unknown as DynamicModule;
   const controllerOptions: DynamicApiControllerOptions<Entity> = { path: 'fakePath' };
-  const routeConfig: DynamicAPIRouteConfig<Entity> = { type: 'GetMany', callback: routeConfigCallback };
+  const routeConfig: GetManyRouteConfig<Entity> = { type: 'GetMany', callback: routeConfigCallback };
   const version = 'fakeVersion';
   const validationPipeOptions: ValidationPipeOptions = { transform: true };
   const fakeDisplayedName = 'FakeDisplayedName';
@@ -50,7 +50,21 @@ describe('GetManyModule', () => {
       expect(spyCreateGetManyController)
       .toHaveBeenCalledWith(Entity, fakeDisplayedName, controllerOptions, routeConfig, version, validationPipeOptions);
       expect(spyCreateGetManyServiceProvider)
-      .toHaveBeenCalledWith(Entity, fakeDisplayedName, version, { callback: routeConfigCallback, retry: routeConfig.callbackRetry }, undefined, undefined);
+      .toHaveBeenCalledWith(
+        Entity, fakeDisplayedName, version,
+        { callback: routeConfigCallback, retry: routeConfig.callbackRetry }, undefined, undefined, routeConfig.populate,
+      );
+    });
+
+    it('should forward populate from the route config to createGetManyServiceProvider', () => {
+      const routeConfigWithPopulate: GetManyRouteConfig<Entity> = { type: 'GetMany', populate: ['author', 'comments'] };
+
+      GetManyModule.forFeature(databaseModule, Entity, controllerOptions, routeConfigWithPopulate, version, validationPipeOptions);
+
+      expect(spyCreateGetManyServiceProvider)
+      .toHaveBeenCalledWith(
+        Entity, fakeDisplayedName, version, { callback: undefined, retry: undefined }, undefined, undefined, ['author', 'comments'],
+      );
     });
 
     it('should return a DynamicModule with gateway', () => {
@@ -74,7 +88,10 @@ describe('GetManyModule', () => {
       expect(spyCreateGetManyController)
       .toHaveBeenCalledWith(Entity, fakeDisplayedName, controllerOptions, routeConfig, version, validationPipeOptions);
       expect(spyCreateGetManyServiceProvider)
-      .toHaveBeenCalledWith(Entity, fakeDisplayedName, version, { callback: routeConfigCallback, retry: routeConfig.callbackRetry }, undefined, undefined);
+      .toHaveBeenCalledWith(
+        Entity, fakeDisplayedName, version,
+        { callback: routeConfigCallback, retry: routeConfig.callbackRetry }, undefined, undefined, routeConfig.populate,
+      );
       expect(spyCreateGetManyGateway)
       .toHaveBeenCalledWith(
         Entity,
