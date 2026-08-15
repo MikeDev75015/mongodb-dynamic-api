@@ -77,6 +77,7 @@ The value must be exactly one of `DEBUG`, `INFO`, `WARN`, `ERROR` (case-sensitiv
 | `SocketAdapter` (`adapters/socket-adapter.ts`) | `SocketAdapter` | Connection accept/reject and JWT verification traces. |
 | `JwtSocketGuard`, `JwtSocketAuthGuard`, `JwtSocketRefreshGuard` | matches the class name | WebSocket JWT verification failures. |
 | `DynamicApiBroadcastGateway` (`gateways/dynamic-api-broadcast.gateway.ts`) | `DynamicApiBroadcastGateway` | `join-rooms` / `leave-rooms` traces (also gated by WS `debug: true`). |
+| `DynamicApiJwtAuthGuard` (`guards/dynamic-api-jwt-auth.guard.ts`) | `DynamicApiJwtAuthGuard` | `Request rejected: <reason>` — the real reason an HTTP request was denied (missing token, invalid signature, expired token, …), never exposed in the client-facing 401 response. This guard is global (see [Authentication → Application-wide scope](./authentication.md#quick-start)), so this line can come from *any* controller, not just DynamicAPI routes. |
 | `AuthService` (`modules/auth/services/base-auth.service.ts`) | `AuthService` | Login/register/refresh-token flow traces. |
 | `PresenceGateway` (`modules/presence/`) | `PresenceGateway` | Online/offline tracking traces — see [Presence](./presence.md). |
 
@@ -91,6 +92,9 @@ Set `MONGODB_DYNAMIC_API_LOGGER=WARN` (or `ERROR`) and look for `[AfterSaveCallb
 
 **"My WebSocket broadcast never reaches clients."**
 First check for a `[Broadcast Registry] Event name collision` warning at startup — two routes might be emitting on the same event name. Then set `MONGODB_DYNAMIC_API_LOGGER=WARN` and look for `[Broadcast] Failed to emit` / `[WS] Failed to emit`.
+
+**"I'm getting a 401 `Unauthorized` and I don't know why — the token looks fine to me."**
+Set `MONGODB_DYNAMIC_API_LOGGER=WARN` and look for `[DynamicApiJwtAuthGuard] Request rejected: …` — the message tells you exactly why (expired, bad signature, missing token, …). Remember the guard is global once `useAuth` is configured — see [Authentication → Application-wide scope](./authentication.md#quick-start) — so this can fire on a hand-written controller too, not just DynamicAPI routes.
 
 **"I need to see every WebSocket connection and room join/leave."**
 That's the *other* switch — `enableDynamicAPIWebSockets(app, { debug: true })` — not this env var. See [WebSockets → Debug Mode](./websockets.md#debug-mode).
