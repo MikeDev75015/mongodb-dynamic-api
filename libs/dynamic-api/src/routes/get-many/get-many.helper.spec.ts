@@ -25,6 +25,16 @@ describe('GetManyHelper', () => {
       expect(provide).toBe(`GetMany${displayedName}V1Service`);
       expect(useClass.name).toBe(`GetMany${displayedName}V1Service`);
       expect(service.entity).toBe(entity);
+      expect(service.populate).toBeUndefined();
+    });
+
+    it('should pass populate through to the service', () => {
+      const { useClass } = createGetManyServiceProvider(
+        entity, displayedName, '1', undefined, undefined, undefined, ['author', 'comments'],
+      );
+      const service = new useClass(model);
+
+      expect(service.populate).toStrictEqual(['author', 'comments']);
     });
   });
 

@@ -19,12 +19,20 @@ describe('GetOneHelper', () => {
 
   describe('createGetOneServiceProvider', () => {
     it('should return GetOne provider', () => {
-      const { provide, useClass } = createGetOneServiceProvider(entity, displayedName, '1', undefined);
+      const { provide, useClass } = createGetOneServiceProvider(entity, displayedName, '1', undefined, undefined);
       const service = new useClass(model);
 
       expect(provide).toBe(`GetOne${displayedName}V1Service`);
       expect(useClass.name).toBe(`GetOne${displayedName}V1Service`);
       expect(service.entity).toBe(entity);
+      expect(service.populate).toBeUndefined();
+    });
+
+    it('should pass populate through to the service', () => {
+      const { useClass } = createGetOneServiceProvider(entity, displayedName, '1', undefined, 'author');
+      const service = new useClass(model);
+
+      expect(service.populate).toBe('author');
     });
   });
 

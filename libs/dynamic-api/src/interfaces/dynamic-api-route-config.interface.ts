@@ -1,4 +1,5 @@
 import { NestInterceptor, Type, ValidationPipeOptions } from '@nestjs/common';
+import { PopulateOptions } from 'mongoose';
 import { BaseEntity } from '../models';
 import { AbilityPredicate, PredicateBehavior } from './dynamic-api-ability.interface';
 import { BroadcastConfig } from './dynamic-api-broadcast-config.interface';
@@ -197,14 +198,37 @@ interface DeleteManyRouteConfig<Entity extends BaseEntity> extends BaseRouteConf
   cascade?: CascadeConfig[];
 }
 
-/** Route config for `GetOne` — no `beforeSaveCallback`. */
+/**
+ * Populate configuration for `GetOne`/`GetMany` — the same shape Mongoose's own
+ * `Query.populate()` accepts: a path, a `PopulateOptions` object, or an array of either.
+ *
+ * @example
+ * ```typescript
+ * populate: 'author'
+ * populate: { path: 'author', select: 'name email' }
+ * populate: ['author', { path: 'comments', populate: 'author' }]
+ * ```
+ */
+type PopulateConfig = string | PopulateOptions | (string | PopulateOptions)[];
+
+/**
+ * Route config for `GetOne` — no `beforeSaveCallback`.
+ * `populate` is always applied server-side (static, not client-controlled) to avoid
+ * exposing arbitrary relations/performance cost through the request.
+ */
 interface GetOneRouteConfig<Entity extends BaseEntity> extends BaseRouteConfig<Entity> {
   type: 'GetOne';
+  populate?: PopulateConfig;
 }
 
-/** Route config for `GetMany` — no `beforeSaveCallback`. */
+/**
+ * Route config for `GetMany` — no `beforeSaveCallback`.
+ * `populate` is always applied server-side (static, not client-controlled) to avoid
+ * exposing arbitrary relations/performance cost through the request.
+ */
 interface GetManyRouteConfig<Entity extends BaseEntity> extends BaseRouteConfig<Entity> {
   type: 'GetMany';
+  populate?: PopulateConfig;
 }
 
 /** Route config for `Aggregate` — no `beforeSaveCallback`. */
@@ -361,6 +385,7 @@ export {
   DeleteManyRouteConfig,
   GetOneRouteConfig,
   GetManyRouteConfig,
+  PopulateConfig,
   AggregateRouteConfig,
   CustomOperationRouteConfig,
   DynamicApiRouteConfig,

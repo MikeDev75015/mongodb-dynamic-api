@@ -40,6 +40,7 @@ Each route in `DynamicApiModule.forFeature` can be finely configured through the
   - [version](#version)
   - [subPath](#subpath)
   - [validationPipeOptions](#validationpipeoptions)
+  - [populate](#populate) ⭐ *New*
   - [abilityPredicate](#abilitypredicate)
   - [predicateBehavior](#predicatebehavior)
   - [isArrayResponse](#isarrayresponse)
@@ -96,6 +97,9 @@ interface DynamicAPIRouteConfig<Entity extends BaseEntity> {
   subPath?: string;                                       // Additional path segment
   validationPipeOptions?: ValidationPipeOptions;          // Validation pipe configuration
   isArrayResponse?: boolean;                              // Force array response shape
+
+  // Relations (GetOne / GetMany only)
+  populate?: string | PopulateOptions | (string | PopulateOptions)[];
 
   // Authorization
   abilityPredicate?: (entity: Entity, user: any) => boolean;
@@ -935,6 +939,34 @@ routes: [
   },
 ]
 ```
+
+---
+
+### populate
+
+Populates related documents on **`GetOne`** and **`GetMany`** routes, using the same syntax Mongoose's own `Query.populate()` accepts. Applied **server-side and unconditionally** — it's part of the route's static configuration, not something the client can request or override via a query parameter (no `?populate=...`). That's a deliberate choice: an always-on, server-controlled `populate` can't be abused to pull in arbitrary/expensive relations the client wasn't meant to request.
+
+```typescript
+routes: [
+  {
+    type: 'GetOne',
+    populate: 'author', // bare path
+  },
+  {
+    type: 'GetMany',
+    populate: { path: 'author', select: 'name email' }, // PopulateOptions object
+  },
+  {
+    type: 'GetOne',
+    subPath: 'with-comments',
+    populate: ['author', { path: 'comments', populate: 'author' }], // array, nested populate
+  },
+]
+```
+
+> **Scope:** `GetOne` and `GetMany` only (HTTP and WebSocket — both transports share the same underlying service, so `populate` applies to both automatically). No effect on other route types.
+
+> **Swagger note:** the generated OpenAPI schema still reflects the entity's raw shape (e.g. `author` typed as a string id) — it does not currently expand to the populated document's shape. The response body itself is populated correctly at runtime; only the Swagger documentation doesn't (yet) reflect it.
 
 ---
 

@@ -1,5 +1,5 @@
-import { Model } from 'mongoose';
-import { AfterSaveCallback, CallbackRetryOptions } from '../../interfaces';
+import { Model, PopulateOptions } from 'mongoose';
+import { AfterSaveCallback, CallbackRetryOptions, PopulateConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseService } from '../../services';
 import { GetOneService } from './get-one-service.interface';
@@ -9,6 +9,7 @@ export abstract class BaseGetOneService<Entity extends BaseEntity>
   implements GetOneService<Entity> {
   protected readonly callback: AfterSaveCallback<Entity> | undefined;
   protected readonly callbackRetry: CallbackRetryOptions | undefined;
+  protected readonly populate: PopulateConfig | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
     super(model);
@@ -16,13 +17,21 @@ export abstract class BaseGetOneService<Entity extends BaseEntity>
 
   async getOne(id: string, user?: unknown): Promise<Entity> {
     try {
-      const document = await this.model
-      .findOne({
+      const query = this.model.findOne({
         _id: id,
         ...(
           this.isSoftDeletable ? { isDeleted: false } : undefined
         ),
-      })
+      });
+
+      if (this.populate) {
+        // Mongoose's `populate()` overloads don't jointly cover a bare-string-or-array-or-object
+        // union in one signature — cast to the (structurally equivalent, more permissive)
+        // "options" overload; Mongoose itself normalizes a bare string identically at runtime.
+        query.populate(this.populate as PopulateOptions | (string | PopulateOptions)[]);
+      }
+
+      const document = await query
       .lean<Entity>()
       .exec();
 
