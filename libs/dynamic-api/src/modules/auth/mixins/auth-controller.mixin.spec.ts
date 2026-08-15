@@ -906,5 +906,70 @@ describe('AuthControllerMixin', () => {
       ]);
     });
   });
+
+  describe('rateLimit', () => {
+    // Mirrors @nestjs/common's GUARDS_METADATA and @nestjs/throttler's THROTTLER_LIMIT/TTL
+    // constants — see decorators/rate-limit.decorator.spec.ts for why these are hardcoded.
+    const GUARDS_METADATA = '__guards__';
+    const THROTTLER_LIMIT_DEFAULT = 'THROTTLER:LIMITdefault';
+    const THROTTLER_TTL_DEFAULT = 'THROTTLER:TTLdefault';
+
+    const isThrottled = (method: (...args: unknown[]) => unknown, expected?: { limit: number; ttl: number }) => {
+      if (!expected) {
+        expect(Reflect.getMetadata(THROTTLER_LIMIT_DEFAULT, method)).toBeUndefined();
+        return;
+      }
+      expect(Reflect.getMetadata(GUARDS_METADATA, method)).toBeDefined();
+      expect(Reflect.getMetadata(THROTTLER_LIMIT_DEFAULT, method)).toBe(expected.limit);
+      expect(Reflect.getMetadata(THROTTLER_TTL_DEFAULT, method)).toBe(expected.ttl);
+    };
+
+    it('should not throttle any route when no rateLimit option is configured', () => {
+      const AuthController = AuthControllerMixin(
+        TestEntity,
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' } },
+      );
+
+      isThrottled(AuthController.prototype.login);
+      isThrottled(AuthController.prototype.register);
+      isThrottled(AuthController.prototype.refreshToken);
+      isThrottled(AuthController.prototype.resetPassword);
+      isThrottled(AuthController.prototype.changePassword);
+      isThrottled(AuthController.prototype.sendOtpCode);
+      isThrottled(AuthController.prototype.verifyOtpCode);
+    });
+
+    it('should apply rateLimit independently to each configured route', () => {
+      const AuthController = AuthControllerMixin(
+        TestEntity,
+        {
+          loginOptions: {
+            loginField: 'loginField',
+            passwordField: 'passwordField',
+            rateLimit: { limit: 5, ttl: 60000 },
+          },
+          registerOptions: { rateLimit: { limit: 3, ttl: 60000 } },
+          refreshTokenOptions: { rateLimit: { limit: 10, ttl: 60000 } },
+          resetPasswordOptions: {
+            rateLimit: { limit: 3, ttl: 3600000 },
+            changePasswordRateLimit: { limit: 3, ttl: 3600000 },
+          },
+          passwordlessOptions: {
+            sendCodeCallback: jest.fn(),
+            sendCodeRateLimit: { limit: 3, ttl: 60000 },
+            verifyCodeRateLimit: { limit: 5, ttl: 60000 },
+          },
+        },
+      );
+
+      isThrottled(AuthController.prototype.login, { limit: 5, ttl: 60000 });
+      isThrottled(AuthController.prototype.register, { limit: 3, ttl: 60000 });
+      isThrottled(AuthController.prototype.refreshToken, { limit: 10, ttl: 60000 });
+      isThrottled(AuthController.prototype.resetPassword, { limit: 3, ttl: 3600000 });
+      isThrottled(AuthController.prototype.changePassword, { limit: 3, ttl: 3600000 });
+      isThrottled(AuthController.prototype.sendOtpCode, { limit: 3, ttl: 60000 });
+      isThrottled(AuthController.prototype.verifyOtpCode, { limit: 5, ttl: 60000 });
+    });
+  });
 });
 
