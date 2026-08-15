@@ -256,7 +256,7 @@ Register `UsersModule` in `AppModule`, run `npm run start:dev` — your API is l
 |:--------|:------------|:-----:|
 | 🗂️ **Entities** | `BaseEntity`, `SoftDeletableEntity`, timestamps, JSON transform | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/entities.md) |
 | 🗃️ **Schema Options** | Indexes, lifecycle hooks, custom schema initialization | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/schema-options.md) |
-| 🔐 **Authentication** | Dual-token JWT, 8 endpoints, cookie mode, revocation, OTP ⭐ | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/authentication.md) |
+| 🔐 **Authentication** | Dual-token JWT, 8 endpoints, cookie mode, revocation, OTP, per-route rate limiting ⭐ | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/authentication.md) |
 | 🛡️ **Authorization** | Ability predicates, `filter` vs `throw` mode | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/authorization.md) |
 | ⚡ **Caching** | Global cache, auto-purge endpoint, `disableCache` option ⭐ | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/caching.md) |
 | ✅ **Validation** | `class-validator`, global + per-route `ValidationPipe`, DB-aware `@IsUnique`/`@EntityExists` ⭐ | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/validation.md) |

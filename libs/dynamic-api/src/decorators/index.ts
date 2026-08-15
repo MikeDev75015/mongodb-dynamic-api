@@ -5,5 +5,6 @@ export * from './entity-exists.decorator';
 export * from './is-unique.decorator';
 export * from './protected-field.decorator';
 export * from './public.decorator';
+export * from './rate-limit.decorator';
 export * from './schema-options.decorator';
 export * from './validator-pipe.decorator';
