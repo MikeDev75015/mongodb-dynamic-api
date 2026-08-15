@@ -2,6 +2,7 @@ export * from './controller-ability-predicates.helper';
 export * from './format.helper';
 export * from './from-user.helper';
 export * from './lodash.helper';
+export * from './mint-token-pair.helper';
 export * from './mixin-data.helper';
 export * from './mongoose-cast-error.helper';
 export * from './predicate-identifier.helper';

@@ -253,6 +253,8 @@ describe('DynamicApiModule forRoot - Websockets Authentication Basic (e2e)', () 
           jwtRefreshUseCookie: false,
           onAfterSaveError: undefined,
           refreshTokenOnUpdate: false,
+          refreshTokenField: undefined,
+          additionalRequestFields: [],
           jwtSecret: 'test-secret',
           routesConfig: {
             defaults: [

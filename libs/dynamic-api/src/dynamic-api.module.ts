@@ -336,6 +336,10 @@ export class DynamicApiModule {
           jwtRefreshSecret: useAuth.jwt?.refreshSecret,
           jwtRefreshUseCookie: useAuth.refreshToken?.useCookie ?? false,
           refreshTokenOnUpdate: useAuth.updateAccount?.refreshTokenOnUpdate ?? false,
+          refreshTokenField: useAuth.refreshToken?.refreshTokenField
+            ? String(useAuth.refreshToken.refreshTokenField)
+            : undefined,
+          additionalRequestFields: (useAuth.login?.additionalFields ?? []).map(String),
           gatewayOptions: initializeConfigFromOptions(webSocket),
         } : {}
       ),
