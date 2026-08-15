@@ -1,6 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { Model } from 'mongoose';
-import { CallbackMethods, AfterSaveCallback, CallbackRetryOptions } from '../../interfaces';
+import { CallbackMethods, AfterSaveCallback, CallbackRetryOptions, PopulateConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseGetOneService } from './base-get-one.service';
 
@@ -18,6 +18,7 @@ type InternalService = {
   callback: AfterSaveCallback<TestEntity> | undefined;
   callbackRetry: CallbackRetryOptions | undefined;
   callbackMethods: CallbackMethods;
+  populate: PopulateConfig | undefined;
 };
 
 const internal = (svc: TestService) => svc as unknown as InternalService;
@@ -106,6 +107,25 @@ describe('BaseGetOneService', () => {
       await service.getOne('ObjectId');
 
       expect(callback).toHaveBeenCalledTimes(2);
+    });
+
+    it('should populate the query when populate is configured', async () => {
+      const exec = jest.fn().mockResolvedValueOnce(response);
+      const queryMock: { populate: jest.Mock; lean: jest.Mock } = {
+        populate: jest.fn(),
+        lean: jest.fn(() => ({ exec })),
+      };
+      queryMock.populate.mockReturnValue(queryMock);
+      modelMock = {
+        findOne: jest.fn(() => queryMock),
+      } as unknown as Model<TestEntity>;
+      service = new TestService(modelMock);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      internal(service).populate = 'author';
+
+      await service.getOne('ObjectId');
+
+      expect(queryMock.populate).toHaveBeenCalledWith('author');
     });
 
     it('should throw error if document not found', async () => {

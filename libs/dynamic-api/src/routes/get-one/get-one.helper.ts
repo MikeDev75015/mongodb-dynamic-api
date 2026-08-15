@@ -20,6 +20,7 @@ import {
   AfterSaveCallbackConfig,
   DynamicAPIServiceProvider,
   GatewayOptions,
+  PopulateConfig,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseGetOneService } from './base-get-one.service';
@@ -34,11 +35,13 @@ function createGetOneServiceProvider<Entity extends BaseEntity>(
   displayedName: string,
   version: string | undefined,
   afterSave: AfterSaveCallbackConfig<Entity> | undefined,
+  populate: PopulateConfig | undefined,
 ): DynamicAPIServiceProvider {
   class GetOneService extends BaseGetOneService<Entity> {
     protected readonly entity = entity;
     protected readonly callback = afterSave?.callback;
     protected readonly callbackRetry = afterSave?.retry;
+    protected readonly populate = populate;
 
     constructor(
       @InjectModel(

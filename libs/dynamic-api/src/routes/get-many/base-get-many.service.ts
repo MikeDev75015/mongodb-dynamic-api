@@ -1,5 +1,11 @@
-import { Model } from 'mongoose';
-import { AbilityPredicate, AfterSaveCallback, CallbackRetryOptions, PredicateBehavior } from '../../interfaces';
+import { Model, PopulateOptions } from 'mongoose';
+import {
+  AbilityPredicate,
+  AfterSaveCallback,
+  CallbackRetryOptions,
+  PopulateConfig,
+  PredicateBehavior,
+} from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseService } from '../../services';
 import { GetManyService } from './get-many-service.interface';
@@ -11,21 +17,28 @@ export abstract class BaseGetManyService<Entity extends BaseEntity>
   protected readonly callbackRetry: CallbackRetryOptions | undefined;
   protected readonly abilityPredicate: AbilityPredicate<Entity> | undefined;
   protected readonly predicateBehavior: PredicateBehavior | undefined;
+  protected readonly populate: PopulateConfig | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
     super(model);
   }
 
   async getMany(query?: object, user?: unknown): Promise<Entity[]> {
-    const documents = await this.model
-    .find({
+    const findQuery = this.model.find({
       ...(
         this.isSoftDeletable ? { isDeleted: false } : {}
       ),
       ...(
         query ?? {}
       ),
-    })
+    });
+
+    if (this.populate) {
+      // See BaseGetOneService.getOne for why this cast is needed.
+      findQuery.populate(this.populate as PopulateOptions | (string | PopulateOptions)[]);
+    }
+
+    const documents = await findQuery
     .lean<Entity[]>()
     .exec();
 
