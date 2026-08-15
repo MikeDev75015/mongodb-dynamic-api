@@ -2164,13 +2164,13 @@ export class User extends BaseEntity {
 - ✅ Always call `POST /auth/logout` on sign-out to invalidate the stored hash
 - ✅ Use strong, random secrets for both `secret` and `refreshSecret`
 
-### 5. Rate Limiting
+### 5. Rate Limiting ⭐ *New*
 
-Protect authentication endpoints from brute force attacks using NestJS Throttler.
+Protect the generated auth routes from brute force. MDA can wire per-route throttling for you — you don't need to build a custom guard just to protect `/auth/login` while leaving other routes untouched.
 
-> **Note:** Rate limiting requires the optional `@nestjs/throttler` package:
+> **Note:** Requires the optional `@nestjs/throttler` package, **and** `ThrottlerModule` still imported in your own `AppModule` (MDA wires the per-route guard/limits, not the global throttler storage):
 > ```bash
-> npm install --save @nestjs/throttler
+> npm install @nestjs/throttler
 > ```
 
 ```typescript
@@ -2178,17 +2178,52 @@ import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
-    ThrottlerModule.forRoot({
-      ttl: 60,
-      limit: 10,
-    }),
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]), // still required — global storage/options
     DynamicApiModule.forRoot('mongodb-uri', {
-      useAuth: { userEntity: User },
+      useAuth: {
+        userEntity: User,
+        login: {
+          rateLimit: { limit: 5, ttl: 60000 }, // 5 attempts / 60s on POST /auth/login
+        },
+        register: {
+          rateLimit: { limit: 3, ttl: 60000 },
+        },
+        refreshToken: {
+          rateLimit: { limit: 10, ttl: 60000 },
+        },
+        resetPassword: {
+          rateLimit: { limit: 3, ttl: 3600000 },            // POST /auth/reset-password
+          changePasswordRateLimit: { limit: 3, ttl: 3600000 }, // PATCH /auth/change-password
+        },
+        passwordless: {
+          sendCodeCallback: async (identifier, code) => { /* ... */ },
+          sendCodeRateLimit: { limit: 3, ttl: 60000 },     // POST /auth/passwordless/send-code
+          verifyCodeRateLimit: { limit: 5, ttl: 60000 },   // POST /auth/passwordless/verify-code
+        },
+      },
     }),
   ],
 })
 export class AppModule {}
 ```
+
+Each `rateLimit`/`*RateLimit` option is independent and optional — set only the routes you want throttled. `{ limit, ttl }` maps 1:1 onto `@nestjs/throttler`'s own `@Throttle({ default: { limit, ttl } })` (`ttl` in **milliseconds**); an optional `blockDuration` (also ms) is forwarded as-is.
+
+| Option | Route |
+|---|---|
+| `login.rateLimit` | `POST /auth/login` |
+| `register.rateLimit` | `POST /auth/register` |
+| `refreshToken.rateLimit` | `POST /auth/refresh-token` |
+| `resetPassword.rateLimit` | `POST /auth/reset-password` |
+| `resetPassword.changePasswordRateLimit` | `PATCH /auth/change-password` |
+| `passwordless.sendCodeRateLimit` | `POST /auth/passwordless/send-code` |
+| `passwordless.verifyCodeRateLimit` | `POST /auth/passwordless/verify-code` |
+
+> **The throttle check runs before credential validation.** Requests are counted (and can hit `429 Too Many Requests`) regardless of whether the credentials turn out to be valid — exactly what you want for brute-force protection, since it stops the attempt before any password comparison happens.
+
+> **Missing package:** if you set a `rateLimit` option without installing `@nestjs/throttler`, boot fails with an actionable error naming the missing package — not a raw module-not-found stack trace.
+
+> Still want a single blanket limit across the whole app instead? `ThrottlerModule.forRoot([{ ttl, limit }])` + `{ provide: APP_GUARD, useClass: ThrottlerGuard }` (the plain NestJS pattern, no `rateLimit` options needed) remains a valid alternative — the two approaches can also be combined (global default + a stricter per-route override).
 
 ---
 
@@ -2276,10 +2311,7 @@ import { User } from './users/user.entity';
 @Module({
   imports: [
     ConfigModule.forRoot(),
-    ThrottlerModule.forRoot({ // Optional: for rate limiting
-      ttl: 60,
-      limit: 10,
-    }),
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]), // Optional: for rate limiting (see login.rateLimit below)
     DynamicApiModule.forRoot(process.env.MONGODB_URI, {
       useAuth: {
         userEntity: User,
@@ -2298,6 +2330,7 @@ import { User } from './users/user.entity';
           loginField: 'email',
           passwordField: 'password',
           additionalFields: ['role', 'isActive', 'name'],
+          rateLimit: { limit: 5, ttl: 60000 }, // 5 attempts / 60s — see Rate Limiting below
         },
         register: {
           additionalFields: [

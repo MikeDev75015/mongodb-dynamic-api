@@ -9,6 +9,7 @@ import {
   BeforeSaveCallback,
   AfterSaveCallback,
   DynamicApiWebSocketOptions,
+  RateLimitConfig,
 } from '../../../interfaces';
 import { BaseEntity } from '../../../models';
 
@@ -45,6 +46,12 @@ type DynamicApiLoginOptions<Entity extends BaseEntity = any> = {
    * If provided, this class is registered as-is under the `local` Passport strategy name.
    */
   useStrategy?: Type<any>;
+  /**
+   * Rate-limits `POST /auth/login`. Requires the optional `@nestjs/throttler` package to be
+   * installed and `ThrottlerModule` to be imported in your `AppModule` — see
+   * [Rate Limiting](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/authentication.md#rate-limiting).
+   */
+  rateLimit?: RateLimitConfig;
 }
 
 type DynamicApiGetAccountOptions<Entity extends BaseEntity = any> = {
@@ -82,6 +89,8 @@ type DynamicApiRegisterOptions<Entity extends BaseEntity = any, TExtra = Record<
   additionalFields?: (keyof (Entity & TExtra) | { name: keyof (Entity & TExtra); required?: boolean })[];
   useInterceptors?: Type<NestInterceptor>[];
   broadcast?: DynamicApiAuthBroadcastConfig<Entity>;
+  /** Rate-limits `POST /auth/register`. See {@link DynamicApiLoginOptions.rateLimit}. */
+  rateLimit?: RateLimitConfig;
 };
 
 type DynamicApiUpdateAccountOptions<Entity extends BaseEntity = any> = {
@@ -108,6 +117,10 @@ type DynamicApiResetPasswordOptions<Entity extends BaseEntity = any> = {
   changePasswordCallback?: AfterSaveCallback<Entity>;
   changePasswordAbilityPredicate?: AuthAbilityPredicate;
   changePasswordUseInterceptors?: Type<NestInterceptor>[];
+  /** Rate-limits `POST /auth/reset-password`. See {@link DynamicApiLoginOptions.rateLimit}. */
+  rateLimit?: RateLimitConfig;
+  /** Rate-limits `PATCH /auth/change-password`. See {@link DynamicApiLoginOptions.rateLimit}. */
+  changePasswordRateLimit?: RateLimitConfig;
 };
 
 type DynamicApiRefreshTokenOptions<Entity extends BaseEntity = any> = {
@@ -143,6 +156,8 @@ type DynamicApiRefreshTokenOptions<Entity extends BaseEntity = any> = {
    * Recommended value: 5000–15000 (5 s – 15 s).
    */
   reuseWindowMs?: number;
+  /** Rate-limits `POST /auth/refresh-token`. See {@link DynamicApiLoginOptions.rateLimit}. */
+  rateLimit?: RateLimitConfig;
 };
 
 type PasswordlessOptions<Entity extends BaseEntity = any> = {
@@ -168,6 +183,10 @@ type PasswordlessOptions<Entity extends BaseEntity = any> = {
    * Receives the authenticated entity.
    */
   callback?: AfterSaveCallback<Entity>;
+  /** Rate-limits `POST /auth/passwordless/send-code`. See {@link DynamicApiLoginOptions.rateLimit}. */
+  sendCodeRateLimit?: RateLimitConfig;
+  /** Rate-limits `POST /auth/passwordless/verify-code`. See {@link DynamicApiLoginOptions.rateLimit}. */
+  verifyCodeRateLimit?: RateLimitConfig;
 };
 
 type DynamicApiAuthOptions<Entity extends BaseEntity = any, RegisterExtra = Record<never, never>> = {

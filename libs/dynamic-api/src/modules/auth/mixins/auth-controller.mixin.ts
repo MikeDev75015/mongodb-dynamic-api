@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiProperty, IntersectionType, PartialType, PickType } from '@nestjs/swagger';
 import { Response } from 'express';
 import { AuthDecoratorsBuilder } from '../../../builders';
-import { ApiEndpointVisibility, Public } from '../../../decorators';
+import { ApiEndpointVisibility, Public, RateLimit } from '../../../decorators';
 import { RouteDecoratorsHelper, stripBusinessValidators } from '../../../helpers';
 import { DynamicApiEventRegistryStore } from '../../../helpers/event-registry.store';
 import { EntityBodyMixin } from '../../../mixins';
@@ -47,6 +47,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
       additionalFields: additionalRequestFields = [],
       useInterceptors: loginUseInterceptors = [],
       broadcast: loginBroadcastConfig,
+      rateLimit: loginRateLimit,
     },
     registerOptions: {
       additionalFields: additionalRegisterFields,
@@ -54,10 +55,13 @@ function AuthControllerMixin<Entity extends BaseEntity>(
       abilityPredicate: registerAbilityPredicate,
       useInterceptors: registerUseInterceptors = [],
       broadcast: registerBroadcastConfig,
+      rateLimit: registerRateLimit,
     } = {},
     resetPasswordOptions: {
       resetPasswordUseInterceptors = [],
       changePasswordUseInterceptors = [],
+      rateLimit: resetPasswordRateLimit,
+      changePasswordRateLimit,
       ...resetPasswordOptions
     } = {},
     updateAccountOptions: {
@@ -73,6 +77,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     refreshTokenOptions: {
       useInterceptors: refreshTokenUseInterceptors = [],
       useCookie = false,
+      rateLimit: refreshTokenRateLimit,
     } = {},
     passwordlessOptions,
   }: AuthControllerMixinOptions<Entity>,
@@ -275,6 +280,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
 
     @ApiEndpointVisibility(!!resetPasswordOptions, Public())
     @UseGuards(new ResetPasswordGuard(!!resetPasswordOptions.emailField))
+    @RateLimit(changePasswordRateLimit)
     @HttpCode(HttpStatus.NO_CONTENT)
     @UseInterceptors(...changePasswordUseInterceptors)
     @Patch('change-password')
@@ -284,6 +290,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
 
     @Public()
     @UseGuards(LocalAuthGuard)
+    @RateLimit(loginRateLimit)
     @HttpCode(HttpStatus.OK)
     @ApiOkResponse({ type: AuthPresenter })
     @UseInterceptors(...loginUseInterceptors)
@@ -314,6 +321,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     }
 
     @RouteDecoratorsHelper(authRegisterDecorators)
+    @RateLimit(registerRateLimit)
     @HttpCode(HttpStatus.CREATED)
     @ApiCreatedResponse({ type: AuthPresenter })
     @UseInterceptors(...registerUseInterceptors)
@@ -346,6 +354,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
 
     @ApiEndpointVisibility(!!resetPasswordOptions, Public())
     @UseGuards(new ResetPasswordGuard(!!resetPasswordOptions.emailField))
+    @RateLimit(resetPasswordRateLimit)
     @HttpCode(HttpStatus.NO_CONTENT)
     @UseInterceptors(...resetPasswordUseInterceptors)
     @Post('reset-password')
@@ -404,6 +413,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     @Public()
     @ApiBearerAuth()
     @UseGuards(JwtRefreshGuard)
+    @RateLimit(refreshTokenRateLimit)
     @HttpCode(HttpStatus.OK)
     @ApiOkResponse({ type: AuthPresenter })
     @UseInterceptors(...refreshTokenUseInterceptors)
@@ -446,6 +456,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     @Public()
     @ApiEndpointVisibility(!!passwordlessOptions)
     @UseGuards(new PasswordlessGuard(!!passwordlessOptions))
+    @RateLimit(passwordlessOptions?.sendCodeRateLimit)
     @HttpCode(HttpStatus.NO_CONTENT)
     @Post('passwordless/send-code')
     sendOtpCode(@Body() { identifier }: SendOtpCodeDto): Promise<void> {
@@ -455,6 +466,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     @Public()
     @ApiEndpointVisibility(!!passwordlessOptions)
     @UseGuards(new PasswordlessGuard(!!passwordlessOptions))
+    @RateLimit(passwordlessOptions?.verifyCodeRateLimit)
     @HttpCode(HttpStatus.OK)
     @ApiOkResponse({ type: AuthPresenter })
     @Post('passwordless/verify-code')
