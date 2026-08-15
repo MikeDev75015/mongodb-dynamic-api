@@ -62,4 +62,78 @@ describe('DynamicApiJwtAuthGuard', () => {
     expect(guard.canActivate(context)).toBe(true);
     expect(spy).toHaveBeenCalledWith(context);
   });
+
+  describe('handleRequest', () => {
+    let superHandleRequestSpy: jest.SpyInstance;
+    let loggerWarnSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      superHandleRequestSpy = jest.spyOn(AuthGuard('jwt').prototype, 'handleRequest').mockImplementationOnce(
+        (err, user) => {
+          if (err || !user) {
+            throw err || new Error('Unauthorized');
+          }
+          return user;
+        },
+      );
+      loggerWarnSpy = jest.spyOn(guard['logger'], 'warn').mockImplementation(() => undefined);
+    });
+
+    it('should return the user without logging when authentication succeeds', () => {
+      const user = { id: '1' };
+
+      expect(guard.handleRequest(null, user, null, context)).toBe(user);
+      expect(loggerWarnSpy).not.toHaveBeenCalled();
+    });
+
+    it('should log the error message and rethrow when err is an Error instance', () => {
+      const error = new Error('jwt expired');
+
+      expect(() => guard.handleRequest(error, null, null, context)).toThrow(error);
+      expect(loggerWarnSpy).toHaveBeenCalledWith('Request rejected: jwt expired');
+    });
+
+    it('should log the info message when info is an Error instance', () => {
+      const info = new Error('No auth token');
+      superHandleRequestSpy.mockImplementationOnce(() => {
+        throw new Error('Unauthorized');
+      });
+
+      expect(() => guard.handleRequest(null, null, info, context)).toThrow();
+      expect(loggerWarnSpy).toHaveBeenCalledWith('Request rejected: No auth token');
+    });
+
+    it('should log the info name when info is an Error instance with an empty message', () => {
+      class TokenExpiredError extends Error {
+        constructor() {
+          super('');
+          this.name = 'TokenExpiredError';
+        }
+      }
+      superHandleRequestSpy.mockImplementationOnce(() => {
+        throw new Error('Unauthorized');
+      });
+
+      expect(() => guard.handleRequest(null, null, new TokenExpiredError(), context)).toThrow();
+      expect(loggerWarnSpy).toHaveBeenCalledWith('Request rejected: TokenExpiredError');
+    });
+
+    it('should log the info string when info has no message', () => {
+      superHandleRequestSpy.mockImplementationOnce(() => {
+        throw new Error('Unauthorized');
+      });
+
+      expect(() => guard.handleRequest(null, null, 'No auth token', context)).toThrow();
+      expect(loggerWarnSpy).toHaveBeenCalledWith('Request rejected: No auth token');
+    });
+
+    it('should log a generic reason when neither err nor info carry a message', () => {
+      superHandleRequestSpy.mockImplementationOnce(() => {
+        throw new Error('Unauthorized');
+      });
+
+      expect(() => guard.handleRequest(null, null, null, context)).toThrow();
+      expect(loggerWarnSpy).toHaveBeenCalledWith('Request rejected: missing or invalid token');
+    });
+  });
 });

@@ -320,6 +320,20 @@ describe('DynamicApiModule forRoot - Authentication API Basic (e2e)', () => {
         statusCode: 401,
       });
     });
+
+    it(
+      'should throw a generic unauthorized exception (never leaking the real rejection reason) if the token is malformed',
+      async () => {
+        const headers = { Authorization: 'Bearer not-a-jwt-at-all' };
+        const { body, status } = await server.get('/auth/account', { headers });
+
+        expect(status).toBe(401);
+        expect(body).toEqual({
+          message: 'Unauthorized',
+          statusCode: 401,
+        });
+      },
+    );
   });
 
   describe('useAuth with validation options', () => {
