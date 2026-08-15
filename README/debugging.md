@@ -80,6 +80,7 @@ The value must be exactly one of `DEBUG`, `INFO`, `WARN`, `ERROR` (case-sensitiv
 | `DynamicApiJwtAuthGuard` (`guards/dynamic-api-jwt-auth.guard.ts`) | `DynamicApiJwtAuthGuard` | `Request rejected: <reason>` — the real reason an HTTP request was denied (missing token, invalid signature, expired token, …), never exposed in the client-facing 401 response. This guard is global (see [Authentication → Application-wide scope](./authentication.md#quick-start)), so this line can come from *any* controller, not just DynamicAPI routes. |
 | `AuthService` (`modules/auth/services/base-auth.service.ts`) | `AuthService` | Login/register/refresh-token flow traces. |
 | `PresenceGateway` (`modules/presence/`) | `PresenceGateway` | Online/offline tracking traces — see [Presence](./presence.md). |
+| `enableDynamicAPIIndexSync` (`helpers/index-sync.helper.ts`) | `enableDynamicAPIIndexSync` | The actionable `E11000` message described in [Schema Options → Syncing Indexes Safely](./schema-options.md#syncing-indexes-safely-enabledynamicapiindexsync) — logged (and, unless `throwOnError: false`, also thrown) whenever a duplicate-key error is hit while building a unique index. |
 
 All of these are silent unless `MONGODB_DYNAMIC_API_LOGGER` is set to a level that includes the call's severity (see the table above) — most of the lines listed are `error`/`warn` calls, so `MONGODB_DYNAMIC_API_LOGGER=WARN` is usually enough to see them without the verbosity of `DEBUG`.
 

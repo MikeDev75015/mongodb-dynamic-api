@@ -9,6 +9,7 @@ Configure advanced Mongoose schema features using the `@DynamicAPISchemaOptions`
 ## 📋 Table of Contents
 
 - [Indexes](#indexes)
+  - [Syncing Indexes Safely (`enableDynamicAPIIndexSync`)](#syncing-indexes-safely-enabledynamicapiindexsync) ⭐ *New*
 - [Hooks](#hooks)
 - [Custom Initialization](#custom-initialization)
 - [Best Practices](#best-practices)
@@ -110,6 +111,58 @@ export class Session extends BaseEntity {
   expiresAt: Date;
 }
 ```
+
+---
+
+### Syncing Indexes Safely (`enableDynamicAPIIndexSync`)
+
+Adding a `unique` index to a field on an entity that already has documents in production is a classic trap: if any two existing documents both lack that field (or share the same value), MongoDB refuses to build the index and Mongoose surfaces a raw `E11000 duplicate key error` — often at boot, with no indication of *which* field or *why*.
+
+`enableDynamicAPIIndexSync(app)` syncs indexes for every registered entity explicitly (`model.syncIndexes()` under the hood) and turns that failure into an actionable message instead:
+
+```typescript
+// main.ts
+import { NestFactory } from '@nestjs/core';
+import { enableDynamicAPIIndexSync } from 'mongodb-dynamic-api';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+
+  await enableDynamicAPIIndexSync(app);
+
+  await app.listen(3000);
+}
+bootstrap();
+```
+
+If legacy documents violate the new index, the app fails to boot with a message like:
+
+```text
+[DynamicAPI] enableDynamicAPIIndexSync: failed to build a unique index on "users" (field "email") —
+existing documents already violate the uniqueness constraint. This is the classic case: legacy
+documents that predate the field don't have it (so it's absent/null on all of them, and MongoDB
+treats every one of those nulls as a duplicate of the others). Fix: scope the unique index to
+documents where the field actually exists — e.g. `@Prop({ unique: true, partialFilterExpression:
+{ email: { $exists: true } } })` — then re-run the sync. Original error: E11000 duplicate key error...
+```
+
+Applying the suggested fix:
+
+```typescript
+@Prop({ type: String, unique: true, partialFilterExpression: { email: { $exists: true } } })
+email?: string;
+```
+
+…scopes the unique constraint to documents that actually have the field, so legacy documents missing it no longer clash with each other.
+
+**Options**
+
+| Option | Default | Description |
+|---|---|---|
+| `throwOnError` | `true` | When `true`, a duplicate-key failure is logged then rethrown — boot fails loudly. Set to `false` to log the error and keep booting regardless (useful for a first deploy where you want the app up while you plan the data migration). |
+
+> **When a duplicate-value clash isn't the missing-field case** — e.g. two documents that both legitimately have `email: 'a@test.co'` — the message skips the `partialFilterExpression` suggestion and includes the original MongoDB error instead, since that's a real data conflict to resolve manually.
 
 ---
 
