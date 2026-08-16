@@ -1,5 +1,52 @@
 Changelog
 
+## [4.20.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.19.0...v4.20.0) (2026-08-16)
+
+### ci
+
+* **ci:** skip CI for the auto-generated release commit ([8b8e1e5](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/8b8e1e542af780a657ba480085b63e2cc53f9a88))
+* **ci:** stop e2e job from reusing a poisoned mongodb-memory-server binary cache ([fa03d8f](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/fa03d8f00c37a8f67fe936545e73aaa1295b25c0))
+* **ci:** stop npm publish from re-running a broken build inside dist/ ([2bcc32c](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/2bcc32c60e590c7e9eed4921ac848e4adb4a89c9))
+
+### quality
+
+* **quality:** replace cascade boolean-flag method with two methods (S2301) ([526f23b](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/526f23b4b6ce4362381c75b58d225575adeb2dfd))
+* **quality:** resolve 11 SonarCloud leak-period issues on develop ([aed6dda](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/aed6ddad3eeb3f5c40fef2d30973322d89303818))
+
+### schematics
+
+* **schematics:** add Nest CLI resource schematic ([978e9df](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/978e9dfb5a313565172c57de7e251c07dee2ad35))
+
+### routes
+
+* **routes:** add opt-in per-route audit log ([9321fec](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/9321fecad59fa34356f87946e88f7389d0662503))
+* **routes:** add populate to GetOne/GetMany route config ([d5462ef](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/d5462effb48651dff2554ac27ec255826460edb9))
+
+### cascade
+
+* **cascade:** wrap cascade deletes in a MongoDB transaction ([d3991aa](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/d3991aa9fb244acdea65eb8cf2a0bed98841cff4))
+
+### auth
+
+* **auth:** add mintTokenPair for issuing tokens outside /auth/login ([747392b](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/747392b16230d5ebc6d25d8d6db5464ed7903d4c))
+* **auth:** add per-route rate limiting for sensitive auth routes ([282c93c](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/282c93cf377baed45eca4df99253c64f5481f421))
+
+### testing
+
+* **testing:** add createDynamicApiTestingApp with in-memory MongoDB ([9fdd4e1](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/9fdd4e1e6a120e387d78a6870bfd27f21dff2230))
+
+### health
+
+* **health:** add DynamicApiHealthModule readiness probe ([1e96eb9](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/1e96eb948ae69fa8df0616c5f803b7fcfa1ee37d))
+
+### helpers
+
+* **helpers:** add enableDynamicAPIIndexSync with actionable E11000 errors ([cb756c8](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/cb756c877bd9dfdcd81fc99d9601894e4a9843d5))
+
+### guards
+
+* **guards:** log the real rejection reason of DynamicApiJwtAuthGuard ([a609b27](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/a609b270d38269f3e1984ae24ae430e3072d9d65))
+
 ## [4.19.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.17.0...v4.19.0) (2026-08-16)
 
 ### quality
