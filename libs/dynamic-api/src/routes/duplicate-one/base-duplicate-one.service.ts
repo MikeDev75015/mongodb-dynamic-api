@@ -73,7 +73,7 @@ export abstract class BaseDuplicateOneService<Entity extends BaseEntity>
 
       if (this.auditLog) {
         await this.writeAuditLog(
-          'duplicate', _id.toString(), null, document as Record<string, unknown>, user,
+          'duplicate', (_id as { toString(): string }).toString(), null, document as Record<string, unknown>, user,
         );
       }
 

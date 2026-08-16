@@ -90,7 +90,11 @@ export abstract class BaseDuplicateManyService<Entity extends BaseEntity>
         if (this.auditLog) {
           await Promise.all(
             documents.map((document) => this.writeAuditLog(
-              'duplicate', document._id.toString(), null, document as Record<string, unknown>, user,
+              'duplicate',
+              (document._id as { toString(): string }).toString(),
+              null,
+              document as Record<string, unknown>,
+              user,
             )),
           );
         }
