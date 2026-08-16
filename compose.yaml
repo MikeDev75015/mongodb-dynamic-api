@@ -1,18 +1,61 @@
 services:
+  # Generates the keyfile MongoDB requires for internal auth once --auth and --replSet are both
+  # enabled (even for a single-member replica set). Written to a named volume (not a bind mount)
+  # so `chmod`/`chown` actually stick — Windows-host bind mounts can't carry Unix permissions.
+  mongodb-test-keyfile-init:
+    image: mongo:latest
+    entrypoint:
+      - bash
+      - -c
+      - >
+        test -f /keyfile/mongo-keyfile ||
+        (openssl rand -base64 756 > /keyfile/mongo-keyfile &&
+        chmod 400 /keyfile/mongo-keyfile &&
+        chown 999:999 /keyfile/mongo-keyfile)
+    volumes:
+      - mongodb_keyfile:/keyfile
+
   mongodb-test:
     container_name: mongodb-test
     image: mongo:latest
     restart: always
-    command: --auth
+    # replSet is required for MongoDB transactions (cascade delete atomicity) — a standalone
+    # instance rejects session-scoped writes outright. keyFile is mandatory as soon as --auth
+    # and --replSet are combined, even for a single-member set.
+    #
+    # mongod listens on 27018 (not the default 27017) specifically so it matches the host port
+    # below 1:1 (27017 is already taken by a locally-installed MongoDB on this host). A replica
+    # set member advertises its own host:port to every client, including ones connecting from
+    # outside Docker — if that internal port didn't match the externally published one, any
+    # client outside the container (e.g. these e2e tests, running on the host) would resolve the
+    # member to an address it can't actually reach and hang on "server selection timed out".
+    command: --auth --replSet rs0 --keyFile /keyfile/mongo-keyfile --port 27018
+    depends_on:
+      mongodb-test-keyfile-init:
+        condition: service_completed_successfully
     environment:
       - MONGO_INITDB_ROOT_USERNAME=dam-user
       - MONGO_INITDB_ROOT_PASSWORD=dam-pass
       - MONGO_INITDB_DATABASE=dam-db
     ports:
-      - '27018:27017'
+      - '27018:27018'
     volumes:
       - mongodb_data_container:/data/db
+      - mongodb_keyfile:/keyfile
       - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js
+    healthcheck:
+      # rs.initiate() can only run once the *final* mongod (replSet-enabled) is accepting
+      # authenticated connections — docker-entrypoint-initdb.d scripts run too early, against a
+      # temporary bootstrap instance that isn't part of any replica set yet. Idempotent: once
+      # initiated, rs.status() just succeeds on every subsequent check.
+      test: >
+        mongosh --port 27018 -u dam-user -p dam-pass --authenticationDatabase admin --quiet --eval
+        "try { rs.status().ok } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'localhost:27018' }] }).ok }"
+      interval: 5s
+      timeout: 10s
+      retries: 10
+      start_period: 10s
 
 volumes:
   mongodb_data_container:
+  mongodb_keyfile:

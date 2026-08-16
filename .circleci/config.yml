@@ -315,35 +315,50 @@ jobs:
       - *notify-success
 
   e2e-tests-mongodb-job:
-    docker:
-      - image: cimg/node:24.4.0
-      - image: mongo:latest
-        command: --auth
-        environment:
-          MONGO_INITDB_ROOT_USERNAME: dam-user
-          MONGO_INITDB_ROOT_PASSWORD: dam-pass
+    # A plain `mongo:latest` sidecar (the previous setup) can't run as a replica set: it needs a
+    # keyFile once --auth is combined with --replSet (required for MongoDB transactions — see
+    # helpers/mongo-transaction.helper.ts), and CircleCI's docker executor has no way to inject a
+    # file into a sidecar image's filesystem (no volumes/custom entrypoints, only `command`).
+    # `machine` gives this job a real Docker daemon, so it can run the exact same
+    # `docker compose up` (compose.yaml) already verified locally — same auth+replSet+keyFile
+    # setup in both places, one less thing to keep in sync.
+    machine:
+      image: ubuntu-2204:current
     resource_class: medium
     parallelism: 4
+    environment:
+      # Matches compose.yaml's port (27018, not the Mongo default 27017 — see compose.yaml for
+      # why) and dam-user/dam-db credentials/dbOwner role (created by mongo-init.js).
+      MONGO_DB_URL: mongodb://dam-user:dam-pass@localhost:27018/dam-db?retryWrites=true&w=majority
     steps:
       - checkout
       - *restore-cache
-      - setup_remote_docker
       - run:
-          name: Wait for MongoDB to start
-          command: dockerize -wait tcp://localhost:27017 -timeout 1m
-      - run:
-          name: Install mongosh
+          name: Install Node.js (machine executor doesn't ship the cimg/node-pinned version)
           command: |
-            # Pinned: mongosh@2.10.0 (2026-08-13) crashes after every --eval command with
-            # "TypeError: (0 , logging_2.getAiAgent) is not a function" (broken telemetry/AI-agent
-            # hook) — the command itself succeeds server-side, but mongosh exits 1 regardless,
-            # failing this step. 2.9.2 is the last version confirmed working in this pipeline.
-            npm install -g mongosh@2.9.2
-            mongosh --version
+            curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
+            sudo apt-get install -y nodejs
+            node --version
+            npm --version
       - run:
-          name: Create dam-db database with dam-user as dbOwner
+          name: Start MongoDB (replica set, via docker compose)
           command: |
-            mongosh --host localhost:27017 -u dam-user -p dam-pass --authenticationDatabase admin --eval "db.getSiblingDB('dam-db').createUser({user: 'dam-user', pwd: 'dam-pass', roles: [{role: 'dbOwner', db: 'dam-db'}]})"
+            docker compose version
+            docker compose up -d
+      - run:
+          name: Wait for the MongoDB replica set to become healthy
+          command: |
+            for i in $(seq 1 30); do
+              status=$(docker inspect mongodb-test --format '{{.State.Health.Status}}' 2>/dev/null || echo starting)
+              if [ "$status" = "healthy" ]; then
+                echo "MongoDB is healthy"
+                exit 0
+              fi
+              sleep 2
+            done
+            echo "MongoDB did not become healthy in time"
+            docker logs mongodb-test
+            exit 1
       - e2e-tests-parallelized-command
       - *notify-fail
       - *notify-success

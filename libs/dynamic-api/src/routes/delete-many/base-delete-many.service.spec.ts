@@ -52,6 +52,13 @@ describe('BaseDeleteManyService', () => {
   ];
   const deleted = { deletedCount: 2 };
 
+  // Standalone-MongoDB-shaped error: model.db.startSession() rejecting this way is exactly what
+  // deleteWithCascade's isTransactionsUnsupportedError check is designed to catch and fall back on.
+  const transactionsUnsupportedError = Object.assign(
+    new Error('Transaction numbers are only allowed on a replica set member or mongos'),
+    { code: 20 },
+  );
+
   const initService = (findResult: object[] = documents) => {
     modelMock = {
       find: jest.fn(() => ({
@@ -69,6 +76,9 @@ describe('BaseDeleteManyService', () => {
           exec: jest.fn().mockResolvedValue({ modifiedCount: ids.length }),
         }
       )),
+      db: {
+        startSession: jest.fn().mockRejectedValue(transactionsUnsupportedError),
+      },
     } as unknown as Model<TestEntity>;
 
     return new TestService(modelMock);
@@ -468,6 +478,87 @@ describe('BaseDeleteManyService', () => {
 
       expect(childModelMock.deleteMany).toHaveBeenCalledTimes(1);
       expect(anotherChildModelMock.deleteMany).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('cascade with a supported transaction (replica set)', () => {
+    const cascadeConfig: CascadeConfig = {
+      entity: ChildEntity,
+      foreignKey: 'parentId',
+      on: 'delete',
+    };
+    let childModelMock: { deleteMany: jest.Mock; updateMany: jest.Mock };
+    let sessionMock: { withTransaction: jest.Mock; endSession: jest.Mock };
+
+    beforeEach(() => {
+      childModelMock = {
+        deleteMany: jest.fn(() => ({ exec: jest.fn().mockResolvedValue({ deletedCount: 3 }) })),
+        updateMany: jest.fn(() => ({ exec: jest.fn().mockResolvedValue({ modifiedCount: 3 }) })),
+      };
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(
+        childModelMock as unknown as ReturnType<typeof DynamicApiGlobalStateService.getEntityModel> extends Promise<infer M> ? M : never,
+      );
+
+      sessionMock = {
+        withTransaction: jest.fn(async (work: () => Promise<void>) => { await work(); }),
+        endSession: jest.fn().mockResolvedValue(undefined),
+      };
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    const enableTransactionSupport = () => {
+      (modelMock.db as unknown as { startSession: jest.Mock }).startSession = jest.fn().mockResolvedValue(sessionMock);
+      (modelMock.db as unknown as { model: jest.Mock }).model = jest.fn().mockReturnValue(childModelMock);
+    };
+
+    it('deletes the parents and cascades to children within the same session', async () => {
+      service = initService();
+      enableTransactionSupport();
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      internal(service).cascade = [cascadeConfig];
+
+      const result = await service.deleteMany(ids);
+
+      expect(result).toStrictEqual(presenter);
+      expect(modelMock.deleteMany).toHaveBeenCalledWith({ _id: { $in: ids } }, { session: sessionMock });
+      expect(modelMock.db.model).toHaveBeenCalledWith(ChildEntity.name);
+      expect(childModelMock.deleteMany).toHaveBeenCalledWith(
+        { parentId: { $in: ids } },
+        { session: sessionMock },
+      );
+      expect(sessionMock.endSession).toHaveBeenCalled();
+    });
+
+    it('soft-deletes the parents within the same session when isSoftDeletable is true', async () => {
+      service = initService();
+      enableTransactionSupport();
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
+      internal(service).cascade = [{ ...cascadeConfig, on: 'softDelete' }];
+
+      await service.deleteMany(ids);
+
+      expect(modelMock.updateMany).toHaveBeenCalledWith(
+        { _id: { $in: ids }, isDeleted: false },
+        { $set: { isDeleted: true, deletedAt: expect.any(Number) } },
+        { session: sessionMock },
+      );
+    });
+
+    it('ends the session even if the transaction throws', async () => {
+      service = initService();
+      enableTransactionSupport();
+      sessionMock.withTransaction.mockRejectedValueOnce(new Error('unexpected failure'));
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      internal(service).cascade = [cascadeConfig];
+
+      await expect(service.deleteMany(ids)).resolves.toStrictEqual(
+        plainToInstance(DeletePresenter, { deletedCount: 0 }),
+      );
+
+      expect(sessionMock.endSession).toHaveBeenCalled();
     });
   });
 });
