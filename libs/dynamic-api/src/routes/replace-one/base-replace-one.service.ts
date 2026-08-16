@@ -23,6 +23,7 @@ export abstract class BaseReplaceOneService<Entity extends BaseEntity>
   > | undefined;
   protected readonly callback: AfterSaveCallback<Entity> | undefined;
   protected readonly callbackRetry: CallbackRetryOptions | undefined;
+  protected readonly auditLog: boolean | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
     super(model);
@@ -72,6 +73,12 @@ export abstract class BaseReplaceOneService<Entity extends BaseEntity>
       }
 
       await this.invokeAfterSaveCallback(this.callback, this.addDocumentId(document), user, this.callbackRetry);
+
+      if (this.auditLog) {
+        await this.writeAuditLog(
+          'replace', id, existingDocument as Record<string, unknown>, document as Record<string, unknown>, user,
+        );
+      }
 
       return this.buildInstance(document);
     } catch (error: unknown) {

@@ -34,7 +34,8 @@ export class UpdateOneModule {
     );
     const ServiceProvider = createUpdateOneServiceProvider(
       entity, displayedName, version,
-      { callback: routeConfig.callback, retry: routeConfig.callbackRetry }, routeConfig.beforeSaveCallback,
+      { callback: routeConfig.callback, retry: routeConfig.callbackRetry, auditLog: routeConfig.auditLog },
+      routeConfig.beforeSaveCallback,
     );
 
     const hasBroadcast = !!routeConfig.broadcast;

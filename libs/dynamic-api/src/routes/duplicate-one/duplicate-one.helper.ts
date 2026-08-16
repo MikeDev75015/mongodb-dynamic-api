@@ -44,6 +44,7 @@ function createDuplicateOneServiceProvider<Entity extends BaseEntity>(
     protected readonly beforeSaveCallback = beforeSaveCallback;
     protected readonly callback = afterSave?.callback;
     protected readonly callbackRetry = afterSave?.retry;
+    protected readonly auditLog = afterSave?.auditLog;
 
     constructor(
       @InjectModel(

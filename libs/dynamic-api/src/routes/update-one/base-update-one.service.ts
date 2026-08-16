@@ -15,6 +15,7 @@ export abstract class BaseUpdateOneService<Entity extends BaseEntity>
 
   protected readonly callback: AfterSaveCallback<Entity> | undefined;
   protected readonly callbackRetry: CallbackRetryOptions | undefined;
+  protected readonly auditLog: boolean | undefined;
 
   protected constructor(
     protected readonly model: Model<Entity>,
@@ -61,6 +62,12 @@ export abstract class BaseUpdateOneService<Entity extends BaseEntity>
       await this.invokeAfterSaveCallback(
         this.callback, this.addDocumentId(updatedDocument), user, this.callbackRetry,
       );
+
+      if (this.auditLog) {
+        await this.writeAuditLog(
+          'update', id, document as Record<string, unknown>, updatedDocument as Record<string, unknown>, user,
+        );
+      }
 
       return this.buildInstance(updatedDocument);
     } catch (error) {

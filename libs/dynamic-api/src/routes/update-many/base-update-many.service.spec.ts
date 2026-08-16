@@ -23,6 +23,8 @@ type InternalService = {
   callbackRetry: CallbackRetryOptions | undefined;
   callbackMethods: CallbackMethods;
   beforeSaveCallback: BeforeSaveListCallback<TestEntity> | undefined;
+  auditLog: boolean | undefined;
+  writeAuditLog: jest.Mock;
 };
 
 const internal = (svc: TestService) => svc as unknown as InternalService;
@@ -214,6 +216,52 @@ describe('BaseUpdateManyService', () => {
         internal(service).callbackMethods,
         fakeUser,
       );
+    });
+
+    it('should call writeAuditLog with the matched before document per updated entity when auditLog is enabled', async () => {
+      const updatedSameId = documents.map((d) => ({ ...d, name: 'updated' }));
+      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedSameId);
+      service = initService(exec);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      internal(service).auditLog = true;
+      const writeAuditLogSpy = jest
+        .spyOn(service as unknown as { writeAuditLog: jest.Mock }, 'writeAuditLog')
+        .mockResolvedValue(undefined);
+      const fakeUser = { id: 'user-1' };
+
+      await service.updateMany(ids, { name: 'updated' } as Partial<TestEntity>, fakeUser);
+
+      expect(writeAuditLogSpy).toHaveBeenCalledTimes(2);
+      expect(writeAuditLogSpy).toHaveBeenCalledWith('update', documents[0]._id, documents[0], updatedSameId[0], fakeUser);
+      expect(writeAuditLogSpy).toHaveBeenCalledWith('update', documents[1]._id, documents[1], updatedSameId[1], fakeUser);
+    });
+
+    it('should fall back to a null before-state when no matching document was pre-fetched', async () => {
+      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedDocuments);
+      service = initService(exec);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      internal(service).auditLog = true;
+      const writeAuditLogSpy = jest
+        .spyOn(service as unknown as { writeAuditLog: jest.Mock }, 'writeAuditLog')
+        .mockResolvedValue(undefined);
+
+      await service.updateMany(ids, { name: 'updated' } as Partial<TestEntity>);
+
+      expect(writeAuditLogSpy).toHaveBeenCalledWith('update', updatedDocuments[0]._id, null, updatedDocuments[0], undefined);
+      expect(writeAuditLogSpy).toHaveBeenCalledWith('update', updatedDocuments[1]._id, null, updatedDocuments[1], undefined);
+    });
+
+    it('should not call writeAuditLog when auditLog is not enabled', async () => {
+      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedDocuments);
+      service = initService(exec);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const writeAuditLogSpy = jest
+        .spyOn(service as unknown as { writeAuditLog: jest.Mock }, 'writeAuditLog')
+        .mockResolvedValue(undefined);
+
+      await service.updateMany(ids, { name: 'updated' } as Partial<TestEntity>);
+
+      expect(writeAuditLogSpy).not.toHaveBeenCalled();
     });
   });
 });

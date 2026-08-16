@@ -40,7 +40,7 @@ export class DeleteOneModule {
       entity,
       displayedName,
       version,
-      { callback: routeConfig.callback, retry: routeConfig.callbackRetry },
+      { callback: routeConfig.callback, retry: routeConfig.callbackRetry, auditLog: routeConfig.auditLog },
       routeConfig.beforeSaveCallback,
       routeConfig.beforeDeleteCallback,
       routeConfig.cascade,

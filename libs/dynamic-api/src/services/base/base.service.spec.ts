@@ -1068,4 +1068,59 @@ describe('BaseService', () => {
       expect(model.db.startSession).not.toHaveBeenCalled();
     });
   });
+
+  describe('writeAuditLog', () => {
+    it('writes an entry to <collection>_audit_log via the native driver', async () => {
+      const insertOne = jest.fn().mockResolvedValue({ acknowledged: true });
+      const testModel = {
+        collection: { collectionName: 'widgets' },
+        db: { collection: jest.fn().mockReturnValue({ insertOne }) },
+      } as unknown as Model<TestEntity>;
+      const testService = new TestService(testModel);
+      const before = { name: 'old' };
+      const after = { name: 'new' };
+
+      await testService['writeAuditLog']('update', 'entity-id', before, after, { id: 'user-1' });
+
+      expect(testModel.db.collection).toHaveBeenCalledWith('widgets_audit_log');
+      expect(insertOne).toHaveBeenCalledWith({
+        action: 'update',
+        entityId: 'entity-id',
+        before,
+        after,
+        user: { id: 'user-1' },
+        timestamp: expect.any(Date),
+      });
+    });
+
+    it('logs and swallows the error instead of throwing when the write fails', async () => {
+      const testModel = {
+        collection: { collectionName: 'widgets' },
+        db: { collection: jest.fn().mockReturnValue({ insertOne: jest.fn().mockRejectedValue(new Error('boom')) }) },
+      } as unknown as Model<TestEntity>;
+      const testService = new TestService(testModel);
+      const warnSpy = jest.spyOn(testService['baseServiceLogger'], 'warn').mockImplementation();
+
+      await expect(
+        testService['writeAuditLog']('delete', 'entity-id', { name: 'old' }, null, undefined),
+      ).resolves.toBeUndefined();
+
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('[AuditLog] Failed to write audit entry (delete)'));
+    });
+
+    it('stringifies a non-Error rejection instead of throwing', async () => {
+      const testModel = {
+        collection: { collectionName: 'widgets' },
+        db: { collection: jest.fn().mockReturnValue({ insertOne: jest.fn().mockRejectedValue('boom') }) },
+      } as unknown as Model<TestEntity>;
+      const testService = new TestService(testModel);
+      const warnSpy = jest.spyOn(testService['baseServiceLogger'], 'warn').mockImplementation();
+
+      await expect(
+        testService['writeAuditLog']('delete', 'entity-id', { name: 'old' }, null, undefined),
+      ).resolves.toBeUndefined();
+
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('entity-id: boom'));
+    });
+  });
 });
