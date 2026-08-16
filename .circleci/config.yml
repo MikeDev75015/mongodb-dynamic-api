@@ -243,6 +243,22 @@ commands:
       - run:
           name: Copy package.json to dist
           command: cp -rf package.json dist
+      - run:
+          name: Strip the "prepare" script from dist/package.json
+          command: |
+            # `npm publish ./dist` re-runs npm lifecycle scripts against dist/package.json (a
+            # verbatim copy of the root one) with dist/ itself as the working context — but the
+            # build already ran, correctly, as its own earlier step (*build-package) from the repo
+            # root. Re-running "prepare" (-> "build") from inside dist/ breaks: `tsc` alone still
+            # finds tsconfig.json by walking up to the repo root, but `tsc -p tsconfig.schematics.json`
+            # resolves that path relative to cwd (dist/), where it doesn't exist (TS5058). Since the
+            # published package is already fully built, it never needs "prepare" to fire at all.
+            node -e "
+              const fs = require('fs');
+              const pkg = JSON.parse(fs.readFileSync('dist/package.json', 'utf8'));
+              delete pkg.scripts.prepare;
+              fs.writeFileSync('dist/package.json', JSON.stringify(pkg, null, 2) + '\n');
+            "
 
   publish-npm-command:
     description: "Authenticate to npm account and publish new version"
