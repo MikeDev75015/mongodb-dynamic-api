@@ -190,7 +190,7 @@ commands:
           command: gh pr merge << parameters.branch >> -R ${GH_OWNER}/${GH_REPO} --auto -r -d
 
   create-develop-pr-command:
-    description: "Run release-it, push release commit to develop and create PR to main on Github"
+    description: "Rebase develop onto main on a dedicated release branch, run release-it there, push, create + auto-merge the PR to main"
     steps:
       - run:
           name: Checkout to develop
@@ -199,17 +199,31 @@ commands:
           name: Pull develop
           command: git pull https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git develop
       - run:
-          name: Run release-it to prepare release commit
+          name: Fetch main
+          command: git fetch https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git main
+      - run:
+          name: Create the release-prep branch from develop
+          command: git checkout -b release-prep
+      - run:
+          name: Rebase release-prep onto main (linear history, main always sees its own tags)
+          command: git rebase FETCH_HEAD
+      - run:
+          name: Run release-it to prepare release commit (local only, no push — see .release-it.json)
           command: npm run auto-release
       - run:
-          name: Push release commit to develop
-          command: git push https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git develop
-      - run:
-          name: Create a pull request from develop to main
+          name: Rename release-prep to release/vX.Y.Z and push it
           command: |
             VERSION_NUMBER=v$(jq -r '.version' package.json)
             echo ${VERSION_NUMBER}
-            gh pr create -R ${GH_OWNER}/${GH_REPO} -H develop -B main --fill-verbose -t "New ${VERSION_NUMBER} created automatically from CircleCI"
+            git branch -m "release/${VERSION_NUMBER}"
+            git push https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git "release/${VERSION_NUMBER}"
+      - run:
+          name: Create the PR from release/vX.Y.Z to main and enable auto-merge
+          command: |
+            VERSION_NUMBER=v$(jq -r '.version' package.json)
+            echo ${VERSION_NUMBER}
+            gh pr create -R ${GH_OWNER}/${GH_REPO} -H "release/${VERSION_NUMBER}" -B main --fill-verbose -t "New ${VERSION_NUMBER} created automatically from CircleCI"
+            gh pr merge "release/${VERSION_NUMBER}" -R ${GH_OWNER}/${GH_REPO} --auto --rebase --delete-branch
 
   create-version-tags-command:
     description: "Create and push the version tags"
@@ -466,6 +480,7 @@ workflows:
                 - develop
                 - auto-prerelease
                 - auto-release
+                - /^release\/.*/
       - build-job:
           requires:
             - dependencies-job
@@ -477,6 +492,7 @@ workflows:
                 - develop
                 - auto-prerelease
                 - auto-release
+                - /^release\/.*/
       - test-job:
           requires:
             - dependencies-job
@@ -488,6 +504,7 @@ workflows:
                 - develop
                 - auto-prerelease
                 - auto-release
+                - /^release\/.*/
 
   ci-develop-workflow:
     when:
@@ -522,6 +539,44 @@ workflows:
           filters:
             branches:
               only: develop
+
+  # Dedicated release-branch workflow: no SonarCloud here — the code was already analyzed on
+  # every `develop` push by ci-develop-workflow above; release/vX.Y.Z is just that same code
+  # rebased onto main, re-scanning it would be redundant. build/test/e2e-tests-mongodb-job's
+  # individual `ci/circleci: <job>` checks are what main's branch protection requires for a
+  # release-branch PR to merge (see create-develop-pr-command / .release-it.json).
+  ci-release-branch-workflow:
+    when:
+      matches:
+        pattern: "^release/.*"
+        value: << pipeline.git.branch >>
+    jobs:
+      - dependencies-job:
+          filters:
+            branches:
+              only: /^release\/.*/
+      - build-job:
+          requires:
+            - dependencies-job
+          context: SLACK
+          filters:
+            branches:
+              only: /^release\/.*/
+      - test-job:
+          requires:
+            - dependencies-job
+          context: SLACK
+          filters:
+            branches:
+              only: /^release\/.*/
+      - e2e-tests-mongodb-job:
+          requires:
+            - dependencies-job
+          context:
+            - SLACK
+          filters:
+            branches:
+              only: /^release\/.*/
 
   cd-develop-pr-workflow:
     when:

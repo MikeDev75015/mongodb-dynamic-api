@@ -2,6 +2,7 @@
   "git": {
     "commitMessage": "chore(release): ${version}",
     "tag": false,
+    "push": false,
     "requireUpstream": false
   },
   "github": {
