@@ -330,6 +330,15 @@ jobs:
       # Matches compose.yaml's port (27018, not the Mongo default 27017 — see compose.yaml for
       # why) and dam-user/dam-db credentials/dbOwner role (created by mongo-init.js).
       MONGO_DB_URL: mongodb://dam-user:dam-pass@localhost:27018/dam-db?retryWrites=true&w=majority
+      # mongodb-memory-server (used by testing/create-dynamic-api-testing-app.e2e-spec.ts) caches
+      # its downloaded mongod binary under node_modules/.cache by default — which is exactly what
+      # *restore-cache restores from a previous run. A binary that was ever interrupted mid-download
+      # there (a cancelled job, a network blip) would poison every later run sharing that cache key,
+      # silently reusing a corrupt binary instead of re-downloading a good one. Redirecting the
+      # download dir outside node_modules keeps it on this job's own ephemeral `machine` VM, so it's
+      # always either a full fresh download or a good binary from earlier in the same run — never a
+      # stale one smuggled in via the node_modules cache.
+      MONGOMS_DOWNLOAD_DIR: /tmp/mongodb-binaries
     steps:
       - checkout
       - *restore-cache
@@ -359,6 +368,20 @@ jobs:
             echo "MongoDB did not become healthy in time"
             docker logs mongodb-test
             exit 1
+      - run:
+          name: Clear any cached mongodb-memory-server binary
+          command: |
+            # *restore-cache above restores node_modules from a previous run — including
+            # node_modules/.cache/mongodb-memory-server if `npm ci`'s postinstall populated it
+            # (mongodb-memory-server-core prefers that path over MONGOMS_DOWNLOAD_DIR whenever it
+            # already contains a binary — see DryMongoBinary.generateDownloadPath's "does it exist"
+            # checks, which run before "where should a fresh download go"). A binary that was ever
+            # interrupted mid-download there (a cancelled job, a network blip) would silently poison
+            # every later run sharing that cache key. Clearing it here guarantees
+            # MONGOMS_DOWNLOAD_DIR (set on this job, pointing outside node_modules) is always the
+            # one actually used, so it's either a full fresh download or a binary already verified
+            # good earlier in this same run — never a stale one smuggled in via the node_modules cache.
+            rm -rf node_modules/.cache/mongodb-memory-server
       - e2e-tests-parallelized-command
       - *notify-fail
       - *notify-success
