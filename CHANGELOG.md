@@ -1,5 +1,67 @@
 Changelog
 
+## [4.19.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.17.0...v4.19.0) (2026-08-16)
+
+### quality
+
+* **quality:** replace cascade boolean-flag method with two methods (S2301) ([0b4294e](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/0b4294e7f721c52c1ae01ff3f24a583a0e7b6b1f))
+* **quality:** resolve 11 SonarCloud leak-period issues on develop ([7543eee](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/7543eeeaa64c12d68a8261b14881ac9844e3bd7d))
+
+### ci
+
+* **ci:** stop e2e job from reusing a poisoned mongodb-memory-server binary cache ([9fc307c](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/9fc307cfac4c9d6c388cbcf4da18d3f3f8d701db))
+
+### schematics
+
+* **schematics:** add Nest CLI resource schematic ([a75d28b](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/a75d28b64288c54d61dd30955b631cb3c437231f))
+
+### routes
+
+* **routes:** add opt-in per-route audit log ([50bb97b](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/50bb97b1888ded816b664207c8ef1f19140188f6))
+* **routes:** add populate to GetOne/GetMany route config ([b0c3d7e](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/b0c3d7ea92a5ae91b476b6e540911ffebad4622e))
+* **routes:** merge the :id route param into UpdateOne's body before validation ([26bbf26](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/26bbf261c2fd306c8d094b54feb28a7446dd5d50))
+* **routes:** return 400 instead of 500 on invalid *Many input ([c92c708](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/c92c708cee36a5336c185eb881348b05e8af7ea5))
+
+### cascade
+
+* **cascade:** wrap cascade deletes in a MongoDB transaction ([34b375a](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/34b375a9fdf98ef213bc308823d1275bb78e2553))
+
+### auth
+
+* **auth:** add mintTokenPair for issuing tokens outside /auth/login ([8f874cb](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/8f874cba850955ae44537315ff5ac75dc2ec28ee))
+* **auth:** add per-route rate limiting for sensitive auth routes ([1db6bf6](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/1db6bf6eee5620c76f9046ba9ae897d61ca202c4))
+* **auth:** strip DB-aware business validators from the generated login DTO ([1794b47](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/1794b473d1a70d57814b7b45d6f7ebc39880865b))
+
+### testing
+
+* **testing:** add createDynamicApiTestingApp with in-memory MongoDB ([82e11d7](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/82e11d788bcf3e406b3d55a9f38fafb47ea3268d))
+
+### health
+
+* **health:** add DynamicApiHealthModule readiness probe ([5cc364b](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/5cc364b7c83a5a593799fe1528bc0248b06079de))
+
+### helpers
+
+* **helpers:** add enableDynamicAPIIndexSync with actionable E11000 errors ([ea532b9](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/ea532b946c916b0fecc9298c5cdb930ff30e5264))
+
+### guards
+
+* **guards:** log the real rejection reason of DynamicApiJwtAuthGuard ([5a14de0](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/5a14de0492efb4c9a62869aa974acbf4474ea1c3))
+
+### predicates
+
+* **predicates:** coercion, fallback fields and custom compare for isOwner/isGroupMember ([dc391ef](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/dc391ef9e388ccbf12b97dcda71b7f28c1b2b9eb))
+* **predicates:** guard identifiersMatch's String() fallback against plain objects ([9ac365b](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/9ac365b6d0d172499b0821497acbd09f31e363a1))
+* **predicates:** narrow identifiersMatch's operands to a stringifiable type ([7c8030d](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/7c8030d9310757f19b0b806e554050fbdfa3ad28))
+
+### broadcast
+
+* **broadcast:** catch a throwing resolveBroadcast() in broadcastFromHttp/broadcastIfNeeded ([582e7fb](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/582e7fbbe377a364c591b9895e96bf2fb2331ade))
+
+### validators
+
+* **validators:** guard IsUnique/EntityExists against malformed ObjectIds ([8c5096e](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/8c5096e70a3a63c59d9fb94784231f92e107745e))
+
 ## [4.18.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.17.0...v4.18.0) (2026-08-13)
 
 ### predicates
