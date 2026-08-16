@@ -31,8 +31,9 @@ function buildActionableMessage(collectionName: string, error: MongoDuplicateKey
   const clashValue = field ? error.keyValue?.[field] : undefined;
   const isMissingFieldClash = field !== undefined && (clashValue === null || clashValue === undefined);
 
+  const fieldSuffix = field ? ` (field "${field}")` : '';
   const base = `[DynamicAPI] enableDynamicAPIIndexSync: failed to build a unique index on `
-    + `"${collectionName}"${field ? ` (field "${field}")` : ''} — existing documents already violate `
+    + `"${collectionName}"${fieldSuffix} — existing documents already violate `
     + `the uniqueness constraint.`;
 
   if (!isMissingFieldClash) {

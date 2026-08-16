@@ -47,7 +47,9 @@ export abstract class BaseCreateOneService<Entity extends BaseEntity>
       await this.invokeAfterSaveCallback(this.callback, this.addDocumentId(document), user, this.callbackRetry);
 
       if (this.auditLog) {
-        await this.writeAuditLog('create', _id.toString(), null, document as Record<string, unknown>, user);
+        await this.writeAuditLog(
+          'create', (_id as { toString(): string }).toString(), null, document as Record<string, unknown>, user,
+        );
       }
 
       return this.buildInstance(document);

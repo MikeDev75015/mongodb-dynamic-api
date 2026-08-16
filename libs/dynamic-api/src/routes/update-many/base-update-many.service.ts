@@ -85,16 +85,22 @@ export abstract class BaseUpdateManyService<Entity extends BaseEntity>
         );
 
         if (this.auditLog) {
-          const beforeById = new Map(toUpdateList.map((doc) => [doc._id.toString(), doc as Record<string, unknown>]));
+          const beforeById = new Map(toUpdateList.map((doc) => [
+            (doc._id as { toString(): string }).toString(), doc as Record<string, unknown>,
+          ]));
 
           await Promise.all(
-            documents.map((document) => this.writeAuditLog(
-              'update',
-              document._id.toString(),
-              beforeById.get(document._id.toString()) ?? null,
-              document as Record<string, unknown>,
-              user,
-            )),
+            documents.map((document) => {
+              const documentId = (document._id as { toString(): string }).toString();
+
+              return this.writeAuditLog(
+                'update',
+                documentId,
+                beforeById.get(documentId) ?? null,
+                document as Record<string, unknown>,
+                user,
+              );
+            }),
           );
         }
       }

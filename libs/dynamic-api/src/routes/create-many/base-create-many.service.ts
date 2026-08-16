@@ -62,7 +62,11 @@ export abstract class BaseCreateManyService<Entity extends BaseEntity>
         if (this.auditLog) {
           await Promise.all(
             documents.map((document) => this.writeAuditLog(
-              'create', String((document as { _id: unknown })._id), null, document as Record<string, unknown>, user,
+              'create',
+              (document as { _id: { toString(): string } })._id.toString(),
+              null,
+              document as Record<string, unknown>,
+              user,
             )),
           );
         }

@@ -91,7 +91,11 @@ export abstract class BaseDeleteManyService<Entity extends BaseEntity>
         if (this.auditLog) {
           await Promise.all(
             documents.map((document) => this.writeAuditLog(
-              'delete', document._id.toString(), document as Record<string, unknown>, null, user,
+              'delete',
+              (document._id as { toString(): string }).toString(),
+              document as Record<string, unknown>,
+              null,
+              user,
             )),
           );
         }
