@@ -158,38 +158,6 @@ commands:
           description: Gets latest release version of Github CLI
 
   create-release-pr-command:
-    description: "Create release or prerelease PR to develop on Github"
-    parameters:
-      branch:
-        type: string
-    steps:
-      - run:
-          name: Create the auto-<< parameters.branch >> branch
-          command: git checkout -q -b auto-<< parameters.branch >>
-      - run:
-          name: Push the auto-<< parameters.branch >> branch on remote
-          command: git push -q https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git auto-<< parameters.branch >>
-      - run:
-          name: Prepare auto-<< parameters.branch >> with release-it
-          command: npm run auto-<< parameters.branch >>
-      - run:
-          name: Create the PR on Github
-          command: |
-            VERSION_NUMBER=v$(jq -r '.version' package.json)
-            echo ${VERSION_NUMBER}
-            gh pr create -R ${GH_OWNER}/${GH_REPO} -H auto-<< parameters.branch >> -B develop --fill-verbose -t "<< parameters.branch >> ${VERSION_NUMBER} created automatically from CircleCI"
-
-  merge-release-pr-command:
-    description: "Merge the release PR and automatically delete the branch"
-    parameters:
-      branch:
-        type: string
-    steps:
-      - run:
-          name: Merge the PR and automatically delete the << parameters.branch >> branch
-          command: gh pr merge << parameters.branch >> -R ${GH_OWNER}/${GH_REPO} --auto -r -d
-
-  create-develop-pr-command:
     description: "Rebase develop onto main on a dedicated release branch, run release-it there, push, create + auto-merge the PR to main"
     steps:
       - run:
@@ -416,29 +384,14 @@ jobs:
       - *notify-fail
       - *notify-success
 
-  merge-release-pr-job:
-    executor: node
-    parameters:
-      branch:
-        type: string
-    steps:
-      - checkout
-      - *restore-cache
-      - git-config-local-user-command
-      - install-github-cli-command
-      - merge-release-pr-command:
-          branch: << parameters.branch >>
-      - *notify-fail
-      - *notify-success
-
-  create-develop-pr-job:
+  create-release-pr-job:
     executor: node
     steps:
       - checkout
       - *restore-cache
       - git-config-local-user-command
       - install-github-cli-command
-      - create-develop-pr-command
+      - create-release-pr-command
       - *notify-fail
       - *notify-success
 
@@ -478,8 +431,6 @@ workflows:
               ignore:
                 - main
                 - develop
-                - auto-prerelease
-                - auto-release
                 - /^release\/.*/
       - build-job:
           requires:
@@ -490,8 +441,6 @@ workflows:
               ignore:
                 - main
                 - develop
-                - auto-prerelease
-                - auto-release
                 - /^release\/.*/
       - test-job:
           requires:
@@ -502,8 +451,6 @@ workflows:
               ignore:
                 - main
                 - develop
-                - auto-prerelease
-                - auto-release
                 - /^release\/.*/
 
   ci-develop-workflow:
@@ -544,7 +491,7 @@ workflows:
   # every `develop` push by ci-develop-workflow above; release/vX.Y.Z is just that same code
   # rebased onto main, re-scanning it would be redundant. build/test/e2e-tests-mongodb-job's
   # individual `ci/circleci: <job>` checks are what main's branch protection requires for a
-  # release-branch PR to merge (see create-develop-pr-command / .release-it.json).
+  # release-branch PR to merge (see create-release-pr-command / .release-it.json).
   ci-release-branch-workflow:
     when:
       matches:
@@ -578,18 +525,18 @@ workflows:
             branches:
               only: /^release\/.*/
 
-  cd-develop-pr-workflow:
+  cd-release-pr-workflow:
     when:
       equal: [ << pipeline.git.branch >>, develop ]
     jobs:
-      - confirm-develop-pr-job:
+      - confirm-release-pr-job:
           type: approval
           filters:
             branches:
               only: develop
-      - create-develop-pr-job:
+      - create-release-pr-job:
           requires:
-            - confirm-develop-pr-job
+            - confirm-release-pr-job
           context:
             - SONARCLOUD
             - GIT
