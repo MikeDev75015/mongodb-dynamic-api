@@ -5,9 +5,10 @@
   "readmeFilename": "README.md",
   "main": "index.js",
   "types": "index.d.ts",
+  "schematics": "./schematics/collection.json",
   "scripts": {
     "prepare": "npm run build",
-    "build": "tsc",
+    "build": "tsc && tsc -p tsconfig.schematics.json && node scripts/copy-schematics-assets.cjs",
     "format": "prettier --write \"src/**/*.ts\"",
     "lint": "tslint -p tsconfig.json -c tslint.json",
     "test": "jest --runInBand",
@@ -40,6 +41,7 @@
   },
   "homepage": "https://mikedev75015.github.io",
   "dependencies": {
+    "@angular-devkit/schematics": "^19.2.27",
     "@nestjs/cache-manager": "^3.0.1",
     "@nestjs/common": "^11.1.13",
     "@nestjs/core": "11.1.18",

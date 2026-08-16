@@ -1,0 +1,9 @@
+import { Prop, Schema } from '@nestjs/mongoose';
+import { <%= softDelete ? 'SoftDeletableEntity' : 'BaseEntity' %> } from 'mongodb-dynamic-api';
+
+@Schema({ collection: '<%= dasherize(name) %>' })
+export class <%= classify(name) %> extends <%= softDelete ? 'SoftDeletableEntity' : 'BaseEntity' %> {
+  // TODO: declare your entity's fields here, e.g.:
+  // @Prop({ type: String, required: true })
+  // title: string;
+}
