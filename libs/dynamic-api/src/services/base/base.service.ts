@@ -250,7 +250,9 @@ export abstract class BaseService<Entity extends BaseEntity> {
       const model = await this.resolveCascadeModel(config, session);
       const filter = { [config.foreignKey]: { $in: parentIds } } as FilterQuery<BaseEntity>;
 
-      await BaseService.applyCascadeWrite(model, filter, useSoftDelete, session);
+      await (useSoftDelete
+        ? BaseService.softDeleteCascade(model, filter, session)
+        : BaseService.hardDeleteCascade(model, filter, session));
     }
   }
 
@@ -273,19 +275,23 @@ export abstract class BaseService<Entity extends BaseEntity> {
       : DynamicApiGlobalStateService.getEntityModel(config.entity);
   }
 
-  /** Soft- or hard-deletes every document matching `filter`, inside `session` when provided. */
-  private static async applyCascadeWrite(
+  /** Marks every document matching `filter` as deleted, inside `session` when provided. */
+  private static async softDeleteCascade(
     model: Model<BaseEntity>,
     filter: FilterQuery<BaseEntity>,
-    useSoftDelete: boolean,
     session?: ClientSession,
   ): Promise<void> {
-    if (useSoftDelete) {
-      const update = { $set: { isDeleted: true, deletedAt: new Date() } };
-      await (session ? model.updateMany(filter, update, { session }) : model.updateMany(filter, update)).exec();
-    } else {
-      await (session ? model.deleteMany(filter, { session }) : model.deleteMany(filter)).exec();
-    }
+    const update = { $set: { isDeleted: true, deletedAt: new Date() } };
+    await (session ? model.updateMany(filter, update, { session }) : model.updateMany(filter, update)).exec();
+  }
+
+  /** Hard-deletes every document matching `filter`, inside `session` when provided. */
+  private static async hardDeleteCascade(
+    model: Model<BaseEntity>,
+    filter: FilterQuery<BaseEntity>,
+    session?: ClientSession,
+  ): Promise<void> {
+    await (session ? model.deleteMany(filter, { session }) : model.deleteMany(filter)).exec();
   }
 
   /**
