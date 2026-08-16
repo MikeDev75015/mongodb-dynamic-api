@@ -4,7 +4,7 @@ import { PipelineStage } from 'mongodb-pipeline-builder';
 import { ClientSession, FilterQuery, Model, PipelineStage as MongoosePipelineStage, Schema, UpdateQuery, UpdateWithAggregationPipeline } from 'mongoose';
 import { DERIVED_FIELD_KEYS_METADATA, DERIVED_FIELD_METADATA, DerivedFieldMeta } from '../../decorators';
 import { isTransactionsUnsupportedError } from '../../helpers/mongo-transaction.helper';
-import { AbilityPredicate, AfterSaveCallback, AuditLogAction, AuthAbilityPredicate, CallbackRetryOptions, CascadeConfig, DeleteResult, DynamicApiCallbackMethods, MongoUpdateOperators, UpdateResult } from '../../interfaces';
+import { AbilityPredicate, AfterSaveCallback, AuditLogAction, AuthAbilityPredicate, CallbackMethods, CallbackRetryOptions, CascadeConfig, DeleteResult, MongoUpdateOperators, UpdateResult } from '../../interfaces';
 import { MongoDBDynamicApiLogger } from '../../logger';
 import { BaseEntity, SoftDeletableEntity } from '../../models';
 import { DynamicApiResetPasswordOptions } from '../../modules';
@@ -22,7 +22,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
 
   protected readonly resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined;
 
-  protected readonly callbackMethods: DynamicApiCallbackMethods;
+  protected readonly callbackMethods: CallbackMethods;
 
   private readonly baseServiceLogger = new MongoDBDynamicApiLogger(BaseService.name);
 
@@ -242,32 +242,49 @@ export abstract class BaseService<Entity extends BaseEntity> {
     session?: ClientSession,
   ): Promise<void> {
     for (const config of cascade) {
-      const shouldTrigger =
-        (config.on === 'delete' && !isSoftDelete) ||
-        (config.on === 'softDelete' && isSoftDelete);
-
-      if (!shouldTrigger) {
+      if (!BaseService.shouldTriggerCascade(config, isSoftDelete)) {
         continue;
       }
 
       const useSoftDelete = config.softDelete ?? isSoftDelete;
-      // A session is only ever bound to the connection it was started on (this.model.db) — a
-      // model resolved via DynamicApiGlobalStateService.getEntityModel lives on its own,
-      // separate connection and would make MongoDB reject the write outright ("session was
-      // started on a different client"). Cascade children are always registered on the same
-      // connection as the parent (forFeature always uses the shared connectionName), so
-      // this.model.db.model(...) resolves the exact same, already-compiled model.
-      const model = session
-        ? this.model.db.model<BaseEntity>(config.entity.name)
-        : await DynamicApiGlobalStateService.getEntityModel(config.entity);
+      const model = await this.resolveCascadeModel(config, session);
       const filter = { [config.foreignKey]: { $in: parentIds } } as FilterQuery<BaseEntity>;
 
-      if (useSoftDelete) {
-        const update = { $set: { isDeleted: true, deletedAt: new Date() } };
-        await (session ? model.updateMany(filter, update, { session }) : model.updateMany(filter, update)).exec();
-      } else {
-        await (session ? model.deleteMany(filter, { session }) : model.deleteMany(filter)).exec();
-      }
+      await BaseService.applyCascadeWrite(model, filter, useSoftDelete, session);
+    }
+  }
+
+  /** Whether a given cascade config should run for the delete mode (`hard` vs `soft`) in progress. */
+  private static shouldTriggerCascade(config: CascadeConfig, isSoftDelete: boolean): boolean {
+    return (config.on === 'delete' && !isSoftDelete) || (config.on === 'softDelete' && isSoftDelete);
+  }
+
+  /**
+   * A session is only ever bound to the connection it was started on (this.model.db) — a model
+   * resolved via DynamicApiGlobalStateService.getEntityModel lives on its own, separate connection
+   * and would make MongoDB reject the write outright ("session was started on a different
+   * client"). Cascade children are always registered on the same connection as the parent
+   * (forFeature always uses the shared connectionName), so this.model.db.model(...) resolves the
+   * exact same, already-compiled model.
+   */
+  private async resolveCascadeModel(config: CascadeConfig, session?: ClientSession): Promise<Model<BaseEntity>> {
+    return session
+      ? this.model.db.model<BaseEntity>(config.entity.name)
+      : DynamicApiGlobalStateService.getEntityModel(config.entity);
+  }
+
+  /** Soft- or hard-deletes every document matching `filter`, inside `session` when provided. */
+  private static async applyCascadeWrite(
+    model: Model<BaseEntity>,
+    filter: FilterQuery<BaseEntity>,
+    useSoftDelete: boolean,
+    session?: ClientSession,
+  ): Promise<void> {
+    if (useSoftDelete) {
+      const update = { $set: { isDeleted: true, deletedAt: new Date() } };
+      await (session ? model.updateMany(filter, update, { session }) : model.updateMany(filter, update)).exec();
+    } else {
+      await (session ? model.deleteMany(filter, { session }) : model.deleteMany(filter)).exec();
     }
   }
 
