@@ -23,6 +23,8 @@ type InternalService = {
   callbackRetry: CallbackRetryOptions | undefined;
   callbackMethods: CallbackMethods;
   beforeSaveCallback: BeforeSaveListCallback<TestEntity> | undefined;
+  auditLog: boolean | undefined;
+  writeAuditLog: jest.Mock;
 };
 
 const internal = (svc: TestService) => svc as unknown as InternalService;
@@ -189,6 +191,40 @@ describe('BaseDuplicateManyService', () => {
         internal(service).callbackMethods,
         fakeUser,
       );
+    });
+
+    it('should call writeAuditLog for each duplicated document when auditLog is enabled', async () => {
+      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(duplicatedDocuments);
+      service = initService(exec, duplicatedDocuments);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      internal(service).auditLog = true;
+      const writeAuditLogSpy = jest
+        .spyOn(service as unknown as { writeAuditLog: jest.Mock }, 'writeAuditLog')
+        .mockResolvedValue(undefined);
+      const fakeUser = { id: 'user-1' };
+
+      await service.duplicateMany(ids, undefined, fakeUser);
+
+      expect(writeAuditLogSpy).toHaveBeenCalledTimes(2);
+      expect(writeAuditLogSpy).toHaveBeenCalledWith(
+        'duplicate', duplicatedDocuments[0]._id, null, duplicatedDocuments[0], fakeUser,
+      );
+      expect(writeAuditLogSpy).toHaveBeenCalledWith(
+        'duplicate', duplicatedDocuments[1]._id, null, duplicatedDocuments[1], fakeUser,
+      );
+    });
+
+    it('should not call writeAuditLog when auditLog is not enabled', async () => {
+      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(duplicatedDocuments);
+      service = initService(exec, duplicatedDocuments);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const writeAuditLogSpy = jest
+        .spyOn(service as unknown as { writeAuditLog: jest.Mock }, 'writeAuditLog')
+        .mockResolvedValue(undefined);
+
+      await service.duplicateMany(ids, undefined);
+
+      expect(writeAuditLogSpy).not.toHaveBeenCalled();
     });
   });
 });

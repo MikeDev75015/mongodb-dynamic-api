@@ -28,6 +28,7 @@ export abstract class BaseDeleteOneService<Entity extends BaseEntity>
   protected readonly callback: AfterSaveCallback<Entity> | undefined;
   protected readonly callbackRetry: CallbackRetryOptions | undefined;
   protected readonly cascade: CascadeConfig[] | undefined;
+  protected readonly auditLog: boolean | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
     super(model);
@@ -37,7 +38,7 @@ export abstract class BaseDeleteOneService<Entity extends BaseEntity>
     // Fetch document ahead of hooks when at least one hook is registered
     let document: Entity | null = null;
 
-    if (this.beforeDeleteCallback ?? this.beforeSaveCallback) {
+    if (this.beforeDeleteCallback ?? this.beforeSaveCallback ?? this.auditLog) {
       document = await this.model
         .findOne({
           _id: id,
@@ -55,7 +56,7 @@ export abstract class BaseDeleteOneService<Entity extends BaseEntity>
     let cascadeCompleted = true;
     try {
       // Fetch document for after-save callback when not yet loaded
-      if (!document && this.callback) {
+      if (!document && (this.callback ?? this.auditLog)) {
         document = await this.model
           .findOne({
             _id: id,
@@ -80,6 +81,10 @@ export abstract class BaseDeleteOneService<Entity extends BaseEntity>
 
       if (document) {
         await this.invokeAfterSaveCallback(this.callback, this.addDocumentId(document), user, this.callbackRetry);
+
+        if (this.auditLog) {
+          await this.writeAuditLog('delete', id, document as Record<string, unknown>, null, user);
+        }
       }
     } catch (error: unknown) {
       return plainToInstance(DeletePresenter, { deletedCount: 0 });

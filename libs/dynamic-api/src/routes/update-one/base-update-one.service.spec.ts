@@ -23,6 +23,8 @@ type InternalService = {
   callbackRetry: CallbackRetryOptions | undefined;
   callbackMethods: CallbackMethods;
   beforeSaveCallback: BeforeSaveCallback<TestEntity> | undefined;
+  auditLog: boolean | undefined;
+  writeAuditLog: jest.Mock;
 };
 
 const internal = (svc: TestService) => svc as unknown as InternalService;
@@ -181,6 +183,39 @@ describe('BaseUpdateOneService', () => {
         internal(service).callbackMethods,
         fakeUser,
       );
+    });
+
+    it('should call writeAuditLog with before and after documents when auditLog is enabled', async () => {
+      service = initService(
+        jest.fn().mockResolvedValueOnce(updatedDocument),
+        jest.fn().mockResolvedValueOnce(document),
+      );
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      internal(service).auditLog = true;
+      const writeAuditLogSpy = jest
+        .spyOn(service as unknown as { writeAuditLog: jest.Mock }, 'writeAuditLog')
+        .mockResolvedValue(undefined);
+      const fakeUser = { id: 'user-1' };
+
+      await service.updateOne(document._id, { name: updatedDocument.name } as Partial<TestEntity>, fakeUser);
+
+      expect(writeAuditLogSpy).toHaveBeenCalledTimes(1);
+      expect(writeAuditLogSpy).toHaveBeenCalledWith('update', document._id, document, updatedDocument, fakeUser);
+    });
+
+    it('should not call writeAuditLog when auditLog is not enabled', async () => {
+      service = initService(
+        jest.fn().mockResolvedValueOnce(updatedDocument),
+        jest.fn().mockResolvedValueOnce(document),
+      );
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const writeAuditLogSpy = jest
+        .spyOn(service as unknown as { writeAuditLog: jest.Mock }, 'writeAuditLog')
+        .mockResolvedValue(undefined);
+
+      await service.updateOne(document._id, { name: updatedDocument.name } as Partial<TestEntity>);
+
+      expect(writeAuditLogSpy).not.toHaveBeenCalled();
     });
   });
 });

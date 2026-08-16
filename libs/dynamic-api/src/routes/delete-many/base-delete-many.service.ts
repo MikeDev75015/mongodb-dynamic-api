@@ -28,6 +28,7 @@ export abstract class BaseDeleteManyService<Entity extends BaseEntity>
   protected readonly callback: AfterSaveCallback<Entity> | undefined;
   protected readonly callbackRetry: CallbackRetryOptions | undefined;
   protected readonly cascade: CascadeConfig[] | undefined;
+  protected readonly auditLog: boolean | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
     super(model);
@@ -38,7 +39,7 @@ export abstract class BaseDeleteManyService<Entity extends BaseEntity>
     let documents: Entity[] = [];
 
     // ── Pre-hooks (OUTSIDE try-catch: HTTP exceptions propagate cleanly) ─────
-    if (this.beforeDeleteCallback ?? this.beforeSaveCallback) {
+    if (this.beforeDeleteCallback ?? this.beforeSaveCallback ?? this.auditLog) {
       documents = await this.model
         .find({
           _id: { $in: ids },
@@ -55,7 +56,7 @@ export abstract class BaseDeleteManyService<Entity extends BaseEntity>
     let cascadeCompleted = true;
     try {
       // Fetch documents for after-save callback when not yet loaded
-      if (!documents.length && this.callback) {
+      if (!documents.length && (this.callback ?? this.auditLog)) {
         documents = await this.model
           .find({
             _id: { $in: ids },
@@ -86,6 +87,14 @@ export abstract class BaseDeleteManyService<Entity extends BaseEntity>
             ),
           ),
         );
+
+        if (this.auditLog) {
+          await Promise.all(
+            documents.map((document) => this.writeAuditLog(
+              'delete', document._id.toString(), document as Record<string, unknown>, null, user,
+            )),
+          );
+        }
       }
     } catch (error: unknown) {
       return plainToInstance(DeletePresenter, { deletedCount: 0 });

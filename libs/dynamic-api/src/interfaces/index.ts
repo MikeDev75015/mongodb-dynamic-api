@@ -24,3 +24,4 @@ export * from './dynamic-api-web-socket.interface';
 export * from './dynamic-api-presence.interface';
 export * from './dynamic-api-health-check.interface';
 export * from './dynamic-api-rate-limit.interface';
+export * from './dynamic-api-audit-log.interface';

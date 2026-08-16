@@ -33,6 +33,7 @@ Each route in `DynamicApiModule.forFeature` can be finely configured through the
   - [CascadeConfig](#cascadeconfig)
   - [Cascade + Soft Delete](#cascade--soft-delete)
   - [Atomicity](#atomicity) ⭐ *New*
+- [Audit Log](#audit-log) ⭐ *New*
 - [Other Options](#other-options)
   - [isPublic](#ispublic)
   - [disableCache](#disablecache)
@@ -114,6 +115,9 @@ interface DynamicAPIRouteConfig<Entity extends BaseEntity> {
    */
   beforeDeleteCallback?: AnyBeforeDeleteCallback<Entity>;
   callback?: AfterSaveCallback<Entity>;
+
+  // Audit log (mutation routes only — no effect on GetOne / GetMany / Aggregate)
+  auditLog?: boolean;
 
   // Cascade (DeleteOne / DeleteMany only)
   cascade?: CascadeConfig[];
@@ -833,6 +837,44 @@ No configuration needed — this is automatic whenever `cascade` is set and the 
 > ⚠️ **Standalone MongoDB instances don't support transactions at all** (a hard MongoDB limitation, not something any driver or library can work around). Against a standalone instance, cascade automatically **falls back** to the previous behavior — the parent delete and each cascade write run sequentially, non-atomically — and a warning is logged once per cascade call (`MONGODB_DYNAMIC_API_LOGGER=WARN` or more verbose — see [Debugging](./debugging.md)). If a cascade delete fails mid-way on a standalone instance, the parent document is already deleted but some children may remain, exactly as before.
 >
 > **To get atomicity, your MongoDB deployment needs to be a replica set** (a single-member replica set is enough — it doesn't require multiple physical nodes). See MongoDB's [Convert a Standalone to a Replica Set](https://www.mongodb.com/docs/manual/tutorial/convert-standalone-to-replica-set/) guide, or this repo's own `compose.yaml` for a working single-node example (includes the `keyFile` MongoDB requires once `--auth` and `--replSet` are combined).
+
+---
+
+## Audit Log ⭐ *New*
+
+Set `auditLog: true` on a **mutation route** to record every write it performs to the entity's own `<collection>_audit_log` collection — a simple, opt-in change history, per entity, with zero extra setup.
+
+```typescript
+DynamicApiModule.forFeature({
+  entity: PostEntity,
+  controllerOptions: { path: 'posts' },
+  routes: [
+    { type: 'CreateOne', auditLog: true },
+    { type: 'UpdateOne', auditLog: true },
+    { type: 'DeleteOne', auditLog: true },
+    { type: 'GetMany' }, // read routes ignore auditLog — nothing to audit
+  ],
+})
+```
+
+Applies to `CreateOne`, `CreateMany`, `UpdateOne`, `UpdateMany`, `ReplaceOne`, `DuplicateOne`, `DuplicateMany`, `DeleteOne` and `DeleteMany`. Has no effect on `GetOne`, `GetMany` or `Aggregate` — there's nothing to audit on a read.
+
+Each successful mutation inserts one document per affected entity into `<collection>_audit_log` (e.g. `posts_audit_log` for a `posts` collection), written through the native MongoDB driver — no schema, no model registration needed:
+
+```typescript
+{
+  action: 'create' | 'update' | 'replace' | 'duplicate' | 'delete',
+  entityId: string,
+  before: Record<string, unknown> | null, // null for create/duplicate — nothing existed yet
+  after: Record<string, unknown> | null,  // null for delete — nothing remains
+  user: unknown,                          // whatever fromUser/the request resolved as the caller
+  timestamp: Date,
+}
+```
+
+> The write happens **after** the mutation succeeds and after `callback` runs, and is **best-effort**: if it fails (e.g. a transient connection issue), the failure is logged (`MONGODB_DYNAMIC_API_LOGGER=WARN` or more verbose — see [Debugging](./debugging.md)) and swallowed — it never turns a successful mutation into a failed response.
+>
+> `auditLog` and `callback`/`callbackRetry` are independent — set any combination of them on the same route.
 
 ---
 
