@@ -5,6 +5,7 @@ export * from './index-sync.helper';
 export * from './lodash.helper';
 export * from './mint-token-pair.helper';
 export * from './mixin-data.helper';
+export * from './mongo-transaction.helper';
 export * from './mongoose-cast-error.helper';
 export * from './predicate-identifier.helper';
 export * from './repository.helper';

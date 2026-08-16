@@ -32,7 +32,7 @@ Each route in `DynamicApiModule.forFeature` can be finely configured through the
 - [Cascade Delete](#cascade-delete)
   - [CascadeConfig](#cascadeconfig)
   - [Cascade + Soft Delete](#cascade--soft-delete)
-  - [Atomicity Warning](#atomicity-warning)
+  - [Atomicity](#atomicity) ⭐ *New*
 - [Other Options](#other-options)
   - [isPublic](#ispublic)
   - [disableCache](#disablecache)
@@ -812,9 +812,27 @@ DynamicApiModule.forFeature({
 });
 ```
 
-### Atomicity Warning
+### Atomicity ⭐ *New*
 
-> ⚠️ **Cascade operations are NOT atomic.** If a cascade delete fails mid-way, the parent document is already deleted but some children may remain. This is a known limitation when MongoDB transactions are not available (e.g., standalone instances). For production use cases requiring atomic multi-collection operations, use a replica set and wrap operations in a MongoDB session transaction via a custom `callback`.
+Cascade operations are **automatically atomic** when your MongoDB connection is a **replica set** (or mongos) — the parent delete and every matching cascade write run inside a single MongoDB session transaction. If any of them fails, the whole thing rolls back: the parent document is **not** deleted either.
+
+```typescript
+// If the cascade delete on CommentEntity fails for any reason, PostEntity is NOT deleted —
+// the parent delete and the cascade are one atomic unit, not two separate operations.
+DynamicApiModule.forFeature({
+  entity: PostEntity,
+  controllerOptions: { path: 'posts' },
+  routes: [
+    { type: 'DeleteOne', cascade: [{ entity: CommentEntity, foreignKey: 'postId', on: 'delete' }] },
+  ],
+})
+```
+
+No configuration needed — this is automatic whenever `cascade` is set and the connection supports transactions.
+
+> ⚠️ **Standalone MongoDB instances don't support transactions at all** (a hard MongoDB limitation, not something any driver or library can work around). Against a standalone instance, cascade automatically **falls back** to the previous behavior — the parent delete and each cascade write run sequentially, non-atomically — and a warning is logged once per cascade call (`MONGODB_DYNAMIC_API_LOGGER=WARN` or more verbose — see [Debugging](./debugging.md)). If a cascade delete fails mid-way on a standalone instance, the parent document is already deleted but some children may remain, exactly as before.
+>
+> **To get atomicity, your MongoDB deployment needs to be a replica set** (a single-member replica set is enough — it doesn't require multiple physical nodes). See MongoDB's [Convert a Standalone to a Replica Set](https://www.mongodb.com/docs/manual/tutorial/convert-standalone-to-replica-set/) guide, or this repo's own `compose.yaml` for a working single-node example (includes the `keyFile` MongoDB requires once `--auth` and `--replSet` are combined).
 
 ---
 

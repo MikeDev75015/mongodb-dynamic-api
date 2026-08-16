@@ -1054,4 +1054,18 @@ describe('BaseService', () => {
       expect(errorSpy).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('deleteWithCascade', () => {
+    it('skips the transaction entirely and just runs deleteParent when cascade is empty', async () => {
+      const model = { db: { startSession: jest.fn() } } as unknown as Model<TestEntity>;
+      const testService = new TestService(model);
+      const deleteParent = jest.fn().mockResolvedValue(3);
+
+      const result = await testService['deleteWithCascade'](deleteParent, ['id'], false, []);
+
+      expect(result).toStrictEqual({ deletedCount: 3, cascadeCompleted: true });
+      expect(deleteParent).toHaveBeenCalledWith();
+      expect(model.db.startSession).not.toHaveBeenCalled();
+    });
+  });
 });

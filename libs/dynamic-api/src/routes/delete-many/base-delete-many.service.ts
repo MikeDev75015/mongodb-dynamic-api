@@ -1,8 +1,7 @@
 import { plainToInstance } from 'class-transformer';
-import { Model } from 'mongoose';
+import { ClientSession, Model } from 'mongoose';
 import { DeletePresenter } from '../../dtos';
 import {
-  DeleteResult,
   BeforeSaveDeleteManyCallback,
   BeforeSaveDeleteManyContext,
   BeforeDeleteManyCallback,
@@ -53,6 +52,7 @@ export abstract class BaseDeleteManyService<Entity extends BaseEntity>
     }
 
     let deletedCount = 0;
+    let cascadeCompleted = true;
     try {
       // Fetch documents for after-save callback when not yet loaded
       if (!documents.length && this.callback) {
@@ -65,19 +65,17 @@ export abstract class BaseDeleteManyService<Entity extends BaseEntity>
           .exec();
       }
 
-      let op: DeleteResult;
-
-      if (this.isSoftDeletable) {
-        const deleted = await this.model
-          .updateMany(
-            { _id: { $in: ids }, isDeleted: false },
-            { $set: { isDeleted: true, deletedAt: Date.now() } },
-          )
-          .exec();
-
-        op = { deletedCount: deleted.modifiedCount };
+      if (this.cascade?.length) {
+        const result = await this.deleteWithCascade(
+          (session) => this.deleteParentDocuments(ids, session),
+          ids,
+          this.isSoftDeletable,
+          this.cascade,
+        );
+        deletedCount = result.deletedCount;
+        cascadeCompleted = result.cascadeCompleted;
       } else {
-        op = await this.model.deleteMany({ _id: { $in: ids } }).exec();
+        deletedCount = await this.deleteParentDocuments(ids);
       }
 
       if (documents?.length) {
@@ -89,17 +87,49 @@ export abstract class BaseDeleteManyService<Entity extends BaseEntity>
           ),
         );
       }
-
-      deletedCount = op.deletedCount;
     } catch (error: unknown) {
       return plainToInstance(DeletePresenter, { deletedCount: 0 });
     }
 
-    // ── Cascade — runs OUTSIDE the try-catch so delete result is never zeroed ──
-    if (this.cascade?.length && deletedCount > 0) {
+    // ── Fallback cascade — runs OUTSIDE the try-catch so a successful parent delete's result is
+    // never zeroed by a cascade failure. Only reached when the connection didn't support a
+    // transaction (deleteWithCascade already ran the cascade atomically otherwise). ──
+    if (!cascadeCompleted && this.cascade?.length && deletedCount > 0) {
       await this.executeCascade(ids, this.cascade, this.isSoftDeletable);
     }
 
     return plainToInstance(DeletePresenter, { deletedCount });
+  }
+
+  /**
+   * Deletes (or soft-deletes) the parent documents, preserving the exact pre-transaction call
+   * signature when `session` is omitted — required so the plain (no-cascade / fallback) path
+   * behaves byte-for-byte like before this method existed.
+   */
+  private async deleteParentDocuments(ids: string[], session?: ClientSession): Promise<number> {
+    if (this.isSoftDeletable) {
+      const deleted = await (
+        session
+          ? this.model.updateMany(
+            { _id: { $in: ids }, isDeleted: false },
+            { $set: { isDeleted: true, deletedAt: Date.now() } },
+            { session },
+          )
+          : this.model.updateMany(
+            { _id: { $in: ids }, isDeleted: false },
+            { $set: { isDeleted: true, deletedAt: Date.now() } },
+          )
+      ).exec();
+
+      return deleted.modifiedCount;
+    }
+
+    const deleted = await (
+      session
+        ? this.model.deleteMany({ _id: { $in: ids } }, { session })
+        : this.model.deleteMany({ _id: { $in: ids } })
+    ).exec();
+
+    return deleted.deletedCount;
   }
 }

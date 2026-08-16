@@ -1,8 +1,9 @@
 import { BadRequestException, ConflictException, ForbiddenException, HttpException, NotFoundException, ServiceUnavailableException, Type } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { PipelineStage } from 'mongodb-pipeline-builder';
-import { FilterQuery, Model, PipelineStage as MongoosePipelineStage, Schema, UpdateQuery, UpdateWithAggregationPipeline } from 'mongoose';
+import { ClientSession, FilterQuery, Model, PipelineStage as MongoosePipelineStage, Schema, UpdateQuery, UpdateWithAggregationPipeline } from 'mongoose';
 import { DERIVED_FIELD_KEYS_METADATA, DERIVED_FIELD_METADATA, DerivedFieldMeta } from '../../decorators';
+import { isTransactionsUnsupportedError } from '../../helpers/mongo-transaction.helper';
 import { AbilityPredicate, AfterSaveCallback, AuthAbilityPredicate, CallbackRetryOptions, CascadeConfig, DeleteResult, DynamicApiCallbackMethods, MongoUpdateOperators, UpdateResult } from '../../interfaces';
 import { MongoDBDynamicApiLogger } from '../../logger';
 import { BaseEntity, SoftDeletableEntity } from '../../models';
@@ -231,11 +232,14 @@ export abstract class BaseService<Entity extends BaseEntity> {
    * @param parentIds    - IDs of the deleted parent documents.
    * @param cascade      - cascade configurations from the route config.
    * @param isSoftDelete - `true` if the parent was soft-deleted, `false` if hard-deleted.
+   * @param session      - active `ClientSession` to run these writes in, when called from
+   *                       {@link deleteWithCascade}'s transactional path. Omitted otherwise.
    */
   protected async executeCascade(
     parentIds: string[],
     cascade: CascadeConfig[],
     isSoftDelete: boolean,
+    session?: ClientSession,
   ): Promise<void> {
     for (const config of cascade) {
       const shouldTrigger =
@@ -247,14 +251,90 @@ export abstract class BaseService<Entity extends BaseEntity> {
       }
 
       const useSoftDelete = config.softDelete ?? isSoftDelete;
-      const model = await DynamicApiGlobalStateService.getEntityModel(config.entity);
+      // A session is only ever bound to the connection it was started on (this.model.db) — a
+      // model resolved via DynamicApiGlobalStateService.getEntityModel lives on its own,
+      // separate connection and would make MongoDB reject the write outright ("session was
+      // started on a different client"). Cascade children are always registered on the same
+      // connection as the parent (forFeature always uses the shared connectionName), so
+      // this.model.db.model(...) resolves the exact same, already-compiled model.
+      const model = session
+        ? this.model.db.model<BaseEntity>(config.entity.name)
+        : await DynamicApiGlobalStateService.getEntityModel(config.entity);
       const filter = { [config.foreignKey]: { $in: parentIds } } as FilterQuery<BaseEntity>;
 
       if (useSoftDelete) {
-        await model.updateMany(filter, { $set: { isDeleted: true, deletedAt: new Date() } }).exec();
+        const update = { $set: { isDeleted: true, deletedAt: new Date() } };
+        await (session ? model.updateMany(filter, update, { session }) : model.updateMany(filter, update)).exec();
       } else {
-        await model.deleteMany(filter).exec();
+        await (session ? model.deleteMany(filter, { session }) : model.deleteMany(filter)).exec();
       }
+    }
+  }
+
+  /**
+   * Runs `deleteParent` and, when `cascade` has at least one entry, the matching cascade deletes
+   * as **one atomic MongoDB transaction** — provided the connection supports it (a replica set or
+   * mongos; standalone `mongod` instances don't support multi-document transactions at all).
+   *
+   * On a standalone instance, the transaction attempt fails immediately with a well-known error
+   * (see {@link isTransactionsUnsupportedError}); this method catches exactly that case, logs a
+   * warning once, and falls back to running `deleteParent` alone — the caller is then responsible
+   * for invoking {@link executeCascade} itself, **outside** any try/catch that would zero out an
+   * already-successful parent delete count (see `DeleteOne`/`DeleteMany`'s `deleteOne`/`deleteMany`
+   * for the exact pattern). Any other error propagates unchanged.
+   *
+   * @param deleteParent - performs the parent delete/soft-delete; receives the active `ClientSession`
+   *   when running inside a transaction (`undefined` on the non-transactional fallback), and must
+   *   return the number of parent documents affected.
+   * @param parentIds    - IDs of the parent documents being deleted — forwarded to `executeCascade`.
+   * @param isSoftDelete - `true` if the parent is being soft-deleted, `false` if hard-deleted.
+   * @param cascade      - cascade configurations from the route config, if any.
+   */
+  protected async deleteWithCascade(
+    deleteParent: (session?: ClientSession) => Promise<number>,
+    parentIds: string[],
+    isSoftDelete: boolean,
+    cascade: CascadeConfig[] | undefined,
+  ): Promise<{ deletedCount: number; cascadeCompleted: boolean }> {
+    if (!cascade?.length) {
+      return { deletedCount: await deleteParent(), cascadeCompleted: true };
+    }
+
+    try {
+      const deletedCount = await this.runInTransaction(async (session) => {
+        const count = await deleteParent(session);
+        await this.executeCascade(parentIds, cascade, isSoftDelete, session);
+        return count;
+      });
+
+      return { deletedCount, cascadeCompleted: true };
+    } catch (error) {
+      if (!isTransactionsUnsupportedError(error)) {
+        throw error;
+      }
+
+      this.baseServiceLogger.warn(
+        '[Cascade] MongoDB transactions are not supported on this connection (not a replica set '
+        + 'or mongos) — falling back to sequential, non-atomic cascade deletes. See the Cascade '
+        + 'Delete docs for details.',
+      );
+
+      return { deletedCount: await deleteParent(), cascadeCompleted: false };
+    }
+  }
+
+  /** Runs `work` inside a MongoDB session transaction, always ending the session afterward. */
+  private async runInTransaction<T>(work: (session: ClientSession) => Promise<T>): Promise<T> {
+    const session = await this.model.db.startSession();
+
+    try {
+      let result: T;
+      await session.withTransaction(async () => {
+        result = await work(session);
+      });
+      return result;
+    } finally {
+      await session.endSession();
     }
   }
 
