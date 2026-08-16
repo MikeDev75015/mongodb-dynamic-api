@@ -36,6 +36,8 @@ type InternalService = {
   beforeSaveCallback: BeforeSaveDeleteCallback<TestEntity> | undefined;
   beforeDeleteCallback: BeforeDeleteCallback<TestEntity, BeforeSaveDeleteContext> | undefined;
   cascade: CascadeConfig[] | undefined;
+  auditLog: boolean | undefined;
+  writeAuditLog: jest.Mock;
 };
 
 const internal = (svc: TestService) => svc as unknown as InternalService;
@@ -280,6 +282,48 @@ describe('BaseDeleteOneService', () => {
 
     expect(modelMock.findOne).toHaveBeenCalledWith({ _id: id, isDeleted: false });
     expect(callback).toHaveBeenCalledTimes(1);
+  });
+
+  describe('auditLog', () => {
+    it('should call writeAuditLog with the deleted document when auditLog is enabled', async () => {
+      service = initService();
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      internal(service).auditLog = true;
+      const writeAuditLogSpy = jest
+        .spyOn(service as unknown as { writeAuditLog: jest.Mock }, 'writeAuditLog')
+        .mockResolvedValue(undefined);
+      const fakeUser = { id: 'user-1' };
+
+      await service.deleteOne(id, fakeUser);
+
+      expect(writeAuditLogSpy).toHaveBeenCalledTimes(1);
+      expect(writeAuditLogSpy).toHaveBeenCalledWith('delete', id, document, null, fakeUser);
+    });
+
+    it('should not call writeAuditLog when auditLog is not enabled', async () => {
+      service = initService();
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const writeAuditLogSpy = jest
+        .spyOn(service as unknown as { writeAuditLog: jest.Mock }, 'writeAuditLog')
+        .mockResolvedValue(undefined);
+
+      await service.deleteOne(id);
+
+      expect(writeAuditLogSpy).not.toHaveBeenCalled();
+    });
+
+    it('should not call writeAuditLog when the document to delete was not found', async () => {
+      service = initService(null);
+      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      internal(service).auditLog = true;
+      const writeAuditLogSpy = jest
+        .spyOn(service as unknown as { writeAuditLog: jest.Mock }, 'writeAuditLog')
+        .mockResolvedValue(undefined);
+
+      await service.deleteOne(id);
+
+      expect(writeAuditLogSpy).not.toHaveBeenCalled();
+    });
   });
 
   describe('beforeDeleteCallback', () => {

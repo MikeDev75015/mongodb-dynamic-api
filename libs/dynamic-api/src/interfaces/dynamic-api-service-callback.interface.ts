@@ -84,15 +84,17 @@ type CallbackRetryOptions = {
 };
 
 /**
- * Bundles `callback` (the after-save hook) with its retry policy — passed as a single object
- * to each route's internal `createXServiceProvider` factory so the two stay together instead of
- * traveling as separate positional parameters.
+ * Bundles `callback` (the after-save hook) with its retry policy, and `auditLog` (also written
+ * after a successful save) — passed as a single object to each route's internal
+ * `createXServiceProvider` factory so they stay together instead of traveling as separate
+ * positional parameters.
  *
  * @internal Not part of the public API — will be removed from the package's public exports in v5.
  */
 type AfterSaveCallbackConfig<Entity extends BaseEntity, User = unknown> = {
   callback: AfterSaveCallback<Entity, User> | undefined;
   retry?: CallbackRetryOptions;
+  auditLog?: boolean;
 };
 
 /**

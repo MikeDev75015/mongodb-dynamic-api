@@ -51,6 +51,7 @@ function createDeleteOneServiceProvider<Entity extends BaseEntity>(
     protected readonly callback = afterSave?.callback;
     protected readonly cascade = cascade;
     protected readonly callbackRetry = afterSave?.retry;
+    protected readonly auditLog = afterSave?.auditLog;
 
     constructor(
       @InjectModel(

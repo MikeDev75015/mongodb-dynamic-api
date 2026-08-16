@@ -23,6 +23,7 @@ export abstract class BaseCreateManyService<Entity extends BaseEntity>
   > | undefined;
   protected readonly callback: AfterSaveCallback<Entity> | undefined;
   protected readonly callbackRetry: CallbackRetryOptions | undefined;
+  protected readonly auditLog: boolean | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
     super(model);
@@ -57,6 +58,14 @@ export abstract class BaseCreateManyService<Entity extends BaseEntity>
             ),
           ),
         );
+
+        if (this.auditLog) {
+          await Promise.all(
+            documents.map((document) => this.writeAuditLog(
+              'create', String((document as { _id: unknown })._id), null, document as Record<string, unknown>, user,
+            )),
+          );
+        }
       }
 
       return documents.map((d) => this.buildInstance(d as Entity));

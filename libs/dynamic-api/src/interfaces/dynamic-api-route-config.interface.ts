@@ -65,6 +65,16 @@ interface BaseRouteConfig<Entity extends BaseEntity> {
   isArrayResponse?: boolean;
   useInterceptors?: Type<NestInterceptor>[];
   fromUser?: FromUserMap<Entity>;
+  /**
+   * Records every mutation this route performs to the entity's own `<collection>_audit_log`
+   * collection — action, before/after snapshots, `user`, and a timestamp. Only meaningful on
+   * mutation routes (`CreateOne`/`CreateMany`/`UpdateOne`/`UpdateMany`/`ReplaceOne`/
+   * `DuplicateOne`/`DuplicateMany`/`DeleteOne`/`DeleteMany`) — no effect on `GetOne`/`GetMany`/
+   * `Aggregate`. A write failure is logged (`MONGODB_DYNAMIC_API_LOGGER=WARN`) and never fails
+   * the request itself. See [Audit Log](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/route-config.md#audit-log).
+   * @default false
+   */
+  auditLog?: boolean;
 }
 
 /** Route config for `CreateOne` — `beforeSaveCallback` receives {@link BeforeSaveCreateContext}.

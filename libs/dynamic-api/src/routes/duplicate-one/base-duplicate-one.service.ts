@@ -24,6 +24,7 @@ export abstract class BaseDuplicateOneService<Entity extends BaseEntity>
   > | undefined;
   protected readonly callback: AfterSaveCallback<Entity> | undefined;
   protected readonly callbackRetry: CallbackRetryOptions | undefined;
+  protected readonly auditLog: boolean | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
     super(model);
@@ -69,6 +70,12 @@ export abstract class BaseDuplicateOneService<Entity extends BaseEntity>
       const document = await this.model.findOne({ _id }).lean<Entity>().exec();
 
       await this.invokeAfterSaveCallback(this.callback, this.addDocumentId(document), user, this.callbackRetry);
+
+      if (this.auditLog) {
+        await this.writeAuditLog(
+          'duplicate', _id.toString(), null, document as Record<string, unknown>, user,
+        );
+      }
 
       return this.buildInstance(document);
     } catch (error: unknown) {

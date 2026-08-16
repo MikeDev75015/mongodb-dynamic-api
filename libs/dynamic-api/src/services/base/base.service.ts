@@ -4,7 +4,7 @@ import { PipelineStage } from 'mongodb-pipeline-builder';
 import { ClientSession, FilterQuery, Model, PipelineStage as MongoosePipelineStage, Schema, UpdateQuery, UpdateWithAggregationPipeline } from 'mongoose';
 import { DERIVED_FIELD_KEYS_METADATA, DERIVED_FIELD_METADATA, DerivedFieldMeta } from '../../decorators';
 import { isTransactionsUnsupportedError } from '../../helpers/mongo-transaction.helper';
-import { AbilityPredicate, AfterSaveCallback, AuthAbilityPredicate, CallbackRetryOptions, CascadeConfig, DeleteResult, DynamicApiCallbackMethods, MongoUpdateOperators, UpdateResult } from '../../interfaces';
+import { AbilityPredicate, AfterSaveCallback, AuditLogAction, AuthAbilityPredicate, CallbackRetryOptions, CascadeConfig, DeleteResult, DynamicApiCallbackMethods, MongoUpdateOperators, UpdateResult } from '../../interfaces';
 import { MongoDBDynamicApiLogger } from '../../logger';
 import { BaseEntity, SoftDeletableEntity } from '../../models';
 import { DynamicApiResetPasswordOptions } from '../../modules';
@@ -335,6 +335,39 @@ export abstract class BaseService<Entity extends BaseEntity> {
       return result;
     } finally {
       await session.endSession();
+    }
+  }
+
+  /**
+   * Records a single mutation to the entity's own `<collection>_audit_log` collection, when
+   * `auditLog: true` is set on the route config. Schema-less (writes through the native driver,
+   * not a compiled Mongoose model) — the audit shape is generic across every entity.
+   *
+   * Best-effort: a write failure is logged and swallowed, never thrown — an audit trail issue
+   * must not fail the mutation it's trying to record.
+   */
+  protected async writeAuditLog(
+    action: AuditLogAction,
+    entityId: string,
+    before: Record<string, unknown> | null,
+    after: Record<string, unknown> | null,
+    user: unknown,
+  ): Promise<void> {
+    try {
+      const collectionName = `${this.model.collection.collectionName}_audit_log`;
+      await this.model.db.collection(collectionName).insertOne({
+        action,
+        entityId,
+        before,
+        after,
+        user,
+        timestamp: new Date(),
+      });
+    } catch (error) {
+      this.baseServiceLogger.warn(
+        `[AuditLog] Failed to write audit entry (${action}) for ${this.entity?.name ?? 'entity'} `
+        + `${entityId}: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 

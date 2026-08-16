@@ -23,6 +23,8 @@ type InternalService = {
   callbackRetry: CallbackRetryOptions | undefined;
   callbackMethods: CallbackMethods;
   beforeSaveCallback: BeforeSaveCallback<TestEntity> | undefined;
+  auditLog: boolean | undefined;
+  writeAuditLog: jest.Mock;
 };
 
 const internal = (svc: TestService) => svc as unknown as InternalService;
@@ -179,6 +181,31 @@ describe('BaseCreateOneService', () => {
       await service.createOne(toCreate);
 
       expect(modelMock.create).toHaveBeenCalledWith(expect.objectContaining({ slug: 'test-slug' }));
+    });
+
+    it('should call writeAuditLog with the created document when auditLog is enabled', async () => {
+      service = initService(created);
+      internal(service).auditLog = true;
+      const writeAuditLogSpy = jest
+        .spyOn(service as unknown as { writeAuditLog: jest.Mock }, 'writeAuditLog')
+        .mockResolvedValue(undefined);
+      const fakeUser = { id: 'user-1' };
+
+      await service.createOne(toCreate, fakeUser);
+
+      expect(writeAuditLogSpy).toHaveBeenCalledTimes(1);
+      expect(writeAuditLogSpy).toHaveBeenCalledWith('create', created._id, null, created, fakeUser);
+    });
+
+    it('should not call writeAuditLog when auditLog is not enabled', async () => {
+      service = initService(created);
+      const writeAuditLogSpy = jest
+        .spyOn(service as unknown as { writeAuditLog: jest.Mock }, 'writeAuditLog')
+        .mockResolvedValue(undefined);
+
+      await service.createOne(toCreate);
+
+      expect(writeAuditLogSpy).not.toHaveBeenCalled();
     });
   });
 });
