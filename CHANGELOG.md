@@ -1,5 +1,11 @@
 Changelog
 
+## [4.22.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.21.0...v4.22.0) (2026-08-16)
+
+### ci
+
+* **ci:** release via a dedicated branch instead of pushing to develop ([9dabf56](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/9dabf563ac59e78eaf6aa8497883702700351695))
+
 ## [4.21.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.19.0...v4.21.0) (2026-08-16)
 
 ### ci
