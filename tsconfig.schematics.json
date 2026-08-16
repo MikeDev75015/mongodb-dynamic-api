@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "./libs/schematics",
+    "outDir": "./dist/schematics",
+    "declaration": false,
+    "tsBuildInfoFile": "./dist/schematics.tsbuildinfo"
+  },
+  "include": ["libs/schematics/**/*.ts"],
+  "exclude": ["node_modules", "**/*.spec.ts"]
+}

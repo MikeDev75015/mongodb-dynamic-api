@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "MongodbDynamicApiResource",
+  "title": "Mongodb Dynamic Api Resource Options",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "The name of the resource (e.g. 'user', 'blog-post').",
+      "$default": {
+        "$source": "argv",
+        "index": 0
+      },
+      "x-prompt": "What name would you like to use for the resource?"
+    },
+    "path": {
+      "type": "string",
+      "description": "The path at which to create the resource, relative to the current working directory.",
+      "default": "src"
+    },
+    "flat": {
+      "type": "boolean",
+      "description": "Do not create a subdirectory for the resource's files.",
+      "default": false
+    },
+    "softDelete": {
+      "type": "boolean",
+      "description": "Extend SoftDeletableEntity instead of BaseEntity.",
+      "default": false,
+      "alias": "soft-delete"
+    }
+  },
+  "required": ["name"]
+}

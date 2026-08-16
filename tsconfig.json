@@ -15,5 +15,5 @@
     "resolveJsonModule": true
   },
   "include": ["libs/**/*"],
-  "exclude": ["node_modules", "**/*.spec.ts", "**/*.mock.ts"]
+  "exclude": ["node_modules", "**/*.spec.ts", "**/*.mock.ts", "libs/schematics/**"]
 }

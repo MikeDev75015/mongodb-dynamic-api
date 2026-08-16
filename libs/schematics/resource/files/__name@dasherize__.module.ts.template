@@ -1,0 +1,13 @@
+import { Module } from '@nestjs/common';
+import { DynamicApiModule } from 'mongodb-dynamic-api';
+import { <%= classify(name) %> } from './<%= dasherize(name) %>.entity';
+
+@Module({
+  imports: [
+    DynamicApiModule.forFeature({
+      entity: <%= classify(name) %>,
+      controllerOptions: { path: '<%= dasherize(name) %>' },
+    }),
+  ],
+})
+export class <%= classify(name) %>Module {}

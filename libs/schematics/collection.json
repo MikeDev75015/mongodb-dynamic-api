@@ -1,0 +1,11 @@
+{
+  "$schema": "../../node_modules/@angular-devkit/schematics/collection-schema.json",
+  "schematics": {
+    "resource": {
+      "description": "Generate a mongodb-dynamic-api entity + module (CRUD scaffolding)",
+      "factory": "./resource/index#resource",
+      "schema": "./resource/schema.json",
+      "aliases": ["res"]
+    }
+  }
+}
