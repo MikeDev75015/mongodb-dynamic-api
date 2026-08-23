@@ -6,6 +6,10 @@ import { Cache } from 'cache-manager';
 import { Observable, tap } from 'rxjs';
 import { DISABLE_CACHE_KEY } from '../decorators';
 import { DynamicApiGlobalState } from '../interfaces';
+// Concrete path, not the `../services` barrel: see the same note in
+// helpers/mixin-data.helper.ts — that barrel re-exports DynamicApiBroadcastService, which
+// imports the helpers barrel this file's own import graph can reach.
+import { DynamicApiCacheService } from '../services/dynamic-api-cache/dynamic-api-cache.service';
 
 @Injectable()
 /** @internal Not part of the public API — will be removed from the package's public exports in v5. */
@@ -20,6 +24,7 @@ export class DynamicApiCacheInterceptor extends CacheInterceptor {
     protected readonly reflector: Reflector,
     protected readonly httpAdapterHost: HttpAdapterHost,
     private readonly state: DynamicApiGlobalState,
+    private readonly cacheService: DynamicApiCacheService,
   ) {
     super(cacheManager, reflector);
     this.httpAdapterHost = httpAdapterHost;
@@ -36,7 +41,7 @@ export class DynamicApiCacheInterceptor extends CacheInterceptor {
     if (isWriteOperation) {
       return Promise.resolve(
         next.handle().pipe(
-          tap(() => { this.cacheManager.clear(); }),
+          tap(() => { this.cacheService.invalidateForUrl(req.url); }),
         ),
       );
     }

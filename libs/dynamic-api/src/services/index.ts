@@ -1,4 +1,5 @@
 export * from './base/base.service';
 export * from './bcrypt/bcrypt.service';
 export * from './dynamic-api-broadcast/dynamic-api-broadcast.service';
+export * from './dynamic-api-cache/dynamic-api-cache.service';
 export * from './dynamic-api-global-state/dynamic-api-global-state.service';

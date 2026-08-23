@@ -13,6 +13,7 @@ describe('DynamicApiCacheInterceptor', () => {
   let reflector: Reflector;
   let httpAdapterHost: HttpAdapterHost;
   let state: DynamicApiGlobalState;
+  let cacheService: { invalidateForUrl: jest.Mock };
 
   const fakeHandler = () => ({});
 
@@ -23,8 +24,9 @@ describe('DynamicApiCacheInterceptor', () => {
     state = {
       cacheExcludedPaths: [],
     } as DynamicApiGlobalState;
+    cacheService = { invalidateForUrl: jest.fn().mockResolvedValue(undefined) };
 
-    interceptor = new DynamicApiCacheInterceptor(cacheManager, reflector, httpAdapterHost, state);
+    interceptor = new DynamicApiCacheInterceptor(cacheManager, reflector, httpAdapterHost, state, cacheService as any);
   });
 
   describe('isRequestCacheable', () => {
@@ -254,13 +256,13 @@ describe('DynamicApiCacheInterceptor', () => {
       interceptor.intercept(context, next).then((obs) => {
         obs.subscribe((result) => {
           expect(result).toBe('handled');
-          expect(cacheManager.clear).not.toHaveBeenCalled();
+          expect(cacheService.invalidateForUrl).not.toHaveBeenCalled();
           done();
         });
       });
     });
 
-    it('should purge cache after a successful write operation', (done) => {
+    it('should invalidate the cache scoped to the request URL after a successful write operation', (done) => {
       state.isGlobalCacheEnabled = true;
       const context = {
         switchToHttp: () => ({
@@ -273,13 +275,13 @@ describe('DynamicApiCacheInterceptor', () => {
       interceptor.intercept(context, next).then((obs) => {
         obs.subscribe((result) => {
           expect(result).toBe('created');
-          expect(cacheManager.clear).toHaveBeenCalledTimes(1);
+          expect(cacheService.invalidateForUrl).toHaveBeenCalledWith('/users');
           done();
         });
       });
     });
 
-    it('should purge cache after a DELETE operation', (done) => {
+    it('should invalidate the cache after a DELETE operation', (done) => {
       state.isGlobalCacheEnabled = true;
       const context = {
         switchToHttp: () => ({
@@ -292,13 +294,13 @@ describe('DynamicApiCacheInterceptor', () => {
       interceptor.intercept(context, next).then((obs) => {
         obs.subscribe((result) => {
           expect(result).toBe('deleted');
-          expect(cacheManager.clear).toHaveBeenCalledTimes(1);
+          expect(cacheService.invalidateForUrl).toHaveBeenCalledWith('/users/123');
           done();
         });
       });
     });
 
-    it('should purge cache after a PATCH operation', (done) => {
+    it('should invalidate the cache after a PATCH operation', (done) => {
       state.isGlobalCacheEnabled = true;
       const context = {
         switchToHttp: () => ({
@@ -311,13 +313,13 @@ describe('DynamicApiCacheInterceptor', () => {
       interceptor.intercept(context, next).then((obs) => {
         obs.subscribe((result) => {
           expect(result).toBe('updated');
-          expect(cacheManager.clear).toHaveBeenCalledTimes(1);
+          expect(cacheService.invalidateForUrl).toHaveBeenCalledWith('/users/123');
           done();
         });
       });
     });
 
-    it('should not purge cache on write if global cache is disabled', (done) => {
+    it('should not invalidate the cache on write if global cache is disabled', (done) => {
       state.isGlobalCacheEnabled = false;
       const context = {
         switchToHttp: () => ({
@@ -330,7 +332,7 @@ describe('DynamicApiCacheInterceptor', () => {
       interceptor.intercept(context, next).then((obs) => {
         obs.subscribe((result) => {
           expect(result).toBe('created');
-          expect(cacheManager.clear).not.toHaveBeenCalled();
+          expect(cacheService.invalidateForUrl).not.toHaveBeenCalled();
           done();
         });
       });

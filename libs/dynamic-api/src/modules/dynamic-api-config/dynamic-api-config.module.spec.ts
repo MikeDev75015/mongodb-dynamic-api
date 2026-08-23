@@ -1,5 +1,6 @@
 import { DynamicModule } from '@nestjs/common';
 import { DYNAMIC_API_GLOBAL_STATE, DynamicApiGlobalState } from '../../interfaces';
+import { DynamicApiCacheService } from '../../services/dynamic-api-cache/dynamic-api-cache.service';
 import { DynamicApiConfigModule } from './dynamic-api-config.module';
 
 describe('DynamicApiConfigModule', () => {
@@ -50,11 +51,26 @@ describe('DynamicApiConfigModule', () => {
           provide: DYNAMIC_API_GLOBAL_STATE,
           useValue: config,
         },
+        {
+          provide: DynamicApiCacheService,
+          inject: ['CACHE_MANAGER'],
+          useFactory: expect.any(Function),
+        },
       ]);
     });
 
-    it('should export the DYNAMIC_API_GLOBAL_STATE token', () => {
-      expect(module.exports).toEqual([DYNAMIC_API_GLOBAL_STATE]);
+    it('should provide DynamicApiCacheService via a factory that injects CACHE_MANAGER', () => {
+      const provider = (module.providers as any[])[1];
+      const fakeCacheManager = { fake: true };
+
+      const service = provider.useFactory(fakeCacheManager);
+
+      expect(service).toBeInstanceOf(DynamicApiCacheService);
+      expect(service['cacheManager']).toBe(fakeCacheManager);
+    });
+
+    it('should export the DYNAMIC_API_GLOBAL_STATE token and DynamicApiCacheService', () => {
+      expect(module.exports).toEqual([DYNAMIC_API_GLOBAL_STATE, DynamicApiCacheService]);
     });
   });
 });
