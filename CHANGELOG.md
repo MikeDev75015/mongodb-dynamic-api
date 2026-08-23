@@ -1,5 +1,29 @@
 Changelog
 
+## [4.23.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.22.0...v4.23.0) (2026-08-23)
+
+### quality
+
+* **quality:** resolve 6 SonarCloud leak-period issues on develop ([43e51fb](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/43e51fb1281d5896d2a6bbf714386b10661f43f4))
+
+### custom-routes
+
+* **custom-routes:** DI resolution via inject (F8) ([8bc60af](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/8bc60af727152da8eb1b41a27c301aa17bf459c5))
+* **custom-routes:** dTOs.params for OpenAPI path param docs (F9) ([e42449f](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/e42449f9d49d7a2ceecb3b57f3cf25663c92c32c))
+
+### entities
+
+* **entities:** recompute @DerivedField on single-document raw writes (F5) ([411222a](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/411222ae703558dfe1836280baac70dc8dde0f4e))
+
+### cache
+
+* **cache:** identity-aware cache key + filter-mode safety warning (F1, F2) ([4641906](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/464190614571e323d37c704ebca7537395277229))
+* **cache:** scoped invalidation via DynamicApiCacheService (F3, F4) ([c1c701d](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/c1c701d1cf4986655f270284e6ada94923c589ce))
+
+### guards
+
+* **guards:** targetParam for custom routes with a non-id path param (F7) ([977de6d](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/977de6d292af965f639c9749fd4b7973bd14373b))
+
 ## [4.22.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.21.0...v4.22.0) (2026-08-16)
 
 ### ci
