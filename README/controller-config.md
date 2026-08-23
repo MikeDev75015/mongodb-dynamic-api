@@ -25,6 +25,7 @@
     - [`customRoutes` vs. a native CRUD route](#customroutes-vs-a-native-crud-route)
     - [targetParam](#targetparam)
     - [inject](#inject)
+    - [dTOs.params](#dtosparams)
 - [controllerOptions Reference](#controlleroptions-reference)
   - [path](#path)
   - [apiTag](#apitag)
@@ -223,6 +224,7 @@ Both let you attach `abilityPredicate`, guards, DTOs, and WebSocket exposure —
 | `eventName` | `string` | ➖ | Custom WS event name. Default: `kebabCase('custom/{path}/{entityName}')` → e.g. `custom-metadata-conversation`. In WS context `params` and `query` are always `{}` — include everything in the message body. |
 | `dTOs.body` | `Type` | ➖ | DTO class for request body validation and Swagger `@ApiBody`. |
 | `dTOs.query` | `Type` | ➖ | DTO class for query string validation and Swagger `@ApiQuery`. |
+| `dTOs.params` | `Type` | ➖ | Class documenting the route's path param(s) for Swagger/OpenAPI — one `@ApiParam` per property. **Docs only**, unlike `body`/`query` — doesn't validate/transform `ctx.params`. See [dTOs.params](#dtosparams) below. |
 | `dTOs.presenter` | `Type & Partial<Mappable<Entity>>` | ➖ | Response presenter. If it exposes `fromEntity`, the handler result is mapped through it; otherwise raw result is returned (with `ClassSerializerInterceptor`). |
 
 #### targetParam
@@ -300,6 +302,36 @@ reachable in your app's module graph, same as any other cross-module Nest inject
 `customRoutes` handler keeps working unchanged, since a JS function is free to ignore extra
 arguments it doesn't declare.
 
+#### dTOs.params
+
+`dTOs.body` and `dTOs.query` were always reflected into Swagger (`@ApiBody`/`@ApiQuery`) — a custom
+route's **path** params had no equivalent. OpenAPI codegen tools (e.g. `ng-openapi-gen`) generate
+their client function's signature straight from the OpenAPI document, so with nothing declaring
+the param, the generated function had an empty params interface and never substituted the
+placeholder(s) in the URL — the workaround was writing that one client-side call function by hand.
+
+`dTOs.params` is a class with one property per path param — give each a **field initializer with a
+representative value** (not just a TS type annotation), the same convention the built-in
+`EntityParam` (`id = ''`) already follows for native routes: the property's runtime type is what
+gets reflected as the param's Swagger type.
+
+```typescript
+class InviteMemberParams {
+  familyId = '';
+}
+
+const inviteMemberRoute: CustomRouteConfig<Family> = {
+  path: ':familyId/invite-member',
+  method: 'POST',
+  dTOs: { params: InviteMemberParams },
+  handler: async (ctx) => { /* ctx.params.familyId, now documented in Swagger too */ },
+};
+```
+
+This only affects the generated OpenAPI document — one `@ApiParam` entry per declared property.
+It does **not** validate or transform `ctx.params`, which stays the raw `Record<string, string>`
+NestJS parses from the URL regardless of whether `dTOs.params` is set.
+
 #### `CustomRouteContext<Entity, Body, Query, Params>` fields
 
 | Field | Type | Description |
@@ -339,6 +371,11 @@ class UpdateWrappedKeyBody {
   wrappedKey: string;
 }
 
+// ── Params DTO (Swagger/OpenAPI docs for the :id path param) ──────────────────
+class UpdateWrappedKeyParams {
+  id = '';
+}
+
 // ── Custom guard ──────────────────────────────────────────────────────────────
 @Injectable()
 class OwnConversationGuard implements CanActivate {
@@ -358,7 +395,7 @@ const customRoute: CustomRouteConfig<Conversation, UpdateWrappedKeyBody> = {
   guards: [OwnConversationGuard],
   abilityPredicate: (entity: Conversation, user: { sub: string }) =>
     entity.ownerId === user.sub,
-  dTOs: { body: UpdateWrappedKeyBody },
+  dTOs: { body: UpdateWrappedKeyBody, params: UpdateWrappedKeyParams },
   handler: async ({ model, params, body }) =>
     (model as Model<Conversation>).findByIdAndUpdate(
       params.id,

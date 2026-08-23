@@ -219,6 +219,32 @@ interface CustomRouteConfig<
     /** Class used to validate and document the query string. */
     query?: Type;
     /**
+     * Class documenting the route's path params in Swagger/OpenAPI — one `@ApiParam` entry per
+     * declared property, in place of the empty params interface OpenAPI generators (e.g.
+     * `ng-openapi-gen`) otherwise produce for a custom route, which then never substitute the
+     * param placeholder(s) in the generated client's URL.
+     *
+     * Documentation only — unlike `body`/`query`, this does **not** validate or transform
+     * `ctx.params` (still the raw `Record<string, string>` NestJS parses from the URL).
+     *
+     * Give every property a field initializer with a representative value (not just a TS type
+     * annotation) — the value's runtime type is what gets reflected in the generated Swagger
+     * type, the same convention `EntityParam` (`id = ''`) already follows for native routes.
+     *
+     * @example
+     * ```typescript
+     * class InviteMemberParams {
+     *   familyId = '';
+     * }
+     *
+     * {
+     *   path: ':familyId/invite-member',
+     *   dTOs: { params: InviteMemberParams, body: InviteFamilyMemberDto },
+     * }
+     * ```
+     */
+    params?: Type;
+    /**
      * Presenter class for the response.
      * If it exposes a static `fromEntity` method, the handler result is mapped through it.
      * Falls back to returning the raw handler result with `ClassSerializerInterceptor` applied.
