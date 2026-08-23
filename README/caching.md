@@ -12,9 +12,11 @@ Smart caching is enabled by default for all **read** routes (GET / Aggregate), u
 - [How It Works](#how-it-works)
 - [Configuration Options](#configuration-options)
   - [Global Configuration](#global-configuration)
+  - [Cache Key & Multi-User Safety](#cache-key--multi-user-safety)
   - [Feature-Level Configuration](#feature-level-configuration)
   - [Route-Level Configuration](#route-level-configuration)
   - [Priority Resolution](#priority-resolution)
+- [predicateBehavior: 'filter' and Cache](#predicatebehavior-filter-and-cache)
 - [Cache Purge](#cache-purge)
   - [Auto-Purge on Write Operations](#auto-purge-on-write-operations)
   - [Manual Purge Endpoint](#manual-purge-endpoint)
@@ -158,6 +160,42 @@ DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
 | `store` | string\|Keyv\|Keyv[] | 'memory' | Cache storage manager (see [Different stores](https://docs.nestjs.com/techniques/caching#different-stores)) |
 | `excludePaths` | string[] | [] | Paths to exclude from caching |
 | `isCacheableValue` | function | - | Custom function to determine if a value should be cached |
+| `keyBy` | `'url'` \| `'url+identity'` | `'url+identity'` | How the cache key is computed — see [Cache Key & Multi-User Safety](#cache-key--multi-user-safety) |
+
+### Cache Key & Multi-User Safety
+
+By default, the cache key for a GET response is the request URL **plus the authenticated caller's identity**
+(`req.user._id`/`req.user.id`, when present). This means two different users hitting the exact same URL —
+`GET /users/e2ee-backup/mine`, `GET /users`, any route whose response depends on `req.user` — never share a
+cached response, even though the URL is identical.
+
+```typescript
+DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
+  cacheOptions: {
+    keyBy: 'url+identity', // default — safe for any authenticated route
+  },
+})
+```
+
+Anonymous requests (no `req.user`, i.e. `isPublic: true` routes, or auth disabled) fall back to a plain URL
+key automatically, since there's no per-caller identity to key on.
+
+**`keyBy: 'url'`** restores the pre-4.23 behavior — a single cached response shared by every caller,
+regardless of identity. Only use it for routes whose response is genuinely identical for everyone (fully
+public reference data with no per-user filtering, `abilityPredicate`, or `fromUser`-derived content):
+
+```typescript
+DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
+  cacheOptions: {
+    keyBy: 'url', // ⚠️ one cached response is served to every caller of a given URL
+  },
+})
+```
+
+> **Why this matters:** with `keyBy: 'url'`, the *first* authenticated caller to hit a URL determines the
+> cached response for every subsequent caller until the entry expires or is purged — including on routes
+> protected by an `abilityPredicate`, since the Guard runs once per request but the cache is what actually
+> answers most of them. `keyBy: 'url'` is a deliberate opt-out, not a safe default.
 
 ### Feature-Level Configuration
 
@@ -872,6 +910,70 @@ interface DynamicApiRouteConfig<Entity> {
 | `DELETE` | `/{path}/cache` | `{ "purged": true }` | Purges all cached entries |
 
 > Only generated when `useGlobalCache: true` **and** controller `disableCache` is not `true`.
+
+---
+
+## predicateBehavior: 'filter' and Cache
+
+`predicateBehavior: 'filter'` (see [Route Config → predicateBehavior](./route-config.md#predicatebehavior))
+makes the route's Guard a **complete no-op** — filtering happens after the fact, inside the service, instead
+of as a pre-flight Guard check. That's fine on its own. Combined with an **active cache on the same route**,
+it deserves a second look: the Guard never runs a per-request check in `filter` mode, so what actually keeps
+two different callers from seeing each other's filtered response is the cache **key**, not the Guard.
+
+With the default `keyBy: 'url+identity'` (see [Cache Key & Multi-User Safety](#cache-key--multi-user-safety)),
+this is safe for authenticated routes — each caller's response is cached under their own key. It stops being
+safe if `keyBy: 'url'` is configured (every caller shares one key) — then the response computed for whichever
+caller triggered the cache miss is what every subsequent caller receives, until the entry expires or is purged.
+
+To surface this at the source instead of in production, `DynamicApiModule.forFeature` **logs a warning**
+(via [`MONGODB_DYNAMIC_API_LOGGER`](./debugging.md), silent unless that's set) at module registration when a
+route combines all of the following:
+
+- `type` is `GetMany` or `Aggregate` — the two route types where `predicateBehavior: 'filter'` is actually
+  implemented (see [Route Config → predicateBehavior](./route-config.md#predicatebehavior) for its scope)
+- the route is **not** `isPublic: true` — a public route's response is meant to be identical for every
+  caller regardless of identity, which is exactly what a shared cached entry already does
+- `abilityPredicate` is set
+- `predicateBehavior: 'filter'`
+- the route's cache is actually active (`useGlobalCache` **and** neither controller- nor route-level
+  `disableCache` is `true`)
+
+```typescript
+// ⚠️ Logs a warning at registration when MONGODB_DYNAMIC_API_LOGGER is set — review keyBy for this route
+DynamicApiModule.forFeature({
+  entity: Message,
+  controllerOptions: { path: 'messages' },
+  routes: [
+    {
+      type: 'GetMany',
+      abilityPredicate: isSameFamily,
+      predicateBehavior: 'filter',
+      // no disableCache → cache is active → warned about, unless keyBy stays 'url+identity'
+    },
+  ],
+})
+```
+
+This is a warning rather than a hard failure on purpose: with the default `keyBy`, the combination above is
+already safe for authenticated routes (each caller is keyed separately), and the library's own standard
+predicates document this exact shape as a supported pattern — e.g. `anyOf(isPublic(), isOwner())` on a
+`GetMany` route with `predicateBehavior: 'filter'`, see
+[Authorization → Standard Predicates](./authorization.md#standard-predicates). Failing the whole app's boot
+for a pattern that's safe under the default configuration would be worse than the risk it flags. If you've
+explicitly opted into `keyBy: 'url'` for this feature, treat the warning as a real signal and pick one of:
+
+```typescript
+{
+  type: 'GetMany',
+  abilityPredicate: isSameFamily,
+  predicateBehavior: 'filter',
+  disableCache: true, // ✅ each caller gets a freshly filtered response, no cache involved
+}
+```
+
+or switch to `predicateBehavior: 'throw'` (or omit it), which runs the Guard's pre-flight check on every
+request and is safe to cache under any `keyBy` strategy.
 
 ---
 

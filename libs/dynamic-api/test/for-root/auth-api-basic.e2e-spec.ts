@@ -35,6 +35,7 @@ describe('DynamicApiModule forRoot - Authentication API Basic (e2e)', () => {
         isGlobalCacheEnabled: true,
         connectionName: 'dynamic-api-connection',
         cacheExcludedPaths: [],
+        cacheKeyBy: 'url+identity',
         credentials: {
           loginField: 'email',
           passwordField: 'password',
@@ -266,6 +267,7 @@ describe('DynamicApiModule forRoot - Authentication API Basic (e2e)', () => {
         isGlobalCacheEnabled: true,
         connectionName: 'dynamic-api-connection',
         cacheExcludedPaths: [],
+        cacheKeyBy: 'url+identity',
         credentials: {
           loginField: 'email',
           passwordField: 'password',

@@ -1112,6 +1112,15 @@ DynamicApiModule.forFeature({
 
 > 📚 See [Authorization guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/authorization.md#filter-mode-vs-throw-mode) for the full comparison.
 
+> ⚠️ **Cache interaction:** `predicateBehavior: 'filter'` makes the Guard skip its per-request check
+> entirely — filtering happens once, in the service. Combined with an **active cache** on a non-public route,
+> whether that's safe depends on `cacheOptions.keyBy` (default `'url+identity'` keys each caller separately —
+> safe; `'url'` shares one entry across every caller — not safe). `DynamicApiModule.forFeature` logs a
+> warning at registration (via `MONGODB_DYNAMIC_API_LOGGER`) if you combine `'filter'` + `abilityPredicate`
+> on a cached, non-public `GetMany`/`Aggregate` route without `disableCache: true`, as a prompt to double
+> check `keyBy` for that route. Public routes (`isPublic: true`) are exempt — their response is meant to be
+> shared by every caller anyway. See [Caching → predicateBehavior: 'filter' and Cache](./caching.md#predicatebehavior-filter-and-cache).
+
 ---
 
 ### isArrayResponse

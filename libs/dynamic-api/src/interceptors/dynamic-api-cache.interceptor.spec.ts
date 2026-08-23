@@ -182,6 +182,63 @@ describe('DynamicApiCacheInterceptor', () => {
     });
   });
 
+  describe('trackBy', () => {
+    it('should fold the user id into the key by default (url+identity)', () => {
+      state.cacheKeyBy = 'url+identity';
+      const context = {
+        switchToHttp: () => ({
+          getRequest: () => ({ method: 'GET', url: '/users', user: { _id: 'user-1' } }),
+        }),
+      } as unknown as ExecutionContext;
+
+      expect(interceptor['trackBy'](context)).toBe('/users::user-1');
+    });
+
+    it('should fall back to the "id" field when "_id" is not present', () => {
+      state.cacheKeyBy = 'url+identity';
+      const context = {
+        switchToHttp: () => ({
+          getRequest: () => ({ method: 'GET', url: '/users', user: { id: 'user-2' } }),
+        }),
+      } as unknown as ExecutionContext;
+
+      expect(interceptor['trackBy'](context)).toBe('/users::user-2');
+    });
+
+    it('should return the bare url for an anonymous request', () => {
+      state.cacheKeyBy = 'url+identity';
+      const context = {
+        switchToHttp: () => ({
+          getRequest: () => ({ method: 'GET', url: '/public-data' }),
+        }),
+      } as unknown as ExecutionContext;
+
+      expect(interceptor['trackBy'](context)).toBe('/public-data');
+    });
+
+    it('should return the bare url when keyBy is explicitly "url", even for an authenticated caller', () => {
+      state.cacheKeyBy = 'url';
+      const context = {
+        switchToHttp: () => ({
+          getRequest: () => ({ method: 'GET', url: '/users', user: { _id: 'user-1' } }),
+        }),
+      } as unknown as ExecutionContext;
+
+      expect(interceptor['trackBy'](context)).toBe('/users');
+    });
+
+    it('should return undefined when there is no url to key on', () => {
+      state.cacheKeyBy = 'url+identity';
+      const context = {
+        switchToHttp: () => ({
+          getRequest: () => ({ method: 'GET' }),
+        }),
+      } as unknown as ExecutionContext;
+
+      expect(interceptor['trackBy'](context)).toBeUndefined();
+    });
+  });
+
   describe('intercept', () => {
     it('should return next.handle() if global cache is disabled', (done) => {
       state.isGlobalCacheEnabled = false;

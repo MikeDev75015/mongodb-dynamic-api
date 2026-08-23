@@ -1,6 +1,8 @@
 import { plainToInstance } from 'class-transformer';
+import { MongoDBDynamicApiLogger } from '../logger';
 import { BaseEntity } from '../models';
 import { CreateManyBodyMixin } from '../routes';
+import { DynamicApiGlobalStateService } from '../services/dynamic-api-global-state/dynamic-api-global-state.service';
 import { DynamicApiEventRegistryStore } from './event-registry.store';
 import { getMixinData } from './mixin-data.helper';
 
@@ -172,6 +174,115 @@ describe('getMixinData', () => {
     );
 
     expect(result.disableCache).toBe(true);
+  });
+
+  describe('predicateBehavior "filter" + active cache boot-time warning', () => {
+    let warnSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      // eslint-disable-next-line no-new
+      new DynamicApiGlobalStateService(); // reset shared static state to defaults (isGlobalCacheEnabled: true)
+      warnSpy = jest.spyOn(MongoDBDynamicApiLogger.prototype, 'warn').mockImplementation();
+    });
+
+    afterEach(() => {
+      warnSpy.mockRestore();
+    });
+
+    it('should warn for GetMany combining a non-public route, an abilityPredicate, filter mode, and an active cache', () => {
+      getMixinData(
+        TestEntity,
+        controllerOptions,
+        { type: 'GetMany', ...routeConfig, isPublic: false, predicateBehavior: 'filter' },
+      );
+
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringMatching(/predicateBehavior 'filter'/));
+    });
+
+    it('should warn for Aggregate the same way', () => {
+      getMixinData(
+        TestEntity,
+        controllerOptions,
+        { type: 'Aggregate', ...routeConfig, isPublic: false, predicateBehavior: 'filter' },
+      );
+
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringMatching(/predicateBehavior 'filter'/));
+    });
+
+    it('should not warn when disableCache is true on the route', () => {
+      getMixinData(
+        TestEntity,
+        controllerOptions,
+        { type: 'GetMany', ...routeConfig, isPublic: false, predicateBehavior: 'filter', disableCache: true },
+      );
+
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    it('should not warn when global cache is disabled', () => {
+      new DynamicApiGlobalStateService({ isGlobalCacheEnabled: false });
+
+      getMixinData(
+        TestEntity,
+        controllerOptions,
+        { type: 'GetMany', ...routeConfig, isPublic: false, predicateBehavior: 'filter' },
+      );
+
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    it('should not warn for GetOne (filter mode is only implemented for GetMany/Aggregate)', () => {
+      getMixinData(
+        TestEntity,
+        controllerOptions,
+        { type: 'GetOne', ...routeConfig, isPublic: false, predicateBehavior: 'filter' },
+      );
+
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    it('should not warn when predicateBehavior is "throw"', () => {
+      getMixinData(
+        TestEntity,
+        controllerOptions,
+        { type: 'GetMany', ...routeConfig, isPublic: false, predicateBehavior: 'throw' },
+      );
+
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    it('should not warn when there is no abilityPredicate', () => {
+      const { abilityPredicate, ...routeConfigWithoutPredicate } = routeConfig;
+
+      getMixinData(
+        TestEntity,
+        { ...controllerOptions, abilityPredicates: [] },
+        { type: 'GetMany', ...routeConfigWithoutPredicate, isPublic: false, predicateBehavior: 'filter' },
+      );
+
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    it('should not warn for a gateway route (isGateway=true)', () => {
+      getMixinData(
+        TestEntity,
+        controllerOptions,
+        { type: 'GetMany', ...routeConfig, isPublic: false, predicateBehavior: 'filter' },
+        true,
+      );
+
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    it('should not warn for a public route (response is meant to be shared by every caller)', () => {
+      getMixinData(
+        TestEntity,
+        controllerOptions,
+        { type: 'GetMany', ...routeConfig, isPublic: true, predicateBehavior: 'filter' },
+      );
+
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
   });
 
   describe('broadcast event registration', () => {

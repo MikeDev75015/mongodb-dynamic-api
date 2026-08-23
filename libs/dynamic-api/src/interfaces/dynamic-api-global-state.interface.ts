@@ -26,6 +26,8 @@ interface DynamicApiGlobalState {
   connectionName: string;
   isGlobalCacheEnabled: boolean;
   cacheExcludedPaths: string[];
+  /** @see {@link DynamicApiCacheOptions.keyBy} */
+  cacheKeyBy: 'url' | 'url+identity';
   isAuthEnabled: boolean;
   credentials: Credentials;
   jwtSecret: string | undefined;

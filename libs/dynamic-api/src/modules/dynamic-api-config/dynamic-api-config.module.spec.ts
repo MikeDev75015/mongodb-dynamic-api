@@ -6,6 +6,7 @@ describe('DynamicApiConfigModule', () => {
   let module: DynamicModule;
   const config: DynamicApiGlobalState = {
     cacheExcludedPaths: [],
+    cacheKeyBy: 'url+identity',
     connectionName: '',
     credentials: undefined,
     initialized: false,

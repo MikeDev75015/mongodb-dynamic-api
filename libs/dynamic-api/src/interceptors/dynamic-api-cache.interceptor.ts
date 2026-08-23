@@ -50,6 +50,29 @@ export class DynamicApiCacheInterceptor extends CacheInterceptor {
 
   private static readonly AUTH_PATH_PATTERN = /\/auth(\/|$|\?)/;
 
+  /**
+   * Cache key for a GET request. Defaults to `url+identity` (see
+   * {@link DynamicApiCacheOptions.keyBy}): the authenticated caller's id is folded into the key so
+   * two different users hitting the same URL never share a cached response. Falls back to the bare
+   * URL for anonymous requests, or when `keyBy: 'url'` is explicitly configured.
+   */
+  protected trackBy(context: ExecutionContext): string | undefined {
+    const req = context.switchToHttp().getRequest();
+    const url: string | undefined = req?.url;
+
+    if (!url || this.state.cacheKeyBy !== 'url+identity') {
+      return url;
+    }
+
+    const identity = DynamicApiCacheInterceptor.extractIdentity(req);
+    return identity ? `${url}::${identity}` : url;
+  }
+
+  private static extractIdentity(req: { user?: { _id?: unknown; id?: unknown } }): string | undefined {
+    const id = req?.user?._id ?? req?.user?.id;
+    return id !== undefined && id !== null ? String(id) : undefined;
+  }
+
   isRequestCacheable(context: ExecutionContext): boolean {
     const disableCache = this.reflector.get<boolean>(DISABLE_CACHE_KEY, context.getHandler());
     if (disableCache === true) {

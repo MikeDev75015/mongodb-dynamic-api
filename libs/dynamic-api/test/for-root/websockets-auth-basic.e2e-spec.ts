@@ -242,6 +242,7 @@ describe('DynamicApiModule forRoot - Websockets Authentication Basic (e2e)', () 
           isGlobalCacheEnabled: true,
           connectionName: 'dynamic-api-connection',
           cacheExcludedPaths: [],
+          cacheKeyBy: 'url+identity',
           credentials: {
             loginField: 'email',
             passwordField: 'password',
