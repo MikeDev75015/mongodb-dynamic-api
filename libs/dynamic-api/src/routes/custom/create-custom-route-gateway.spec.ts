@@ -28,6 +28,7 @@ jest.mock('../../mixins', () => ({
 
 interface GatewayInstanceShape {
   model: unknown;
+  moduleRef?: { get: jest.Mock };
   handle: (
     socket: ExtendedSocket<FakeEntity>,
     body: unknown,
@@ -203,7 +204,7 @@ describe('createCustomRouteGateway', () => {
         params: {},
         body,
         query: {},
-      });
+      }, []);
       expect(result.data).toEqual(expected);
     });
 
@@ -211,7 +212,7 @@ describe('createCustomRouteGateway', () => {
       const instance = makeInstance({ isPublic: true });
       fakeHandler.mockResolvedValueOnce({ done: true });
       const result = await instance.handle({ user: undefined } as ExtendedSocket<FakeEntity>, {});
-      expect(fakeHandler).toHaveBeenCalledWith(expect.objectContaining({ user: undefined }));
+      expect(fakeHandler).toHaveBeenCalledWith(expect.objectContaining({ user: undefined }), []);
       expect(result.data).toEqual({ done: true });
     });
 
@@ -238,6 +239,33 @@ describe('createCustomRouteGateway', () => {
 
       expect(fromEntity).toHaveBeenCalledWith(raw);
       expect(result.data).toEqual(mapped);
+    });
+  });
+
+  // ── inject (DI resolution) ────────────────────────────────────────────────
+
+  describe('inject', () => {
+    class FakeMailService {}
+
+    it('resolves each inject token via moduleRef.get({ strict: false }) and passes the results to handler', async () => {
+      const instance = makeInstance({ inject: [FakeMailService] });
+      const fakeMailInstance = new FakeMailService();
+      instance.moduleRef = { get: jest.fn().mockReturnValue(fakeMailInstance) };
+
+      await instance.handle({} as ExtendedSocket<FakeEntity>, {});
+
+      expect(instance.moduleRef.get).toHaveBeenCalledWith(FakeMailService, { strict: false });
+      expect(fakeHandler).toHaveBeenCalledWith(expect.anything(), [fakeMailInstance]);
+    });
+
+    it('never touches moduleRef when inject is not provided', async () => {
+      const instance = makeInstance();
+      instance.moduleRef = { get: jest.fn() };
+
+      await instance.handle({} as ExtendedSocket<FakeEntity>, {});
+
+      expect(instance.moduleRef.get).not.toHaveBeenCalled();
+      expect(fakeHandler).toHaveBeenCalledWith(expect.anything(), []);
     });
   });
 

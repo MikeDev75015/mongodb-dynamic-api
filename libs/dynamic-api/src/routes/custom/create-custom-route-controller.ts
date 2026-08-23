@@ -16,6 +16,7 @@ import {
   UseInterceptors,
   ValidationPipeOptions,
 } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { InjectModel } from '@nestjs/mongoose';
 import {
   ApiBearerAuth,
@@ -120,6 +121,7 @@ function createCustomRouteController<
     path: routePath,
     method,
     handler,
+    inject = [],
     version: routeVersion,
     isPublic,
     description,
@@ -175,6 +177,7 @@ function createCustomRouteController<
     constructor(
       @InjectModel(entity.name, connectionName)
       protected readonly model: Model<Entity>,
+      protected readonly moduleRef: ModuleRef,
     ) {}
 
     async handle(
@@ -183,6 +186,11 @@ function createCustomRouteController<
       @Query() query: unknown,
       @Request() req: DynamicApiRequest,
     ): Promise<unknown> {
+      // strict: false — these providers live in the consuming app's own module tree, not in the
+      // dedicated module this generated controller is mounted in, so a host-module-only lookup
+      // (the default) would never find them.
+      const injected = inject.map((token) => this.moduleRef.get(token, { strict: false }));
+
       const result = await handler({
         model: this.model,
         user: req?.user,
@@ -190,7 +198,7 @@ function createCustomRouteController<
         body: body as Body,
         query: query as QueryDto,
         req,
-      });
+      }, injected);
 
       const fromEntity = (presenterType as Mappable<Entity>).fromEntity;
       return fromEntity ? fromEntity(result as Entity) : result;
