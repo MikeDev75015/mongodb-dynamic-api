@@ -20,6 +20,7 @@ Smart caching is enabled by default for all **read** routes (GET / Aggregate), u
 - [Cache Purge](#cache-purge)
   - [Auto-Purge on Write Operations](#auto-purge-on-write-operations)
   - [Manual Purge Endpoint](#manual-purge-endpoint)
+- [DynamicApiCacheService](#dynamicapicacheservice)
 - [Cache Strategies](#cache-strategies)
 - [Best Practices](#best-practices)
 - [Examples](#examples)
@@ -84,7 +85,7 @@ Cache **only** applies to **read** operations:
 - **GetOne** — `GET /{path}/:id`
 - **Aggregate** — `GET /{path}/aggregate` _(or custom sub-path)_
 
-Write operations (POST, PUT, PATCH, DELETE) are **never cached**, but they **automatically purge** the cache after success.
+Write operations (POST, PUT, PATCH, DELETE) are **never cached**, but they **automatically invalidate** the cache after success — scoped to the entity written to, never every entity's cache. See [DynamicApiCacheService](#dynamicapicacheservice) below for exactly what "scoped" means and how to trigger the same invalidation yourself for a write that happens outside the HTTP request cycle.
 
 ### Cache Flow
 
@@ -98,10 +99,10 @@ Write operations (POST, PUT, PATCH, DELETE) are **never cached**, but they **aut
    - Returns `304 Not Modified`
    - Much faster response time
 
-3. **Write Operation** (POST/PUT/PATCH/DELETE) → Auto-Purge
+3. **Write Operation** (POST/PUT/PATCH/DELETE) → Scoped Auto-Invalidation
    - Operation executes normally
-   - **Cache is automatically purged** after success
-   - Ensures data consistency
+   - **Every cached response for that entity is invalidated** after success (`GetMany`, `GetOne`, `Aggregate`, any custom sub-path) — **other entities' cached responses are untouched**
+   - Ensures data consistency without discarding unrelated, still-valid cache entries
 
 4. **Next GET Request** → 200 Response (Cache Refreshed)
    - Data is fetched from database again
@@ -110,23 +111,20 @@ Write operations (POST, PUT, PATCH, DELETE) are **never cached**, but they **aut
 ### Example Workflow
 
 ```bash
-# Initial request - cache miss
+# Initial requests - cache miss for each entity
 GET /users → 200 OK (100ms)
+GET /products → 200 OK (80ms)
 
-# Second request - cache hit
+# Subsequent requests - cache hit
 GET /users → 304 Not Modified (5ms)
+GET /products → 304 Not Modified (5ms)
 
-# Third request - still cached
-GET /users → 304 Not Modified (5ms)
+# Write operation on users - invalidates users' cache only
+POST /users → 201 Created  ← users' cache invalidated, products' cache untouched!
 
-# Write operation - cache auto-purged after success
-POST /users → 201 Created  ← cache purged!
-
-# Next request - cache refreshed
+# Next users request - cache refreshed; products request - still served from cache
 GET /users → 200 OK (100ms)
-
-# Following request - cached again
-GET /users → 304 Not Modified (5ms)
+GET /products → 304 Not Modified (5ms)
 ```
 
 ---
@@ -321,7 +319,9 @@ The `disableCache` option follows a **route > controller > global** priority:
 
 ### Auto-Purge on Write Operations
 
-When cache is globally enabled, **every write operation** automatically purges the entire cache after success. This ensures that cached GET responses always reflect the latest data.
+When cache is globally enabled, **every write operation** automatically invalidates the cache after success — scoped to the entity written to (every route under that entity's controller path: `GetMany`, `GetOne`, `Aggregate`, any custom sub-path), never other entities'. This ensures cached GET responses always reflect the latest data, without discarding unrelated, still-valid cache entries for every other entity in the app.
+
+> Prior to this, a write cleared the **entire** application cache regardless of which entity it touched. If you're relying on the old all-or-nothing behavior for some reason, `DynamicApiCacheService.clear()` is still available — see [DynamicApiCacheService](#dynamicapicacheservice).
 
 Affected operations:
 - `POST` (CreateOne, CreateMany)
@@ -331,24 +331,26 @@ Affected operations:
 - `POST` (DuplicateOne, DuplicateMany)
 
 ```bash
-# Cache is populated
+# Cache is populated for two different entities
 GET /products       → 200 OK (cached)
 GET /products/:id   → 200 OK (cached)
+GET /orders         → 200 OK (cached)
 
-# A write operation purges all cache
-PATCH /products/:id → 200 OK  ← entire cache purged!
+# A write to products invalidates only products' cache
+PATCH /products/:id → 200 OK  ← products' cache invalidated, orders' cache untouched!
 
-# Next reads fetch fresh data
+# Next reads: products fetch fresh data, orders is still served from cache
 GET /products       → 200 OK (fresh from DB)
 GET /products/:id   → 200 OK (fresh from DB)
+GET /orders         → 304 Not Modified (still cached)
 ```
 
 ### Manual Purge Endpoint
 
-When cache is enabled for a feature, a **`DELETE /{path}/cache`** endpoint is **automatically generated**. This allows you to manually purge the cache at any time.
+When cache is enabled for a feature, a **`DELETE /{path}/cache`** endpoint is **automatically generated**. This allows you to manually invalidate that entity's cache at any time — like the auto-invalidation above, it's scoped to this entity only, not the whole application cache.
 
 ```bash
-# Manually purge cache for products
+# Manually purge cache for products — leaves every other entity's cache alone
 DELETE /products/cache → { "purged": true }
 ```
 
@@ -401,6 +403,54 @@ This will generate the following endpoint in Swagger:
 })
 export class OrdersModule {}
 ```
+
+---
+
+## DynamicApiCacheService
+
+Every write made through a generated HTTP route (`CreateOne`, `UpdateOne`, `DeleteMany`, ...) invalidates its
+entity's cache automatically — you don't need to do anything for that. `DynamicApiCacheService` exists for
+the case that doesn't go through HTTP at all: a cron job, a queue consumer, or any service that fetches its
+model via `DynamicApiGlobalStateService.getEntityModel(Entity)` and writes directly. Nothing there ever
+triggers `DynamicApiCacheInterceptor`, so without calling this yourself, a cached `GetMany`/`GetOne` response
+would keep serving stale data until its TTL expires.
+
+It's a normal, globally injectable NestJS provider — no `CACHE_MANAGER` token, no manual `@Inject` juggling,
+no dependency on `@nestjs/cache-manager` being hoisted into your own `node_modules`. Just inject it by class:
+
+```typescript
+import { Injectable } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
+import { DynamicApiCacheService, DynamicApiGlobalStateService } from 'mongodb-dynamic-api';
+import { Conversation } from './conversation.entity';
+
+@Injectable()
+export class ConversationPurgeService {
+  constructor(private readonly cacheService: DynamicApiCacheService) {}
+
+  @Cron('0 * * * *')
+  async purgeExpired() {
+    const model = await DynamicApiGlobalStateService.getEntityModel(Conversation);
+    await model.deleteMany({ expiresAt: { $lt: new Date() } });
+
+    // Nothing else would ever invalidate cached responses for Conversation — this write
+    // never goes through DynamicApiCacheInterceptor.
+    await this.cacheService.invalidate(Conversation);
+  }
+}
+```
+
+**API:**
+
+| Method | Description |
+|---|---|
+| `invalidate(entity: Type, id?: string): Promise<void>` | Invalidates every cached response for `entity`'s routes (`GetMany`, `GetOne`, `Aggregate`, any custom sub-path) — never other entities' cached responses. `id` is accepted for call-site clarity (documenting which document changed) but doesn't currently narrow invalidation further — a cached list response can't be selectively patched without inspecting its contents, so any write to an entity invalidates that entity's cache as a whole. Still far narrower than a full `clear()`. |
+| `clear(): Promise<void>` | Clears the **entire** response cache, for every entity — the pre-scoped-invalidation behavior. Prefer `invalidate()` when you know which entity changed. |
+
+`invalidate()` needs the entity's cache store to support key enumeration to scope correctly — the default
+in-memory store already does. If a custom store doesn't (rare — most `Keyv`-compatible stores, including
+Redis, do), `invalidate()` falls back to a full `clear()` for that call and logs a warning via
+[`MONGODB_DYNAMIC_API_LOGGER`](./debugging.md) so it's never silently under-invalidating.
 
 ---
 
@@ -907,9 +957,18 @@ interface DynamicApiRouteConfig<Entity> {
 
 | Method | Path | Response | Description |
 |--------|------|----------|-------------|
-| `DELETE` | `/{path}/cache` | `{ "purged": true }` | Purges all cached entries |
+| `DELETE` | `/{path}/cache` | `{ "purged": true }` | Invalidates every cached entry for this entity — other entities' cache is untouched |
 
 > Only generated when `useGlobalCache: true` **and** controller `disableCache` is not `true`.
+
+#### `DynamicApiCacheService`
+
+```typescript
+class DynamicApiCacheService {
+  invalidate(entity: Type, id?: string): Promise<void>; // scoped to entity — see DynamicApiCacheService above
+  clear(): Promise<void>; // clears the entire cache, every entity
+}
+```
 
 ---
 

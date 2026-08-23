@@ -41,18 +41,18 @@ describe('createCachePurgeController', () => {
     expect(Controller.prototype.purgeCache).toBeDefined();
   });
 
-  it('purgeCache should call cacheManager.clear() and return { purged: true }', async () => {
+  it('purgeCache should call cacheService.invalidate(entity) and return { purged: true }', async () => {
     const Controller = createCachePurgeController(
       FakeEntity as any,
       { path: 'fakes' } as any,
     );
-    const mockClear = jest.fn().mockResolvedValue(undefined);
+    const mockInvalidate = jest.fn().mockResolvedValue(undefined);
     const instance = Object.create(Controller.prototype);
-    instance.cacheManager = { clear: mockClear };
+    instance.cacheService = { invalidate: mockInvalidate };
 
     const result = await instance.purgeCache();
 
-    expect(mockClear).toHaveBeenCalledTimes(1);
+    expect(mockInvalidate).toHaveBeenCalledWith(FakeEntity);
     expect(result).toEqual({ purged: true });
   });
 

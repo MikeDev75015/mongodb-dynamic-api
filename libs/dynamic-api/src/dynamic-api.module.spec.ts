@@ -25,8 +25,9 @@ import {
   UpdateOneModule,
   AggregateModule,
 } from './routes';
-import { DynamicApiGlobalStateService } from './services';
+import { DynamicApiCacheService, DynamicApiGlobalStateService } from './services';
 import { DynamicApiCacheInterceptor } from './interceptors';
+import { DynamicApiCachePathRegistryStore } from './helpers/cache-path-registry.store';
 import { DynamicApiJwtAuthGuard } from './guards';
 
 jest.mock('./helpers');
@@ -1102,9 +1103,12 @@ describe('DynamicApiModule', () => {
       it('should provide APP_INTERCEPTOR with factory', async () => {
         const options = buildDynamicApiModuleOptionsMock();
         const module = await DynamicApiModule.forFeature(options);
+        const cacheService = {} as DynamicApiCacheService;
 
         // @ts-ignore
         expect(module.providers[0].provide).toStrictEqual('APP_INTERCEPTOR');
+        // @ts-ignore
+        expect(module.providers[0].inject).toContain(DynamicApiCacheService);
         // @ts-ignore
         expect(module.providers[0].useFactory).toBeInstanceOf(Function);
         // @ts-ignore
@@ -1113,7 +1117,15 @@ describe('DynamicApiModule', () => {
           reflector,
           httpAdapterHost,
           state,
+          cacheService,
         )).toBeInstanceOf(DynamicApiCacheInterceptor);
+      });
+
+      it('should register the entity and its controller path in DynamicApiCachePathRegistryStore', async () => {
+        const options = buildDynamicApiModuleOptionsMock();
+        await DynamicApiModule.forFeature(options);
+
+        expect(DynamicApiCachePathRegistryStore.getPath(options.entity.name)).toBe(options.controllerOptions.path);
       });
 
       it('should provide APP_GUARD with factory', async () => {

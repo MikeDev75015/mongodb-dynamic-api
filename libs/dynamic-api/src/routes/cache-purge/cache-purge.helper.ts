@@ -1,18 +1,17 @@
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
   ClassSerializerInterceptor,
   Controller,
   Delete,
-  Inject,
   Type,
   UseInterceptors,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiProperty, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Cache } from 'cache-manager';
 import { Public } from '../../decorators';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { DynamicApiControllerOptions } from '../../interfaces';
 import { BaseEntity } from '../../models';
+// Concrete path — see the same note in interceptors/dynamic-api-cache.interceptor.ts.
+import { DynamicApiCacheService } from '../../services/dynamic-api-cache/dynamic-api-cache.service';
 
 class CachePurgePresenter {
   @ApiProperty({ type: Boolean })
@@ -30,13 +29,11 @@ function createCachePurgeController<Entity extends BaseEntity>(
   @ApiTags(tag)
   @UseInterceptors(ClassSerializerInterceptor)
   class CachePurgeController {
-    constructor(
-      @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-    ) {}
+    constructor(private readonly cacheService: DynamicApiCacheService) {}
 
     @Delete('cache')
     async purgeCache(): Promise<CachePurgePresenter> {
-      await this.cacheManager.clear();
+      await this.cacheService.invalidate(entity);
       return { purged: true };
     }
   }

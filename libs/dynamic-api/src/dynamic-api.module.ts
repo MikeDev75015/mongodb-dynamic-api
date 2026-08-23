@@ -7,12 +7,13 @@ import { Cache } from 'cache-manager';
 import { createDynamicApiBroadcastGateway } from './gateways';
 import { DynamicApiJwtAuthGuard } from './guards';
 import { buildSchemaFromEntity, getDefaultRouteDescription, initializeConfigFromOptions, isValidVersion } from './helpers';
+import { DynamicApiCachePathRegistryStore } from './helpers/cache-path-registry.store';
 import { DynamicApiCacheInterceptor } from './interceptors';
 import { DYNAMIC_API_GLOBAL_STATE, DynamicApiCacheOptions, DynamicApiForFeatureOptions, DynamicApiForRootOptions, DynamicApiGlobalState, DynamicAPIRouteConfig, DynamicApiWebSocketOptions, GatewayOptions, OnAfterSaveErrorHook, RouteModule, RoutesConfig, RouteType } from './interfaces';
 import { BaseEntity } from './models';
 import { AuthModule, DynamicApiAuthOptions, DynamicApiConfigModule } from './modules';
 import { AggregateModule, createCachePurgeController, CreateManyModule, CreateOneModule, DeleteManyModule, DeleteOneModule, DuplicateManyModule, DuplicateOneModule, GetManyModule, GetOneModule, ReplaceOneModule, UpdateManyModule, UpdateOneModule, createCustomRouteController, createCustomRouteGateway } from './routes';
-import { DynamicApiBroadcastService, DynamicApiGlobalStateService } from './services';
+import { DynamicApiBroadcastService, DynamicApiCacheService, DynamicApiGlobalStateService } from './services';
 
 /**
  * DynamicApiModule is a module that provides dynamic API functionality.
@@ -116,6 +117,7 @@ export class DynamicApiModule {
     );
 
     DynamicApiGlobalStateService.addEntitySchema(entity, schema);
+    DynamicApiCachePathRegistryStore.register(entity.name, controllerOptions.path);
 
     return new Promise((resolve, reject) => {
       const waitForState = setTimeout(() => {
@@ -251,14 +253,15 @@ export class DynamicApiModule {
           providers: [
             {
               provide: APP_INTERCEPTOR,
-              inject: [CACHE_MANAGER, Reflector, HttpAdapterHost, DYNAMIC_API_GLOBAL_STATE],
+              inject: [CACHE_MANAGER, Reflector, HttpAdapterHost, DYNAMIC_API_GLOBAL_STATE, DynamicApiCacheService],
               useFactory: (
                 cacheManager: Cache,
                 reflector: Reflector,
                 httpAdapterHost: HttpAdapterHost,
                 state: DynamicApiGlobalState,
+                cacheService: DynamicApiCacheService,
               ) => {
-                return new DynamicApiCacheInterceptor(cacheManager, reflector, httpAdapterHost, state);
+                return new DynamicApiCacheInterceptor(cacheManager, reflector, httpAdapterHost, state, cacheService);
               },
             },
             ...(
