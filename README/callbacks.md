@@ -659,10 +659,13 @@ type CallbackMethods = {
   deleteManyDocuments<T>(entity: Type<T>, ids: string[]): Promise<DeleteResult>;
   deleteOneDocument<T>(entity: Type<T>, id: string): Promise<DeleteResult>;
   aggregateDocuments<T>(entity: Type<T>, pipeline: PipelineStage[]): Promise<T[]>;
+  recomputeDerivedFields<T>(entity: Type<T>, id: string): Promise<void>;
 };
 ```
 
 > **💡 Tip:** The entity class you pass to `methods` methods does **not** need to be the same entity as the route. You can interact with any registered entity — this is how you create audit logs, send notifications to other collections, etc.
+
+> **💡 `@DerivedField` fields:** `updateOneDocument`/`rawUpdateOneDocument` already recompute and persist any `on: 'save'`/`'both'` [`@DerivedField`](./entities.md#derivedfieldcomputefn-options) declared on the entity you pass them, automatically — no action needed. `updateManyDocuments`/`rawUpdateManyDocuments` don't (recomputing derived fields on every touched document unconditionally isn't free) — call `recomputeDerivedFields(entity, id)` yourself, once per document, after one of those. See [`@DerivedField` → Staying in sync on writes outside CreateOne/UpdateOne](./entities.md#staying-in-sync-on-writes-outside-createoneupdateone).
 
 ---
 

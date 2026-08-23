@@ -39,6 +39,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
       deleteManyDocuments: this.deleteManyDocuments.bind(this),
       deleteOneDocument: this.deleteOneDocument.bind(this),
       aggregateDocuments: this.aggregateDocuments.bind(this),
+      recomputeDerivedFields: this.recomputeDerivedFields.bind(this),
     };
   }
 
@@ -165,7 +166,39 @@ export abstract class BaseService<Entity extends BaseEntity> {
     update: UpdateQuery<T> | UpdateWithAggregationPipeline,
   ): Promise<UpdateResult> {
     const model = await DynamicApiGlobalStateService.getEntityModel(entity);
-    return model.updateOne(query, update).exec();
+    const targetId = await this.resolveDerivedFieldsTargetId(entity, model, query);
+
+    const result = await model.updateOne(query, update).exec();
+
+    if (targetId) {
+      await this.recomputeDerivedFields(entity, targetId);
+    }
+
+    return result;
+  }
+
+  /**
+   * Resolves the `_id` of the single document `query` will touch, but only when `entity` has at
+   * least one `@DerivedField` declared — the extra `findOne` this costs is worth paying only when
+   * there's actually something to recompute afterward. Used by `updateOneDocument` and
+   * `rawUpdateOneDocument` to auto-recompute derived fields after a write that otherwise bypasses
+   * the native pipeline that normally does this.
+   */
+  private async resolveDerivedFieldsTargetId<T extends BaseEntity>(
+    entity: Type<T>,
+    model: Model<T>,
+    query: FilterQuery<T>,
+  ): Promise<string | undefined> {
+    const keys: (string | symbol)[] =
+      Reflect.getMetadata(DERIVED_FIELD_KEYS_METADATA, entity?.prototype) ?? [];
+
+    if (!keys.length) {
+      return undefined;
+    }
+
+    const target = await model.findOne(query, { _id: 1 }).lean<{ _id: unknown }>().exec();
+
+    return target ? (target._id as { toString(): string }).toString() : undefined;
   }
 
   private validateMongoOperators<T extends BaseEntity>(update: MongoUpdateOperators<T>): void {
@@ -194,7 +227,15 @@ export abstract class BaseService<Entity extends BaseEntity> {
   ): Promise<UpdateResult> {
     this.validateMongoOperators(update);
     const model = await DynamicApiGlobalStateService.getEntityModel(entity);
-    return model.updateOne(filter, update).exec();
+    const targetId = await this.resolveDerivedFieldsTargetId(entity, model, filter);
+
+    const result = await model.updateOne(filter, update).exec();
+
+    if (targetId) {
+      await this.recomputeDerivedFields(entity, targetId);
+    }
+
+    return result;
   }
 
   protected async deleteManyDocuments<T extends BaseEntity>(entity: Type<T>, ids: string[]): Promise<DeleteResult> {
@@ -447,21 +488,86 @@ export abstract class BaseService<Entity extends BaseEntity> {
     }
 
     const snapshot = existingDoc ? { ...existingDoc, ...partial } : { ...partial };
-    const result = { ...partial };
+
+    return { ...partial, ...BaseService.computeDerivedFieldsFor(this.entity, snapshot, trigger) };
+  }
+
+  /**
+   * Computes every `@DerivedField` value declared on `entityClass` whose `on` option matches
+   * `trigger` (or is `'both'`), from `snapshot`. Shared by {@link applyDerivedFields} (bound to
+   * the service's own `this.entity`) and {@link recomputeDerivedFields} (works against an
+   * arbitrary entity, matching the rest of `CallbackMethods`). Both callers already guard against
+   * a missing `entityClass`/`prototype` before calling this, so it's not re-checked here.
+   */
+  private static computeDerivedFieldsFor<T>(
+    entityClass: Type<T>,
+    snapshot: Partial<T>,
+    trigger: 'save' | 'read',
+  ): Partial<T> {
+    const keys: (string | symbol)[] =
+      Reflect.getMetadata(DERIVED_FIELD_KEYS_METADATA, entityClass.prototype) ?? [];
+
+    const result: Partial<T> = {};
 
     for (const key of keys) {
       const meta = Reflect.getMetadata(
         DERIVED_FIELD_METADATA,
-        this.entity.prototype,
+        entityClass.prototype,
         key,
-      ) as DerivedFieldMeta<Entity> | undefined;
+      ) as DerivedFieldMeta<T> | undefined;
 
       if (meta && (meta.on === trigger || meta.on === 'both')) {
-        result[key as keyof Entity] = meta.computeFn(snapshot) as Entity[keyof Entity];
+        result[key as keyof T] = meta.computeFn(snapshot) as T[keyof T];
       }
     }
 
     return result;
+  }
+
+  /**
+   * Recomputes and persists every `@DerivedField({ on: 'save' })` (or `'both'`) value for a
+   * single document, from its **current, full** state in the database.
+   *
+   * The native `CreateOne`/`UpdateOne`/`ReplaceOne`/... pipelines already do this automatically.
+   * Call this yourself after writing to an entity through any of `CallbackMethods`'
+   * `updateOneDocument`/`rawUpdateOneDocument` — which do this for you already, see below — or,
+   * for the many-document variants (`updateManyDocuments`/`rawUpdateManyDocuments`), which don't
+   * auto-recompute (a derived field on N documents isn't cheap to recompute unconditionally),
+   * once per touched document.
+   *
+   * A no-op (never throws) when `entity` has no `@DerivedField` declared, when `id` doesn't
+   * resolve to a document, or if recomputation itself fails — this always runs as a side effect
+   * after a write already succeeded, and must never turn that into a failed request.
+   */
+  protected async recomputeDerivedFields<T extends BaseEntity>(entity: Type<T>, id: string): Promise<void> {
+    const keys: (string | symbol)[] =
+      Reflect.getMetadata(DERIVED_FIELD_KEYS_METADATA, entity?.prototype) ?? [];
+
+    if (!keys.length) {
+      return;
+    }
+
+    try {
+      const model = await DynamicApiGlobalStateService.getEntityModel(entity);
+      const document = await model.findById(id).lean<T>().exec();
+
+      if (!document) {
+        return;
+      }
+
+      const recomputed = BaseService.computeDerivedFieldsFor(entity, document as Partial<T>, 'save');
+
+      if (Object.keys(recomputed).length === 0) {
+        return;
+      }
+
+      await model.updateOne({ _id: id }, { $set: recomputed }).exec();
+    } catch (error) {
+      this.baseServiceLogger.warn(
+        `[DerivedFields] Failed to recompute derived fields for ${entity?.name ?? 'entity'} ${id}: `
+        + `${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   protected handleAbilityPredicate(document: Entity, authAbilityPredicate?: AuthAbilityPredicate<Entity>) {

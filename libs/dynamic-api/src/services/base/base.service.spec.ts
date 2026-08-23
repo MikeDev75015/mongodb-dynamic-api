@@ -119,6 +119,7 @@ describe('BaseService', () => {
         rawUpdateOneDocument: expect.any(Function),
         deleteManyDocuments: expect.any(Function),
         deleteOneDocument: expect.any(Function),
+        recomputeDerivedFields: expect.any(Function),
       });
     });
   });
@@ -505,6 +506,91 @@ describe('BaseService', () => {
           { name: 'bad', $set: { name: 'ok' } } as unknown as MongoUpdateOperators<TestEntity>,
         ),
       ).rejects.toThrow('Invalid raw update: all keys must be MongoDB operators starting with "$". Invalid keys: name');
+    });
+  });
+
+  describe('updateOneDocument / rawUpdateOneDocument — derived fields auto-recompute', () => {
+    class DerivedUpdateEntity extends BaseEntity {
+      val: number;
+      double: number;
+    }
+    const doubleFn = (e: Partial<DerivedUpdateEntity>) => (e.val ?? 0) * 2;
+
+    beforeEach(() => {
+      Reflect.defineMetadata('dynamic-api-module:derived-field-keys', ['double'], DerivedUpdateEntity.prototype);
+      Reflect.defineMetadata(
+        'dynamic-api-module:derived-field',
+        { computeFn: doubleFn, on: 'save' },
+        DerivedUpdateEntity.prototype,
+        'double',
+      );
+    });
+
+    const setupDerivedModel = () => {
+      const findOneExec = jest.fn().mockResolvedValue({ _id: fakeId });
+      const findByIdExec = jest.fn().mockResolvedValue({ _id: fakeId, val: 5 });
+      const updateOneExec = jest.fn().mockResolvedValue(fakeUpdateResult);
+      const derivedModel = {
+        findOne: jest.fn(() => ({ lean: jest.fn(() => ({ exec: findOneExec })) })),
+        findById: jest.fn(() => ({ lean: jest.fn(() => ({ exec: findByIdExec })) })),
+        updateOne: jest.fn(() => ({ exec: updateOneExec })),
+      };
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(derivedModel as unknown as Model<unknown>);
+
+      return derivedModel;
+    };
+
+    it('updateOneDocument should resolve the target id and recompute derived fields after the write', async () => {
+      const derivedModel = setupDerivedModel();
+      const svc = new TestService(fakeModel as unknown as Model<TestEntity>);
+
+      const result = await svc['callbackMethods'].updateOneDocument(DerivedUpdateEntity, fakeQuery, { val: 5 });
+
+      expect(result).toEqual(fakeUpdateResult);
+      expect(derivedModel.findOne).toHaveBeenCalledWith(fakeQuery, { _id: 1 });
+      expect(derivedModel.updateOne).toHaveBeenNthCalledWith(1, fakeQuery, { val: 5 });
+      expect(derivedModel.findById).toHaveBeenCalledWith(fakeId);
+      expect(derivedModel.updateOne).toHaveBeenNthCalledWith(2, { _id: fakeId }, { $set: { double: 10 } });
+    });
+
+    it('rawUpdateOneDocument should resolve the target id and recompute derived fields after the write', async () => {
+      const derivedModel = setupDerivedModel();
+      const svc = new TestService(fakeModel as unknown as Model<TestEntity>);
+
+      const result = await svc['callbackMethods'].rawUpdateOneDocument(DerivedUpdateEntity, fakeQuery, { $set: { val: 5 } });
+
+      expect(result).toEqual(fakeUpdateResult);
+      expect(derivedModel.findOne).toHaveBeenCalledWith(fakeQuery, { _id: 1 });
+      expect(derivedModel.updateOne).toHaveBeenNthCalledWith(1, fakeQuery, { $set: { val: 5 } });
+      expect(derivedModel.findById).toHaveBeenCalledWith(fakeId);
+      expect(derivedModel.updateOne).toHaveBeenNthCalledWith(2, { _id: fakeId }, { $set: { double: 10 } });
+    });
+
+    it('updateOneDocument should not resolve a target id or recompute anything when no document matches the query', async () => {
+      const findOneExec = jest.fn().mockResolvedValue(null);
+      const updateOneExec = jest.fn().mockResolvedValue(fakeUpdateResult);
+      const derivedModel = {
+        findOne: jest.fn(() => ({ lean: jest.fn(() => ({ exec: findOneExec })) })),
+        findById: jest.fn(),
+        updateOne: jest.fn(() => ({ exec: updateOneExec })),
+      };
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(derivedModel as unknown as Model<unknown>);
+      const svc = new TestService(fakeModel as unknown as Model<TestEntity>);
+
+      await svc['callbackMethods'].updateOneDocument(DerivedUpdateEntity, fakeQuery, { val: 5 });
+
+      expect(derivedModel.findById).not.toHaveBeenCalled();
+      expect(derivedModel.updateOne).toHaveBeenCalledTimes(1); // the write itself only, no recompute
+    });
+
+    it('updateOneDocument should not call findOne at all when the entity has no derived fields declared', async () => {
+      exec.mockResolvedValue(fakeUpdateResult);
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
+      const svc = new TestService(fakeModel as unknown as Model<TestEntity>);
+
+      await svc['callbackMethods'].updateOneDocument(TestEntity, fakeQuery, { name: 'unit' });
+
+      expect(fakeModel.findOne).not.toHaveBeenCalled();
     });
   });
 
@@ -934,6 +1020,111 @@ describe('BaseService', () => {
       const result = svc['applyDerivedFields']({ x: 10, y: 3 }, 'save');
       expect(result.sumXY).toBe(13);
       expect(result.diff).toBe(7);
+    });
+  });
+
+  describe('recomputeDerivedFields', () => {
+    class RecomputeEntity extends BaseEntity {
+      val: number;
+      double: number;
+    }
+    const doubleFn = (e: Partial<RecomputeEntity>) => (e.val ?? 0) * 2;
+
+    beforeEach(() => {
+      Reflect.defineMetadata('dynamic-api-module:derived-field-keys', [], RecomputeEntity.prototype);
+    });
+
+    it('should be a no-op and never resolve a model when the entity has no derived fields declared', async () => {
+      const getEntityModelSpy = jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel');
+      const svc = new TestService(fakeModel as unknown as Model<TestEntity>);
+
+      await svc['callbackMethods'].recomputeDerivedFields(TestEntity, fakeId);
+
+      expect(getEntityModelSpy).not.toHaveBeenCalled();
+    });
+
+    it('should recompute and persist derived fields from the document\'s current, full state', async () => {
+      Reflect.defineMetadata('dynamic-api-module:derived-field-keys', ['double'], RecomputeEntity.prototype);
+      Reflect.defineMetadata(
+        'dynamic-api-module:derived-field',
+        { computeFn: doubleFn, on: 'save' },
+        RecomputeEntity.prototype,
+        'double',
+      );
+      const findByIdExec = jest.fn().mockResolvedValue({ _id: fakeId, val: 5 });
+      const updateOneExec = jest.fn().mockResolvedValue(fakeUpdateResult);
+      const recomputeModel = {
+        findById: jest.fn(() => ({ lean: jest.fn(() => ({ exec: findByIdExec })) })),
+        updateOne: jest.fn(() => ({ exec: updateOneExec })),
+      };
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(recomputeModel as unknown as Model<unknown>);
+      const svc = new TestService(fakeModel as unknown as Model<TestEntity>);
+
+      await svc['callbackMethods'].recomputeDerivedFields(RecomputeEntity, fakeId);
+
+      expect(recomputeModel.findById).toHaveBeenCalledWith(fakeId);
+      expect(recomputeModel.updateOne).toHaveBeenCalledWith({ _id: fakeId }, { $set: { double: 10 } });
+    });
+
+    it('should be a no-op when the document does not exist', async () => {
+      Reflect.defineMetadata('dynamic-api-module:derived-field-keys', ['double'], RecomputeEntity.prototype);
+      Reflect.defineMetadata(
+        'dynamic-api-module:derived-field',
+        { computeFn: doubleFn, on: 'save' },
+        RecomputeEntity.prototype,
+        'double',
+      );
+      const findByIdExec = jest.fn().mockResolvedValue(null);
+      const recomputeModel = {
+        findById: jest.fn(() => ({ lean: jest.fn(() => ({ exec: findByIdExec })) })),
+        updateOne: jest.fn(),
+      };
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(recomputeModel as unknown as Model<unknown>);
+      const svc = new TestService(fakeModel as unknown as Model<TestEntity>);
+
+      await svc['callbackMethods'].recomputeDerivedFields(RecomputeEntity, fakeId);
+
+      expect(recomputeModel.updateOne).not.toHaveBeenCalled();
+    });
+
+    it('should be a no-op when every declared derived field is read-only (none apply on save)', async () => {
+      const readOnlyFn = (e: Partial<RecomputeEntity>) => `readonly:${e.val}`;
+      Reflect.defineMetadata('dynamic-api-module:derived-field-keys', ['double'], RecomputeEntity.prototype);
+      Reflect.defineMetadata(
+        'dynamic-api-module:derived-field',
+        { computeFn: readOnlyFn, on: 'read' },
+        RecomputeEntity.prototype,
+        'double',
+      );
+      const findByIdExec = jest.fn().mockResolvedValue({ _id: fakeId, val: 5 });
+      const recomputeModel = {
+        findById: jest.fn(() => ({ lean: jest.fn(() => ({ exec: findByIdExec })) })),
+        updateOne: jest.fn(),
+      };
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(recomputeModel as unknown as Model<unknown>);
+      const svc = new TestService(fakeModel as unknown as Model<TestEntity>);
+
+      await svc['callbackMethods'].recomputeDerivedFields(RecomputeEntity, fakeId);
+
+      expect(recomputeModel.updateOne).not.toHaveBeenCalled();
+    });
+
+    it('should catch a failure and log a warning instead of throwing — this always runs after a write already succeeded', async () => {
+      Reflect.defineMetadata('dynamic-api-module:derived-field-keys', ['double'], RecomputeEntity.prototype);
+      Reflect.defineMetadata(
+        'dynamic-api-module:derived-field',
+        { computeFn: doubleFn, on: 'save' },
+        RecomputeEntity.prototype,
+        'double',
+      );
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockRejectedValue(new Error('boom'));
+      const svc = new TestService(fakeModel as unknown as Model<TestEntity>);
+      const warnSpy = jest.spyOn(svc['baseServiceLogger'], 'warn').mockImplementation();
+
+      await expect(
+        svc['callbackMethods'].recomputeDerivedFields(RecomputeEntity, fakeId),
+      ).resolves.toBeUndefined();
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to recompute derived fields'));
     });
   });
 
