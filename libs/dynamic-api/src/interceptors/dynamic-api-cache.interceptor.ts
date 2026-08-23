@@ -75,7 +75,7 @@ export class DynamicApiCacheInterceptor extends CacheInterceptor {
 
   private static extractIdentity(req: { user?: { _id?: unknown; id?: unknown } }): string | undefined {
     const id = req?.user?._id ?? req?.user?.id;
-    return id !== undefined && id !== null ? String(id) : undefined;
+    return id !== undefined && id !== null ? (id as { toString(): string }).toString() : undefined;
   }
 
   isRequestCacheable(context: ExecutionContext): boolean {

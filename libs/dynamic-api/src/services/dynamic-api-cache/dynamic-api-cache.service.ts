@@ -53,9 +53,9 @@ class DynamicApiCacheService {
    * without inspecting its contents, so any write to an entity invalidates that entity's cache as
    * a whole. This is still far narrower than a full `clear()`.
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- see the id doc above: accepted
+  // for call-site clarity, not currently used to narrow invalidation.
   async invalidate(entity: Type, id?: string): Promise<void> {
-    void id;
-
     const path = DynamicApiCachePathRegistryStore.getPath(entity.name);
     if (!path) {
       this.logger.warn(
