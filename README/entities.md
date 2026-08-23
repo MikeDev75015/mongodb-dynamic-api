@@ -498,6 +498,20 @@ Marks a field as **server-computed**. The `computeFn` receives a snapshot of the
 
 > 💡 All `computeFn` calls receive the entity snapshot **before** any mutation from other derived fields, preventing circular computation.
 
+#### Staying in sync on writes outside CreateOne/UpdateOne
+
+`on: 'save'`/`'both'` fields are recomputed automatically by the native `CreateOne`/`UpdateOne`/`ReplaceOne`/`DuplicateOne`/... pipelines, and by [`CallbackMethods.updateOneDocument`/`rawUpdateOneDocument`](./callbacks.md#callbackmethods) — the two single-document write helpers available inside `beforeSaveCallback`/`callback`. Any other write path (the many-document `updateManyDocuments`/`rawUpdateManyDocuments`, or a raw `model.updateOne()` you run yourself, e.g. from a custom route handler) does **not** know about derived fields and leaves them stale. Call [`methods.recomputeDerivedFields(Entity, id)`](./callbacks.md#callbackmethods) yourself after any such write:
+
+```typescript
+beforeSaveCallback: async (_entity, ctx, methods) => {
+  await methods.rawUpdateManyDocuments(Article, { authorId: ctx.update.authorId }, { $set: { lastName: ctx.update.lastName } });
+  for (const article of await methods.findManyDocuments(Article, { authorId: ctx.update.authorId })) {
+    await methods.recomputeDerivedFields(Article, article.id); // fullName would otherwise stay stale
+  }
+  return ctx.update;
+}
+```
+
 #### Example
 
 ```typescript

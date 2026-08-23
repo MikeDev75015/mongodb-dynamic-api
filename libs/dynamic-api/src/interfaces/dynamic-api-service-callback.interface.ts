@@ -57,6 +57,30 @@ type CallbackMethods = {
   deleteManyDocuments<T>(entity: Type<T>, ids: string[]): Promise<DeleteResult>;
   deleteOneDocument<T>(entity: Type<T>, id: string): Promise<DeleteResult>;
   aggregateDocuments<T>(entity: Type<T>, pipeline: PipelineStage[]): Promise<T[]>
+  /**
+   * Recomputes and persists every `@DerivedField({ on: 'save' })` (or `'both'`) value for a
+   * single document, from its current, full state in the database. A no-op when `entity` has no
+   * `@DerivedField` declared or `id` doesn't resolve to a document — never throws, so it's always
+   * safe to call as a side effect after a write already succeeded.
+   *
+   * `updateOneDocument`/`rawUpdateOneDocument` already call this for you automatically. Call it
+   * yourself after `updateManyDocuments`/`rawUpdateManyDocuments` (once per touched id — those
+   * don't auto-recompute, since resolving and recomputing N documents unconditionally isn't
+   * free), or after any other write that bypasses the native CreateOne/UpdateOne/... pipeline
+   * (e.g. a raw `model.updateOne()` inside a custom route handler).
+   *
+   * @example
+   * ```typescript
+   * beforeSaveCallback: async (_entity, ctx, methods) => {
+   *   await methods.rawUpdateManyDocuments(Order, { status: 'pending' }, { $set: { flagged: true } });
+   *   for (const order of await methods.findManyDocuments(Order, { flagged: true })) {
+   *     await methods.recomputeDerivedFields(Order, order.id);
+   *   }
+   *   return ctx.update;
+   * }
+   * ```
+   */
+  recomputeDerivedFields<T>(entity: Type<T>, id: string): Promise<void>;
 };
 
 /** @deprecated Use `CallbackMethods` instead. Will be removed in v5. */
