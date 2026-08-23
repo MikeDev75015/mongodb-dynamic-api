@@ -22,6 +22,7 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiOperation,
+  ApiParam,
   ApiQuery,
   ApiResponse,
   ApiTags,
@@ -242,6 +243,18 @@ function createCustomRouteController<
 
   if (dTOs?.query) {
     ApiQuery({ type: dTOs.query })(CustomRouteController.prototype, 'handle', descriptor);
+  }
+
+  if (dTOs?.params) {
+    // One @ApiParam per declared property — a custom route's path can carry more than one
+    // param (e.g. ':familyId/invite-member/:memberId'), unlike native routes' single :id.
+    const paramsInstance = new dTOs.params();
+    for (const name of Object.keys(paramsInstance)) {
+      ApiParam({
+        name,
+        type: typeof paramsInstance[name],
+      })(CustomRouteController.prototype, 'handle', descriptor);
+    }
   }
 
   if (allGuards.length > 0) {

@@ -487,6 +487,47 @@ describe('createCustomRouteController', () => {
     });
   });
 
+  // ── dTOs.params (F9 — Swagger/OpenAPI path param docs) ───────────────────
+
+  describe('dTOs.params', () => {
+    // 'swagger/apiParameters' — @nestjs/swagger's internal metadata key (DECORATORS.API_PARAMETERS),
+    // not publicly exported, so asserted against directly.
+    const API_PARAMETERS_METADATA_KEY = 'swagger/apiParameters';
+
+    it('emits one @ApiParam per declared property, typed from each property\'s runtime value', () => {
+      class InviteMemberParams {
+        familyId = '';
+        memberIndex = 0;
+      }
+
+      const Ctrl = createCustomRouteController(
+        FakeEntity,
+        fakeControllerOptions,
+        {
+          path: ':familyId/invite-member/:memberIndex',
+          method: 'POST',
+          handler: fakeHandler,
+          dTOs: { params: InviteMemberParams },
+        },
+      ) as unknown as CustomRouteControllerClass;
+
+      const apiParams = Reflect.getMetadata(API_PARAMETERS_METADATA_KEY, Ctrl.prototype.handle);
+
+      expect(apiParams).toEqual(expect.arrayContaining([
+        expect.objectContaining({ name: 'familyId', in: 'path', type: 'string' }),
+        expect.objectContaining({ name: 'memberIndex', in: 'path', type: 'number' }),
+      ]));
+    });
+
+    it('does not emit any @ApiParam when dTOs.params is not provided', () => {
+      const Ctrl = makeController();
+
+      const apiParams = Reflect.getMetadata(API_PARAMETERS_METADATA_KEY, Ctrl.prototype.handle);
+
+      expect(apiParams).toBeUndefined();
+    });
+  });
+
   // ── version inheritance ──────────────────────────────────────────────────
 
   describe('useInterceptors (route-level)', () => {
