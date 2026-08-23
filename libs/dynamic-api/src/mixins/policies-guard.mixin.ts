@@ -14,6 +14,13 @@ import {
 } from '../interfaces';
 import { BaseEntity } from '../models';
 
+interface RoutePoliciesGuardMixinOptions {
+  queryToPipeline?: (query: unknown) => PipelineStage[];
+  predicateBehavior?: PredicateBehavior;
+  /** @see CustomRouteConfig.targetParam */
+  targetParam?: string;
+}
+
 /** @internal Not part of the public API — will be removed from the package's public exports in v5. */
 function RoutePoliciesGuardMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
@@ -21,9 +28,10 @@ function RoutePoliciesGuardMixin<Entity extends BaseEntity>(
   displayedName: string,
   version: string | undefined,
   abilityPredicate: AbilityPredicate<Entity> | undefined,
-  queryToPipeline?: (query: unknown) => PipelineStage[],
-  predicateBehavior?: PredicateBehavior,
+  options: RoutePoliciesGuardMixinOptions = {},
 ): PoliciesGuardConstructor<Entity> {
+  const { queryToPipeline, predicateBehavior, targetParam } = options;
+
   @Injectable()
   class RoutePoliciesGuard extends BasePoliciesGuard<Entity> implements PoliciesGuard {
     protected routeType = routeType;
@@ -31,6 +39,7 @@ function RoutePoliciesGuardMixin<Entity extends BaseEntity>(
     protected abilityPredicate: AbilityPredicate<Entity> | undefined = abilityPredicate;
     protected predicateBehavior: PredicateBehavior | undefined = predicateBehavior;
     protected queryToPipeline = queryToPipeline;
+    protected targetParam = targetParam;
 
     constructor(
       @InjectModel(

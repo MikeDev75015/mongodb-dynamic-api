@@ -65,8 +65,7 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
     displayedName,
     version,
     abilityPredicate,
-    undefined,
-    predicateBehavior,
+    { predicateBehavior },
   ) {}
 
   Object.defineProperty(GetManyPoliciesGuard, 'name', {

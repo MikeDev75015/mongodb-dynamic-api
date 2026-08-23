@@ -1,5 +1,6 @@
 import { CanActivate } from '@nestjs/common';
 import { DynamicApiModule } from '../../dynamic-api.module';
+import { MongoDBDynamicApiLogger } from '../../logger';
 import { BaseEntity } from '../../models';
 import { RoutePoliciesGuardMixin } from '../../mixins';
 import {
@@ -196,8 +197,7 @@ describe('createCustomRouteController', () => {
         'E2eeWrappedKeysFakeEntity',
         undefined,
         predicate,
-        undefined,
-        undefined,
+        { predicateBehavior: undefined, targetParam: undefined },
       );
     });
 
@@ -211,14 +211,99 @@ describe('createCustomRouteController', () => {
         'E2eeWrappedKeysFakeEntity',
         undefined,
         predicate,
-        undefined,
-        'filter',
+        { predicateBehavior: 'filter', targetParam: undefined },
       );
     });
 
     it('does not call RoutePoliciesGuardMixin when no abilityPredicate', () => {
       makeController();
       expect(RoutePoliciesGuardMixin).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── targetParam / boot-time warning ─────────────────────────────────────
+
+  describe('targetParam and the missing-targetParam warning', () => {
+    let warnSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      warnSpy = jest.spyOn(MongoDBDynamicApiLogger.prototype, 'warn').mockImplementation();
+      (RoutePoliciesGuardMixin as jest.Mock).mockClear();
+    });
+
+    afterEach(() => {
+      warnSpy.mockRestore();
+    });
+
+    it('passes targetParam through to RoutePoliciesGuardMixin', () => {
+      const predicate = jest.fn().mockReturnValue(true);
+      makeController({
+        path: 'parental-consent/:userId',
+        abilityPredicate: predicate,
+        targetParam: 'userId',
+      });
+
+      expect(RoutePoliciesGuardMixin).toHaveBeenCalledWith(
+        FakeEntity,
+        'Custom',
+        expect.any(String),
+        undefined,
+        predicate,
+        { predicateBehavior: undefined, targetParam: 'userId' },
+      );
+    });
+
+    it('warns when abilityPredicate is set on a route with a non-id path param and no targetParam', () => {
+      makeController({
+        path: 'parental-consent/:userId',
+        abilityPredicate: jest.fn().mockReturnValue(true),
+      });
+
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("targetParam: 'userId'"));
+    });
+
+    it('does not warn when targetParam is set', () => {
+      makeController({
+        path: 'parental-consent/:userId',
+        abilityPredicate: jest.fn().mockReturnValue(true),
+        targetParam: 'userId',
+      });
+
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    it('does not warn when the path param is already named id', () => {
+      makeController({
+        path: 'accounts/:id/consent',
+        abilityPredicate: jest.fn().mockReturnValue(true),
+      });
+
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    it('does not warn when predicateBehavior is filter', () => {
+      makeController({
+        path: 'parental-consent/:userId',
+        abilityPredicate: jest.fn().mockReturnValue(true),
+        predicateBehavior: 'filter',
+      });
+
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    it('does not warn when the route has no path params', () => {
+      makeController({
+        path: 'parental-consent',
+        abilityPredicate: jest.fn().mockReturnValue(true),
+      });
+
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    it('does not warn when there is no abilityPredicate', () => {
+      makeController({ path: 'parental-consent/:userId' });
+
+      expect(warnSpy).not.toHaveBeenCalled();
     });
   });
 

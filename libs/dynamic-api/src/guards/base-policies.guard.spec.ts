@@ -73,6 +73,28 @@ describe('BasePoliciesGuard', () => {
     expect(spy).toHaveBeenCalled();
   });
 
+  it('should call findManyDocuments (not findOneDocument) if params.userId is defined but targetParam is not set', async () => {
+    const findOneSpy = jest.spyOn<any, any>(guard, 'findOneDocumentWithAbilityPredicate').mockImplementationOnce(jest.fn());
+    const findManySpy = jest.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockImplementationOnce(jest.fn());
+    guard['abilityPredicate'] = jest.fn();
+    context.switchToHttp().getRequest().params = { userId: '1' };
+    context.switchToHttp().getRequest().user = {};
+    await guard.canActivate(context);
+    expect(findOneSpy).not.toHaveBeenCalled();
+    expect(findManySpy).toHaveBeenCalled();
+  });
+
+  it('should call findOneDocument with the targetParam value when targetParam matches a non-id route param', async () => {
+    const spy = jest.spyOn<any, any>(guard, 'findOneDocumentWithAbilityPredicate').mockImplementationOnce(jest.fn());
+    guard['abilityPredicate'] = jest.fn();
+    guard['targetParam'] = 'userId';
+    context.switchToHttp().getRequest().params = { userId: 'user-123' };
+    context.switchToHttp().getRequest().user = {};
+    context.switchToHttp().getRequest().query = { some: 'query' };
+    await guard.canActivate(context);
+    expect(spy).toHaveBeenCalledWith('user-123', { some: 'query' });
+  });
+
   it('should call aggregateDocuments if routeType is Aggregate and queryToPipeline is defined', async () => {
     const spy = jest.spyOn<any, any>(guard, 'aggregateDocumentsWithAbilityPredicate').mockImplementationOnce(jest.fn());
     guard['abilityPredicate'] = jest.fn();

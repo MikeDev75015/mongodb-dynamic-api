@@ -41,6 +41,7 @@ import {
   HttpMethod,
   Mappable,
 } from '../../interfaces';
+import { MongoDBDynamicApiLogger } from '../../logger';
 import { RoutePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 
@@ -53,6 +54,41 @@ const HTTP_METHOD_DECORATOR_MAP: Record<HttpMethod, HttpMethodDecoratorFactory> 
   PUT: Put,
   DELETE: Delete,
 };
+
+const logger = new MongoDBDynamicApiLogger('DynamicApiModule');
+
+/**
+ * Warns (via MONGODB_DYNAMIC_API_LOGGER, silent unless set) when a custom route's `abilityPredicate`
+ * is almost certainly meant to check a single target document — it's paired with a path param and
+ * `predicateBehavior` isn't `'filter'` — but that param isn't named `id` and no `targetParam` was
+ * set to match it. Without either, `BasePoliciesGuard` silently falls back to its "check every
+ * document matching the query string" branch instead of checking the route's actual target.
+ */
+function warnIfTargetParamLikelyMissing(
+  entityName: string,
+  routePath: string,
+  abilityPredicate: unknown,
+  predicateBehavior: string | undefined,
+  targetParam: string | undefined,
+): void {
+  if (!abilityPredicate || predicateBehavior === 'filter' || targetParam) {
+    return;
+  }
+
+  const pathParams = [...routePath.matchAll(/:([A-Za-z0-9_]+)/g)].map((match) => match[1]);
+  if (pathParams.length === 0 || pathParams.includes('id')) {
+    return;
+  }
+
+  logger.warn(
+    `[Ability Predicate] Custom route "${routePath}" on ${entityName}: abilityPredicate is set on a `
+    + `route with path param(s) ${pathParams.map((p) => `:${p}`).join(', ')}, none named "id", and no `
+    + `targetParam configured. The Guard's single-document check only ever looks for a param named `
+    + `"id" unless targetParam says otherwise — right now it silently falls back to checking a list of `
+    + `documents matched by the query string instead of the route's actual target. Set `
+    + `targetParam: '${pathParams[0]}' if that's the document abilityPredicate should check.`,
+  );
+}
 
 /**
  * Builds a NestJS controller class for a single custom route entry.
@@ -90,6 +126,7 @@ function createCustomRouteController<
     guards = [],
     abilityPredicate,
     predicateBehavior,
+    targetParam,
     validationPipeOptions: routeValidationPipeOptions,
     dTOs,
     useInterceptors: routeInterceptors = [],
@@ -111,14 +148,15 @@ function createCustomRouteController<
   // Build ordered guard list: [abilityPredicate guard?, ...extra guards]
   const allGuards: Type<CanActivate>[] = [];
   if (abilityPredicate) {
+    warnIfTargetParamLikelyMissing(entity.name, routePath, abilityPredicate, predicateBehavior, targetParam);
+
     const PoliciesGuard = RoutePoliciesGuardMixin(
       entity,
       'Custom',
       uniqueDisplayedName,
       effectiveVersion,
       abilityPredicate,
-      undefined,
-      predicateBehavior,
+      { predicateBehavior, targetParam },
     );
     allGuards.push(PoliciesGuard);
   }

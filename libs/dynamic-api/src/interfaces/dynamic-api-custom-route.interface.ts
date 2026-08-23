@@ -131,6 +131,28 @@ interface CustomRouteConfig<
   /** Controls how the ability predicate is applied (`'throw'` | `'filter'`). */
   predicateBehavior?: PredicateBehavior;
 
+  /**
+   * Name of the route param identifying the single document `abilityPredicate` should check.
+   *
+   * The generated Guard only runs its "check this exact document" branch when it finds a route
+   * param named literally `id` — standard routes always use that name, but a custom route's
+   * `path` can use anything (`:userId`, `:code`, ...). Without `targetParam` set to match, the
+   * Guard silently falls back to a "check every document matching the query string" branch
+   * instead — almost never what you want for a route like `path: 'parental-consent/:userId'`,
+   * and easy to miss since nothing errors: the predicate still runs, just against the wrong data.
+   *
+   * @example
+   * ```typescript
+   * {
+   *   path: 'parental-consent/:userId',
+   *   targetParam: 'userId', // instead of requiring the param to be named :id
+   *   abilityPredicate: isSameFamilyNotSelf,
+   *   handler: async ({ model, params }) => model.findByIdAndUpdate(params.userId, { consented: true }),
+   * }
+   * ```
+   */
+  targetParam?: Extract<keyof Params, string>;
+
   /** Optional validation pipe options, merged with `validationPipeOptions` from `controllerOptions`. */
   validationPipeOptions?: ValidationPipeOptions;
 
