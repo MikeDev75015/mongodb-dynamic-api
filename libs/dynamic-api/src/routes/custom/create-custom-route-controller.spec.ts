@@ -29,6 +29,7 @@ jest.mock('../../mixins', () => ({
 
 interface ControllerInstanceShape {
   model: unknown;
+  moduleRef?: { get: jest.Mock };
   handle: (
     params: Record<string, string>,
     body: unknown,
@@ -342,7 +343,7 @@ describe('createCustomRouteController', () => {
         body,
         query,
         req,
-      });
+      }, []);
     });
 
     it('returns raw handler result when presenter has no fromEntity', async () => {
@@ -385,6 +386,7 @@ describe('createCustomRouteController', () => {
 
       expect(fakeHandler).toHaveBeenCalledWith(
         expect.objectContaining({ user: undefined, req: undefined }),
+        [],
       );
     });
 
@@ -398,7 +400,48 @@ describe('createCustomRouteController', () => {
 
       expect(fakeHandler).toHaveBeenCalledWith(
         expect.objectContaining({ req }),
+        [],
       );
+    });
+  });
+
+  // ── inject (DI resolution) ────────────────────────────────────────────────
+
+  describe('inject', () => {
+    class FakeMailService {}
+
+    it('resolves each inject token via moduleRef.get({ strict: false }) and passes the results to handler', async () => {
+      const Ctrl = makeController({ inject: [FakeMailService, 'SOME_TOKEN'] });
+      const instance: ControllerInstanceShape = Object.create(Ctrl.prototype);
+      instance.model = {};
+      const fakeMailInstance = new FakeMailService();
+      const fakeTokenInstance = { resolved: true };
+      instance.moduleRef = {
+        get: jest.fn()
+          .mockReturnValueOnce(fakeMailInstance)
+          .mockReturnValueOnce(fakeTokenInstance),
+      };
+
+      await instance.handle({}, {}, {}, undefined);
+
+      expect(instance.moduleRef!.get).toHaveBeenNthCalledWith(1, FakeMailService, { strict: false });
+      expect(instance.moduleRef!.get).toHaveBeenNthCalledWith(2, 'SOME_TOKEN', { strict: false });
+      expect(fakeHandler).toHaveBeenCalledWith(
+        expect.anything(),
+        [fakeMailInstance, fakeTokenInstance],
+      );
+    });
+
+    it('never touches moduleRef when inject is not provided', async () => {
+      const Ctrl = makeController();
+      const instance: ControllerInstanceShape = Object.create(Ctrl.prototype);
+      instance.model = {};
+      instance.moduleRef = { get: jest.fn() };
+
+      await instance.handle({}, {}, {}, undefined);
+
+      expect(instance.moduleRef.get).not.toHaveBeenCalled();
+      expect(fakeHandler).toHaveBeenCalledWith(expect.anything(), []);
     });
   });
 

@@ -24,6 +24,7 @@
   - [customRoutes](#customroutes)
     - [`customRoutes` vs. a native CRUD route](#customroutes-vs-a-native-crud-route)
     - [targetParam](#targetparam)
+    - [inject](#inject)
 - [controllerOptions Reference](#controlleroptions-reference)
   - [path](#path)
   - [apiTag](#apitag)
@@ -185,7 +186,7 @@ DynamicApiModule.forFeature({
 
 **Optional.** An array of custom endpoint configurations registered at the same controller `path` and `version` as the MDA standard routes. Each entry generates a fully typed NestJS controller method with automatic Mongoose model injection, Swagger documentation, optional guards and `abilityPredicate` support.
 
-> The Mongoose model is automatically available in the handler via `ctx.model`. No extra providers or module imports are needed.
+> The Mongoose model is automatically available in the handler via `ctx.model`. No extra providers or module imports are needed. Need an application service too (a mailer, a payment client, ...)? See [inject](#inject) below.
 
 #### `customRoutes` vs. a native CRUD route
 
@@ -208,7 +209,8 @@ Both let you attach `abilityPredicate`, guards, DTOs, and WebSocket exposure —
 |---|---|---|---|
 | `path` | `string` | ✅ | Route sub-path appended to the controller base path. Supports route params (e.g. `:id/e2ee-wrapped-keys`). |
 | `method` | `'GET' \| 'POST' \| 'PATCH' \| 'PUT' \| 'DELETE'` | ✅ | HTTP method. |
-| `handler` | `(ctx: CustomRouteContext<Entity, Body, Query, Params>) => Promise<Response>` | ✅ | Pure async function executed when the route is matched. |
+| `handler` | `(ctx: CustomRouteContext<Entity, Body, Query, Params>, injected: unknown[]) => Promise<Response>` | ✅ | Pure async function executed when the route is matched. `injected` holds the resolved `inject` providers, in order (empty array when `inject` isn't set). |
+| `inject` | `Array<Type<unknown> \| string \| symbol>` | ➖ | Application providers to resolve and pass to `handler`'s second argument. See [inject](#inject) below. |
 | `version` | `string` | ➖ | Route-level version override. Falls back to `controllerOptions.version`. |
 | `isPublic` | `boolean` | ➖ | Skip JWT guard for this route. Falls back to `controllerOptions.isPublic`. |
 | `description` | `string` | ➖ | Swagger `summary`. Auto-generated if omitted. |
@@ -260,6 +262,43 @@ If a route looks like it needs this and doesn't have it, a boot-time warning is 
 [`MONGODB_DYNAMIC_API_LOGGER`](./debugging.md), silent unless that's set): `abilityPredicate` is
 set, `predicateBehavior` isn't `'filter'`, the path has at least one param, and none of them is
 named `id` or matches `targetParam`.
+
+#### inject
+
+A custom route handler only ever gets `{ model, user, params, body, query, req }` — there's no way
+to reach an application service (a mailer, a payment gateway client, anything registered as a Nest
+provider) from inside it. Without `inject`, needing one meant bailing out of `customRoutes`
+entirely into a hand-written Nest controller that reimplements its own JWT guard and does raw
+Mongoose access from scratch, just to get that one service.
+
+`inject` lists provider tokens — the same tokens `@Inject()` accepts (a class, a string token, or a
+symbol token) — resolved on every request via `ModuleRef.get(token, { strict: false })` and passed
+to `handler`'s **second** argument, in the same order:
+
+```typescript
+import { CustomRouteConfig } from 'mongodb-dynamic-api';
+import { MailService } from '../mail/mail.service';
+import { Family } from './family.entity';
+import { InviteFamilyMemberDto } from './invite-family-member.dto';
+
+const inviteMemberRoute: CustomRouteConfig<Family, InviteFamilyMemberDto> = {
+  path: 'invite-member',
+  method: 'POST',
+  inject: [MailService],
+  handler: async (ctx, [mailService]) => {
+    const mail = mailService as MailService; // inject is untyped — cast to the real type
+    await mail.send(ctx.body.email, 'invite', { familyId: ctx.params.id });
+    return { sent: true };
+  },
+};
+```
+
+`strict: false` resolves app-wide, not just within whatever module registered the entity's
+`forFeature()` — `MailService` (or whatever you inject) just needs to be a provider **somewhere**
+reachable in your app's module graph, same as any other cross-module Nest injection. Omit `inject`
+(or leave it empty) and `handler`'s second argument is just an empty array — every existing
+`customRoutes` handler keeps working unchanged, since a JS function is free to ignore extra
+arguments it doesn't declare.
 
 #### `CustomRouteContext<Entity, Body, Query, Params>` fields
 

@@ -8,6 +8,7 @@ import {
   UseInterceptors,
   ValidationPipeOptions,
 } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import {
@@ -63,6 +64,7 @@ function createCustomRouteGateway<
   const {
     path: routePath,
     handler,
+    inject = [],
     version: routeVersion,
     isPublic,
     guards = [],
@@ -115,6 +117,7 @@ function createCustomRouteGateway<
       @InjectModel(entity.name, connectionName)
       protected readonly model: Model<Entity>,
       @Optional() protected readonly jwtService: JwtService,
+      protected readonly moduleRef: ModuleRef,
     ) {
       super(jwtService);
     }
@@ -126,13 +129,16 @@ function createCustomRouteGateway<
       @ConnectedSocket() socket: ExtendedSocket<Entity>,
       @MessageBody() body: unknown,
     ): GatewayResponse<unknown> {
+      // strict: false — see the same note in create-custom-route-controller.ts.
+      const injected = inject.map((token) => this.moduleRef.get(token, { strict: false }));
+
       const result = await handler({
         model: this.model,
         user: socket?.user,
         params: {} as Params,
         body: body as Body,
         query: {} as QueryDto,
-      });
+      }, injected);
 
       const fromEntity = (presenterType as Mappable<Entity>).fromEntity;
       const data = fromEntity ? fromEntity(result as Entity) : result;

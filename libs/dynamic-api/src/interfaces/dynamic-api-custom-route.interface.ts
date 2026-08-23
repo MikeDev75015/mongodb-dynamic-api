@@ -97,9 +97,52 @@ interface CustomRouteConfig<
 
   /**
    * Pure async function executed when the route is matched.
-   * Receives the fully-typed execution context.
+   * Receives the fully-typed execution context, and — when `inject` is set — the resolved
+   * provider instances as a second argument, in the same order.
+   *
+   * @example
+   * ```typescript
+   * {
+   *   inject: [MailService],
+   *   handler: async (ctx, [mailService]) => {
+   *     const mail = mailService as MailService; // inject is untyped — cast to the real type
+   *     await mail.send(...);
+   *   },
+   * }
+   * ```
    */
-  handler: (ctx: CustomRouteContext<Entity, Body, Query, Params>) => Promise<Response>;
+  handler: (ctx: CustomRouteContext<Entity, Body, Query, Params>, injected: unknown[]) => Promise<Response>;
+
+  /**
+   * Application providers to resolve and pass to `handler`'s second argument, in order — a
+   * service, a repository, anything registered as a Nest provider anywhere in your app (not just
+   * the module that declared this entity's `forFeature`).
+   *
+   * Resolved via `ModuleRef.get(token, { strict: false })` on every request. Each entry can be a
+   * class token, a string token, or a symbol token — the same tokens `@Inject()` accepts.
+   *
+   * Without this, a custom route handler only ever gets `{ model, user, params, body, query,
+   * req }` — no way to reach an application service like a mailer — which used to force routes
+   * that needed one out of `customRoutes` entirely into a hand-written Nest controller
+   * reimplementing its own JWT guard and raw Mongoose access from scratch.
+   *
+   * @example
+   * ```typescript
+   * import { MailService } from '../mail/mail.service';
+   *
+   * const inviteMemberRoute: CustomRouteConfig<Family, InviteFamilyMemberDto> = {
+   *   path: 'invite-member',
+   *   method: 'POST',
+   *   inject: [MailService],
+   *   handler: async (ctx, [mailService]) => {
+   *     const mail = mailService as MailService;
+   *     await mail.send(ctx.body.email, 'invite', { familyId: ctx.params.id });
+   *     return { sent: true };
+   *   },
+   * };
+   * ```
+   */
+  inject?: Array<Type<unknown> | string | symbol>;
 
   /**
    * Route-level version override.
