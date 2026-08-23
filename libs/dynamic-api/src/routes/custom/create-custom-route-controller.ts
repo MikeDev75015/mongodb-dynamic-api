@@ -5,6 +5,7 @@ import {
   Controller,
   Delete,
   Get,
+  NestInterceptor,
   Patch,
   Post,
   Put,
@@ -77,19 +78,121 @@ function warnIfTargetParamLikelyMissing(
     return;
   }
 
-  const pathParams = [...routePath.matchAll(/:([A-Za-z0-9_]+)/g)].map((match) => match[1]);
+  const pathParams = [...routePath.matchAll(/:(\w+)/g)].map((match) => match[1]);
   if (pathParams.length === 0 || pathParams.includes('id')) {
     return;
   }
 
+  const pathParamList = pathParams.map((p) => `:${p}`).join(', ');
+
   logger.warn(
     `[Ability Predicate] Custom route "${routePath}" on ${entityName}: abilityPredicate is set on a `
-    + `route with path param(s) ${pathParams.map((p) => `:${p}`).join(', ')}, none named "id", and no `
+    + `route with path param(s) ${pathParamList}, none named "id", and no `
     + `targetParam configured. The Guard's single-document check only ever looks for a param named `
     + `"id" unless targetParam says otherwise — right now it silently falls back to checking a list of `
     + `documents matched by the query string instead of the route's actual target. Set `
     + `targetParam: '${pathParams[0]}' if that's the document abilityPredicate should check.`,
   );
+}
+
+interface ApplyHandlerDecoratorsOptions<Entity extends BaseEntity> {
+  method: HttpMethod;
+  routePath: string;
+  routePathPascal: string;
+  baseDisplayedName: string;
+  effectiveVersion: string | undefined;
+  description: string | undefined;
+  entity: Type<Entity>;
+  presenterType: Type;
+  dTOs: CustomRouteConfig<Entity>['dTOs'];
+  allGuards: Type<CanActivate>[];
+  routeInterceptors: Type<NestInterceptor>[];
+  isPublic: boolean | undefined;
+  isAuthEnabled: boolean;
+}
+
+/**
+ * Applies every decorator-driven concern (route method/path, `design:paramtypes` override for
+ * `ValidationPipe`, Swagger operation/response/body/query/param docs, guards, route-level
+ * interceptors, public/bearer-auth) to a generated custom-route controller's `handle` method.
+ * Extracted out of {@link createCustomRouteController} purely to keep that function's cognitive
+ * complexity down — this one is a flat sequence of independent decorator applications, not
+ * meaningfully reusable elsewhere.
+ */
+function applyCustomRouteHandlerDecorators<Entity extends BaseEntity>(
+  ControllerClass: Type,
+  options: ApplyHandlerDecoratorsOptions<Entity>,
+): void {
+  const {
+    method, routePath, routePathPascal, baseDisplayedName, effectiveVersion, description,
+    entity, presenterType, dTOs, allGuards, routeInterceptors, isPublic, isAuthEnabled,
+  } = options;
+
+  // ─── Override reflect-metadata paramtypes so ValidationPipe uses DTO classes
+  if (dTOs?.body ?? dTOs?.query) {
+    const paramTypes: Type[] = [Object, Object, Object, Object];
+    if (dTOs?.body) paramTypes[1] = dTOs.body;
+    if (dTOs?.query) paramTypes[2] = dTOs.query;
+    Reflect.defineMetadata(
+      'design:paramtypes',
+      paramTypes,
+      ControllerClass.prototype,
+      'handle',
+    );
+  }
+
+  // ─── Apply method-level decorators post-hoc (same pattern as cache-purge) ─
+  const descriptor = Object.getOwnPropertyDescriptor(ControllerClass.prototype, 'handle');
+
+  HTTP_METHOD_DECORATOR_MAP[method](routePath)(
+    ControllerClass.prototype,
+    'handle',
+    descriptor,
+  );
+
+  ApiOperation({
+    operationId: `custom${routePathPascal}${baseDisplayedName}${effectiveVersion ? 'V' + effectiveVersion : ''}`,
+    summary: description ?? `${method} /${routePath} — custom endpoint for ${entity.name}`,
+  })(ControllerClass.prototype, 'handle', descriptor);
+
+  ApiResponse({
+    type: presenterType,
+  })(ControllerClass.prototype, 'handle', descriptor);
+
+  if (dTOs?.body) {
+    ApiBody({ type: dTOs.body })(ControllerClass.prototype, 'handle', descriptor);
+  }
+
+  if (dTOs?.query) {
+    ApiQuery({ type: dTOs.query })(ControllerClass.prototype, 'handle', descriptor);
+  }
+
+  if (dTOs?.params) {
+    // One @ApiParam per declared property — a custom route's path can carry more than one
+    // param (e.g. ':familyId/invite-member/:memberId'), unlike native routes' single :id.
+    const paramsInstance = new dTOs.params();
+    for (const name of Object.keys(paramsInstance)) {
+      ApiParam({
+        name,
+        type: typeof paramsInstance[name],
+      })(ControllerClass.prototype, 'handle', descriptor);
+    }
+  }
+
+  if (allGuards.length > 0) {
+    UseGuards(...allGuards)(ControllerClass.prototype, 'handle', descriptor);
+  }
+
+  // ─── Route-level interceptors (e.g. FileInterceptor) ──────────────────────
+  if (routeInterceptors.length > 0) {
+    UseInterceptors(...routeInterceptors)(ControllerClass.prototype, 'handle', descriptor);
+  }
+
+  if (isPublic) {
+    Public()(ControllerClass.prototype, 'handle', descriptor);
+  } else if (isAuthEnabled) {
+    ApiBearerAuth()(ControllerClass.prototype, 'handle', descriptor);
+  }
 }
 
 /**
@@ -206,71 +309,10 @@ function createCustomRouteController<
     }
   }
 
-  // ─── Override reflect-metadata paramtypes so ValidationPipe uses DTO classes
-  if (dTOs?.body ?? dTOs?.query) {
-    const paramTypes: Type[] = [Object, Object, Object, Object];
-    if (dTOs?.body) paramTypes[1] = dTOs.body;
-    if (dTOs?.query) paramTypes[2] = dTOs.query;
-    Reflect.defineMetadata(
-      'design:paramtypes',
-      paramTypes,
-      CustomRouteController.prototype,
-      'handle',
-    );
-  }
-
-  // ─── Apply method-level decorators post-hoc (same pattern as cache-purge) ─
-  const descriptor = Object.getOwnPropertyDescriptor(CustomRouteController.prototype, 'handle');
-
-  HTTP_METHOD_DECORATOR_MAP[method](routePath)(
-    CustomRouteController.prototype,
-    'handle',
-    descriptor,
-  );
-
-  ApiOperation({
-    operationId: `custom${routePathPascal}${baseDisplayedName}${effectiveVersion ? 'V' + effectiveVersion : ''}`,
-    summary: description ?? `${method} /${routePath} — custom endpoint for ${entity.name}`,
-  })(CustomRouteController.prototype, 'handle', descriptor);
-
-  ApiResponse({
-    type: presenterType,
-  })(CustomRouteController.prototype, 'handle', descriptor);
-
-  if (dTOs?.body) {
-    ApiBody({ type: dTOs.body })(CustomRouteController.prototype, 'handle', descriptor);
-  }
-
-  if (dTOs?.query) {
-    ApiQuery({ type: dTOs.query })(CustomRouteController.prototype, 'handle', descriptor);
-  }
-
-  if (dTOs?.params) {
-    // One @ApiParam per declared property — a custom route's path can carry more than one
-    // param (e.g. ':familyId/invite-member/:memberId'), unlike native routes' single :id.
-    const paramsInstance = new dTOs.params();
-    for (const name of Object.keys(paramsInstance)) {
-      ApiParam({
-        name,
-        type: typeof paramsInstance[name],
-      })(CustomRouteController.prototype, 'handle', descriptor);
-    }
-  }
-
-  if (allGuards.length > 0) {
-    UseGuards(...allGuards)(CustomRouteController.prototype, 'handle', descriptor);
-  }
-
-  // ─── Route-level interceptors (e.g. FileInterceptor) ──────────────────────
-  if (routeInterceptors.length > 0) {
-    UseInterceptors(...routeInterceptors)(CustomRouteController.prototype, 'handle', descriptor);
-  }
-
-  if (isPublic) {
-    Public()(CustomRouteController.prototype, 'handle', descriptor);
-  } else if (isAuthEnabled) {
-    ApiBearerAuth()(CustomRouteController.prototype, 'handle', descriptor);
-  }
+  applyCustomRouteHandlerDecorators(CustomRouteController, {
+    method, routePath, routePathPascal, baseDisplayedName, effectiveVersion, description,
+    entity, presenterType, dTOs, allGuards, routeInterceptors, isPublic, isAuthEnabled,
+  });
 
   // ─── Unique class name ─────────────────────────────────────────────────────
   Object.defineProperty(CustomRouteController, 'name', {

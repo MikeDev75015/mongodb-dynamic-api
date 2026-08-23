@@ -27,7 +27,7 @@ import { getDisplayedName } from './format.helper';
  * definition, meant to be shared by every caller regardless of identity, which is exactly what a
  * cached `'filter'`-mode response already does.
  */
-const FILTER_MODE_ROUTE_TYPES: RouteType[] = ['GetMany', 'Aggregate'];
+const FILTER_MODE_ROUTE_TYPES: ReadonlySet<RouteType> = new Set(['GetMany', 'Aggregate']);
 
 const logger = new MongoDBDynamicApiLogger('DynamicApiModule');
 
@@ -93,7 +93,7 @@ function getMixinData<Entity extends BaseEntity>(
     abilityPredicate &&
     predicateBehavior === 'filter' &&
     !disableCache &&
-    FILTER_MODE_ROUTE_TYPES.includes(routeType) &&
+    FILTER_MODE_ROUTE_TYPES.has(routeType) &&
     DynamicApiGlobalStateService.getValue('isGlobalCacheEnabled')
   ) {
     logger.warn(
