@@ -70,6 +70,21 @@ describe('DynamicApiGlobalStateService', () => {
     });
   });
 
+  describe('getValue', () => {
+    it('should read a value off the shared static state without instantiating the service', () => {
+      service = new DynamicApiGlobalStateService();
+      service.set(['isGlobalCacheEnabled', false]);
+
+      expect(DynamicApiGlobalStateService.getValue('isGlobalCacheEnabled')).toBe(false);
+    });
+
+    it('should default cacheKeyBy to url+identity', () => {
+      service = new DynamicApiGlobalStateService();
+
+      expect(DynamicApiGlobalStateService.getValue('cacheKeyBy')).toBe('url+identity');
+    });
+  });
+
   describe('addEntitySchema', () => {
     it('should add entity schema', () => {
       const schema = {} as Schema;

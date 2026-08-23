@@ -324,6 +324,9 @@ export class DynamicApiModule {
         cacheOptions?.excludePaths ? { cacheExcludedPaths: cacheOptions?.excludePaths } : {}
       ),
       ...(
+        cacheOptions?.keyBy ? { cacheKeyBy: cacheOptions.keyBy } : {}
+      ),
+      ...(
         useAuth?.userEntity ? {
           isAuthEnabled: true,
           credentials: {

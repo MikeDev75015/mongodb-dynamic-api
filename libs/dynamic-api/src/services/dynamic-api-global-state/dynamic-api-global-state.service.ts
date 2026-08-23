@@ -27,6 +27,7 @@ export class DynamicApiGlobalStateService {
     refreshTokenField: undefined,
     additionalRequestFields: [],
     cacheExcludedPaths: [],
+    cacheKeyBy: 'url+identity',
     routesConfig: {
       excluded: [],
       defaults: [
@@ -61,6 +62,16 @@ export class DynamicApiGlobalStateService {
 
     entitySchemas[entity.name] = schema;
     this.entitySchemas$.next(entitySchemas);
+  }
+
+  /**
+   * Reads a single value straight off the shared static state, without instantiating the service
+   * (the constructor resets state — never `new` this just to read a value). Safe to call from
+   * anywhere, including modules that can't safely import `DynamicApiModule` itself due to
+   * circular-require ordering (e.g. `helpers/mixin-data.helper.ts`).
+   */
+  static getValue<K extends keyof DynamicApiGlobalState>(key: K): DynamicApiGlobalState[K] {
+    return DynamicApiGlobalStateService._[key];
   }
 
   static async getEntityModel<T = any>(entity: Type<T>) {
