@@ -73,8 +73,7 @@ function AggregateControllerMixin<Entity extends BaseEntity>(
     displayedName,
     version,
     abilityPredicate,
-    toPipeline,
-    predicateBehavior,
+    { queryToPipeline: toPipeline, predicateBehavior },
   ) {}
 
   class BaseAggregateController implements AggregateController<Entity, AggregateQuery, AggregatePresenter> {

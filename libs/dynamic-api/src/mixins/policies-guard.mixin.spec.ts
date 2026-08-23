@@ -49,6 +49,20 @@ describe('PoliciesGuardMixin', () => {
       )(model);
       expect(guard['abilityPredicate']).toBeUndefined();
     });
+
+    it('should create a PoliciesGuard with the correct targetParam when provided in options', () => {
+      const guard = new (
+        RoutePoliciesGuardMixin(TestEntity, routeType, displayedName, '1', undefined, { targetParam: 'userId' })
+      )(model);
+      expect(guard['targetParam']).toBe('userId');
+    });
+
+    it('should create a PoliciesGuard without targetParam if options are not provided', () => {
+      const guard = new (
+        RoutePoliciesGuardMixin(TestEntity, routeType, displayedName, '1', undefined)
+      )(model);
+      expect(guard['targetParam']).toBeUndefined();
+    });
   });
 
   describe('SocketPoliciesGuardMixin', () => {

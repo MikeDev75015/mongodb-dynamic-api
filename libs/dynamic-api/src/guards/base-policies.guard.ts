@@ -14,6 +14,12 @@ abstract class BasePoliciesGuard<Entity extends BaseEntity> extends BaseService<
   protected abilityPredicate: AbilityPredicate<Entity> | undefined;
   protected predicateBehavior: PredicateBehavior | undefined;
   protected queryToPipeline?: (query: unknown) => PipelineStage[];
+  /**
+   * Name of the route param identifying the single document to check, when it isn't `id`
+   * (standard routes always use `id`; a custom route's `path` can use anything). See
+   * `CustomRouteConfig.targetParam`.
+   */
+  protected targetParam: string | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
     super(model);
@@ -29,8 +35,10 @@ abstract class BasePoliciesGuard<Entity extends BaseEntity> extends BaseService<
 
       this.user = user;
 
-      if (params?.id) {
-        await this.findOneDocumentWithAbilityPredicate(params.id, query);
+      const targetId = params?.[this.targetParam ?? 'id'];
+
+      if (targetId) {
+        await this.findOneDocumentWithAbilityPredicate(targetId, query);
       } else if (this.routeType === 'Aggregate' && query && this.queryToPipeline) {
         await this.aggregateDocumentsWithAbilityPredicate(this.queryToPipeline(query));
       } else {

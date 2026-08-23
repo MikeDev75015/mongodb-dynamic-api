@@ -23,6 +23,7 @@
   - [extraControllers](#extracontrollers)
   - [customRoutes](#customroutes)
     - [`customRoutes` vs. a native CRUD route](#customroutes-vs-a-native-crud-route)
+    - [targetParam](#targetparam)
 - [controllerOptions Reference](#controlleroptions-reference)
   - [path](#path)
   - [apiTag](#apitag)
@@ -214,12 +215,51 @@ Both let you attach `abilityPredicate`, guards, DTOs, and WebSocket exposure —
 | `guards` | `Type<CanActivate>[]` | ➖ | Extra NestJS guard classes applied **after** the ability-predicate guard. |
 | `abilityPredicate` | `AbilityPredicate<Entity>` | ➖ | Ability predicate identical to `DynamicApiRouteConfig.abilityPredicate`. Generates a `RoutePoliciesGuard` automatically. |
 | `predicateBehavior` | `'throw' \| 'filter'` | ➖ | Controls ability-predicate behavior. |
+| `targetParam` | `string` | ➖ | Name of the route param identifying the document `abilityPredicate` should check, when the route's path param isn't named `id` (e.g. `path: 'parental-consent/:userId'` needs `targetParam: 'userId'`). See [targetParam](#targetparam) below. |
 | `validationPipeOptions` | `ValidationPipeOptions` | ➖ | Merged with `controllerOptions.validationPipeOptions`. |
 | `webSocket` | `boolean \| GatewayMetadata` | ➖ | Exposes the route **via WebSocket** in addition to HTTP. `true` for default gateway options, or a `GatewayMetadata` object for custom config. Auto-generates a gateway class alongside the controller. |
 | `eventName` | `string` | ➖ | Custom WS event name. Default: `kebabCase('custom/{path}/{entityName}')` → e.g. `custom-metadata-conversation`. In WS context `params` and `query` are always `{}` — include everything in the message body. |
 | `dTOs.body` | `Type` | ➖ | DTO class for request body validation and Swagger `@ApiBody`. |
 | `dTOs.query` | `Type` | ➖ | DTO class for query string validation and Swagger `@ApiQuery`. |
 | `dTOs.presenter` | `Type & Partial<Mappable<Entity>>` | ➖ | Response presenter. If it exposes `fromEntity`, the handler result is mapped through it; otherwise raw result is returned (with `ClassSerializerInterceptor`). |
+
+#### targetParam
+
+`abilityPredicate` on a custom route can mean two different things depending on whether the Guard
+finds a **single target document** to check, or falls back to checking every document matching
+the request's query string instead. The Guard only ever looks for a route param named literally
+`id` to decide which case it's in — standard MDA routes always use that name, but a custom route's
+`path` can use anything (`:userId`, `:code`, `:conversationId`, ...).
+
+Without `targetParam`, a route like `path: 'parental-consent/:userId'` silently falls into the
+**wrong** branch: the Guard never sees `:userId` at all, so `abilityPredicate` ends up evaluated
+against whatever documents match the (usually empty) query string — not the document the route is
+actually about. Nothing errors; the predicate still runs, just against unrelated data, so the
+authorization check the route was written for silently doesn't happen.
+
+```typescript
+// ❌ abilityPredicate never actually checks the :userId in the URL
+{
+  path: 'parental-consent/:userId',
+  method: 'PATCH',
+  abilityPredicate: isSameFamilyNotSelf,
+  handler: async ({ model, params }) => model.findByIdAndUpdate(params.userId, { consented: true }),
+}
+
+// ✅ targetParam tells the Guard which param is the real target
+{
+  path: 'parental-consent/:userId',
+  method: 'PATCH',
+  targetParam: 'userId',
+  abilityPredicate: isSameFamilyNotSelf,
+  handler: async ({ model, params }) => model.findByIdAndUpdate(params.userId, { consented: true }),
+}
+```
+
+If a route looks like it needs this and doesn't have it, a boot-time warning is logged (via
+[`MONGODB_DYNAMIC_API_LOGGER`](./debugging.md), silent unless that's set): `abilityPredicate` is
+set, `predicateBehavior` isn't `'filter'`, the path has at least one param, and none of them is
+named `id` or matches `targetParam`.
 
 #### `CustomRouteContext<Entity, Body, Query, Params>` fields
 
