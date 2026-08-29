@@ -69,6 +69,7 @@ function createCustomRouteGateway<
     isPublic,
     guards = [],
     abilityPredicate,
+    authAbilityPredicate,
     predicateBehavior,
     validationPipeOptions: routeValidationPipeOptions,
     eventName,
@@ -94,13 +95,13 @@ function createCustomRouteGateway<
     new JwtSocketGuard(isPublic),
   ];
 
-  if (abilityPredicate) {
+  if (abilityPredicate || authAbilityPredicate) {
     const PoliciesGuard = SocketPoliciesGuardMixin(
       entity,
       'Custom',
       event,
       effectiveVersion,
-      { abilityPredicate, isPublic, predicateBehavior },
+      { abilityPredicate, isPublic, predicateBehavior, authAbilityPredicate },
     );
     guardInstances.push(PoliciesGuard);
   }

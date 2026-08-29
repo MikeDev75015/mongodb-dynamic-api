@@ -63,6 +63,21 @@ describe('PoliciesGuardMixin', () => {
       )(model);
       expect(guard['targetParam']).toBeUndefined();
     });
+
+    it('should create a PoliciesGuard with the correct authAbilityPredicate when provided in options', () => {
+      const authAbilityPredicate = (_: unknown) => true;
+      const guard = new (
+        RoutePoliciesGuardMixin(TestEntity, routeType, displayedName, '1', undefined, { authAbilityPredicate })
+      )(model);
+      expect(guard['authAbilityPredicate']).toBe(authAbilityPredicate);
+    });
+
+    it('should create a PoliciesGuard without authAbilityPredicate if options are not provided', () => {
+      const guard = new (
+        RoutePoliciesGuardMixin(TestEntity, routeType, displayedName, '1', undefined)
+      )(model);
+      expect(guard['authAbilityPredicate']).toBeUndefined();
+    });
   });
 
   describe('SocketPoliciesGuardMixin', () => {
@@ -102,6 +117,21 @@ describe('PoliciesGuardMixin', () => {
         SocketPoliciesGuardMixin(TestEntity, routeType, event, '1', { isPublic })
       )(model);
       expect(guard['abilityPredicate']).toBeUndefined();
+    });
+
+    it('should create a SocketPoliciesGuard with the correct authAbilityPredicate', () => {
+      const authAbilityPredicate = (_: unknown) => true;
+      const guard = new (
+        SocketPoliciesGuardMixin(TestEntity, routeType, event, '1', { authAbilityPredicate, isPublic })
+      )(model);
+      expect(guard['authAbilityPredicate']).toBe(authAbilityPredicate);
+    });
+
+    it('should create a SocketPoliciesGuard without authAbilityPredicate if not provided', () => {
+      const guard = new (
+        SocketPoliciesGuardMixin(TestEntity, routeType, event, '1', { isPublic })
+      )(model);
+      expect(guard['authAbilityPredicate']).toBeUndefined();
     });
   });
 });

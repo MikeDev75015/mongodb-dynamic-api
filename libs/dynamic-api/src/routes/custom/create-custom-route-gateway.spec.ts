@@ -304,6 +304,23 @@ describe('createCustomRouteGateway', () => {
     });
   });
 
+  // ── authAbilityPredicate → guard created even without abilityPredicate ────
+
+  describe('authAbilityPredicate', () => {
+    it('calls SocketPoliciesGuardMixin when only authAbilityPredicate is provided (no abilityPredicate)', () => {
+      const authAbilityPredicate = jest.fn().mockReturnValue(true);
+      makeGateway({ authAbilityPredicate });
+
+      expect(SocketPoliciesGuardMixin).toHaveBeenCalledWith(
+        FakeEntity,
+        'Custom',
+        'custom-e2ee-wrapped-keys-fake-entity',
+        undefined,
+        { abilityPredicate: undefined, isPublic: undefined, predicateBehavior: undefined, authAbilityPredicate },
+      );
+    });
+  });
+
   // ── constructor ──────────────────────────────────────────────────────────
 
   describe('constructor', () => {

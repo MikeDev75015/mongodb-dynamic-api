@@ -117,6 +117,55 @@ describe('BasePoliciesGuard', () => {
     context.switchToHttp().getRequest().user = {};
     await expect(guard.canActivate(context)).resolves.toBe(true);
   });
+
+  // ── authAbilityPredicate: document-less routes must never fail open ────────
+
+  describe('authAbilityPredicate', () => {
+    it('should throw ForbiddenException if user is not defined and authAbilityPredicate is defined', async () => {
+      guard['authAbilityPredicate'] = jest.fn();
+      await expect(guard.canActivate(context)).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should throw ForbiddenException if authAbilityPredicate returns false', async () => {
+      guard['authAbilityPredicate'] = jest.fn().mockReturnValue(false);
+      context.switchToHttp().getRequest().user = { isAdmin: false };
+      await expect(guard.canActivate(context)).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should resolve true if authAbilityPredicate returns true', async () => {
+      guard['authAbilityPredicate'] = jest.fn().mockReturnValue(true);
+      context.switchToHttp().getRequest().user = { isAdmin: true };
+      await expect(guard.canActivate(context)).resolves.toBe(true);
+    });
+
+    it('should call authAbilityPredicate with (user, body)', async () => {
+      const predicate = jest.fn().mockReturnValue(true);
+      guard['authAbilityPredicate'] = predicate;
+      context.switchToHttp().getRequest().user = { isAdmin: true };
+      context.switchToHttp().getRequest().body = { some: 'payload' };
+      await guard.canActivate(context);
+      expect(predicate).toHaveBeenCalledWith({ isAdmin: true }, { some: 'payload' });
+    });
+
+    it('should never scan the collection (never call findManyDocumentsWithAbilityPredicate) when only authAbilityPredicate is set', async () => {
+      const spy = jest.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockImplementationOnce(jest.fn());
+      guard['authAbilityPredicate'] = jest.fn().mockReturnValue(true);
+      context.switchToHttp().getRequest().user = { isAdmin: true };
+      await guard.canActivate(context);
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('should deny access even when abilityPredicate would vacuously pass on an empty collection', async () => {
+      // Regression for the fail-open bug: a document-less route relying only on the collection
+      // scan (abilityPredicate + zero matching documents) never denies. authAbilityPredicate must
+      // deny on its own, independently of the (here vacuously-passing) abilityPredicate branch.
+      jest.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockResolvedValueOnce(undefined);
+      guard['abilityPredicate'] = jest.fn();
+      guard['authAbilityPredicate'] = jest.fn().mockReturnValue(false);
+      context.switchToHttp().getRequest().user = { isAdmin: false };
+      await expect(guard.canActivate(context)).rejects.toThrow(ForbiddenException);
+    });
+  });
 });
 
 describe('BaseSocketPoliciesGuard', () => {
@@ -206,5 +255,32 @@ describe('BaseSocketPoliciesGuard', () => {
     context.getArgs()[0].query = {};
     await guard.canActivate(context);
     expect(spy).toHaveBeenCalled();
+  });
+
+  // ── authAbilityPredicate: document-less routes must never fail open ────────
+
+  describe('authAbilityPredicate', () => {
+    it('should throw WsException if authAbilityPredicate returns false', async () => {
+      guard['isPublic'] = false;
+      guard['authAbilityPredicate'] = jest.fn().mockReturnValue(false);
+      context.getArgs()[0].user = { isAdmin: false };
+      await expect(guard.canActivate(context)).rejects.toThrow(WsException);
+    });
+
+    it('should resolve true if authAbilityPredicate returns true', async () => {
+      guard['isPublic'] = false;
+      guard['authAbilityPredicate'] = jest.fn().mockReturnValue(true);
+      context.getArgs()[0].user = { isAdmin: true };
+      await expect(guard.canActivate(context)).resolves.toBe(true);
+    });
+
+    it('should never scan the collection when only authAbilityPredicate is set', async () => {
+      const spy = jest.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockImplementationOnce(jest.fn());
+      guard['isPublic'] = false;
+      guard['authAbilityPredicate'] = jest.fn().mockReturnValue(true);
+      context.getArgs()[0].user = { isAdmin: true };
+      await guard.canActivate(context);
+      expect(spy).not.toHaveBeenCalled();
+    });
   });
 });
