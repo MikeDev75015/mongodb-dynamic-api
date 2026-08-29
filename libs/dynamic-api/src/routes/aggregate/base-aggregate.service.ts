@@ -1,6 +1,7 @@
 import { Type } from '@nestjs/common';
 import { GetPagingResult, GetResult, PipelineStage } from 'mongodb-pipeline-builder';
 import { Model } from 'mongoose';
+import { isPagingPipeline } from '../../helpers/pipeline-paging.helper';
 import { AbilityPredicate, AfterSaveCallback, CallbackRetryOptions, PredicateBehavior } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseService } from '../../services';
@@ -26,7 +27,7 @@ export abstract class BaseAggregateService<Entity extends BaseEntity>
       let count: number;
       let totalPage: number;
 
-      if (this.withPagination(pipeline)) {
+      if (isPagingPipeline(pipeline)) {
         const pagingResult = await GetPagingResult<Entity>(this.model, pipeline);
         documents = pagingResult.GetDocs();
         count = pagingResult.GetCount();
@@ -51,8 +52,15 @@ export abstract class BaseAggregateService<Entity extends BaseEntity>
       const list = documents.map((d) => this.buildInstance(d));
 
       if (this.predicateBehavior === 'filter' && this.abilityPredicate) {
+        // count/totalPage deliberately stay as computed from the full aggregate result, not
+        // list.length post-filter — they describe the underlying query result (how many
+        // documents match, how many pages that makes), while `list` is the caller's personally
+        // visible subset of the current page. Recomputing count from the filtered page (as this
+        // used to do) desynced it from totalPage, which is still based on the full total: a
+        // page could read e.g. "count: 2, totalPage: 5" when the real 5-page total had nothing
+        // to do with 2. Leaving both untouched keeps them mutually consistent.
         const filtered = list.filter((instance) => this.abilityPredicate(instance, user));
-        return { list: filtered, count: filtered.length, totalPage };
+        return { list: filtered, count, totalPage };
       }
 
       return { list, count, totalPage };
@@ -60,17 +68,5 @@ export abstract class BaseAggregateService<Entity extends BaseEntity>
       this.handleMongoErrors(error, false);
       this.handleDuplicateKeyError(error);
     }
-  }
-
-  private withPagination(pipeline: PipelineStage[]): boolean {
-    const firstStageFacet = pipeline[0].$facet;
-    if (!firstStageFacet) {
-      return false;
-    }
-
-    const hasValidDocs = Array.isArray(firstStageFacet.docs) && firstStageFacet.docs.length > 0;
-    const hasValidCount = Array.isArray(firstStageFacet.count) && firstStageFacet.count.length > 0;
-
-    return hasValidDocs && hasValidCount;
   }
 }

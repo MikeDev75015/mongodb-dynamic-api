@@ -1,8 +1,9 @@
 import { BadRequestException, ConflictException, ForbiddenException, HttpException, NotFoundException, ServiceUnavailableException, Type } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
-import { PipelineStage } from 'mongodb-pipeline-builder';
+import { GetPagingResult, PipelineStage } from 'mongodb-pipeline-builder';
 import { ClientSession, FilterQuery, Model, PipelineStage as MongoosePipelineStage, Schema, UpdateQuery, UpdateWithAggregationPipeline } from 'mongoose';
 import { DERIVED_FIELD_KEYS_METADATA, DERIVED_FIELD_METADATA, DerivedFieldMeta } from '../../decorators';
+import { isPagingPipeline } from '../../helpers/pipeline-paging.helper';
 import { isTransactionsUnsupportedError } from '../../helpers/mongo-transaction.helper';
 import { AbilityPredicate, AfterSaveCallback, AuditLogAction, AuthAbilityPredicate, CallbackMethods, CallbackRetryOptions, CascadeConfig, DeleteResult, MongoUpdateOperators, UpdateResult } from '../../interfaces';
 import { MongoDBDynamicApiLogger } from '../../logger';
@@ -114,8 +115,23 @@ export abstract class BaseService<Entity extends BaseEntity> {
     return document;
   }
 
+  /**
+   * Runs `pipeline` and returns its documents, allowing for `id` normalization via
+   * `addDocumentId`. A `.Paging()`-built pipeline (a `$facet` producing `{ docs, count }`, see
+   * `isPagingPipeline`) is unwrapped via `GetPagingResult` first — its raw aggregate result has no
+   * `_id` of its own (it's a summary object, not an entity), so `addDocumentId` would throw on it
+   * otherwise. Used both by `CallbackMethods.aggregateDocuments` and by the ability-predicate
+   * guard's own `aggregateDocumentsWithAbilityPredicate` (which, unlike `BaseAggregateService.aggregate`,
+   * has no other paging-aware path of its own).
+   */
   protected async aggregateDocuments<T extends BaseEntity>(entity: Type<T>, pipeline: PipelineStage[]): Promise<T[]> {
     const model = await DynamicApiGlobalStateService.getEntityModel(entity);
+
+    if (isPagingPipeline(pipeline)) {
+      const pagingResult = await GetPagingResult<T>(model, pipeline);
+      return pagingResult.GetDocs().map((d) => this.addDocumentId(d));
+    }
+
     const documents = await model.aggregate(pipeline as MongoosePipelineStage[]).exec() as T[];
 
     return documents.map((d) => this.addDocumentId(d));

@@ -7,6 +7,7 @@ export * from './mint-token-pair.helper';
 export * from './mixin-data.helper';
 export * from './mongo-transaction.helper';
 export * from './mongoose-cast-error.helper';
+export * from './pipeline-paging.helper';
 export * from './predicate-identifier.helper';
 export * from './repository.helper';
 export * from './resolve-broadcast.helper';

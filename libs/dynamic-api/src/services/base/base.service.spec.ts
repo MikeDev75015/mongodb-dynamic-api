@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import { PipelineStage } from 'mongodb-pipeline-builder';
 import { Model, ObjectId } from 'mongoose';
 import { AbilityPredicate, AfterSaveCallback, DeleteResult, MongoUpdateOperators, UpdateResult } from '../../interfaces';
 import { BaseEntity, SoftDeletableEntity } from '../../models';
@@ -325,6 +326,23 @@ describe('BaseService', () => {
 
       expect(result).toEqual(expectedDocuments);
       expect(fakeModel.aggregate).toHaveBeenCalledWith([]);
+    });
+
+    it('should unwrap a .Paging()-shaped pipeline via GetPagingResult instead of addDocumentId-ing the facet wrapper', async () => {
+      // Regression for suggestion #9: the raw facet result ({ docs, count }, no _id of its own)
+      // used to be passed straight to addDocumentId, which threw on document._id being undefined.
+      fakeModel.aggregate.mockResolvedValueOnce([
+        { docs: [document], count: [{ totalElements: 1 }] },
+      ]);
+      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
+      const service = new TestService(fakeModel as unknown as Model<TestEntity>);
+      const pagingPipeline = [
+        { $facet: { docs: [{ $limit: 10 }], count: [{ $count: 'totalElements' }] } },
+      ] as unknown as PipelineStage[];
+
+      const result = await service['callbackMethods'].aggregateDocuments(TestEntity, pagingPipeline);
+
+      expect(result).toEqual([expectedDocument]);
     });
   });
 

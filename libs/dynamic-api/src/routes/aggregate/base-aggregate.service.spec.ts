@@ -123,7 +123,9 @@ describe('BaseAggregateService', () => {
 
       expect(result.list).toHaveLength(1);
       expect(result.list[0].name).toBe('allowed');
-      expect(result.count).toBe(1);
+      // count stays the full (unfiltered) result count, not filtered.length — see the "count/
+      // totalPage stay consistent" comment on the source. Only `list` narrows.
+      expect(result.count).toBe(2);
     });
 
     it('should return empty list when predicateBehavior is filter and abilityPredicate rejects all', async () => {
@@ -134,7 +136,9 @@ describe('BaseAggregateService', () => {
       const result = await service.aggregate(pipelineStages);
 
       expect(result.list).toEqual([]);
-      expect(result.count).toBe(0);
+      // count is NOT recomputed from the (now empty) filtered list — it still reflects the real
+      // underlying result (1 document existed, the caller just isn't allowed to see it).
+      expect(result.count).toBe(1);
     });
 
     it('should return all documents when predicateBehavior is filter and abilityPredicate allows all', async () => {
@@ -146,6 +150,31 @@ describe('BaseAggregateService', () => {
 
       expect(result.list).toHaveLength(1);
       expect(result.count).toBe(1);
+    });
+
+    it('should keep count/totalPage consistent (not recomputed from the filtered page) on a paginated pipeline', async () => {
+      // Regression for suggestion #9: count used to be reset to filtered.length while totalPage
+      // stayed computed from the real, unfiltered total — producing a nonsensical mismatch (e.g.
+      // "count: 1, totalPage: 2" for a single-item filtered page out of a real 2-page result).
+      const docs = [
+        { _id: 'id1' as unknown as ObjectId, __v: 0, name: 'allowed' } as Entity,
+        { _id: 'id2' as unknown as ObjectId, __v: 0, name: 'denied' } as Entity,
+        { _id: 'id3' as unknown as ObjectId, __v: 0, name: 'allowed' } as Entity,
+        { _id: 'id4' as unknown as ObjectId, __v: 0, name: 'denied' } as Entity,
+      ];
+      service = initService(docs, true);
+      Object.defineProperty(service, 'abilityPredicate', { value: (entity: Entity) => entity.name === 'allowed', configurable: true });
+      Object.defineProperty(service, 'predicateBehavior', { value: 'filter', configurable: true });
+      const pipeline = [...pipelineStages, { $limit: 2 }, { $skip: 0 }];
+      const pipelineStagesWithPagination = [
+        { $facet: { docs: pipeline, count: [...pipeline, { $count: 'totalElements' }] } },
+      ] as PipelineStage[];
+
+      const result = await service.aggregate(pipelineStagesWithPagination);
+
+      expect(result.list).toHaveLength(2); // only the 2 'allowed' documents are visible
+      expect(result.count).toBe(4); // real total, not list.length
+      expect(result.totalPage).toBe(2); // 4 elements / 2 per page — consistent with count
     });
 
     it('should not filter when predicateBehavior is throw', async () => {
