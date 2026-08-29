@@ -23,6 +23,7 @@ Each route in `DynamicApiModule.forFeature` can be finely configured through the
   - [presenter DTO](#presenter-dto)
   - [Mappable Interface](#mappable-interface)
   - [Aggregatable Interface](#aggregatable-interface)
+    - [Paginating an Aggregate route — PagingQuery + parsePagingParams](#paginating-an-aggregate-route--pagingquery--parsepagingparams)
   - [DTO Compatibility by Route Type](#dto-compatibility-by-route-type)
 - [Callbacks](#callbacks) — [📚 Full Callbacks Guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/callbacks.md)
   - [beforeSaveCallback](#beforesavecallback)
@@ -431,6 +432,44 @@ DynamicApiModule.forFeature({
   ],
 })
 ```
+
+#### Paginating an `Aggregate` route — `PagingQuery` + `parsePagingParams`
+
+A `.Paging()`-built pipeline needs a `page`/`pageSize` pair, clamped to sane bounds, in every query
+DTO. `PagingQuery` (extend it instead of redeclaring the two fields) and `parsePagingParams` (the
+clamp logic — `page >= 1`, `1 <= pageSize <= maxPageSize`, a missing/non-numeric value falls back
+to a default) are exported so you don't have to reimplement either per entity:
+
+```typescript
+import { PagingQuery, parsePagingParams } from 'mongodb-dynamic-api';
+import { PipelineBuilder, PipelineStage } from 'mongodb-pipeline-builder';
+
+class ProductStatsQuery extends PagingQuery {
+  static toPipeline(query: ProductStatsQuery): PipelineStage[] {
+    const { page, pageSize } = parsePagingParams(query, { defaultPageSize: 20, maxPageSize: 100 });
+
+    return new PipelineBuilder('product-stats')
+      .Sort({ createdAt: -1 })
+      .Paging(pageSize, page)
+      .build();
+  }
+}
+```
+
+> ⚠️ **A `.Paging()` pipeline only returns `{ list, count, totalPage }` when the route's presenter
+> implements `fromAggregate`** — without one, the response silently falls back to the raw `list`
+> array and `count`/`totalPage` are dropped (a warning is logged via
+> [`MONGODB_DYNAMIC_API_LOGGER`](./debugging.md) when this happens, but the response shape itself
+> doesn't change — flipping the default would be a breaking change for routes relying on the plain
+> array today). Always pair a `.Paging()` query DTO with a presenter that has `fromAggregate`, as
+> in the [presenter DTO](#presenter-dto) example above.
+
+`parsePagingParams(query, options?)`:
+
+| Option | Default | Description |
+|---|---|---|
+| `defaultPageSize` | `20` | Used when `query.pageSize` is missing. |
+| `maxPageSize` | `100` | Upper bound `pageSize` is clamped to, regardless of what the caller requested. |
 
 ---
 
