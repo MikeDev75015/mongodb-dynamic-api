@@ -19,6 +19,8 @@ interface RoutePoliciesGuardMixinOptions {
   predicateBehavior?: PredicateBehavior;
   /** @see CustomRouteConfig.targetParam */
   targetParam?: string;
+  /** @see CustomRouteConfig.authAbilityPredicate */
+  authAbilityPredicate?: AuthAbilityPredicate<unknown>;
 }
 
 /** @internal Not part of the public API — will be removed from the package's public exports in v5. */
@@ -30,13 +32,14 @@ function RoutePoliciesGuardMixin<Entity extends BaseEntity>(
   abilityPredicate: AbilityPredicate<Entity> | undefined,
   options: RoutePoliciesGuardMixinOptions = {},
 ): PoliciesGuardConstructor<Entity> {
-  const { queryToPipeline, predicateBehavior, targetParam } = options;
+  const { queryToPipeline, predicateBehavior, targetParam, authAbilityPredicate } = options;
 
   @Injectable()
   class RoutePoliciesGuard extends BasePoliciesGuard<Entity> implements PoliciesGuard {
     protected routeType = routeType;
     protected entity = entity;
     protected abilityPredicate: AbilityPredicate<Entity> | undefined = abilityPredicate;
+    protected authAbilityPredicate: AuthAbilityPredicate<unknown> | undefined = authAbilityPredicate;
     protected predicateBehavior: PredicateBehavior | undefined = predicateBehavior;
     protected queryToPipeline = queryToPipeline;
     protected targetParam = targetParam;
@@ -65,6 +68,8 @@ interface SocketPoliciesGuardMixinOptions {
   isPublic?: boolean;
   queryToPipeline?: (query: unknown) => PipelineStage[];
   predicateBehavior?: PredicateBehavior;
+  /** @see CustomRouteConfig.authAbilityPredicate */
+  authAbilityPredicate?: AuthAbilityPredicate<unknown>;
 }
 
 /** @internal Not part of the public API — will be removed from the package's public exports in v5. */
@@ -75,13 +80,14 @@ function SocketPoliciesGuardMixin<Entity extends BaseEntity>(
   version: string | undefined,
   options: SocketPoliciesGuardMixinOptions = {},
 ): PoliciesGuardConstructor<Entity> {
-  const { abilityPredicate, isPublic, queryToPipeline, predicateBehavior } = options;
+  const { abilityPredicate, isPublic, queryToPipeline, predicateBehavior, authAbilityPredicate } = options;
 
   @Injectable()
   class SocketPoliciesGuard extends BaseSocketPoliciesGuard<Entity> {
     protected routeType = routeType;
     protected entity = entity;
     protected abilityPredicate = abilityPredicate;
+    protected authAbilityPredicate: AuthAbilityPredicate<unknown> | undefined = authAbilityPredicate;
     protected predicateBehavior: PredicateBehavior | undefined = predicateBehavior;
     protected queryToPipeline = queryToPipeline;
     protected isPublic = isPublic;
