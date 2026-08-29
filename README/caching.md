@@ -447,6 +447,31 @@ export class ConversationPurgeService {
 | `invalidate(entity: Type, id?: string): Promise<void>` | Invalidates every cached response for `entity`'s routes (`GetMany`, `GetOne`, `Aggregate`, any custom sub-path) — never other entities' cached responses. `id` is accepted for call-site clarity (documenting which document changed) but doesn't currently narrow invalidation further — a cached list response can't be selectively patched without inspecting its contents, so any write to an entity invalidates that entity's cache as a whole. Still far narrower than a full `clear()`. |
 | `clear(): Promise<void>` | Clears the **entire** response cache, for every entity — the pre-scoped-invalidation behavior. Prefer `invalidate()` when you know which entity changed. |
 
+### From a custom route handler
+
+A [custom route](./controller-config.md#customroutes) writing through `ctx.methods` (`updateOneDocument`,
+`rawUpdateManyDocuments`, ...) is exactly the same kind of "outside the native pipeline" write as the cron
+job above — nothing invalidates its entity's cache automatically. `DynamicApiCacheService` is `@Global()`,
+so [`inject`](./controller-config.md#inject) reaches it with **zero** extra setup — no `extraProviders`
+entry needed, unlike an application-defined service:
+
+```typescript
+import { CustomRouteConfig, DynamicApiCacheService } from 'mongodb-dynamic-api';
+import { Product } from './product.entity';
+
+const bulkRenameRoute: CustomRouteConfig<Product> = {
+  path: 'bulk-rename',
+  method: 'POST',
+  inject: [DynamicApiCacheService],
+  handler: async ({ methods, body }, [cacheService]) => {
+    const { from, to } = body as { from: string; to: string };
+    await methods.updateManyDocuments(Product, { name: from }, { $set: { name: to } });
+    await (cacheService as DynamicApiCacheService).invalidate(Product);
+    return { renamed: true };
+  },
+};
+```
+
 `invalidate()` needs the entity's cache store to support key enumeration to scope correctly — the default
 in-memory store already does. If a custom store doesn't (rare — most `Keyv`-compatible stores, including
 Redis, do), `invalidate()` falls back to a full `clear()` for that call and logs a warning via
