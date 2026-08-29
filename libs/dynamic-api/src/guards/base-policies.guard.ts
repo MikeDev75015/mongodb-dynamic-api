@@ -2,7 +2,7 @@ import { CanActivate, ExecutionContext, ForbiddenException, Type } from '@nestjs
 import { WsException } from '@nestjs/websockets';
 import { PipelineStage } from 'mongodb-pipeline-builder';
 import { Model } from 'mongoose';
-import { AbilityPredicate, PredicateBehavior, RouteType } from '../interfaces';
+import { AbilityPredicate, AuthAbilityPredicate, PredicateBehavior, RouteType } from '../interfaces';
 import { MongoDBDynamicApiLogger } from '../logger';
 import { BaseEntity } from '../models';
 import { BaseService } from '../services';
@@ -12,6 +12,11 @@ abstract class BasePoliciesGuard<Entity extends BaseEntity> extends BaseService<
   protected routeType: RouteType;
   protected entity: Type<Entity>;
   protected abilityPredicate: AbilityPredicate<Entity> | undefined;
+  /**
+   * User-level predicate for document-less routes — checked directly against `(user, body)`,
+   * never by scanning `entity`'s collection. See `CustomRouteConfig.authAbilityPredicate`.
+   */
+  protected authAbilityPredicate: AuthAbilityPredicate<unknown> | undefined;
   protected predicateBehavior: PredicateBehavior | undefined;
   protected queryToPipeline?: (query: unknown) => PipelineStage[];
   /**
@@ -26,7 +31,15 @@ abstract class BasePoliciesGuard<Entity extends BaseEntity> extends BaseService<
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const { user, query, params } = context.switchToHttp().getRequest();
+    const { user, query, params, body } = context.switchToHttp().getRequest();
+
+    if (this.authAbilityPredicate) {
+      if (!user || !this.authAbilityPredicate(user, body)) {
+        throw new ForbiddenException('Access Denied');
+      }
+
+      this.user = user;
+    }
 
     if (this.abilityPredicate && this.predicateBehavior !== 'filter') {
       if (!user) {
@@ -54,6 +67,8 @@ abstract class BasePoliciesGuard<Entity extends BaseEntity> extends BaseService<
 abstract class BaseSocketPoliciesGuard<Entity extends BaseEntity> extends BaseService<Entity> implements CanActivate {
   protected routeType: RouteType;
   protected abilityPredicate: AbilityPredicate<Entity> | undefined;
+  /** @see BasePoliciesGuard.authAbilityPredicate */
+  protected authAbilityPredicate: AuthAbilityPredicate<unknown> | undefined;
   protected predicateBehavior: PredicateBehavior | undefined;
   protected entity: Type<Entity>;
   protected queryToPipeline?: (query: unknown) => PipelineStage[];
@@ -87,6 +102,11 @@ abstract class BaseSocketPoliciesGuard<Entity extends BaseEntity> extends BaseSe
     if (!this.isPublic) {
       if (!socket.user) {
         this.logger.warn('No user data in socket');
+        throw new WsException('Access Denied');
+      }
+
+      if (this.authAbilityPredicate && !this.authAbilityPredicate(socket.user, data)) {
+        this.logger.warn('authAbilityPredicate denied access');
         throw new WsException('Access Denied');
       }
 

@@ -1,7 +1,7 @@
 import { CanActivate, NestInterceptor, Type, ValidationPipeOptions } from '@nestjs/common';
 import { Model } from 'mongoose';
 import { BaseEntity } from '../models';
-import { AbilityPredicate, PredicateBehavior } from './dynamic-api-ability.interface';
+import { AbilityPredicate, AuthAbilityPredicate, PredicateBehavior } from './dynamic-api-ability.interface';
 import { DynamicApiRequest } from './dynamic-api-request.interface';
 import { Mappable } from './dynamic-api-route-dtos-bundle.type';
 import { DynamicApiWebSocketOptions } from './dynamic-api-web-socket.interface';
@@ -170,6 +170,36 @@ interface CustomRouteConfig<
    * When provided, a `RoutePoliciesGuard` is automatically created and prepended to the guard chain.
    */
   abilityPredicate?: AbilityPredicate<Entity>;
+
+  /**
+   * User-level ability predicate for **document-less** custom routes — one that computes or
+   * summarizes something (an admin dashboard, a bulk action targeting ids in the body, ...)
+   * rather than reading/writing one document the route's path identifies.
+   *
+   * `abilityPredicate` is checked by loading the document(s) it should evaluate against; on a
+   * document-less route there's nothing to load, so the Guard falls back to scanning every
+   * document of `entity`'s own collection matching the query string. On an empty or
+   * not-yet-populated collection (e.g. an audit-log entity before any moderation action ever
+   * happened) that scan finds nothing to check — the Guard silently returns `true` instead of
+   * denying, opening the route to **any authenticated user**, not just the ones the predicate
+   * would actually allow.
+   *
+   * `authAbilityPredicate` evaluates directly against `(user, body)` — no document read, no
+   * collection to be empty — and is checked unconditionally when set, independently of
+   * `abilityPredicate`/`predicateBehavior`/`targetParam`. Missing/falsy `user` or a predicate
+   * that returns `false` always denies with `403 Forbidden`; there is no vacuous-pass case.
+   *
+   * @example
+   * ```typescript
+   * {
+   *   path: 'overview',
+   *   method: 'GET',
+   *   authAbilityPredicate: (user) => isAdmin(user),
+   *   handler: async () => computeAdminOverview(),
+   * }
+   * ```
+   */
+  authAbilityPredicate?: AuthAbilityPredicate<unknown, Body>;
 
   /** Controls how the ability predicate is applied (`'throw'` | `'filter'`). */
   predicateBehavior?: PredicateBehavior;

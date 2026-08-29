@@ -231,6 +231,7 @@ function createCustomRouteController<
     description,
     guards = [],
     abilityPredicate,
+    authAbilityPredicate,
     predicateBehavior,
     targetParam,
     validationPipeOptions: routeValidationPipeOptions,
@@ -253,7 +254,7 @@ function createCustomRouteController<
 
   // Build ordered guard list: [abilityPredicate guard?, ...extra guards]
   const allGuards: Type<CanActivate>[] = [];
-  if (abilityPredicate) {
+  if (abilityPredicate || authAbilityPredicate) {
     warnIfTargetParamLikelyMissing(entity.name, routePath, abilityPredicate, predicateBehavior, targetParam);
 
     const PoliciesGuard = RoutePoliciesGuardMixin(
@@ -262,7 +263,7 @@ function createCustomRouteController<
       uniqueDisplayedName,
       effectiveVersion,
       abilityPredicate,
-      { predicateBehavior, targetParam },
+      { predicateBehavior, targetParam, authAbilityPredicate },
     );
     allGuards.push(PoliciesGuard);
   }

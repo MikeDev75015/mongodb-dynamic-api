@@ -24,6 +24,7 @@
   - [customRoutes](#customroutes)
     - [`customRoutes` vs. a native CRUD route](#customroutes-vs-a-native-crud-route)
     - [targetParam](#targetparam)
+    - [authAbilityPredicate](#authabilitypredicate)
     - [inject](#inject)
     - [dTOs.params](#dtosparams)
 - [controllerOptions Reference](#controlleroptions-reference)
@@ -217,6 +218,7 @@ Both let you attach `abilityPredicate`, guards, DTOs, and WebSocket exposure —
 | `description` | `string` | ➖ | Swagger `summary`. Auto-generated if omitted. |
 | `guards` | `Type<CanActivate>[]` | ➖ | Extra NestJS guard classes applied **after** the ability-predicate guard. |
 | `abilityPredicate` | `AbilityPredicate<Entity>` | ➖ | Ability predicate identical to `DynamicApiRouteConfig.abilityPredicate`. Generates a `RoutePoliciesGuard` automatically. |
+| `authAbilityPredicate` | `AuthAbilityPredicate<unknown, Body>` | ➖ | User-level predicate `(user, body?) => boolean` for **document-less** routes (an admin dashboard, a bulk action, ...). Checked directly, never by scanning a collection. See [authAbilityPredicate](#authabilitypredicate) below. |
 | `predicateBehavior` | `'throw' \| 'filter'` | ➖ | Controls ability-predicate behavior. |
 | `targetParam` | `string` | ➖ | Name of the route param identifying the document `abilityPredicate` should check, when the route's path param isn't named `id` (e.g. `path: 'parental-consent/:userId'` needs `targetParam: 'userId'`). See [targetParam](#targetparam) below. |
 | `validationPipeOptions` | `ValidationPipeOptions` | ➖ | Merged with `controllerOptions.validationPipeOptions`. |
@@ -264,6 +266,46 @@ If a route looks like it needs this and doesn't have it, a boot-time warning is 
 [`MONGODB_DYNAMIC_API_LOGGER`](./debugging.md), silent unless that's set): `abilityPredicate` is
 set, `predicateBehavior` isn't `'filter'`, the path has at least one param, and none of them is
 named `id` or matches `targetParam`.
+
+#### authAbilityPredicate
+
+`abilityPredicate` is checked by loading the document(s) it should evaluate against. Most custom
+routes have one (`targetParam`/`:id` for a single document, the query string for a list) — but a
+**document-less** route (an admin overview/dashboard, a bulk action that targets ids from the
+body, anything that computes or summarizes rather than reading/writing one document) has nothing
+to load. Without a document to check, the Guard falls back to scanning every document in
+`entity`'s own collection matching the query string — and on an empty or not-yet-populated
+collection (an audit-log entity before any moderation action ever happened, say), that scan finds
+nothing to check. Nothing errors: the Guard just returns `true`, silently granting access to
+**any authenticated user**, not just the ones the predicate would actually allow.
+
+```typescript
+// ❌ Fails open on an empty/unrelated collection — nothing to scan means nothing gets checked
+{
+  path: 'overview',
+  method: 'GET',
+  abilityPredicate: (_auditLogEntry, user) => user.role === 'admin',
+  handler: async () => computeAdminOverview(),
+}
+```
+
+`authAbilityPredicate` evaluates directly against `(user, body)` — no document read, so no
+collection to be empty. It's checked unconditionally when set, independently of
+`abilityPredicate`/`predicateBehavior`/`targetParam`; a missing/falsy `user` or a predicate
+returning `false` always denies with `403 Forbidden` — there's no vacuous-pass case:
+
+```typescript
+// ✅ Checked directly against the user — never scans a collection, never fails open
+{
+  path: 'overview',
+  method: 'GET',
+  authAbilityPredicate: (user) => user.role === 'admin',
+  handler: async () => computeAdminOverview(),
+}
+```
+
+Use `abilityPredicate` (+ `targetParam` when needed) for routes about one document or a list of
+documents, and `authAbilityPredicate` for routes that aren't about any specific document at all.
 
 #### inject
 

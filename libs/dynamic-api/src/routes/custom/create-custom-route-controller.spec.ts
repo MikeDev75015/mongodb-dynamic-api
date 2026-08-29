@@ -222,6 +222,33 @@ describe('createCustomRouteController', () => {
     });
   });
 
+  // ── authAbilityPredicate → guard created even without abilityPredicate ────
+
+  describe('authAbilityPredicate', () => {
+    beforeEach(() => {
+      (RoutePoliciesGuardMixin as jest.Mock).mockClear();
+    });
+
+    it('creates PoliciesGuard when only authAbilityPredicate is provided (no abilityPredicate)', () => {
+      const authAbilityPredicate = jest.fn().mockReturnValue(true);
+      makeController({ authAbilityPredicate });
+
+      expect(RoutePoliciesGuardMixin).toHaveBeenCalledWith(
+        FakeEntity,
+        'Custom',
+        'E2eeWrappedKeysFakeEntity',
+        undefined,
+        undefined,
+        { predicateBehavior: undefined, targetParam: undefined, authAbilityPredicate },
+      );
+    });
+
+    it('does not call RoutePoliciesGuardMixin when neither abilityPredicate nor authAbilityPredicate is set', () => {
+      makeController();
+      expect(RoutePoliciesGuardMixin).not.toHaveBeenCalled();
+    });
+  });
+
   // ── targetParam / boot-time warning ─────────────────────────────────────
 
   describe('targetParam and the missing-targetParam warning', () => {
