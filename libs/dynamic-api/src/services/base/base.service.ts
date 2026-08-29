@@ -49,6 +49,19 @@ export abstract class BaseService<Entity extends BaseEntity> {
     return paths.includes('deletedAt') && paths.includes('isDeleted');
   }
 
+  /**
+   * Exposes the same `CallbackMethods` bundle every `beforeSaveCallback`/`callback` already
+   * receives — every method takes its own `entity` argument and resolves its model independently
+   * (via `DynamicApiGlobalStateService`), so this works regardless of which entity `this` instance
+   * itself was built for. Used to give custom route handlers (`CustomRouteConfig.handler`, which
+   * otherwise has no access to `CallbackMethods` at all) the same recompute/raw-write primitives,
+   * via a throwaway `BaseService` instance built for that purpose — see
+   * `routes/custom/create-custom-route-controller.ts`.
+   */
+  public getCallbackMethods(): CallbackMethods {
+    return this.callbackMethods;
+  }
+
   protected verifyArguments(...args: unknown[]) {
     if (args.includes(undefined)) {
       throw new BadRequestException('Invalid or missing argument');

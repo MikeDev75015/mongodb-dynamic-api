@@ -500,7 +500,7 @@ Marks a field as **server-computed**. The `computeFn` receives a snapshot of the
 
 #### Staying in sync on writes outside CreateOne/UpdateOne
 
-`on: 'save'`/`'both'` fields are recomputed automatically by the native `CreateOne`/`UpdateOne`/`ReplaceOne`/`DuplicateOne`/... pipelines, and by [`CallbackMethods.updateOneDocument`/`rawUpdateOneDocument`](./callbacks.md#callbackmethods) — the two single-document write helpers available inside `beforeSaveCallback`/`callback`. Any other write path (the many-document `updateManyDocuments`/`rawUpdateManyDocuments`, or a raw `model.updateOne()` you run yourself, e.g. from a custom route handler) does **not** know about derived fields and leaves them stale. Call [`methods.recomputeDerivedFields(Entity, id)`](./callbacks.md#callbackmethods) yourself after any such write:
+`on: 'save'`/`'both'` fields are recomputed automatically by the native `CreateOne`/`UpdateOne`/`ReplaceOne`/`DuplicateOne`/... pipelines, by `useAuth`'s `PATCH /auth/account`, and by [`CallbackMethods.updateOneDocument`/`rawUpdateOneDocument`](./callbacks.md#callbackmethods) — available inside `beforeSaveCallback`/`callback`, and (via `ctx.methods`) inside a [custom route handler](./controller-config.md#ctxmethods--callbackmethods-inside-a-custom-route) too. Any other write path (the many-document `updateManyDocuments`/`rawUpdateManyDocuments`, or a raw `model.updateOne()` you run yourself against `ctx.model`/an injected model instead of going through `methods`) does **not** know about derived fields and leaves them stale. Call [`methods.recomputeDerivedFields(Entity, id)`](./callbacks.md#callbackmethods) yourself after any such write:
 
 ```typescript
 beforeSaveCallback: async (_entity, ctx, methods) => {

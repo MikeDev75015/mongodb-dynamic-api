@@ -66,6 +66,10 @@ describe('BaseAuthService', () => {
   const updateAccountCallback = jest.fn();
 
   class AuthService extends BaseAuthService<User> {
+    // Real generated AuthService (auth.helper.ts) always sets this — needed since updateAccount's
+    // write now goes through BaseService.updateOneDocument(this.entity, ...), which reads it to
+    // check for @DerivedField metadata.
+    protected entity = User;
     protected additionalRequestFields: (keyof User)[] = ['nickname'];
     protected loginField = fakeLoginField;
     protected passwordField = fakePasswordField;

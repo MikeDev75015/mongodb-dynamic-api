@@ -3,6 +3,7 @@ import { Model } from 'mongoose';
 import { BaseEntity } from '../models';
 import { AbilityPredicate, AuthAbilityPredicate, PredicateBehavior } from './dynamic-api-ability.interface';
 import { DynamicApiRequest } from './dynamic-api-request.interface';
+import { CallbackMethods } from './dynamic-api-service-callback.interface';
 import { Mappable } from './dynamic-api-route-dtos-bundle.type';
 import { DynamicApiWebSocketOptions } from './dynamic-api-web-socket.interface';
 
@@ -35,6 +36,29 @@ interface CustomRouteContext<
   body: Body;
   /** Parsed query string object. */
   query: Query;
+  /**
+   * The same `CallbackMethods` bundle passed to every `beforeSaveCallback`/`callback` — read/write
+   * primitives for any entity (not just `Entity`), plus `recomputeDerivedFields`, all resolving
+   * their own model independently of this route's own `model`/`entity`.
+   *
+   * Without this, a custom route that writes via `model.updateOne(...)`/`model.findOneAndUpdate(...)`
+   * directly bypasses the native pipeline entirely — including its automatic
+   * `@DerivedField({ on: 'save' })` recompute. Prefer `methods.updateOneDocument`/
+   * `methods.rawUpdateOneDocument` (which recompute automatically) over the raw `model` for a
+   * single-document update when `Entity` has a `@DerivedField`; call
+   * `methods.recomputeDerivedFields(Entity, id)` yourself after any other write shape (a
+   * multi-document update, a `model.findOneAndUpdate` you still want to use directly for its
+   * return shape, etc.).
+   *
+   * @example
+   * ```typescript
+   * const handleActivate = async ({ params, methods }: CustomRouteContext<User>) => {
+   *   await methods.updateOneDocument(User, { _id: params.id }, { $set: { isActive: true } });
+   *   // isActive-derived fields (if any) are already recomputed by updateOneDocument above.
+   * };
+   * ```
+   */
+  methods: CallbackMethods;
   /**
    * The raw HTTP request object.
    *
