@@ -164,6 +164,17 @@ email?: string;
 
 > **When a duplicate-value clash isn't the missing-field case** — e.g. two documents that both legitimately have `email: 'a@test.co'` — the message skips the `partialFilterExpression` suggestion and includes the original MongoDB error instead, since that's a real data conflict to resolve manually.
 
+> **Any other index-build failure — not just `E11000`.** `enableDynamicAPIIndexSync` isn't limited to duplicate-key errors: whatever `model.syncIndexes()` rejects with, it rethrows (the duplicate-key case above is the one it additionally rewords into an actionable message). Without calling this helper at all, MongoDB rejecting an index at boot is a **silent** failure — `syncIndexes()` runs in the background and nothing awaits or surfaces it, so the app boots normally with the declared index simply never having been created. A common trap: MongoDB's `partialFilterExpression` only accepts a subset of operators (`$eq`, `$exists`, `$gt`/`$gte`, `$lt`/`$lte`, `$type`, a top-level `$and`) — `$ne`/`$not` are rejected:
+>
+> ```typescript
+> // ❌ $ne isn't a valid partialFilterExpression operator — MongoDB rejects this index build.
+> // Without enableDynamicAPIIndexSync, boot succeeds anyway and the index silently never exists.
+> @Prop({ type: String, unique: true, partialFilterExpression: { email: { $ne: null } } })
+> email?: string;
+> ```
+>
+> `enableDynamicAPIIndexSync(app)` turns this into a loud boot failure (`Expression not supported in partial index: $not`) instead of a silent no-op — swap `$ne: null` for `$exists: true` (the working equivalent for this case, and MongoDB's own documented workaround).
+
 ---
 
 ## Hooks
