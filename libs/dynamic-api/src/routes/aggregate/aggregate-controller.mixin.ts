@@ -2,7 +2,7 @@ import { BadRequestException, Query, Request, SetMetadata, Type, UseGuards, UseI
 import { plainToInstance } from 'class-transformer';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { DISABLE_CACHE_KEY } from '../../decorators';
-import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
+import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper, warnIfPagingResultDropped } from '../../helpers';
 import { Aggregatable, DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiRequest, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
@@ -107,6 +107,8 @@ function AggregateControllerMixin<Entity extends BaseEntity>(
       const fromAggregate = (
         AggregatePresenter as Mappable<Entity>
       ).fromAggregate;
+
+      warnIfPagingResultDropped(pipelineBuilt, !!fromAggregate, entity.name);
 
       return fromAggregate ? fromAggregate<AggregatePresenter>(list, count, totalPage) : list;
     }

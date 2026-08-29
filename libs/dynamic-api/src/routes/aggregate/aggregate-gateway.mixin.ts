@@ -5,7 +5,7 @@ import { plainToInstance } from 'class-transformer';
 import { DynamicAPIWsExceptionFilter } from '../../filters';
 import { BaseGateway } from '../../gateways';
 import { JwtSocketGuard } from '../../guards';
-import { addVersionSuffix, getMixinData, provideName } from '../../helpers';
+import { addVersionSuffix, getMixinData, provideName, warnIfPagingResultDropped } from '../../helpers';
 import {
   Aggregatable,
   DynamicApiControllerOptions,
@@ -98,11 +98,14 @@ function AggregateGatewayMixin<Entity extends BaseEntity>(
         throw new WsException('Query DTO must have toPipeline static method');
       }
 
-      const { list, count, totalPage } = await this.service.aggregate(toPipeline(plainToInstance(AggregateData, data)), _socket?.user);
+      const pipelineBuilt = toPipeline(plainToInstance(AggregateData, data));
+      const { list, count, totalPage } = await this.service.aggregate(pipelineBuilt, _socket?.user);
 
       const fromAggregate = (
         AggregateResponse as Mappable<Entity>
       ).fromAggregate;
+
+      warnIfPagingResultDropped(pipelineBuilt, !!fromAggregate, entity.name);
 
       return {
         event,
