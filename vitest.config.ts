@@ -1,5 +1,6 @@
 import { resolve } from 'node:path';
 import { coverageConfigDefaults, defineConfig } from 'vitest/config';
+import swc from 'unplugin-swc';
 
 /**
  * Unit test config (mirrors the Jest config previously inlined in package.json's "jest" field).
@@ -8,6 +9,23 @@ import { coverageConfigDefaults, defineConfig } from 'vitest/config';
  * under vitest.e2e.config.ts instead.
  */
 export default defineConfig({
+  // Vite 8 (bundled with vitest 4) transforms TS via Rolldown/oxc by default, which does not
+  // support the legacy `experimentalDecorators` + `emitDecoratorMetadata` combo this codebase
+  // (NestJS decorators, class-validator property decorators) relies on everywhere — parsing
+  // `@Dec() prop: string;` throws a bare SyntaxError with no useful location. unplugin-swc swaps
+  // the transform to @swc/core (already a devDependency), auto-inferring both flags from
+  // tsconfig.json (which already sets them for the real `tsc` build) — this is the standard
+  // NestJS+Vitest recipe, not a workaround specific to this repo. Discovered empirically in the
+  // Phase 2 pilot (see VITEST-MIGRATION-PLAN.md), not something the original plan anticipated.
+  plugins: [
+    swc.vite({
+      module: { type: 'es6' },
+      // tsconfig.json's "target": "ES2021" is inferred case-sensitively by unplugin-swc and SWC
+      // rejects the uppercase form ("unknown variant `ES2021`") — override with the lowercase
+      // spelling SWC expects; decorators/metadata inference from tsconfig.json is untouched.
+      jsc: { target: 'es2021' },
+    }),
+  ],
   resolve: {
     alias: {
       // Fixed alias so the create-mock helper's import path doesn't depend on each spec file's

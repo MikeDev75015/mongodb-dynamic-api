@@ -1,31 +1,33 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import * as SwaggerAPIDecorators from '@nestjs/swagger';
 import * as CustomDecorators from '../../decorators';
 import { AuthDecoratorsBuilder } from './auth-decorators.builder';
 
-jest.mock('@nestjs/common', () => {
+vi.mock('@nestjs/common', async () => {
   return {
-    ...jest.requireActual('@nestjs/common'),
-    UseGuards: jest.fn(() => jest.fn()),
+    ...(await vi.importActual('@nestjs/common')),
+    UseGuards: vi.fn(() => vi.fn()),
   };
 });
-jest.mock('@nestjs/swagger', () => {
+vi.mock('@nestjs/swagger', async () => {
   return {
-    ...jest.requireActual('@nestjs/swagger'),
-    ApiBearerAuth: jest.fn(() => jest.fn()),
+    ...(await vi.importActual('@nestjs/swagger')),
+    ApiBearerAuth: vi.fn(() => vi.fn()),
   };
 
 });
-jest.mock('../../decorators');
+vi.mock('../../decorators');
 
 describe('AuthDecoratorsBuilder', () => {
-  let publicDecoratorSpy: jest.SpyInstance;
-  let apiBearerAuthDecoratorSpy: jest.SpyInstance;
+  let publicDecoratorSpy: Mock;
+  let apiBearerAuthDecoratorSpy: Mock;
 
   class FakeAuthRegisterPoliciesGuard {}
 
   beforeEach(() => {
-    publicDecoratorSpy = jest.spyOn(CustomDecorators, 'Public');
-    apiBearerAuthDecoratorSpy = jest.spyOn(SwaggerAPIDecorators, 'ApiBearerAuth');
+    publicDecoratorSpy = vi.spyOn(CustomDecorators, 'Public');
+    apiBearerAuthDecoratorSpy = vi.spyOn(SwaggerAPIDecorators, 'ApiBearerAuth');
   });
 
   describe('build', () => {
