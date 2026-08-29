@@ -17,6 +17,8 @@
     "test-e2e:ci": "jest --ci --runInBand --config ./libs/dynamic-api/test/jest-e2e.json",
     "test:ci:junit": "jest --ci --runInBand --coverage --testResultsProcessor=jest-junit",
     "test:ci:sonar": "jest --ci --runInBand --coverage --testResultsProcessor=jest-sonar-reporter",
+    "test:vitest": "vitest run --coverage",
+    "test-e2e:vitest": "vitest run --config vitest.e2e.config.ts",
     "pre-release-tag": "git tag -f prerelease && git push -f origin prerelease",
     "release-tag": "git tag -f release && git push -f origin release",
     "auto-prerelease": "release-it --ci --preRelease=beta",
@@ -89,6 +91,7 @@
     "@types/supertest": "^6.0.2",
     "@typescript-eslint/eslint-plugin": "^8.57.0",
     "@typescript-eslint/parser": "^8.57.0",
+    "@vitest/coverage-istanbul": "^4.1.11",
     "eslint": "^10.0.3",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
@@ -106,7 +109,9 @@
     "ts-loader": "^9.5.1",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^4.1.11",
+    "vitest-sonar-reporter": "^3.0.0"
   },
   "jest": {
     "clearMocks": true,
