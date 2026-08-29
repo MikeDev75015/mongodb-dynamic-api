@@ -1,7 +1,12 @@
 import { INestApplication } from '@nestjs/common';
 import { Prop, Schema } from '@nestjs/mongoose';
 import mongoose from 'mongoose';
-import { BaseEntity, DynamicApiCacheService, DynamicApiModule } from '../../src';
+import {
+  BaseEntity,
+  CustomRouteConfig,
+  DynamicApiCacheService,
+  DynamicApiModule,
+} from '../../src';
 import { closeTestingApp, server } from '../e2e.setup';
 import 'dotenv/config';
 import { getModelFromEntity } from '../utils';
@@ -158,6 +163,54 @@ describe('DynamicApiModule forFeature - scoped cache invalidation (e2e)', () => 
 
       const fresh = await server.get('/cache-scope-products');
       expect(fresh.body).toHaveLength(2);
+    });
+  });
+
+  describe('suggestion #11 — DynamicApiCacheService reachable from a custom route handler via inject', () => {
+    // Mirrors the real-world shape suggestion #11 was raised about: a custom route whose handler
+    // writes through ctx.methods (see #10) — a path the native CreateOne/UpdateOne/DeleteOne
+    // routes' own cache-invalidating interceptor never sees at all — and needs to invalidate the
+    // entity's cache itself. DynamicApiCacheService (F4) is a real, @Global()-exported provider,
+    // so `inject: [DynamicApiCacheService]` (F8) already reaches it with zero extra wiring — no
+    // extraProviders entry needed, unlike an app-defined service.
+    const invalidateProductsRoute: CustomRouteConfig<CacheScopeProductEntity> = {
+      path: 'bulk-rename',
+      method: 'POST',
+      isPublic: true,
+      inject: [DynamicApiCacheService],
+      handler: async ({ methods, body }, [cacheService]) => {
+        const { from, to } = body as { from: string; to: string };
+        await methods.updateManyDocuments(CacheScopeProductEntity, { name: from }, { $set: { name: to } });
+        await (cacheService as DynamicApiCacheService).invalidate(CacheScopeProductEntity);
+        return { renamed: true };
+      },
+    };
+
+    beforeEach(async () => {
+      await initApp({
+        entity: CacheScopeProductEntity,
+        controllerOptions: { path: 'cache-scope-products', isPublic: true },
+        routes: [{ type: 'GetMany' }],
+        customRoutes: [invalidateProductsRoute],
+      });
+    });
+
+    it('should leave the cache stale after methods.updateManyDocuments alone, then refresh it once the injected DynamicApiCacheService invalidates', async () => {
+      const model = await getModelFromEntity(CacheScopeProductEntity);
+      await model.insertMany([{ name: 'old-name' }]);
+
+      const first = await server.get('/cache-scope-products');
+      expect(first.body).toHaveLength(1);
+      expect(first.body[0].name).toBe('old-name');
+
+      // ctx.methods.updateManyDocuments (see #10) never goes through DynamicApiCacheInterceptor —
+      // it's not a native CreateOne/UpdateOne/DeleteOne route — so the cache alone stays stale.
+      const renamed = await server.post('/cache-scope-products/bulk-rename', { from: 'old-name', to: 'new-name' });
+      expect(renamed.status).toBe(201);
+
+      const fresh = await server.get('/cache-scope-products');
+      expect(fresh.body).toHaveLength(1);
+      expect(fresh.body[0].name).toBe('new-name'); // fresh — the handler's own invalidate() call did the job
     });
   });
 });

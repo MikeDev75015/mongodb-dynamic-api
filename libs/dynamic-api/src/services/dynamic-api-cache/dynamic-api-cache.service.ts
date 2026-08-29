@@ -37,6 +37,28 @@ import { MongoDBDynamicApiLogger } from '../../logger';
  *   }
  * }
  * ```
+ *
+ * Same story for a `CustomRouteConfig` handler writing through `ctx.methods` (see
+ * `CallbackMethods`) — also outside the native pipeline. Being `@Global()`, this service is
+ * reachable from `inject` with zero extra setup (no `extraProviders` entry needed, unlike an
+ * application-defined service):
+ *
+ * @example — invalidating from a custom route handler, via `inject`
+ * ```typescript
+ * import { CustomRouteConfig, DynamicApiCacheService } from 'mongodb-dynamic-api';
+ *
+ * const bulkRenameRoute: CustomRouteConfig<Product> = {
+ *   path: 'bulk-rename',
+ *   method: 'POST',
+ *   inject: [DynamicApiCacheService],
+ *   handler: async ({ methods, body }, [cacheService]) => {
+ *     const { from, to } = body as { from: string; to: string };
+ *     await methods.updateManyDocuments(Product, { name: from }, { $set: { name: to } });
+ *     await (cacheService as DynamicApiCacheService).invalidate(Product);
+ *     return { renamed: true };
+ *   },
+ * };
+ * ```
  */
 @Injectable()
 class DynamicApiCacheService {
