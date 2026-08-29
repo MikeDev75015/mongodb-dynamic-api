@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config';
+import swc from 'unplugin-swc';
 
 /**
  * E2E test config (mirrors libs/dynamic-api/test/jest-e2e.json).
@@ -13,6 +14,14 @@ import { defineConfig } from 'vitest/config';
  * because each file boots a real NestJS HTTP server + live socket.io connections.
  */
 export default defineConfig({
+  // See vitest.config.ts for why this plugin is required (legacy decorators + decorator
+  // metadata, which Vite 8's default Rolldown/oxc transform does not support).
+  plugins: [
+    swc.vite({
+      module: { type: 'es6' },
+      jsc: { target: 'es2021' },
+    }),
+  ],
   test: {
     // No `globals: true` — see vitest.config.ts for why (e2e-spec files are part of the tsc
     // build, so explicit `from 'vitest'` imports are used instead of ambient globals).

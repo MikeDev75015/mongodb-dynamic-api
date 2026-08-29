@@ -1,5 +1,7 @@
 import 'reflect-metadata';
-import { createMock } from '@golevelup/ts-jest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Mock } from 'vitest';
+import { createMock } from '@test-helpers';
 import { validate } from 'class-validator';
 import { Error as MongooseError, Model } from 'mongoose';
 import { BaseEntity } from '../models';
@@ -12,13 +14,13 @@ class TargetEntity extends BaseEntity {
 
 describe('EntityExists', () => {
   let model: Model<TargetEntity>;
-  let getEntityModelSpy: jest.SpyInstance;
+  let getEntityModelSpy: Mock;
 
   beforeEach(() => {
     model = createMock<Model<TargetEntity>>();
     getEntityModelSpy =
       // @ts-ignore
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
+      vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
   });
 
   it('should pass without querying the database when the value is undefined, null or empty', async () => {
@@ -37,7 +39,7 @@ describe('EntityExists', () => {
   });
 
   it('should pass by default when a document matches the id', async () => {
-    model.exists = jest.fn().mockResolvedValue({ _id: 'ref-id' });
+    model.exists = vi.fn().mockResolvedValue({ _id: 'ref-id' });
 
     class Dto {
       @EntityExists(TargetEntity)
@@ -53,7 +55,7 @@ describe('EntityExists', () => {
   });
 
   it('should fail with a default message when no document matches', async () => {
-    model.exists = jest.fn().mockResolvedValue(null);
+    model.exists = vi.fn().mockResolvedValue(null);
 
     class Dto {
       @EntityExists(TargetEntity)
@@ -70,7 +72,7 @@ describe('EntityExists', () => {
   });
 
   it('should query the overridden field when the `field` option is set', async () => {
-    model.exists = jest.fn().mockResolvedValue({ _id: 'ref-id' });
+    model.exists = vi.fn().mockResolvedValue({ _id: 'ref-id' });
 
     class Dto {
       @EntityExists(TargetEntity, { field: 'isActive' })
@@ -84,7 +86,7 @@ describe('EntityExists', () => {
   });
 
   it('should merge the dynamic `filter` result into the existence query', async () => {
-    model.exists = jest.fn().mockResolvedValue({ _id: 'ref-id' });
+    model.exists = vi.fn().mockResolvedValue({ _id: 'ref-id' });
 
     class Dto {
       @EntityExists(TargetEntity, {
@@ -106,7 +108,7 @@ describe('EntityExists', () => {
   });
 
   it('should query only by field when no `filter` option is provided', async () => {
-    model.exists = jest.fn().mockResolvedValue({ _id: 'ref-id' });
+    model.exists = vi.fn().mockResolvedValue({ _id: 'ref-id' });
 
     class Dto {
       @EntityExists(TargetEntity)
@@ -120,7 +122,7 @@ describe('EntityExists', () => {
   });
 
   it('should fail cleanly with the default message when the id is malformed (Mongoose CastError)', async () => {
-    model.exists = jest.fn().mockRejectedValue(new MongooseError.CastError('ObjectId', 'not-an-id', '_id'));
+    model.exists = vi.fn().mockRejectedValue(new MongooseError.CastError('ObjectId', 'not-an-id', '_id'));
 
     class Dto {
       @EntityExists(TargetEntity)
@@ -137,7 +139,7 @@ describe('EntityExists', () => {
   });
 
   it('should not swallow a non-CastError raised while querying', async () => {
-    model.exists = jest.fn().mockRejectedValue(new Error('connection lost'));
+    model.exists = vi.fn().mockRejectedValue(new Error('connection lost'));
 
     class Dto {
       @EntityExists(TargetEntity)
