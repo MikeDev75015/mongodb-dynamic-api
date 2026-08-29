@@ -1,4 +1,4 @@
-import { CanActivate } from '@nestjs/common';
+﻿import { CanActivate } from '@nestjs/common';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { MongoDBDynamicApiLogger } from '../../logger';
 import { BaseEntity } from '../../models';
@@ -13,6 +13,7 @@ import {
   getCustomRouteControllerName,
   getCustomRoutePoliciesGuardName,
 } from './create-custom-route-controller';
+import { CustomRouteCallbackService } from './custom-route-callback.service';
 
 jest.mock('../../mixins', () => ({
   RoutePoliciesGuardMixin: jest.fn().mockImplementation(() => {
@@ -30,6 +31,7 @@ jest.mock('../../mixins', () => ({
 interface ControllerInstanceShape {
   model: unknown;
   moduleRef?: { get: jest.Mock };
+  callbackService?: CustomRouteCallbackService<FakeEntity>;
   handle: (
     params: Record<string, string>,
     body: unknown,
@@ -42,6 +44,18 @@ interface CustomRouteControllerClass {
   new (model: unknown): ControllerInstanceShape;
   readonly name: string;
   readonly prototype: ControllerInstanceShape;
+}
+
+/**
+ * `Object.create(Ctrl.prototype)` bypasses the real constructor (deliberately, to isolate
+ * `handle()` from DI/decorator concerns) — so `callbackService` (normally built in the
+ * constructor) needs to be set by hand, same as `model` already is.
+ */
+function makeControllerInstance(Ctrl: CustomRouteControllerClass, model: unknown = {}): ControllerInstanceShape {
+  const instance: ControllerInstanceShape = Object.create(Ctrl.prototype);
+  instance.model = model;
+  instance.callbackService = new CustomRouteCallbackService(model as never);
+  return instance;
 }
 
 // ─── Fakes ────────────────────────────────────────────────────────────────
@@ -353,8 +367,7 @@ describe('createCustomRouteController', () => {
     it('calls handler with model, user, params, body, query', async () => {
       const Ctrl = makeController();
       const fakeModel = { findById: jest.fn() };
-      const instance: ControllerInstanceShape = Object.create(Ctrl.prototype);
-      instance.model = fakeModel;
+      const instance: ControllerInstanceShape = makeControllerInstance(Ctrl, fakeModel);
 
       const params = { id: 'abc' };
       const body = { wrappedKey: 'key123' };
@@ -369,6 +382,7 @@ describe('createCustomRouteController', () => {
         params,
         body,
         query,
+        methods: instance.callbackService!.getCallbackMethods(),
         req,
       }, []);
     });
@@ -378,8 +392,7 @@ describe('createCustomRouteController', () => {
       fakeHandler.mockResolvedValueOnce(expected);
 
       const Ctrl = makeController();
-      const instance: ControllerInstanceShape = Object.create(Ctrl.prototype);
-      instance.model = {};
+      const instance: ControllerInstanceShape = makeControllerInstance(Ctrl);
 
       const result = await instance.handle({}, {}, {}, undefined);
       expect(result).toEqual(expected);
@@ -396,8 +409,7 @@ describe('createCustomRouteController', () => {
       }
 
       const Ctrl = makeController({ dTOs: { presenter: FakePresenter } });
-      const instance: ControllerInstanceShape = Object.create(Ctrl.prototype);
-      instance.model = {};
+      const instance: ControllerInstanceShape = makeControllerInstance(Ctrl);
 
       const result = await instance.handle({}, {}, {}, undefined);
       expect(fromEntity).toHaveBeenCalledWith(rawResult);
@@ -406,8 +418,7 @@ describe('createCustomRouteController', () => {
 
     it('handles undefined req gracefully (public route, no user)', async () => {
       const Ctrl = makeController({ isPublic: true });
-      const instance: ControllerInstanceShape = Object.create(Ctrl.prototype);
-      instance.model = {};
+      const instance: ControllerInstanceShape = makeControllerInstance(Ctrl);
 
       await instance.handle({}, {}, {}, undefined);
 
@@ -419,8 +430,7 @@ describe('createCustomRouteController', () => {
 
     it('passes req object to handler context', async () => {
       const Ctrl = makeController();
-      const instance: ControllerInstanceShape = Object.create(Ctrl.prototype);
-      instance.model = {};
+      const instance: ControllerInstanceShape = makeControllerInstance(Ctrl);
 
       const req = { user: { id: 'u1' } };
       await instance.handle({}, {}, {}, req);
@@ -439,8 +449,7 @@ describe('createCustomRouteController', () => {
 
     it('resolves each inject token via moduleRef.get({ strict: false }) and passes the results to handler', async () => {
       const Ctrl = makeController({ inject: [FakeMailService, 'SOME_TOKEN'] });
-      const instance: ControllerInstanceShape = Object.create(Ctrl.prototype);
-      instance.model = {};
+      const instance: ControllerInstanceShape = makeControllerInstance(Ctrl);
       const fakeMailInstance = new FakeMailService();
       const fakeTokenInstance = { resolved: true };
       instance.moduleRef = {
@@ -461,8 +470,7 @@ describe('createCustomRouteController', () => {
 
     it('never touches moduleRef when inject is not provided', async () => {
       const Ctrl = makeController();
-      const instance: ControllerInstanceShape = Object.create(Ctrl.prototype);
-      instance.model = {};
+      const instance: ControllerInstanceShape = makeControllerInstance(Ctrl);
       instance.moduleRef = { get: jest.fn() };
 
       await instance.handle({}, {}, {}, undefined);

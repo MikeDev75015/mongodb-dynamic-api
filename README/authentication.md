@@ -432,6 +432,8 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 **Note:** By default, `loginField` (email/username) and `passwordField` are excluded from updates. Use `additionalFieldsToExclude` to exclude more fields. When `refreshTokenOnUpdate: true`, the response shape switches to a token pair so the client does not need a separate `/auth/refresh-token` call after updating profile data that is embedded in the JWT.
 
+**Note:** if the user entity has a `@DerivedField({ on: 'save' })`, it's automatically recomputed after this update — same as every other `CallbackMethods`-backed write.
+
 ### 5. Reset/Change Password
 
 **POST** `/auth/reset-password`

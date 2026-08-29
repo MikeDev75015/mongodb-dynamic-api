@@ -14,6 +14,7 @@ import {
   createCustomRouteGateway,
   getCustomRouteGatewayName,
 } from './create-custom-route-gateway';
+import { CustomRouteCallbackService } from './custom-route-callback.service';
 
 jest.mock('../../mixins', () => ({
   SocketPoliciesGuardMixin: jest.fn().mockImplementation(() => {
@@ -29,6 +30,7 @@ jest.mock('../../mixins', () => ({
 interface GatewayInstanceShape {
   model: unknown;
   moduleRef?: { get: jest.Mock };
+  callbackService?: CustomRouteCallbackService<FakeEntity>;
   handle: (
     socket: ExtendedSocket<FakeEntity>,
     body: unknown,
@@ -77,7 +79,12 @@ function makeGateway(
 function makeInstance(overrides: Partial<CustomRouteConfig<FakeEntity>> = {}): GatewayInstanceShape {
   const Gateway = makeGateway(overrides);
   const instance = Object.create(Gateway.prototype) as GatewayInstanceShape;
-  instance.model = { findById: jest.fn() };
+  const model = { findById: jest.fn() };
+  instance.model = model;
+  // Object.create bypasses the real constructor (deliberately, to isolate handle() from
+  // DI/decorator concerns) — callbackService (normally built in the constructor) needs to be
+  // set by hand, same as model already is.
+  instance.callbackService = new CustomRouteCallbackService(model as never);
   return instance;
 }
 
@@ -176,6 +183,7 @@ describe('createCustomRouteGateway', () => {
       ) as unknown as CustomRouteGatewayClass;
       const instance = Object.create(GW.prototype) as GatewayInstanceShape;
       instance.model = {};
+      instance.callbackService = new CustomRouteCallbackService({} as never);
       fakeHandler.mockResolvedValueOnce({ id: '1' });
       const result = await instance.handle({} as ExtendedSocket<FakeEntity>, {});
       expect(result.event).toBe('custom-keys-conversations');
@@ -204,6 +212,7 @@ describe('createCustomRouteGateway', () => {
         params: {},
         body,
         query: {},
+        methods: instance.callbackService!.getCallbackMethods(),
       }, []);
       expect(result.data).toEqual(expected);
     });

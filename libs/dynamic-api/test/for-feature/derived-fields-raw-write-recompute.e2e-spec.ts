@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import {
   AfterSaveCallback,
   BaseEntity,
+  CustomRouteConfig,
   DerivedField,
   DynamicApiModule,
   MongoUpdateOperators,
@@ -149,6 +150,43 @@ describe('DynamicApiModule forFeature - @DerivedField recompute on raw writes (e
       const stale = await server.get(`/derived-orders/${created.body.id}`);
       expect(stale.body.quantity).toBe(9);
       expect(stale.body.total).toBe(20); // stale — quantity changed, total didn't
+    });
+  });
+
+  describe('a custom route handler using the newly-exposed ctx.methods — closes the gap above', () => {
+    it('recomputes the derived field via methods.updateOneDocument, unlike the raw ctx.model write', async () => {
+      // Same shape as "a direct model write bypassing MDA entirely" above, except the handler
+      // uses ctx.methods.updateOneDocument (CallbackMethods, now exposed on CustomRouteContext)
+      // instead of a raw ctx.model.updateOne — that alone is enough to get automatic
+      // @DerivedField recompute, with no manual recompute call needed.
+      const setQuantityRoute: CustomRouteConfig<DerivedOrderEntity> = {
+        path: ':id/quantity',
+        method: 'PATCH',
+        handler: async ({ params, body, methods }) => {
+          await methods.updateOneDocument(
+            DerivedOrderEntity,
+            { _id: params.id },
+            { $set: { quantity: (body as { quantity: number }).quantity } },
+          );
+          return methods.findOneDocument(DerivedOrderEntity, { _id: params.id });
+        },
+      };
+
+      await initApp({
+        entity: DerivedOrderEntity,
+        controllerOptions: { path: 'derived-orders', isPublic: true },
+        routes: [{ type: 'CreateOne' }, { type: 'GetOne' }],
+        customRoutes: [setQuantityRoute],
+      });
+
+      const created = await server.post('/derived-orders', { quantity: 2, unitPrice: 10 });
+      expect(created.body.total).toBe(20);
+
+      await server.patch(`/derived-orders/${created.body.id}/quantity`, { quantity: 9 });
+
+      const refreshed = await server.get(`/derived-orders/${created.body.id}`);
+      expect(refreshed.body.quantity).toBe(9);
+      expect(refreshed.body.total).toBe(90); // 9 * 10 — recomputed via ctx.methods, not stale
     });
   });
 });
