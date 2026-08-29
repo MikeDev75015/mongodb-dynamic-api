@@ -1082,7 +1082,8 @@ routes: [
 
 - When `predicateBehavior: 'filter'`, the guard's pre-flight DB check is **bypassed entirely**. Filtering occurs inside the service after documents are fetched.
 - **Pagination / `limit`** — Option A: if `limit: 10` is requested and 3 documents are filtered out, the response will contain **< 10 documents**. No re-query is performed.
-- **Aggregate `count`** — When using `predicateBehavior: 'filter'` with `Aggregate`, the returned `count` reflects the **filtered** list length, not the original MongoDB pipeline count.
+- **Aggregate `count`/`totalPage`** — with `predicateBehavior: 'filter'` on `Aggregate`, `count` and `totalPage` always describe the **full** pipeline result, never recomputed from the filtered `list`. Only `list` narrows to the caller's authorized subset; a page can legitimately show fewer items than `count` suggests.
+- **Aggregate + `.Paging()`** — `abilityPredicate` is fully compatible with a pipeline built via `PipelineBuilder(...).Paging(...)`, in both `'throw'` and `'filter'` mode. (A pre-fix version of the library crashed with a 500 on `'throw'` mode against a paginated pipeline, regardless of the predicate's outcome — fixed.)
 - `'throw'` (or omitting `predicateBehavior`) preserves the existing behaviour: the guard pre-checks all fetched documents and throws 403 if any fails.
 
 ```typescript

@@ -294,7 +294,7 @@ DynamicApiModule.forFeature({
     },
     {
       type: 'Aggregate',
-      // Same filter mode on aggregate — filtered count reflects authorized results only
+      // Same filter mode on aggregate — count/totalPage still describe the full pipeline result
       predicateBehavior: 'filter',
       abilityPredicate: (article, user) => article.tenantId === user.tenantId,
       dTOs: { query: ArticleStatsQuery },
@@ -305,7 +305,16 @@ DynamicApiModule.forFeature({
 
 > **Pagination note (Option A):** when `predicateBehavior: 'filter'`, results are filtered *after* the MongoDB query. If you request `limit: 10` and 3 documents are filtered out, you receive **< 10 documents**. No re-query is performed.
 
-> **Aggregate `count` note:** in filter mode, the returned `count` equals the filtered list length, not the original pipeline count.
+> **Aggregate `count`/`totalPage` note:** in filter mode, `count` and `totalPage` always describe
+> the **full** pipeline result (how many documents actually match, how many pages that makes) —
+> they are never recomputed from the filtered `list`. Only `list` narrows to what the caller is
+> personally authorized to see; a page can legitimately show fewer items than `count`/`totalPage`
+> would suggest. This keeps the two numbers mutually consistent (an earlier version recomputed
+> `count` as the filtered list's length while leaving `totalPage` based on the full total, which
+> could read as a nonsensical pair like "count: 1, totalPage: 2" for a single visible item).
+> `abilityPredicate` + `.Paging()` is fully supported in both modes: `'throw'` mode's guard
+> pre-check no longer crashes on a paginated pipeline (fixed — it used to always fail with a 500,
+> regardless of the predicate's outcome).
 
 ---
 
