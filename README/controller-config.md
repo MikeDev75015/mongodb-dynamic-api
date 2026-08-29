@@ -27,6 +27,7 @@
     - [authAbilityPredicate](#authabilitypredicate)
     - [inject](#inject)
     - [dTOs.params](#dtosparams)
+    - [ctx.methods](#ctxmethods--callbackmethods-inside-a-custom-route)
 - [controllerOptions Reference](#controlleroptions-reference)
   - [path](#path)
   - [apiTag](#apitag)
@@ -383,6 +384,30 @@ NestJS parses from the URL regardless of whether `dTOs.params` is set.
 | `params` | `Params` | Parsed route params (e.g. `{ id: '...' }`). |
 | `body` | `Body` | Parsed request body. |
 | `query` | `Query` | Parsed query string object. |
+| `methods` | `CallbackMethods` | The same read/write primitives every `beforeSaveCallback`/`callback` receives, for any entity (not just `Entity`) — see below. |
+| `req` | `DynamicApiRequest \| undefined` | Raw HTTP request. HTTP only — `undefined` in WebSocket/gateway handlers. |
+
+##### `ctx.methods` — `CallbackMethods` inside a custom route
+
+`ctx.model` gives raw Mongoose access, but a raw `model.updateOne(...)`/`model.findOneAndUpdate(...)`
+write bypasses the native pipeline entirely — including its automatic `@DerivedField({ on: 'save' })`
+recompute. `ctx.methods` is the same `CallbackMethods` bundle documented under
+[CallbackMethods](./route-config.md#callbackmethods) — `findOneDocument`, `updateOneDocument`,
+`rawUpdateOneDocument`, `recomputeDerivedFields`, etc. — each taking its own `entity` argument, so
+it works for any entity, not only the one this route is mounted on.
+
+```typescript
+{
+  path: ':id/activate',
+  method: 'PATCH',
+  handler: async ({ params, methods }) => {
+    // updateOneDocument recomputes any @DerivedField on User automatically — a raw
+    // ctx.model.updateOne(...) here would leave it stale.
+    await methods.updateOneDocument(User, { _id: params.id }, { $set: { isActive: true } });
+    return methods.findOneDocument(User, { _id: params.id });
+  },
+}
+```
 
 #### Example — `PATCH /conversations/:id/e2ee-wrapped-keys`
 

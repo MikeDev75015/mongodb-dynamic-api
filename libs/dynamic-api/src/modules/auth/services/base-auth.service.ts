@@ -186,11 +186,17 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
         await this.beforeUpdateAccountCallback({ ...user, id: user._id.toString() }, { update }, this.callbackMethods);
     }
 
-    await this.model.updateOne(
-      { _id: id },
+    // Goes through BaseService.updateOneDocument (not a raw this.model.updateOne) specifically
+    // so any @DerivedField({ on: 'save' }) declared on Entity gets auto-recomputed after this
+    // write, same as every other out-of-native-pipeline write CallbackMethods exposes
+    // (updateOneDocument/rawUpdateOneDocument) — updateAccount used to bypass that entirely,
+    // leaving derived fields stale after a profile update.
+    await this.updateOneDocument(
+      this.entity,
+      { _id: id } as FilterQuery<Entity>,
       // @ts-ignore
       { $set: update },
-    ).exec();
+    );
 
     if (this.updateAccountCallback) {
       const fullUser = (await this.model.findOne({ _id: id }).lean<Entity>().exec());

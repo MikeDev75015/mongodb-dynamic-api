@@ -47,6 +47,7 @@ import {
 import { MongoDBDynamicApiLogger } from '../../logger';
 import { RoutePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
+import { CustomRouteCallbackService } from './custom-route-callback.service';
 
 type HttpMethodDecoratorFactory = (path: string) => MethodDecorator;
 
@@ -279,11 +280,15 @@ function createCustomRouteController<
   class CustomRouteController {
     protected readonly entity = entity;
 
+    protected readonly callbackService: CustomRouteCallbackService<Entity>;
+
     constructor(
       @InjectModel(entity.name, connectionName)
       protected readonly model: Model<Entity>,
       protected readonly moduleRef: ModuleRef,
-    ) {}
+    ) {
+      this.callbackService = new CustomRouteCallbackService(model);
+    }
 
     async handle(
       @Param() params: Record<string, string>,
@@ -302,6 +307,7 @@ function createCustomRouteController<
         params: params as Params,
         body: body as Body,
         query: query as QueryDto,
+        methods: this.callbackService.getCallbackMethods(),
         req,
       }, injected);
 

@@ -34,6 +34,7 @@ import {
 import { SocketPoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DynamicApiModule } from '../../dynamic-api.module';
+import { CustomRouteCallbackService } from './custom-route-callback.service';
 
 /**
  * Builds a NestJS WebSocket gateway class for a single custom route entry.
@@ -113,6 +114,7 @@ function createCustomRouteGateway<
   @UseInterceptors(ClassSerializerInterceptor, ...useInterceptors)
   class CustomRouteGateway extends BaseGateway<Entity> {
     protected readonly entity = entity;
+    protected readonly callbackService: CustomRouteCallbackService<Entity>;
 
     constructor(
       @InjectModel(entity.name, connectionName)
@@ -121,6 +123,7 @@ function createCustomRouteGateway<
       protected readonly moduleRef: ModuleRef,
     ) {
       super(jwtService);
+      this.callbackService = new CustomRouteCallbackService(model);
     }
 
     @UseFilters(new DynamicAPIWsExceptionFilter())
@@ -139,6 +142,7 @@ function createCustomRouteGateway<
         params: {} as Params,
         body: body as Body,
         query: {} as QueryDto,
+        methods: this.callbackService.getCallbackMethods(),
       }, injected);
 
       const fromEntity = (presenterType as Mappable<Entity>).fromEntity;
