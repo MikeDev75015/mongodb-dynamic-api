@@ -1,5 +1,20 @@
 Changelog
 
+## [4.24.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.23.0...v4.24.0) (2026-08-29)
+
+### aggregate
+
+* **aggregate:** make abilityPredicate compatible with .Paging() pipelines ([450649e](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/450649ebc40f53657dd1c84f760fcfe05ab743c0))
+* **aggregate:** warn on silently dropped paging results, add PagingQuery helper ([7708d5e](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/7708d5e68e9e922023d0519e2de149f05f929f4b))
+
+### entities
+
+* **entities:** recompute @DerivedField on useAuth updateAccount and custom routes ([3526172](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/35261722dd796763c83ac24d0764901e66759224))
+
+### guards
+
+* **guards:** add authAbilityPredicate for document-less custom routes ([f4f99d3](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/f4f99d3a492dda5b07217b6f6b6a66af3f7dcbf6))
+
 ## [4.23.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.22.0...v4.23.0) (2026-08-23)
 
 ### quality
