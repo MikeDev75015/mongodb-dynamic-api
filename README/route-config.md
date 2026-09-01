@@ -463,6 +463,11 @@ class ProductStatsQuery extends PagingQuery {
 > doesn't change — flipping the default would be a breaking change for routes relying on the plain
 > array today). Always pair a `.Paging()` query DTO with a presenter that has `fromAggregate`, as
 > in the [presenter DTO](#presenter-dto) example above.
+>
+> The generated Swagger doc follows the same rule: as soon as the route's presenter implements
+> `fromAggregate`, `ApiResponse` documents the real `{ list: Presenter[], count: number, totalPage:
+> number }` shape (via an auto-generated `Paginated<Presenter>` wrapper schema) instead of a bare
+> `Presenter`/`Presenter[]` — so OpenAPI clients generated against the route get the correct type.
 
 `parsePagingParams(query, options?)`:
 
