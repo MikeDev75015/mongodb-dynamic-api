@@ -1,5 +1,11 @@
 Changelog
 
+## [4.24.1](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.24.0...v4.24.1) (2026-09-01)
+
+### aggregate
+
+* **aggregate:** document paginated { list, count, totalPage } response shape in Swagger ([621bec5](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/621bec59bb404eb3d9da951061a53e88386366a2)), closes [#12](https://github.com/MikeDev75015/mongodb-dynamic-api/issues/12) [#14](https://github.com/MikeDev75015/mongodb-dynamic-api/issues/14) [#14](https://github.com/MikeDev75015/mongodb-dynamic-api/issues/14)
+
 ## [4.24.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.23.0...v4.24.0) (2026-08-29)
 
 ### aggregate
