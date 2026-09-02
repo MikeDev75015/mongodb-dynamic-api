@@ -31,6 +31,20 @@ export class DynamicApiCacheInterceptor extends CacheInterceptor {
   }
 
   public intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<any>> {
+    // `@nestjs/core` v12 changed global `APP_INTERCEPTOR`s to also run for WebSocket gateway
+    // handlers (same root cause as the `getType() !== 'http'` bypass in DynamicApiJwtAuthGuard — see
+    // that guard's comment for the full v11/v12 diff). This interceptor's entire purpose (HTTP
+    // response caching keyed by method/URL, and cache invalidation by URL) is meaningless for `ws`:
+    // `context.switchToHttp().getRequest()` on a `ws` context returns the raw connected socket, which
+    // has neither `.method` nor `.url`, so `invalidateForUrl(undefined)` would throw downstream.
+    // `getType?.()` (rather than a plain call) keeps this spec-compatible with existing unit test
+    // mocks that omit `getType` entirely — those exercise genuinely HTTP-shaped requests, so falling
+    // through to the normal path for them is correct, not just a test-mock accommodation.
+    const contextType = context.getType?.();
+    if (contextType && contextType !== 'http') {
+      return Promise.resolve(next.handle());
+    }
+
     if (!this.state.isGlobalCacheEnabled) {
       return Promise.resolve(next.handle());
     }
