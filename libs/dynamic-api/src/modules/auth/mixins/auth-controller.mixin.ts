@@ -1,6 +1,7 @@
 import { Body, Get, HttpCode, HttpStatus, Optional, Patch, Post, Request, Res, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiProperty, IntersectionType, PartialType, PickType } from '@nestjs/swagger';
+import { IsOptional, IsString } from 'class-validator';
 import { Response } from 'express';
 import { AuthDecoratorsBuilder } from '../../../builders';
 import { ApiEndpointVisibility, Public, RateLimit } from '../../../decorators';
@@ -160,6 +161,8 @@ function AuthControllerMixin<Entity extends BaseEntity>(
       required: false,
       description: `Alias for the "${String(loginField)}" field. You may send "login" instead of "${String(loginField)}" to authenticate.`,
     })
+    @IsOptional()
+    @IsString()
     login?: string;
   }
 
