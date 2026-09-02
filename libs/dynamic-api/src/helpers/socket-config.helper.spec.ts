@@ -3,16 +3,13 @@ import type { Mock } from 'vitest';
 import { INestApplication } from '@nestjs/common';
 import * as Adapter from '../adapters/socket-adapter';
 import { GatewayOptions } from '../interfaces';
+import { DynamicApiGlobalStateService } from '../services/dynamic-api-global-state/dynamic-api-global-state.service';
 import { DynamicApiEventRegistryStore } from './event-registry.store';
 import { enableDynamicAPIWebSockets, initializeConfigFromOptions } from './socket-config.helper';
 import { DynamicApiWsConfigStore } from './ws-config.store';
 
 vi.mock('../adapters/socket-adapter', () => ({
   SocketAdapter: vi.fn(),
-}));
-
-vi.mock('../dynamic-api.module', () => ({
-  DynamicApiModule: { state: { get: vi.fn().mockReturnValue('test-jwt-secret') } },
 }));
 
 describe('SocketConfigHelper', () => {
@@ -27,6 +24,7 @@ describe('SocketConfigHelper', () => {
     DynamicApiWsConfigStore.reset();
     DynamicApiEventRegistryStore.reset();
     vi.clearAllMocks();
+    vi.spyOn(DynamicApiGlobalStateService, 'getValue').mockReturnValue('test-jwt-secret');
   });
 
   describe('enableDynamicAPIWebSockets', () => {
@@ -87,7 +85,7 @@ describe('SocketConfigHelper', () => {
         name: 'MaxListenersExceededWarning',
       };
 
-      spySocketAdapter.mockImplementationOnce(() => {
+      spySocketAdapter.mockImplementationOnce(function () {
         process.emit('warning', fakeError as unknown as Error);
       });
 
