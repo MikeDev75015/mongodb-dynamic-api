@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { INestApplication } from '@nestjs/common';
 import { Prop, Schema } from '@nestjs/mongoose';
 import mongoose, { Connection } from 'mongoose';
@@ -130,7 +131,7 @@ describe('DynamicApiModule forFeature - Room-targeted Broadcast (e2e)', () => {
       password: 'pass',
     });
     accessToken = response.accessToken;
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   // ─── join-rooms ──────────────────────────────────────────────────────────────
@@ -181,7 +182,7 @@ describe('DynamicApiModule forFeature - Room-targeted Broadcast (e2e)', () => {
     it('should leave a single room and return the room list', async () => {
       // First join, then leave
       await server.emit('join-rooms', { rooms: STATIC_ROOM }, { accessToken });
-      jest.clearAllMocks();
+      vi.clearAllMocks();
 
       const response = await server.emit<{ rooms: string }, string[]>(
         'leave-rooms',
@@ -194,7 +195,7 @@ describe('DynamicApiModule forFeature - Room-targeted Broadcast (e2e)', () => {
 
     it('should leave multiple rooms and return the room list', async () => {
       await server.emit('join-rooms', { rooms: ['room-x', 'room-y'] }, { accessToken });
-      jest.clearAllMocks();
+      vi.clearAllMocks();
 
       const response = await server.emit<{ rooms: string[] }, string[]>(
         'leave-rooms',

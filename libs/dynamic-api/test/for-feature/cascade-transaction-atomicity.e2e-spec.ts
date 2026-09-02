@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { Prop, Schema } from '@nestjs/mongoose';
 import mongoose, { Connection } from 'mongoose';
 import { BaseEntity, CascadeConfig, DynamicApiModule } from '../../src';

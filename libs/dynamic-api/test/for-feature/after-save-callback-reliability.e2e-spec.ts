@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Prop, Schema } from '@nestjs/mongoose';
 import mongoose, { Connection } from 'mongoose';
 import { AfterSaveCallback, BaseEntity, DynamicApiModule } from '../../src';
@@ -133,7 +134,7 @@ describe('DynamicApiModule forFeature - afterSaveCallback reliability (e2e)', ()
   });
 
   describe('onAfterSaveError global hook', () => {
-    const onAfterSaveError = jest.fn();
+    const onAfterSaveError = vi.fn();
 
     beforeEach(async () => {
       onAfterSaveError.mockClear();

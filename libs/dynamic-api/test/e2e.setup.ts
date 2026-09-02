@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { INestApplication } from '@nestjs/common';
 import { TestingModule } from '@nestjs/testing';
 import { MessageBody, SubscribeMessage, WebSocketGateway } from '@nestjs/websockets';
@@ -151,11 +152,11 @@ export async function closeTestingApp(connections: mongoose.Connection[]): Promi
   }
 }
 
-export const handleSocketException = jest.fn();
+export const handleSocketException = vi.fn();
 
-export const handleSocketResponse = jest.fn();
+export const handleSocketResponse = vi.fn();
 
-export const handleSocketBroadcast = jest.fn();
+export const handleSocketBroadcast = vi.fn();
 
 export const server = {
   get: async <Query extends object = any, Response = any>(path: string, { authToken, query, headers = {} }: RequestOptions<Query> = {}): Promise<Response> => {
