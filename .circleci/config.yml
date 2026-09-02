@@ -450,13 +450,22 @@ workflows:
                 - /^release\/.*/
 
   ci-develop-workflow:
+    # TEMPORARY: also runs on feat/vitest-migration to get a real CircleCI signal on
+    # test-with-coverage-job/merge-and-sonarcloud-job/e2e-tests-mongodb-job (Sonar reporter,
+    # coverage merge, real Docker e2e) before merging the Jest->Vitest migration - these 3 jobs
+    # are otherwise unreachable from a feature branch. Revert to `equal: [pipeline.git.branch,
+    # develop]` (and each job's `only: develop`) once validated.
     when:
-      equal: [ << pipeline.git.branch >>, develop ]
+      or:
+        - equal: [ << pipeline.git.branch >>, develop ]
+        - equal: [ << pipeline.git.branch >>, feat/vitest-migration ]
     jobs:
       - dependencies-job:
           filters:
             branches:
-              only: develop
+              only:
+                - develop
+                - feat/vitest-migration
       - test-with-coverage-job:
           requires:
             - dependencies-job
@@ -464,7 +473,9 @@ workflows:
             - SLACK
           filters:
             branches:
-              only: develop
+              only:
+                - develop
+                - feat/vitest-migration
       - merge-and-sonarcloud-job:
           requires:
             - test-with-coverage-job
@@ -473,7 +484,9 @@ workflows:
             - SLACK
           filters:
             branches:
-              only: develop
+              only:
+                - develop
+                - feat/vitest-migration
       - e2e-tests-mongodb-job:
           requires:
             - dependencies-job
@@ -481,7 +494,9 @@ workflows:
             - SLACK
           filters:
             branches:
-              only: develop
+              only:
+                - develop
+                - feat/vitest-migration
 
   # Dedicated release-branch workflow: no SonarCloud here — the code was already analyzed on
   # every `develop` push by ci-develop-workflow above; release/vX.Y.Z is just that same code
