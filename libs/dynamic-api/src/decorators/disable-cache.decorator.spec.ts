@@ -1,16 +1,18 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import * as NestJsCommon from '@nestjs/common';
 import { DISABLE_CACHE_KEY, DisableCache } from './disable-cache.decorator';
 
-jest.mock('@nestjs/common', () => ({
-  ...jest.requireActual('@nestjs/common'),
-  SetMetadata: jest.fn(() => () => {}),
+vi.mock('@nestjs/common', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@nestjs/common')>()),
+  SetMetadata: vi.fn(() => () => {}),
 }));
 
 describe('DisableCache', () => {
-  let spySetMetadata: jest.SpyInstance;
+  let spySetMetadata: Mock;
 
   beforeEach(() => {
-    spySetMetadata = jest.spyOn(NestJsCommon, 'SetMetadata');
+    spySetMetadata = vi.spyOn(NestJsCommon, 'SetMetadata');
   });
 
   it('should call SetMetadata with DISABLE_CACHE_KEY and true', () => {

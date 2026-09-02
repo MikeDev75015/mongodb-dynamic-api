@@ -1,20 +1,22 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { CustomDecorator } from '@nestjs/common';
 import * as nestjsCommon from '@nestjs/common';
 import { ApiEndpointVisibility } from './api-endpoint-visibility.decorator';
 
-jest.mock('@nestjs/common', () => {
-  const originalModule = jest.requireActual('@nestjs/common');
+vi.mock('@nestjs/common', async (importOriginal) => {
+  const originalModule = await importOriginal<typeof import('@nestjs/common')>();
   return {
     ...originalModule,
-    applyDecorators: jest.fn(),
+    applyDecorators: vi.fn(),
   };
 });
 
 describe('ApiEndpointVisibility', () => {
-  let applyDecoratorsSpy: jest.SpyInstance;
+  let applyDecoratorsSpy: Mock;
 
   beforeEach(() => {
-    applyDecoratorsSpy = jest.spyOn(nestjsCommon, 'applyDecorators');
+    applyDecoratorsSpy = vi.spyOn(nestjsCommon, 'applyDecorators');
   });
 
   it('should return ApiExcludeEndpoint if condition is false', () => {
@@ -26,7 +28,7 @@ describe('ApiEndpointVisibility', () => {
 
   it('should not return the provided decorator if condition is false', () => {
     const condition = false;
-    const decorator = jest.fn();
+    const decorator = vi.fn();
     ApiEndpointVisibility(condition, decorator);
     expect(decorator).not.toHaveBeenCalled();
     expect(applyDecoratorsSpy).toHaveBeenCalledTimes(1);
@@ -43,7 +45,7 @@ describe('ApiEndpointVisibility', () => {
   it('should return the provided decorator if condition is true', () => {
     const condition = true;
     const customDecorator = {} as CustomDecorator;
-    const decorator = jest.fn().mockReturnValueOnce(customDecorator);
+    const decorator = vi.fn().mockReturnValueOnce(customDecorator);
     ApiEndpointVisibility(condition, decorator());
     expect(applyDecoratorsSpy).toHaveBeenCalledTimes(1);
     expect(applyDecoratorsSpy).toHaveBeenCalledWith(customDecorator);
