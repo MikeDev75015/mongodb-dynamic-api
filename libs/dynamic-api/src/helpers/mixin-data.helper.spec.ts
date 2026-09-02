@@ -1,3 +1,5 @@
+import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { plainToInstance } from 'class-transformer';
 import { MongoDBDynamicApiLogger } from '../logger';
 import { BaseEntity } from '../models';
@@ -177,12 +179,12 @@ describe('getMixinData', () => {
   });
 
   describe('predicateBehavior "filter" + active cache boot-time warning', () => {
-    let warnSpy: jest.SpyInstance;
+    let warnSpy: Mock;
 
     beforeEach(() => {
       // eslint-disable-next-line no-new
       new DynamicApiGlobalStateService(); // reset shared static state to defaults (isGlobalCacheEnabled: true)
-      warnSpy = jest.spyOn(MongoDBDynamicApiLogger.prototype, 'warn').mockImplementation();
+      warnSpy = vi.spyOn(MongoDBDynamicApiLogger.prototype, 'warn').mockImplementation();
     });
 
     afterEach(() => {
@@ -368,7 +370,7 @@ describe('getMixinData', () => {
     });
 
     it('should log a collision when two different routes resolve to the same event name', () => {
-      jest.spyOn(DynamicApiEventRegistryStore['logger'], 'warn').mockImplementation();
+      vi.spyOn(DynamicApiEventRegistryStore['logger'], 'warn').mockImplementation();
 
       getMixinData(
         TestEntity,

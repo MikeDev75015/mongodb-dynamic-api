@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '../../decorators';
@@ -8,11 +9,11 @@ describe('PresenceController', () => {
   let controller: PresenceController;
 
   const mockAdapter = {
-    getOnlineUserIds: jest.fn(),
+    getOnlineUserIds: vi.fn(),
   };
 
   beforeEach(async () => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PresenceController],

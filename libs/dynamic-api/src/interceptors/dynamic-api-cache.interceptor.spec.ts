@@ -1,3 +1,5 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { CacheInterceptor } from '@nestjs/cache-manager';
 import { CallHandler, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
@@ -13,18 +15,18 @@ describe('DynamicApiCacheInterceptor', () => {
   let reflector: Reflector;
   let httpAdapterHost: HttpAdapterHost;
   let state: DynamicApiGlobalState;
-  let cacheService: { invalidateForUrl: jest.Mock };
+  let cacheService: { invalidateForUrl: Mock };
 
   const fakeHandler = () => ({});
 
   beforeEach(() => {
-    cacheManager = { clear: jest.fn().mockResolvedValue(undefined) };
-    reflector = { get: jest.fn().mockReturnValue(undefined) } as any;
+    cacheManager = { clear: vi.fn().mockResolvedValue(undefined) };
+    reflector = { get: vi.fn().mockReturnValue(undefined) } as any;
     httpAdapterHost = {} as HttpAdapterHost;
     state = {
       cacheExcludedPaths: [],
     } as DynamicApiGlobalState;
-    cacheService = { invalidateForUrl: jest.fn().mockResolvedValue(undefined) };
+    cacheService = { invalidateForUrl: vi.fn().mockResolvedValue(undefined) };
 
     interceptor = new DynamicApiCacheInterceptor(cacheManager, reflector, httpAdapterHost, state, cacheService as any);
   });
@@ -158,7 +160,7 @@ describe('DynamicApiCacheInterceptor', () => {
 
     it('should return false if DISABLE_CACHE_KEY metadata is true on handler', () => {
       state.isGlobalCacheEnabled = true;
-      (reflector.get as jest.Mock).mockReturnValue(true);
+      (reflector.get as Mock).mockReturnValue(true);
       const context = {
         switchToHttp: () => ({
           getRequest: () => ({ method: 'GET', url: '/users' }),
@@ -172,7 +174,7 @@ describe('DynamicApiCacheInterceptor', () => {
 
     it('should proceed normally if DISABLE_CACHE_KEY metadata is false', () => {
       state.isGlobalCacheEnabled = true;
-      (reflector.get as jest.Mock).mockReturnValue(false);
+      (reflector.get as Mock).mockReturnValue(false);
       const context = {
         switchToHttp: () => ({
           getRequest: () => ({ method: 'GET', url: '/users' }),
@@ -251,7 +253,7 @@ describe('DynamicApiCacheInterceptor', () => {
         getHandler: fakeHandler,
       } as unknown as ExecutionContext;
       const next = { handle: () => of('handled') } as CallHandler;
-      jest.spyOn(CacheInterceptor.prototype, 'intercept').mockResolvedValue(of('intercepted'));
+      vi.spyOn(CacheInterceptor.prototype, 'intercept').mockResolvedValue(of('intercepted'));
 
       interceptor.intercept(context, next).then((obs) => {
         obs.subscribe((result) => {
@@ -348,7 +350,7 @@ describe('DynamicApiCacheInterceptor', () => {
         getHandler: fakeHandler,
       } as unknown as ExecutionContext;
       const next = { handle: () => of('handled') } as CallHandler;
-      jest.spyOn(CacheInterceptor.prototype, 'intercept').mockResolvedValue(of('intercepted'));
+      vi.spyOn(CacheInterceptor.prototype, 'intercept').mockResolvedValue(of('intercepted'));
 
       interceptor.intercept(context, next).then((obs) => {
         obs.subscribe((result) => {
@@ -367,7 +369,7 @@ describe('DynamicApiCacheInterceptor', () => {
         getHandler: fakeHandler,
       } as unknown as ExecutionContext;
       const next = { handle: () => of('handled') } as CallHandler;
-      jest.spyOn(CacheInterceptor.prototype, 'intercept').mockResolvedValue(of('intercepted'));
+      vi.spyOn(CacheInterceptor.prototype, 'intercept').mockResolvedValue(of('intercepted'));
 
       interceptor.intercept(context, next).then((obs) => {
         obs.subscribe((result) => {
@@ -379,7 +381,7 @@ describe('DynamicApiCacheInterceptor', () => {
 
     it('should return next.handle() if disableCache metadata is true on a GET route', (done) => {
       state.isGlobalCacheEnabled = true;
-      (reflector.get as jest.Mock).mockReturnValue(true);
+      (reflector.get as Mock).mockReturnValue(true);
       const context = {
         switchToHttp: () => ({
           getRequest: () => ({ method: 'GET', url: '/users' }),
@@ -387,7 +389,7 @@ describe('DynamicApiCacheInterceptor', () => {
         getHandler: fakeHandler,
       } as unknown as ExecutionContext;
       const next = { handle: () => of('handled') } as CallHandler;
-      jest.spyOn(CacheInterceptor.prototype, 'intercept').mockResolvedValue(of('intercepted'));
+      vi.spyOn(CacheInterceptor.prototype, 'intercept').mockResolvedValue(of('intercepted'));
 
       interceptor.intercept(context, next).then((obs) => {
         obs.subscribe((result) => {

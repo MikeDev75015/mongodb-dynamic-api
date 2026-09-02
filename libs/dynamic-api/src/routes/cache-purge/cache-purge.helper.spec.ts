@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { createCachePurgeController } from './cache-purge.helper';
 
@@ -6,7 +7,7 @@ Object.defineProperty(FakeEntity, 'name', { value: 'FakeEntity', writable: false
 
 describe('createCachePurgeController', () => {
   beforeEach(() => {
-    jest.spyOn(DynamicApiModule.state, 'get').mockReturnValue(false);
+    vi.spyOn(DynamicApiModule.state, 'get').mockReturnValue(false);
   });
 
   it('should create a controller class with the correct name', () => {
@@ -46,7 +47,7 @@ describe('createCachePurgeController', () => {
       FakeEntity as any,
       { path: 'fakes' } as any,
     );
-    const mockInvalidate = jest.fn().mockResolvedValue(undefined);
+    const mockInvalidate = vi.fn().mockResolvedValue(undefined);
     const instance = Object.create(Controller.prototype);
     instance.cacheService = { invalidate: mockInvalidate };
 
@@ -57,7 +58,7 @@ describe('createCachePurgeController', () => {
   });
 
   it('should apply Public decorator when isPublic is true', () => {
-    jest.spyOn(DynamicApiModule.state, 'get').mockReturnValue(false);
+    vi.spyOn(DynamicApiModule.state, 'get').mockReturnValue(false);
 
     const Controller = createCachePurgeController(
       FakeEntity as any,
@@ -69,7 +70,7 @@ describe('createCachePurgeController', () => {
   });
 
   it('should apply ApiBearerAuth decorator when isAuthEnabled is true and isPublic is falsy', () => {
-    jest.spyOn(DynamicApiModule.state, 'get').mockReturnValue(true);
+    vi.spyOn(DynamicApiModule.state, 'get').mockReturnValue(true);
 
     const Controller = createCachePurgeController(
       FakeEntity as any,

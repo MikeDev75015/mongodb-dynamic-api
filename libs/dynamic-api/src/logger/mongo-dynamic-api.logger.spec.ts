@@ -1,20 +1,22 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { Logger } from '@nestjs/common';
 import { MongoDBDynamicApiLogger } from './mongo-dynamic-api.logger';
 
 describe('MongoDynamicApiLogger', () => {
   let logger: MongoDBDynamicApiLogger;
 
-  let nestLoggerDebugSpy: jest.SpyInstance;
-  let nestLoggerLogSpy: jest.SpyInstance;
-  let nestLoggerWarnSpy: jest.SpyInstance;
-  let nestLoggerErrorSpy: jest.SpyInstance;
+  let nestLoggerDebugSpy: Mock;
+  let nestLoggerLogSpy: Mock;
+  let nestLoggerWarnSpy: Mock;
+  let nestLoggerErrorSpy: Mock;
   const context = 'CustomLoggerContext';
 
   beforeEach(() => {
-    nestLoggerLogSpy = jest.spyOn(Logger.prototype, 'log').mockImplementation();
-    nestLoggerDebugSpy = jest.spyOn(Logger.prototype, 'debug').mockImplementation();
-    nestLoggerWarnSpy = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
-    nestLoggerErrorSpy = jest.spyOn(Logger.prototype, 'error').mockImplementation();
+    nestLoggerLogSpy = vi.spyOn(Logger.prototype, 'log').mockImplementation();
+    nestLoggerDebugSpy = vi.spyOn(Logger.prototype, 'debug').mockImplementation();
+    nestLoggerWarnSpy = vi.spyOn(Logger.prototype, 'warn').mockImplementation();
+    nestLoggerErrorSpy = vi.spyOn(Logger.prototype, 'error').mockImplementation();
   });
 
   afterEach(() => {
@@ -22,7 +24,7 @@ describe('MongoDynamicApiLogger', () => {
     nestLoggerDebugSpy.mockRestore();
     nestLoggerWarnSpy.mockRestore();
     nestLoggerErrorSpy.mockRestore();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('DEBUG level', () => {

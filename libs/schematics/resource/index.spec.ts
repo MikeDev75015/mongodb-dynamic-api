@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { SchematicTestRunner, UnitTestTree } from '@angular-devkit/schematics/testing';
 import { resolveDestination, resource, ResourceOptions } from './index';
 

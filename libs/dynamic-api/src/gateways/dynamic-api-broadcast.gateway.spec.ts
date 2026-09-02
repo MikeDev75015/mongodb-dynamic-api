@@ -1,4 +1,6 @@
-import { createMock } from '@golevelup/ts-jest';
+import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
+import type { Mocked } from 'vitest';
+import { createMock } from '@test-helpers';
 import { Server } from 'socket.io';
 import { DynamicAPIWsExceptionFilter } from '../filters';
 import { JwtSocketGuard } from '../guards';
@@ -8,7 +10,7 @@ import { DynamicApiBroadcastService } from '../services';
 import { createDynamicApiBroadcastGateway } from './dynamic-api-broadcast.gateway';
 
 describe('createDynamicApiBroadcastGateway', () => {
-  let mockBroadcastService: jest.Mocked<DynamicApiBroadcastService>;
+  let mockBroadcastService: Mocked<DynamicApiBroadcastService>;
 
   beforeEach(() => {
     mockBroadcastService = createMock<DynamicApiBroadcastService>();
@@ -76,7 +78,7 @@ describe('createDynamicApiBroadcastGateway', () => {
     it('should join a single room and return the room list', async () => {
       const GatewayClass = createDynamicApiBroadcastGateway();
       const gateway = new GatewayClass(mockBroadcastService);
-      const mockSocket = { join: jest.fn() } as unknown as ExtendedSocket;
+      const mockSocket = { join: vi.fn() } as unknown as ExtendedSocket;
 
       const result = await gateway.joinRooms(mockSocket, { rooms: 'room-a' });
 
@@ -87,7 +89,7 @@ describe('createDynamicApiBroadcastGateway', () => {
     it('should join multiple rooms and return the room list', async () => {
       const GatewayClass = createDynamicApiBroadcastGateway();
       const gateway = new GatewayClass(mockBroadcastService);
-      const mockSocket = { join: jest.fn() } as unknown as ExtendedSocket;
+      const mockSocket = { join: vi.fn() } as unknown as ExtendedSocket;
 
       const result = await gateway.joinRooms(mockSocket, { rooms: ['room-a', 'room-b'] });
 
@@ -117,7 +119,7 @@ describe('createDynamicApiBroadcastGateway', () => {
     it('should leave a single room and return the room list', async () => {
       const GatewayClass = createDynamicApiBroadcastGateway();
       const gateway = new GatewayClass(mockBroadcastService);
-      const mockSocket = { leave: jest.fn() } as unknown as ExtendedSocket;
+      const mockSocket = { leave: vi.fn() } as unknown as ExtendedSocket;
 
       const result = await gateway.leaveRooms(mockSocket, { rooms: 'room-a' });
 
@@ -128,7 +130,7 @@ describe('createDynamicApiBroadcastGateway', () => {
     it('should leave multiple rooms and return the room list', async () => {
       const GatewayClass = createDynamicApiBroadcastGateway();
       const gateway = new GatewayClass(mockBroadcastService);
-      const mockSocket = { leave: jest.fn() } as unknown as ExtendedSocket;
+      const mockSocket = { leave: vi.fn() } as unknown as ExtendedSocket;
 
       const result = await gateway.leaveRooms(mockSocket, { rooms: ['room-a', 'room-b'] });
 
@@ -147,8 +149,8 @@ describe('createDynamicApiBroadcastGateway', () => {
       DynamicApiWsConfigStore.debug = true;
       const GatewayClass = createDynamicApiBroadcastGateway();
       const gateway = new GatewayClass(mockBroadcastService);
-      const spyLog = jest.spyOn(gateway['logger'], 'log').mockImplementation(() => {});
-      const mockSocket = { id: 'sock-1', join: jest.fn() } as unknown as ExtendedSocket;
+      const spyLog = vi.spyOn(gateway['logger'], 'log').mockImplementation(() => {});
+      const mockSocket = { id: 'sock-1', join: vi.fn() } as unknown as ExtendedSocket;
 
       gateway.joinRooms(mockSocket, { rooms: ['room-x'] });
 
@@ -161,8 +163,8 @@ describe('createDynamicApiBroadcastGateway', () => {
       DynamicApiWsConfigStore.debug = true;
       const GatewayClass = createDynamicApiBroadcastGateway();
       const gateway = new GatewayClass(mockBroadcastService);
-      const spyLog = jest.spyOn(gateway['logger'], 'log').mockImplementation(() => {});
-      const mockSocket = { id: 'sock-2', leave: jest.fn() } as unknown as ExtendedSocket;
+      const spyLog = vi.spyOn(gateway['logger'], 'log').mockImplementation(() => {});
+      const mockSocket = { id: 'sock-2', leave: vi.fn() } as unknown as ExtendedSocket;
 
       gateway.leaveRooms(mockSocket, { rooms: 'room-y' });
 
@@ -175,8 +177,8 @@ describe('createDynamicApiBroadcastGateway', () => {
       DynamicApiWsConfigStore.debug = false;
       const GatewayClass = createDynamicApiBroadcastGateway();
       const gateway = new GatewayClass(mockBroadcastService);
-      const spyLog = jest.spyOn(gateway['logger'], 'log').mockImplementation(() => {});
-      const mockSocket = { id: 'sock-3', join: jest.fn() } as unknown as ExtendedSocket;
+      const spyLog = vi.spyOn(gateway['logger'], 'log').mockImplementation(() => {});
+      const mockSocket = { id: 'sock-3', join: vi.fn() } as unknown as ExtendedSocket;
 
       gateway.joinRooms(mockSocket, { rooms: ['room-x'] });
 

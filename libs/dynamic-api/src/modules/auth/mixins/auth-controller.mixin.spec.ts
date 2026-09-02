@@ -1,4 +1,5 @@
-import { createMock } from '@golevelup/ts-jest';
+import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
+import { createMock } from '@test-helpers';
 import { JwtService } from '@nestjs/jwt';
 import { Response } from 'express';
 import { DynamicApiEventRegistryStore } from '../../../helpers/event-registry.store';
@@ -24,7 +25,7 @@ describe('AuthControllerMixin', () => {
   }
 
   const service = createMock<AuthService<TestEntity>>();
-  service.logout = jest.fn().mockResolvedValue(undefined);
+  service.logout = vi.fn().mockResolvedValue(undefined);
   const broadcastService = createMock<DynamicApiBroadcastService>();
   const jwtService = createMock<JwtService>();
 
@@ -173,7 +174,7 @@ describe('AuthControllerMixin', () => {
       jwtService.decode.mockReturnValueOnce(decodedUser);
       const controller = new AuthController(service, undefined, jwtService);
 
-      await controller.updateAccount({ user: new TestEntity(), headers: { authorization: 'Bearer fake-token' } }, {}, { cookie: jest.fn() } as unknown as Response);
+      await controller.updateAccount({ user: new TestEntity(), headers: { authorization: 'Bearer fake-token' } }, {}, { cookie: vi.fn() } as unknown as Response);
 
       expect(jwtService.decode).toHaveBeenCalledWith('fake-token');
       expect(service.updateAccount).toHaveBeenCalledWith(
@@ -190,7 +191,7 @@ describe('AuthControllerMixin', () => {
       const controller = new AuthController(service);
       const user = new TestEntity();
 
-      await controller.updateAccount({ user, headers: { authorization: 'Bearer fake-token' } }, {}, { cookie: jest.fn() } as unknown as Response);
+      await controller.updateAccount({ user, headers: { authorization: 'Bearer fake-token' } }, {}, { cookie: vi.fn() } as unknown as Response);
 
       expect(service.updateAccount).toHaveBeenCalledWith(user, {});
     });
@@ -203,7 +204,7 @@ describe('AuthControllerMixin', () => {
         );
         const controller = new AuthController(service);
         const user = new TestEntity();
-        const fakeRes = { cookie: jest.fn() };
+        const fakeRes = { cookie: vi.fn() };
         service.updateAccount.mockResolvedValueOnce({ accessToken: 'at', refreshToken: 'rt' });
 
         const result = await controller.updateAccount(
@@ -227,7 +228,7 @@ describe('AuthControllerMixin', () => {
         );
         const controller = new AuthController(service);
         const user = new TestEntity();
-        const fakeRes = { cookie: jest.fn() };
+        const fakeRes = { cookie: vi.fn() };
         service.updateAccount.mockResolvedValueOnce({ accessToken: 'at', refreshToken: 'rt' });
 
         const result = await controller.updateAccount(
@@ -247,7 +248,7 @@ describe('AuthControllerMixin', () => {
         );
         const controller = new AuthController(service);
         const user = new TestEntity();
-        const fakeRes = { cookie: jest.fn() };
+        const fakeRes = { cookie: vi.fn() };
         const fakeAccount = Object.assign(new TestEntity(), { id: 'acc-id', loginField: 'test@test.co' });
         service.updateAccount.mockResolvedValueOnce(fakeAccount);
 
@@ -269,7 +270,7 @@ describe('AuthControllerMixin', () => {
         { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' } },
       );
       const controller = new AuthController(service);
-      const fakeRes = { cookie: jest.fn() };
+      const fakeRes = { cookie: vi.fn() };
       let capturedContext: string | undefined;
 
       service.login.mockImplementationOnce(async () => {
@@ -288,7 +289,7 @@ describe('AuthControllerMixin', () => {
         { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' } },
       );
       const controller = new AuthController(service);
-      const fakeRes = { cookie: jest.fn() };
+      const fakeRes = { cookie: vi.fn() };
       let capturedContext: string | undefined;
 
       service.register.mockImplementationOnce(async () => {
@@ -307,7 +308,7 @@ describe('AuthControllerMixin', () => {
         { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' } },
       );
       const controller = new AuthController(service);
-      const fakeRes = { cookie: jest.fn() };
+      const fakeRes = { cookie: vi.fn() };
       let capturedContext: string | undefined;
 
       service.updateAccount.mockImplementationOnce(async () => {
@@ -337,7 +338,7 @@ describe('AuthControllerMixin', () => {
       );
       const controller = new AuthController(service);
       const user = new TestEntity();
-      const fakeRes = { cookie: jest.fn() };
+      const fakeRes = { cookie: vi.fn() };
       service.login.mockResolvedValueOnce({ accessToken: 'at', refreshToken: 'rt' });
 
       await controller.login({ user }, {}, fakeRes as unknown as Response);
@@ -352,7 +353,7 @@ describe('AuthControllerMixin', () => {
       );
       const controller = new AuthController(service);
       const user = new TestEntity();
-      const fakeRes = { cookie: jest.fn() };
+      const fakeRes = { cookie: vi.fn() };
       service.login.mockResolvedValueOnce({ accessToken: 'at', refreshToken: 'rt' });
 
       const result = await controller.login({ user }, {}, fakeRes as unknown as Response);
@@ -370,7 +371,7 @@ describe('AuthControllerMixin', () => {
       );
       const controller = new AuthController(service);
       const user = new TestEntity();
-      const fakeRes = { cookie: jest.fn() };
+      const fakeRes = { cookie: vi.fn() };
       service.register.mockResolvedValueOnce({ accessToken: 'at', refreshToken: 'rt' });
 
       await controller.register({ user } as unknown as Parameters<typeof controller.register>[0], fakeRes as unknown as Response);
@@ -384,7 +385,7 @@ describe('AuthControllerMixin', () => {
         { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' }, refreshTokenOptions: { useCookie: true } },
       );
       const controller = new AuthController(service);
-      const fakeRes = { cookie: jest.fn() };
+      const fakeRes = { cookie: vi.fn() };
       service.register.mockResolvedValueOnce({ accessToken: 'at', refreshToken: 'rt' });
 
       const result = await controller.register({} as unknown as Parameters<typeof controller.register>[0], fakeRes as unknown as Response);
@@ -430,7 +431,7 @@ describe('AuthControllerMixin', () => {
       );
       const controller = new AuthController(service);
       const user = new TestEntity();
-      const fakeRes = { cookie: jest.fn(), clearCookie: jest.fn() };
+      const fakeRes = { cookie: vi.fn(), clearCookie: vi.fn() };
 
       service.refreshToken.mockResolvedValueOnce({ accessToken: 'new-at', refreshToken: 'new-rt' });
 
@@ -450,7 +451,7 @@ describe('AuthControllerMixin', () => {
       );
       const controller = new AuthController(service);
       const user = new TestEntity();
-      const fakeRes = { cookie: jest.fn(), clearCookie: jest.fn() };
+      const fakeRes = { cookie: vi.fn(), clearCookie: vi.fn() };
 
       service.refreshToken.mockResolvedValueOnce({ accessToken: 'new-at', refreshToken: 'new-rt' });
 
@@ -473,7 +474,7 @@ describe('AuthControllerMixin', () => {
       );
       const controller = new AuthController(service);
       const user = new TestEntity();
-      const fakeRes = { clearCookie: jest.fn() };
+      const fakeRes = { clearCookie: vi.fn() };
 
       await controller.logout({ user }, fakeRes as unknown as Response);
 
@@ -488,7 +489,7 @@ describe('AuthControllerMixin', () => {
       );
       const controller = new AuthController(service);
       const user = new TestEntity();
-      const fakeRes = { clearCookie: jest.fn() };
+      const fakeRes = { clearCookie: vi.fn() };
 
       await controller.logout({ user }, fakeRes as unknown as Response);
 
@@ -515,7 +516,7 @@ describe('AuthControllerMixin', () => {
     });
 
     afterEach(() => {
-      jest.clearAllMocks();
+      vi.clearAllMocks();
     });
 
     describe('login broadcast', () => {
@@ -525,7 +526,7 @@ describe('AuthControllerMixin', () => {
           { loginOptions: { loginField: 'loginField', passwordField: 'passwordField', broadcast: { enabled: true } } },
         );
         const controller = new AuthController(service, broadcastService, jwtService);
-        const fakeRes = { cookie: jest.fn() };
+        const fakeRes = { cookie: vi.fn() };
 
         await controller.login({ user: fakeUser }, {}, fakeRes as unknown as Response);
 
@@ -542,7 +543,7 @@ describe('AuthControllerMixin', () => {
           { loginOptions: { loginField: 'loginField', passwordField: 'passwordField', broadcast: { enabled: true, fields: ['id', 'loginField'] } } },
         );
         const controller = new AuthController(service, broadcastService, jwtService);
-        const fakeRes = { cookie: jest.fn() };
+        const fakeRes = { cookie: vi.fn() };
 
         await controller.login({ user: fakeUser }, {}, fakeRes as unknown as Response);
 
@@ -559,7 +560,7 @@ describe('AuthControllerMixin', () => {
           { loginOptions: { loginField: 'loginField', passwordField: 'passwordField', broadcast: { enabled: true, eventName: 'custom-login' } } },
         );
         const controller = new AuthController(service, broadcastService, jwtService);
-        const fakeRes = { cookie: jest.fn() };
+        const fakeRes = { cookie: vi.fn() };
 
         await controller.login({ user: fakeUser }, {}, fakeRes as unknown as Response);
 
@@ -576,7 +577,7 @@ describe('AuthControllerMixin', () => {
           { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' } },
         );
         const controller = new AuthController(service, broadcastService, jwtService);
-        const fakeRes = { cookie: jest.fn() };
+        const fakeRes = { cookie: vi.fn() };
 
         await controller.login({ user: fakeUser }, {}, fakeRes as unknown as Response);
 
@@ -591,7 +592,7 @@ describe('AuthControllerMixin', () => {
           { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' }, registerOptions: { broadcast: { enabled: true, fields: ['id', 'loginField'] } } },
         );
         const controller = new AuthController(service, broadcastService, jwtService);
-        const fakeRes = { cookie: jest.fn() };
+        const fakeRes = { cookie: vi.fn() };
 
         await controller.register({} as unknown as Parameters<typeof controller.register>[0], fakeRes as unknown as Response);
 
@@ -609,7 +610,7 @@ describe('AuthControllerMixin', () => {
           { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' }, registerOptions: { broadcast: { enabled: true } } },
         );
         const controller = new AuthController(service, broadcastService, jwtService);
-        const fakeRes = { cookie: jest.fn() };
+        const fakeRes = { cookie: vi.fn() };
 
         await controller.register({} as unknown as Parameters<typeof controller.register>[0], fakeRes as unknown as Response);
 
@@ -626,7 +627,7 @@ describe('AuthControllerMixin', () => {
           { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' }, registerOptions: { broadcast: { enabled: true } } },
         );
         const controller = new AuthController(service, broadcastService, undefined);
-        const fakeRes = { cookie: jest.fn() };
+        const fakeRes = { cookie: vi.fn() };
 
         await controller.register({} as unknown as Parameters<typeof controller.register>[0], fakeRes as unknown as Response);
 
@@ -639,7 +640,7 @@ describe('AuthControllerMixin', () => {
           { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' }, registerOptions: { broadcast: { enabled: true } } },
         );
         const controller = new AuthController(service, broadcastService, jwtService);
-        const fakeRes = { cookie: jest.fn() };
+        const fakeRes = { cookie: vi.fn() };
         jwtService.decode.mockReturnValueOnce(null);
 
         await controller.register({} as unknown as Parameters<typeof controller.register>[0], fakeRes as unknown as Response);
@@ -722,7 +723,7 @@ describe('AuthControllerMixin', () => {
         );
         const controller = new AuthController(service, broadcastService, jwtService);
 
-        await controller.updateAccount({ user: fakeUser, headers: { authorization: 'Bearer fake-token' } }, {}, { cookie: jest.fn() } as unknown as Response);
+        await controller.updateAccount({ user: fakeUser, headers: { authorization: 'Bearer fake-token' } }, {}, { cookie: vi.fn() } as unknown as Response);
 
         expect(broadcastService.broadcastFromHttp).toHaveBeenCalledWith(
           'auth-update-account-broadcast',
@@ -738,7 +739,7 @@ describe('AuthControllerMixin', () => {
         );
         const controller = new AuthController(service, broadcastService, jwtService);
 
-        await controller.updateAccount({ user: fakeUser, headers: { authorization: 'Bearer fake-token' } }, {}, { cookie: jest.fn() } as unknown as Response);
+        await controller.updateAccount({ user: fakeUser, headers: { authorization: 'Bearer fake-token' } }, {}, { cookie: vi.fn() } as unknown as Response);
 
         expect(broadcastService.broadcastFromHttp).toHaveBeenCalledWith(
           'auth-update-account-broadcast',
@@ -754,7 +755,7 @@ describe('AuthControllerMixin', () => {
         );
         const controller = new AuthController(service, broadcastService, jwtService);
 
-        await controller.updateAccount({ user: fakeUser, headers: { authorization: 'Bearer fake-token' } }, {}, { cookie: jest.fn() } as unknown as Response);
+        await controller.updateAccount({ user: fakeUser, headers: { authorization: 'Bearer fake-token' } }, {}, { cookie: vi.fn() } as unknown as Response);
 
         expect(broadcastService.broadcastFromHttp).toHaveBeenCalledWith(
           'custom-update-account',
@@ -770,7 +771,7 @@ describe('AuthControllerMixin', () => {
         );
         const controller = new AuthController(service, broadcastService, jwtService);
 
-        await controller.updateAccount({ user: fakeUser, headers: { authorization: 'Bearer fake-token' } }, {}, { cookie: jest.fn() } as unknown as Response);
+        await controller.updateAccount({ user: fakeUser, headers: { authorization: 'Bearer fake-token' } }, {}, { cookie: vi.fn() } as unknown as Response);
 
         expect(broadcastService.broadcastFromHttp).not.toHaveBeenCalled();
       });
@@ -791,10 +792,10 @@ describe('AuthControllerMixin', () => {
     it('should call service.sendOtpCode with identifier', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' }, passwordlessOptions: { otpExpirationMinutes: 5, sendCodeCallback: jest.fn() } },
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' }, passwordlessOptions: { otpExpirationMinutes: 5, sendCodeCallback: vi.fn() } },
       );
       const controller = new AuthController(service);
-      service.sendOtpCode = jest.fn().mockResolvedValue(undefined);
+      service.sendOtpCode = vi.fn().mockResolvedValue(undefined);
 
       await controller.sendOtpCode({ identifier: 'user@test.co' });
 
@@ -816,12 +817,12 @@ describe('AuthControllerMixin', () => {
     it('should call service.verifyOtpCode and return tokens', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
-        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' }, passwordlessOptions: { otpExpirationMinutes: 5, sendCodeCallback: jest.fn() } },
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' }, passwordlessOptions: { otpExpirationMinutes: 5, sendCodeCallback: vi.fn() } },
       );
       const controller = new AuthController(service);
       const tokenResult = { accessToken: 'at', refreshToken: 'rt' };
-      service.verifyOtpCode = jest.fn().mockResolvedValue(tokenResult);
-      const fakeRes = { cookie: jest.fn() } as unknown as Response;
+      service.verifyOtpCode = vi.fn().mockResolvedValue(tokenResult);
+      const fakeRes = { cookie: vi.fn() } as unknown as Response;
 
       const result = await controller.verifyOtpCode({ identifier: 'user@test.co', code: '123456' }, fakeRes);
 
@@ -835,12 +836,12 @@ describe('AuthControllerMixin', () => {
         {
           loginOptions: { loginField: 'loginField', passwordField: 'passwordField' },
           refreshTokenOptions: { useCookie: true },
-          passwordlessOptions: { otpExpirationMinutes: 5, sendCodeCallback: jest.fn() },
+          passwordlessOptions: { otpExpirationMinutes: 5, sendCodeCallback: vi.fn() },
         },
       );
       const controller = new AuthController(service);
-      service.verifyOtpCode = jest.fn().mockResolvedValue({ accessToken: 'at', refreshToken: 'rt' });
-      const fakeRes = { cookie: jest.fn() } as unknown as Response;
+      service.verifyOtpCode = vi.fn().mockResolvedValue({ accessToken: 'at', refreshToken: 'rt' });
+      const fakeRes = { cookie: vi.fn() } as unknown as Response;
 
       const result = await controller.verifyOtpCode({ identifier: 'user@test.co', code: '123456' }, fakeRes);
 
@@ -955,7 +956,7 @@ describe('AuthControllerMixin', () => {
             changePasswordRateLimit: { limit: 3, ttl: 3600000 },
           },
           passwordlessOptions: {
-            sendCodeCallback: jest.fn(),
+            sendCodeCallback: vi.fn(),
             sendCodeRateLimit: { limit: 3, ttl: 60000 },
             verifyCodeRateLimit: { limit: 5, ttl: 60000 },
           },

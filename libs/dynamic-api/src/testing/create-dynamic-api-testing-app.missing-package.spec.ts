@@ -1,20 +1,21 @@
+import { describe, expect, it, vi } from 'vitest';
 import { Test } from '@nestjs/testing';
 import { DynamicApiModule } from '../dynamic-api.module';
 import { createDynamicApiTestingApp } from './create-dynamic-api-testing-app';
 
-jest.mock('@nestjs/testing', () => ({
-  Test: { createTestingModule: jest.fn() },
+vi.mock('@nestjs/testing', () => ({
+  Test: { createTestingModule: vi.fn() },
 }));
 
-jest.mock('../dynamic-api.module', () => ({
-  DynamicApiModule: { forRoot: jest.fn() },
+vi.mock('../dynamic-api.module', () => ({
+  DynamicApiModule: { forRoot: vi.fn() },
 }));
 
 // Simulates the optional "mongodb-memory-server" package not being installed at all.
 // No `{ virtual: true }` here: the package IS installed (as this repo's own devDependency,
 // to exercise the happy path elsewhere) — virtual would tell Jest the module doesn't exist on
 // disk, which is false and made this mock unreliable across files in a full-suite run.
-jest.mock('mongodb-memory-server', () => {
+vi.mock('mongodb-memory-server', () => {
   throw new Error("Cannot find module 'mongodb-memory-server'");
 });
 

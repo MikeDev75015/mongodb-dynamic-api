@@ -1,20 +1,22 @@
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
+import type { Mock, Mocked } from 'vitest';
 import { Server } from 'socket.io';
 import { BroadcastConfig } from '../../interfaces';
 import { DynamicApiBroadcastService } from './dynamic-api-broadcast.service';
 
 describe('DynamicApiBroadcastService', () => {
   let service: DynamicApiBroadcastService;
-  let mockToEmit: jest.Mock;
-  let mockServer: jest.Mocked<Pick<Server, 'emit' | 'to'>>;
+  let mockToEmit: Mock;
+  let mockServer: Mocked<Pick<Server, 'emit' | 'to'>>;
 
   beforeEach(() => {
     service = new DynamicApiBroadcastService();
     // Reset the static server before each test to avoid cross-test interference
     (DynamicApiBroadcastService as unknown as { wsServer: Server | null }).wsServer = null;
-    mockToEmit = jest.fn();
+    mockToEmit = vi.fn();
     mockServer = {
-      emit: jest.fn(),
-      to: jest.fn().mockReturnValue({ emit: mockToEmit }),
+      emit: vi.fn(),
+      to: vi.fn().mockReturnValue({ emit: mockToEmit }),
     };
   });
 
@@ -119,7 +121,7 @@ describe('DynamicApiBroadcastService', () => {
       it('should call the predicate with undefined as user (HTTP context — no socket)', () => {
         service.setWsServer(mockServer as unknown as Server);
         const data = [{ id: '1', role: 'admin' }];
-        const predicate = jest.fn(() => true);
+        const predicate = vi.fn(() => true);
 
         service.broadcastFromHttp('my-event', data, { enabled: predicate });
 
@@ -184,7 +186,7 @@ describe('DynamicApiBroadcastService', () => {
       it('should call the rooms function with undefined as user (HTTP context — no socket)', () => {
         service.setWsServer(mockServer as unknown as Server);
         const data = [{ id: '1', companyId: 'c1' }];
-        const roomsFn = jest.fn((_item: { id: string; companyId: string }) => 'room-a');
+        const roomsFn = vi.fn((_item: { id: string; companyId: string }) => 'room-a');
 
         service.broadcastFromHttp('my-event', data, { enabled: true, rooms: roomsFn });
 
@@ -205,7 +207,7 @@ describe('DynamicApiBroadcastService', () => {
     describe('emit failures', () => {
       it('should catch and log an error when server.emit throws (no rooms)', () => {
         service.setWsServer(mockServer as unknown as Server);
-        const errorSpy = jest.spyOn(service['logger'], 'error').mockImplementation();
+        const errorSpy = vi.spyOn(service['logger'], 'error').mockImplementation();
         mockServer.emit.mockImplementation(() => {
           throw new Error('boom');
         });
@@ -217,7 +219,7 @@ describe('DynamicApiBroadcastService', () => {
 
       it('should catch and log an error when server.to(...).emit throws (rooms)', () => {
         service.setWsServer(mockServer as unknown as Server);
-        const errorSpy = jest.spyOn(service['logger'], 'error').mockImplementation();
+        const errorSpy = vi.spyOn(service['logger'], 'error').mockImplementation();
         mockToEmit.mockImplementation(() => {
           throw new Error('boom');
         });
@@ -230,7 +232,7 @@ describe('DynamicApiBroadcastService', () => {
 
       it('should catch and log an error when a custom `rooms` resolver throws, without emitting', () => {
         service.setWsServer(mockServer as unknown as Server);
-        const errorSpy = jest.spyOn(service['logger'], 'error').mockImplementation();
+        const errorSpy = vi.spyOn(service['logger'], 'error').mockImplementation();
 
         expect(() => service.broadcastFromHttp('my-event', [{ id: '1' }], {
           enabled: true,
@@ -248,7 +250,7 @@ describe('DynamicApiBroadcastService', () => {
 
       it('should catch and log an error when a custom `enabled` predicate throws, without emitting', () => {
         service.setWsServer(mockServer as unknown as Server);
-        const errorSpy = jest.spyOn(service['logger'], 'error').mockImplementation();
+        const errorSpy = vi.spyOn(service['logger'], 'error').mockImplementation();
 
         expect(() => service.broadcastFromHttp('my-event', [{ id: '1' }], {
           enabled: () => { throw new Error('predicate boom'); },

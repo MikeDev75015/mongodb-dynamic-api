@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DynamicApiEventRegistryStore } from './event-registry.store';
 
 describe('DynamicApiEventRegistryStore', () => {
@@ -78,7 +79,7 @@ describe('DynamicApiEventRegistryStore', () => {
     });
 
     it('should warn and record a collision when a different route registers the same event name', () => {
-      const warnSpy = jest.spyOn(DynamicApiEventRegistryStore['logger'], 'warn').mockImplementation();
+      const warnSpy = vi.spyOn(DynamicApiEventRegistryStore['logger'], 'warn').mockImplementation();
 
       DynamicApiEventRegistryStore.register({
         event: 'shared-event',
@@ -130,7 +131,7 @@ describe('DynamicApiEventRegistryStore', () => {
 
   describe('getCollisions', () => {
     it('should return a copy that does not mutate internal state', () => {
-      jest.spyOn(DynamicApiEventRegistryStore['logger'], 'warn').mockImplementation();
+      vi.spyOn(DynamicApiEventRegistryStore['logger'], 'warn').mockImplementation();
 
       DynamicApiEventRegistryStore.register({
         event: 'shared-event',
@@ -162,7 +163,7 @@ describe('DynamicApiEventRegistryStore', () => {
 
   describe('reset', () => {
     it('should clear both the registry and the collisions', () => {
-      jest.spyOn(DynamicApiEventRegistryStore['logger'], 'warn').mockImplementation();
+      vi.spyOn(DynamicApiEventRegistryStore['logger'], 'warn').mockImplementation();
 
       DynamicApiEventRegistryStore.register({
         event: 'shared-event',

@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { RateLimit } from './rate-limit.decorator';
 

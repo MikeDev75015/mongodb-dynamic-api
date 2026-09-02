@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { isTransactionsUnsupportedError } from './mongo-transaction.helper';
 
 describe('isTransactionsUnsupportedError', () => {

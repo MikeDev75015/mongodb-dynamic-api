@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { identifiersMatch, resolveIdentifierField } from './predicate-identifier.helper';
 
 describe('resolveIdentifierField', () => {

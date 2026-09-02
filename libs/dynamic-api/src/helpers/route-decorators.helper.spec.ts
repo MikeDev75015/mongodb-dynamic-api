@@ -1,3 +1,4 @@
+import { describe, expect, it, vi } from 'vitest';
 import { buildDynamicApiModuleOptionsMock } from '../../__mocks__/dynamic-api.module.mock';
 import { RouteDecoratorsBuilder } from '../builders';
 import { RouteDecoratorsHelper } from './route-decorators.helper';
@@ -13,7 +14,7 @@ describe('RouteDecoratorsHelper', () => {
       undefined,
       undefined,
     );
-    const spyBuild = jest.spyOn(routeDecorators, 'build');
+    const spyBuild = vi.spyOn(routeDecorators, 'build');
 
     RouteDecoratorsHelper(routeDecorators);
 

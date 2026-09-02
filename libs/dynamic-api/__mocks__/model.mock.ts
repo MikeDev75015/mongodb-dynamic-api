@@ -1,13 +1,15 @@
-import { createMock } from '@golevelup/ts-jest';
+import { vi } from 'vitest';
+import type { Mock } from 'vitest';
+import { createMock } from '@test-helpers';
 import { Model, Query } from 'mongoose';
 
 type LeanQueryMock<T> = {
-  exec: jest.Mock<Promise<T>>;
-  lean: () => { exec: jest.Mock<Promise<T>> };
+  exec: Mock<Promise<T>>;
+  lean: () => { exec: Mock<Promise<T>> };
 };
 
 type ExecQueryMock<T> = {
-  exec: jest.Mock<Promise<T>>;
+  exec: Mock<Promise<T>>;
 };
 
 const buildModelMock = <T = unknown>({
@@ -29,18 +31,18 @@ const buildModelMock = <T = unknown>({
   deleteOne?: unknown[];
   updateOne?: unknown[];
 } = {}) => {
-  const exec = jest.fn();
-  const lean = jest.fn(() => ({ exec }));
+  const exec = vi.fn();
+  const lean = vi.fn(() => ({ exec }));
   const modelMock = createMock<Model<T>>({
-    create: jest.fn(),
-    find: jest.fn(() => ({ lean })),
-    findOne: jest.fn(() => ({ lean })),
-    findOneAndReplace: jest.fn(() => ({ lean })),
-    findOneAndUpdate: jest.fn(() => ({ lean })),
-    updateMany: jest.fn(() => ({ lean })),
-    updateOne: jest.fn(() => ({ lean })),
-    deleteOne: jest.fn(),
-    deleteMany: jest.fn(),
+    create: vi.fn(),
+    find: vi.fn(() => ({ lean })),
+    findOne: vi.fn(() => ({ lean })),
+    findOneAndReplace: vi.fn(() => ({ lean })),
+    findOneAndUpdate: vi.fn(() => ({ lean })),
+    updateMany: vi.fn(() => ({ lean })),
+    updateOne: vi.fn(() => ({ lean })),
+    deleteOne: vi.fn(),
+    deleteMany: vi.fn(),
   });
 
   if (create?.length) {
@@ -54,9 +56,9 @@ const buildModelMock = <T = unknown>({
   if (find?.length) {
     find.forEach((f, i) => {
       const value: LeanQueryMock<T[]> = {
-        exec: jest.fn(() => Promise.resolve(f)),
+        exec: vi.fn(() => Promise.resolve(f)),
         lean: () => ({
-          exec: jest.fn(() => Promise.resolve(f)),
+          exec: vi.fn(() => Promise.resolve(f)),
         }),
       };
 
@@ -71,9 +73,9 @@ const buildModelMock = <T = unknown>({
   if (findOne?.length) {
     findOne.forEach((f, i) => {
       const value: LeanQueryMock<T> = {
-        exec: jest.fn(() => Promise.resolve(f)),
+        exec: vi.fn(() => Promise.resolve(f)),
         lean: () => ({
-          exec: jest.fn(() => Promise.resolve(f)),
+          exec: vi.fn(() => Promise.resolve(f)),
         }),
       };
 
@@ -88,9 +90,9 @@ const buildModelMock = <T = unknown>({
   if (findOneAndReplace?.length) {
     findOneAndReplace.forEach((f, i) => {
       const value: LeanQueryMock<T> = {
-        exec: jest.fn(() => Promise.resolve(f)),
+        exec: vi.fn(() => Promise.resolve(f)),
         lean: () => ({
-          exec: jest.fn(() => Promise.resolve(f)),
+          exec: vi.fn(() => Promise.resolve(f)),
         }),
       };
 
@@ -105,9 +107,9 @@ const buildModelMock = <T = unknown>({
   if (findOneAndUpdate?.length) {
     findOneAndUpdate.forEach((f, i) => {
       const value: LeanQueryMock<T> = {
-        exec: jest.fn(() => Promise.resolve(f)),
+        exec: vi.fn(() => Promise.resolve(f)),
         lean: () => ({
-          exec: jest.fn(() => Promise.resolve(f)),
+          exec: vi.fn(() => Promise.resolve(f)),
         }),
       };
 
@@ -122,7 +124,7 @@ const buildModelMock = <T = unknown>({
   if (deleteOne?.length) {
     deleteOne.forEach((d, i) => {
       const value: ExecQueryMock<unknown> = {
-        exec: jest.fn(() => Promise.resolve(d)),
+        exec: vi.fn(() => Promise.resolve(d)),
       };
 
       if (i === deleteOne.length - 1) {
@@ -136,7 +138,7 @@ const buildModelMock = <T = unknown>({
   if (deleteMany?.length) {
     deleteMany.forEach((d, i) => {
       const value: ExecQueryMock<unknown> = {
-        exec: jest.fn(() => Promise.resolve(d)),
+        exec: vi.fn(() => Promise.resolve(d)),
       };
 
       if (i === deleteMany.length - 1) {
@@ -150,7 +152,7 @@ const buildModelMock = <T = unknown>({
   if (updateOne?.length) {
     updateOne.forEach((u, i) => {
       const value: ExecQueryMock<unknown> = {
-        exec: jest.fn(() => Promise.resolve(u)),
+        exec: vi.fn(() => Promise.resolve(u)),
       };
 
       if (i === updateOne.length - 1) {

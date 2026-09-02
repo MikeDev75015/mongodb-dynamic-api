@@ -1,3 +1,4 @@
+import { describe, expect, it, vi } from 'vitest';
 import mongoose, { Model, Schema } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
 import { DynamicApiGlobalStateService } from './dynamic-api-global-state.service';
@@ -97,8 +98,8 @@ describe('DynamicApiGlobalStateService', () => {
   describe('getEntitySchema', () => {
     it('should get entity schema', async () => {
       const fakeModel = {} as Model<any>;
-      const fakeConnection = { model: jest.fn().mockReturnValue(fakeModel) } as unknown as mongoose.Connection;
-      jest.spyOn(mongoose, 'createConnection').mockReturnValue({ asPromise: jest.fn().mockResolvedValue(fakeConnection) } as unknown as ReturnType<typeof mongoose.createConnection>);
+      const fakeConnection = { model: vi.fn().mockReturnValue(fakeModel) } as unknown as mongoose.Connection;
+      vi.spyOn(mongoose, 'createConnection').mockReturnValue({ asPromise: vi.fn().mockResolvedValue(fakeConnection) } as unknown as ReturnType<typeof mongoose.createConnection>);
 
       const fakeSchema = {} as Schema;
       DynamicApiGlobalStateService.addEntitySchema(User, fakeSchema);
