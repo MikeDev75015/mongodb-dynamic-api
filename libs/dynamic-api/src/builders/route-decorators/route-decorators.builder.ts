@@ -1,10 +1,11 @@
 import { Delete, Get, Patch, Post, Put, Type } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiExtraModels, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { Public } from '../../decorators';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { lowerCase, lowerFirst, pascalCase, upperFirst } from '../../helpers';
-import { DynamicApiDecoratorBuilder, RouteType } from '../../interfaces';
+import { DynamicApiDecoratorBuilder, Mappable, RouteType } from '../../interfaces';
 import { BaseEntity } from '../../models';
+import { buildPaginatedResponseType } from './paginated-response.builder';
 
 /** @internal Not part of the public API — will be removed from the package's public exports in v5. */
 class RouteDecoratorsBuilder<Entity extends BaseEntity> implements DynamicApiDecoratorBuilder<Entity> {
@@ -111,6 +112,14 @@ class RouteDecoratorsBuilder<Entity extends BaseEntity> implements DynamicApiDec
 
   private getApiDecorators(paramKey?: string) {
     const feature = this.subPath ? `${pascalCase(this.subPath)}-${this.entity.name}` : this.entity.name;
+    const presenter = this.dTOs.presenter ?? this.entity;
+    // An `Aggregate` route returns { list, count, totalPage } instead of a bare presenter as soon
+    // as its presenter implements `fromAggregate` (see `AggregateControllerMixin`/
+    // `AggregateGatewayMixin`) — build a Swagger-only wrapper DTO so `ApiResponse` documents that
+    // real shape instead of always lying about a bare `Presenter`/`Presenter[]`.
+    const isPaginatedAggregate = this.routeType === 'Aggregate'
+      && typeof (presenter as Partial<Mappable<Entity>>).fromAggregate === 'function';
+    const responseType = isPaginatedAggregate ? buildPaginatedResponseType(presenter) : presenter;
 
     return [
       ApiOperation({
@@ -119,9 +128,11 @@ class RouteDecoratorsBuilder<Entity extends BaseEntity> implements DynamicApiDec
           this.description ??
           `${upperFirst(lowerCase(this.routeType))} ${lowerCase(feature)}`,
       }),
+      ...(isPaginatedAggregate ? [ApiExtraModels(presenter)] : []),
       ApiResponse({
-        type: this.dTOs.presenter ?? this.entity,
-        isArray: this.responseRouteTypeIsArray.includes(this.routeType) || this.isArrayResponse,
+        type: responseType,
+        isArray: !isPaginatedAggregate
+          && (this.responseRouteTypeIsArray.includes(this.routeType) || this.isArrayResponse),
       }),
       ...(
         this.dTOs.body ? [
