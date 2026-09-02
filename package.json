@@ -42,16 +42,16 @@
   "homepage": "https://mikedev75015.github.io",
   "dependencies": {
     "@angular-devkit/schematics": "^19.2.27",
-    "@nestjs/cache-manager": "^3.0.1",
-    "@nestjs/common": "^11.1.13",
-    "@nestjs/core": "11.1.18",
-    "@nestjs/jwt": "^11.0.2",
-    "@nestjs/mongoose": "^11.0.4",
-    "@nestjs/passport": "^11.0.5",
-    "@nestjs/platform-express": "^11.1.13",
-    "@nestjs/platform-socket.io": "^11.1.13",
-    "@nestjs/swagger": "^11.2.6",
-    "@nestjs/websockets": "^11.1.13",
+    "@nestjs/cache-manager": "^12.0.0",
+    "@nestjs/common": "^12.0.1",
+    "@nestjs/core": "^12.0.1",
+    "@nestjs/jwt": "^12.0.1",
+    "@nestjs/mongoose": "^12.0.0",
+    "@nestjs/passport": "^12.0.0",
+    "@nestjs/platform-express": "^12.0.1",
+    "@nestjs/platform-socket.io": "^12.0.1",
+    "@nestjs/swagger": "^12.0.1",
+    "@nestjs/websockets": "^12.0.1",
     "@types/lodash": "^4.14.202",
     "bcrypt": "^5.1.1",
     "cache-manager": "^6.1.6",
@@ -71,9 +71,9 @@
     "socket.io-client": "^4.7.5"
   },
   "devDependencies": {
-    "@nestjs/cli": "^11.0.16",
-    "@nestjs/schematics": "^11.0.9",
-    "@nestjs/testing": "^11.1.16",
+    "@nestjs/cli": "^12.0.0",
+    "@nestjs/schematics": "^12.0.0",
+    "@nestjs/testing": "^12.0.1",
     "@nestjs/throttler": "^6.5.0",
     "@release-it/bumper": "^7.0.5",
     "@release-it/conventional-changelog": "^11.0.0",
@@ -106,6 +106,20 @@
     "unplugin-swc": "^1.5.11",
     "vitest": "^4.1.11",
     "vitest-sonar-reporter": "^3.0.0"
+  },
+  "overrides": {
+    "@nestjs/throttler": {
+      "@nestjs/common": "$@nestjs/common",
+      "@nestjs/core": "$@nestjs/core"
+    },
+    "@nestjs/schematics": {
+      "typescript": "$typescript"
+    },
+    "@nestjs/cli": {
+      "@swc/cli": "$@swc/cli",
+      "@swc/core": "$@swc/core",
+      "ts-loader": "$ts-loader"
+    }
   },
   "publishConfig": {
     "access": "public"
