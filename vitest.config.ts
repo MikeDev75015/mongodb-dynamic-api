@@ -44,6 +44,12 @@ export default defineConfig({
     environment: 'node',
     include: ['libs/**/*.spec.ts'],
     clearMocks: true,
+    // Only libs/schematics/resource/index.spec.ts actually needs this (see the file's own
+    // comment) - @angular-devkit/schematics loads the schematic factory via a bare native
+    // require('*.ts'), which nothing else in this transform's own Vite/SSR pipeline reaches.
+    // Cheap to register unconditionally for every file (a no-op unless something actually calls
+    // a native require() of a .ts file) rather than wiring per-file setup.
+    setupFiles: ['./libs/dynamic-api/test/helpers/register-ts-require-hook.ts'],
     coverage: {
       provider: 'istanbul',
       reportsDirectory: 'coverage',
