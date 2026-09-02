@@ -4,11 +4,13 @@ import { Exclude } from 'class-transformer';
 import { BaseEntity } from './base-entity.model';
 
 export abstract class SoftDeletableEntity extends BaseEntity {
+  // See BaseEntity's comment: `declare` keeps these uninitialized fields runtime-free under SWC
+  // too, matching plain tsc, so plainToInstance() doesn't pick up a spurious `undefined` value.
   @Exclude()
   @Prop({ type: Boolean, default: false })
-  isDeleted: boolean;
+  declare isDeleted: boolean;
 
   @ApiProperty({ type: Date, nullable: true })
   @Prop({ type: Date, nullable: true, default: null })
-  deletedAt: Date | null;
+  declare deletedAt: Date | null;
 }

@@ -15,13 +15,23 @@ import { OtpCode, OtpCodeSchema } from './models/otp-code.model';
 import { DynamicApiAuthOptions, DynamicApiResetPasswordOptions } from './interfaces';
 import { JwtRefreshStrategy, JwtStrategy } from './strategies';
 
+// cookie-parser's CJS `module.exports` is itself the callable factory function. Under plain tsc
+// (no esModuleInterop - confirmed in tsconfig.json), `import * as cookieParser` compiles to
+// `const cookieParser = require(...)`, so `cookieParser` IS that callable directly. Under Vite's
+// real-ESM SSR module runner (this repo's Vitest e2e config), the same `import *` instead yields a
+// non-callable namespace object with the callable function on `.default` — true ESM semantics
+// never make a namespace itself callable, that's a tsc/CJS-only accident this code relied on. This
+// accessor is correct under both: `.default` is undefined on the raw CJS export tsc produces, so it
+// falls back to the namespace itself; it's the actual function under Vite's ESM interop.
+const cookieParserMiddleware = (cookieParser as unknown as { default?: typeof cookieParser }).default ?? cookieParser;
+
 @Module({})
 export class AuthModule implements NestModule {
   private static useCookie = false;
 
   configure(consumer: MiddlewareConsumer) {
     if (AuthModule.useCookie) {
-      consumer.apply(cookieParser()).forRoutes('*');
+      consumer.apply(cookieParserMiddleware()).forRoutes('*');
     }
   }
 
