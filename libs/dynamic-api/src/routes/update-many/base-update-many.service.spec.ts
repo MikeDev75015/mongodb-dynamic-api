@@ -226,7 +226,7 @@ describe('BaseUpdateManyService', () => {
       service = initService(exec);
       vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       internal(service).auditLog = true;
-      const writeAuditLogSpy = vi
+      const writeAuditLogSpy = jest
         .spyOn(service as unknown as { writeAuditLog: Mock }, 'writeAuditLog')
         .mockResolvedValue(undefined);
       const fakeUser = { id: 'user-1' };
@@ -243,7 +243,7 @@ describe('BaseUpdateManyService', () => {
       service = initService(exec);
       vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       internal(service).auditLog = true;
-      const writeAuditLogSpy = vi
+      const writeAuditLogSpy = jest
         .spyOn(service as unknown as { writeAuditLog: Mock }, 'writeAuditLog')
         .mockResolvedValue(undefined);
 
@@ -257,7 +257,7 @@ describe('BaseUpdateManyService', () => {
       const exec = vi.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedDocuments);
       service = initService(exec);
       vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
-      const writeAuditLogSpy = vi
+      const writeAuditLogSpy = jest
         .spyOn(service as unknown as { writeAuditLog: Mock }, 'writeAuditLog')
         .mockResolvedValue(undefined);
 

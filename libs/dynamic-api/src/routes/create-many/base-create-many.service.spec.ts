@@ -171,7 +171,7 @@ describe('BaseCreateManyService', () => {
       const created2 = { _id: 'ObjectId2', __v: 1, name: 'test2' };
       service = initService([created, created2]);
       internal(service).auditLog = true;
-      const writeAuditLogSpy = vi
+      const writeAuditLogSpy = jest
         .spyOn(service as unknown as { writeAuditLog: Mock }, 'writeAuditLog')
         .mockResolvedValue(undefined);
       const fakeUser = { id: 'user-1' };
@@ -185,7 +185,7 @@ describe('BaseCreateManyService', () => {
 
     it('should not call writeAuditLog when auditLog is not enabled', async () => {
       service = initService([created]);
-      const writeAuditLogSpy = vi
+      const writeAuditLogSpy = jest
         .spyOn(service as unknown as { writeAuditLog: Mock }, 'writeAuditLog')
         .mockResolvedValue(undefined);
 

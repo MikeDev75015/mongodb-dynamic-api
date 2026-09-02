@@ -112,7 +112,7 @@ describe('DynamicApiGlobalStateService', () => {
     it('should get entity schema', async () => {
       const fakeModel = {} as Model<any>;
       const fakeConnection = { model: vi.fn().mockReturnValue(fakeModel) } as unknown as mongoose.Connection;
-      vi.mocked(mongoose.createConnection).mockReturnValue({ asPromise: vi.fn().mockResolvedValue(fakeConnection) } as unknown as ReturnType<typeof mongoose.createConnection>);
+      vi.spyOn(mongoose, 'createConnection').mockReturnValue({ asPromise: vi.fn().mockResolvedValue(fakeConnection) } as unknown as ReturnType<typeof mongoose.createConnection>);
 
       const fakeSchema = {} as Schema;
       DynamicApiGlobalStateService.addEntitySchema(User, fakeSchema);

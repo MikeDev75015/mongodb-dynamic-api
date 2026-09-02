@@ -1,6 +1,6 @@
 import { describe, expect, it, test, vi } from 'vitest';
 import type { Mock } from 'vitest';
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import { Model } from 'mongoose';
 import { CallbackMethods, AfterSaveCallback, CallbackRetryOptions, PopulateConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
