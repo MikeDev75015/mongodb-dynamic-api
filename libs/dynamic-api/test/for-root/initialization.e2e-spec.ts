@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import mongoose from 'mongoose';
 import { DynamicApiModule } from '../../src';
 import { closeTestingApp } from '../e2e.setup';

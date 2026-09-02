@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 /**
  * E2E tests for @DerivedField, @ProtectedField and fromUser
  *

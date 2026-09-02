@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { INestApplication } from '@nestjs/common';
 import { Prop, Schema } from '@nestjs/mongoose';
 import { Test } from '@nestjs/testing';
@@ -87,7 +88,7 @@ const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 describe('DynamicApiPresenceModule (e2e)', () => {
   // App init + socket handshakes can exceed the default 5 s jest timeout.
-  jest.setTimeout(20000);
+  vi.setConfig({ testTimeout: 20000 });
 
   let accessToken: string;
 
