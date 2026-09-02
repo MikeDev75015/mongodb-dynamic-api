@@ -244,7 +244,7 @@ describe('DynamicApiCacheInterceptor', () => {
   });
 
   describe('intercept', () => {
-    it('should return next.handle() if global cache is disabled', (done) => {
+    it('should return next.handle() if global cache is disabled', () => new Promise<void>((resolve) => {
       state.isGlobalCacheEnabled = false;
       const context = {
         switchToHttp: () => ({
@@ -259,12 +259,12 @@ describe('DynamicApiCacheInterceptor', () => {
         obs.subscribe((result) => {
           expect(result).toBe('handled');
           expect(cacheService.invalidateForUrl).not.toHaveBeenCalled();
-          done();
+          resolve();
         });
       });
-    });
+    }));
 
-    it('should invalidate the cache scoped to the request URL after a successful write operation', (done) => {
+    it('should invalidate the cache scoped to the request URL after a successful write operation', () => new Promise<void>((resolve) => {
       state.isGlobalCacheEnabled = true;
       const context = {
         switchToHttp: () => ({
@@ -278,12 +278,12 @@ describe('DynamicApiCacheInterceptor', () => {
         obs.subscribe((result) => {
           expect(result).toBe('created');
           expect(cacheService.invalidateForUrl).toHaveBeenCalledWith('/users');
-          done();
+          resolve();
         });
       });
-    });
+    }));
 
-    it('should invalidate the cache after a DELETE operation', (done) => {
+    it('should invalidate the cache after a DELETE operation', () => new Promise<void>((resolve) => {
       state.isGlobalCacheEnabled = true;
       const context = {
         switchToHttp: () => ({
@@ -297,12 +297,12 @@ describe('DynamicApiCacheInterceptor', () => {
         obs.subscribe((result) => {
           expect(result).toBe('deleted');
           expect(cacheService.invalidateForUrl).toHaveBeenCalledWith('/users/123');
-          done();
+          resolve();
         });
       });
-    });
+    }));
 
-    it('should invalidate the cache after a PATCH operation', (done) => {
+    it('should invalidate the cache after a PATCH operation', () => new Promise<void>((resolve) => {
       state.isGlobalCacheEnabled = true;
       const context = {
         switchToHttp: () => ({
@@ -316,12 +316,12 @@ describe('DynamicApiCacheInterceptor', () => {
         obs.subscribe((result) => {
           expect(result).toBe('updated');
           expect(cacheService.invalidateForUrl).toHaveBeenCalledWith('/users/123');
-          done();
+          resolve();
         });
       });
-    });
+    }));
 
-    it('should not invalidate the cache on write if global cache is disabled', (done) => {
+    it('should not invalidate the cache on write if global cache is disabled', () => new Promise<void>((resolve) => {
       state.isGlobalCacheEnabled = false;
       const context = {
         switchToHttp: () => ({
@@ -335,12 +335,12 @@ describe('DynamicApiCacheInterceptor', () => {
         obs.subscribe((result) => {
           expect(result).toBe('created');
           expect(cacheService.invalidateForUrl).not.toHaveBeenCalled();
-          done();
+          resolve();
         });
       });
-    });
+    }));
 
-    it('should return next.handle() if auth is enabled and path contains /auth/', (done) => {
+    it('should return next.handle() if auth is enabled and path contains /auth/', () => new Promise<void>((resolve) => {
       state.isGlobalCacheEnabled = true;
       state.isAuthEnabled = true;
       const context = {
@@ -355,12 +355,12 @@ describe('DynamicApiCacheInterceptor', () => {
       interceptor.intercept(context, next).then((obs) => {
         obs.subscribe((result) => {
           expect(result).toBe('handled');
-          done();
+          resolve();
         });
       });
-    });
+    }));
 
-    it('should return super.intercept() if global cache is enabled and request is cacheable', (done) => {
+    it('should return super.intercept() if global cache is enabled and request is cacheable', () => new Promise<void>((resolve) => {
       state.isGlobalCacheEnabled = true;
       const context = {
         switchToHttp: () => ({
@@ -374,12 +374,12 @@ describe('DynamicApiCacheInterceptor', () => {
       interceptor.intercept(context, next).then((obs) => {
         obs.subscribe((result) => {
           expect(result).toBe('intercepted');
-          done();
+          resolve();
         });
       });
-    });
+    }));
 
-    it('should return next.handle() if disableCache metadata is true on a GET route', (done) => {
+    it('should return next.handle() if disableCache metadata is true on a GET route', () => new Promise<void>((resolve) => {
       state.isGlobalCacheEnabled = true;
       (reflector.get as Mock).mockReturnValue(true);
       const context = {
@@ -394,9 +394,9 @@ describe('DynamicApiCacheInterceptor', () => {
       interceptor.intercept(context, next).then((obs) => {
         obs.subscribe((result) => {
           expect(result).toBe('handled');
-          done();
+          resolve();
         });
       });
-    });
+    }));
   });
 });

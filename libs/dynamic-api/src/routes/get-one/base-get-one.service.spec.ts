@@ -1,6 +1,6 @@
 import { describe, expect, it, test, vi } from 'vitest';
 import type { Mock } from 'vitest';
-import { BadRequestException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import { Model } from 'mongoose';
 import { CallbackMethods, AfterSaveCallback, CallbackRetryOptions, PopulateConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
@@ -136,7 +136,7 @@ describe('BaseGetOneService', () => {
       vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
 
       await expect(service.getOne('ObjectId')).rejects.toThrow(
-        new BadRequestException('Document not found'),
+        new NotFoundException('Document not found'),
       );
     });
   });

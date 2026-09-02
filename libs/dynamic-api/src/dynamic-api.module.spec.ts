@@ -246,7 +246,7 @@ describe('DynamicApiModule', () => {
         displayedName: 'fake-displayed-name',
         event: 'fake-event',
       });
-      mongooseModuleSpy = jest
+      mongooseModuleSpy = vi
       .spyOn(MongooseModule, 'forFeature')
       .mockReturnValue(fakeDatabaseModule as unknown as DynamicModule);
     });
@@ -280,7 +280,7 @@ describe('DynamicApiModule', () => {
 
     it('should call DynamicApiGlobalStateService.addEntitySchema with entity and schema', () => {
       const { entity, controllerOptions, routes } = defaultOptions;
-      const addEntitySchemaSpy = jest
+      const addEntitySchemaSpy = vi
       .spyOn(DynamicApiGlobalStateService, 'addEntitySchema');
 
       DynamicApiModule.forFeature({

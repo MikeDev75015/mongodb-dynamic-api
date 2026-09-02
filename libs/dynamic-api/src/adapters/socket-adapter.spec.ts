@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, test, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { SocketAdapter } from './socket-adapter';
 import { IoAdapter } from '@nestjs/platform-socket.io';
+import * as jwt from 'jsonwebtoken';
 import { DynamicApiWsConfigStore } from '../helpers/ws-config.store';
 
 vi.mock('jsonwebtoken', () => ({
@@ -51,8 +53,7 @@ describe('SocketAdapter', () => {
     });
 
     it('should decode JWT and set user on socket when jwtSecret is set', () => {
-      const jwt = require('jsonwebtoken');
-      jwt.verify.mockReturnValue({ iat: 1, exp: 2, id: 'user-1', name: 'Test' });
+      (jwt.verify as Mock).mockReturnValue({ iat: 1, exp: 2, id: 'user-1', name: 'Test' });
       DynamicApiWsConfigStore.jwtSecret = 'secret';
 
       const socket = {
@@ -89,8 +90,7 @@ describe('SocketAdapter', () => {
     });
 
     it('should call onConnection with user when JWT is valid', () => {
-      const jwt = require('jsonwebtoken');
-      jwt.verify.mockReturnValue({ iat: 1, exp: 2, id: 'u1' });
+      (jwt.verify as Mock).mockReturnValue({ iat: 1, exp: 2, id: 'u1' });
       DynamicApiWsConfigStore.jwtSecret = 'secret';
       const onConnection = vi.fn();
       DynamicApiWsConfigStore.onConnection = onConnection;
@@ -114,8 +114,7 @@ describe('SocketAdapter', () => {
     });
 
     it('should warn on JWT verification failure when debug is true', () => {
-      const jwt = require('jsonwebtoken');
-      jwt.verify.mockImplementation(() => { throw new Error('bad token'); });
+      (jwt.verify as Mock).mockImplementation(() => { throw new Error('bad token'); });
       DynamicApiWsConfigStore.jwtSecret = 'secret';
       DynamicApiWsConfigStore.debug = true;
       const spyWarn = vi.spyOn(adapter['logger'], 'warn').mockImplementation(() => {});

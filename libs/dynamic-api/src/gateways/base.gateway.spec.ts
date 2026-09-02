@@ -22,11 +22,16 @@ class TestGateway extends BaseGateway<Entity> {
 describe('BaseGateway', () => {
   let gateway: TestGateway;
   let socket: ExtendedSocket<Entity>;
+  let jwtService: JwtService;
 
-  const jwtService = createMock<JwtService>();
   const accessToken = 'accessToken';
 
   beforeEach(() => {
+    // Fresh proxy per test: createMock's `get` trap caches a fabricated `verify` mock the first
+    // time it's read, so a shared instance would keep serving test #1's mock forever once any
+    // later test reassigns `jwtService.verify` directly (vi.spyOn — the original approach — isn't
+    // usable here, see the file-level note below).
+    jwtService = createMock<JwtService>();
     gateway = new TestGateway(jwtService);
     socket = {
       handshake: {
@@ -59,7 +64,7 @@ describe('BaseGateway', () => {
       socket.handshake.query = { accessToken };
       const isPublic = false;
       vi.spyOn(DynamicApiModule.state, 'get').mockReturnValue(true);
-      vi.spyOn(jwtService, 'verify').mockImplementation(() => {
+      (jwtService.verify = vi.fn()).mockImplementation(() => {
         throw new Error('verify error');
       });
       const spyLoggerWarn = vi.spyOn(gateway['logger'], 'warn');
@@ -78,7 +83,7 @@ describe('BaseGateway', () => {
       socket.handshake.query = { accessToken };
       const isPublic = false;
       vi.spyOn(DynamicApiModule.state, 'get').mockReturnValue(true);
-      vi.spyOn(jwtService, 'verify').mockReturnValue({
+      (jwtService.verify = vi.fn()).mockReturnValue({
         iat: Date.now() / 1000,
         exp: Date.now() / 1000 + 1000,
       });
@@ -91,7 +96,7 @@ describe('BaseGateway', () => {
       const isPublic = false;
       const fakeUser = { id: 'id', name: 'name' };
       vi.spyOn(DynamicApiModule.state, 'get').mockReturnValue(true);
-      vi.spyOn(jwtService, 'verify').mockReturnValue({
+      (jwtService.verify = vi.fn()).mockReturnValue({
         iat: Date.now() / 1000,
         exp: Date.now() / 1000 + 1000,
         ...fakeUser,
@@ -108,7 +113,7 @@ describe('BaseGateway', () => {
       const isPublic = false;
       const fakeUser = { id: 'id', name: 'name' };
       vi.spyOn(DynamicApiModule.state, 'get').mockReturnValue(true);
-      vi.spyOn(jwtService, 'verify').mockReturnValue({
+      (jwtService.verify = vi.fn()).mockReturnValue({
         iat: Date.now() / 1000,
         exp: Date.now() / 1000 + 1000,
         ...fakeUser,
@@ -126,7 +131,7 @@ describe('BaseGateway', () => {
       const isPublic = false;
       const fakeUser = { id: 'id', name: 'name' };
       vi.spyOn(DynamicApiModule.state, 'get').mockReturnValue(true);
-      const verifySpy = vi.spyOn(jwtService, 'verify').mockReturnValue({
+      const verifySpy = (jwtService.verify = vi.fn()).mockReturnValue({
         iat: Date.now() / 1000,
         exp: Date.now() / 1000 + 1000,
         ...fakeUser,
