@@ -1,4 +1,5 @@
-import { createMock } from '@golevelup/ts-jest';
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
+import { createMock } from '@test-helpers';
 import { Type } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
@@ -46,7 +47,7 @@ describe('UpdateOneHelper', () => {
 
     it('should instantiate UpdateOne controller with default values', async () => {
       const service = {
-        updateOne: jest.fn(),
+        updateOne: vi.fn(),
       };
       const controllerClass = createUpdateOneController(
         entity,
@@ -55,7 +56,7 @@ describe('UpdateOneHelper', () => {
         { type: 'UpdateOne' },
       );
       const controller = new controllerClass(service);
-      const spyServiceUpdateOne = jest.spyOn(service, 'updateOne');
+      const spyServiceUpdateOne = vi.spyOn(service, 'updateOne');
 
       expect(controller).toBeDefined();
       expect(controller['service']).toBe(service);

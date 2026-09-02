@@ -1,3 +1,5 @@
+import { describe, expect, it, test, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { Type } from '@nestjs/common';
 import { PipelineStage } from 'mongodb-pipeline-builder';
 import { Model, ObjectId } from 'mongoose';
@@ -28,7 +30,7 @@ describe('BaseAggregateService', () => {
 
   const initService = (documents: Entity[] = [], withPagination = false) => {
     modelMock = {
-      aggregate: jest.fn().mockResolvedValue(!withPagination
+      aggregate: vi.fn().mockResolvedValue(!withPagination
         ? documents
         : [{ docs: documents, count: [{ totalElements: documents.length }] }]
       ),
@@ -77,7 +79,7 @@ describe('BaseAggregateService', () => {
 
     it('should call callback if it is defined', async () => {
       service = initService([aggregated]);
-      const callback = jest.fn(() => Promise.resolve());
+      const callback = vi.fn(() => Promise.resolve());
       service['callback'] = callback;
       const user = { id: 'userId' };
       await service.aggregate(pipelineStages, user);
@@ -87,7 +89,7 @@ describe('BaseAggregateService', () => {
 
     it('should not throw and should still return the full list when callback rejects', async () => {
       service = initService([aggregated]);
-      service['callback'] = jest.fn(() => Promise.reject(new Error('boom')));
+      service['callback'] = vi.fn(() => Promise.reject(new Error('boom')));
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { _id, __v, ...documentWithoutIdAndVersion } = aggregated;
 
@@ -100,7 +102,7 @@ describe('BaseAggregateService', () => {
 
     it('should succeed on retry when callbackRetry is configured', async () => {
       service = initService([aggregated]);
-      const callback = jest.fn()
+      const callback = vi.fn()
         .mockRejectedValueOnce(new Error('transient'))
         .mockResolvedValueOnce(undefined);
       service['callback'] = callback;
@@ -191,7 +193,7 @@ describe('BaseAggregateService', () => {
 
     it('should throw an error if the create query fails', async () => {
       service = initService();
-      (modelMock.aggregate as jest.Mock).mockRejectedValue(new Error('create error'));
+      (modelMock.aggregate as Mock).mockRejectedValue(new Error('create error'));
 
       await expect(service.aggregate(pipelineStages)).rejects.toThrow('create error');
     });

@@ -1,35 +1,37 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Mock, MockedClass } from 'vitest';
 import Redis from 'ioredis';
 import { DEFAULT_REDIS_PRESENCE_TTL, RedisPresenceAdapter } from './redis-presence.adapter';
 
-jest.mock('ioredis', () => {
+vi.mock('ioredis', () => {
   const mockInstance = {
-    sadd: jest.fn(),
-    srem: jest.fn(),
-    scard: jest.fn(),
-    expire: jest.fn(),
-    keys: jest.fn(),
-    smembers: jest.fn(),
-    eval: jest.fn(),
-    quit: jest.fn(),
+    sadd: vi.fn(),
+    srem: vi.fn(),
+    scard: vi.fn(),
+    expire: vi.fn(),
+    keys: vi.fn(),
+    smembers: vi.fn(),
+    eval: vi.fn(),
+    quit: vi.fn(),
   };
-  const ctor = jest.fn(() => mockInstance);
+  const ctor = vi.fn(function Redis() { return mockInstance; });
   (ctor as unknown as Record<string, unknown>).__instance = mockInstance;
   return { __esModule: true, default: ctor };
 });
 
 /**
  * Creates a plain object that satisfies the shape of an ioredis Redis client.
- * No real Redis connection is made — all commands are jest.fn() stubs.
+ * No real Redis connection is made — all commands are vi.fn() stubs.
  */
 const createRedisMock = () => ({
-  sadd: jest.fn(),
-  srem: jest.fn(),
-  scard: jest.fn(),
-  expire: jest.fn(),
-  keys: jest.fn(),
-  smembers: jest.fn(),
-  eval: jest.fn(),
-  quit: jest.fn(),
+  sadd: vi.fn(),
+  srem: vi.fn(),
+  scard: vi.fn(),
+  expire: vi.fn(),
+  keys: vi.fn(),
+  smembers: vi.fn(),
+  eval: vi.fn(),
+  quit: vi.fn(),
 });
 
 type RedisMock = ReturnType<typeof createRedisMock>;
@@ -39,7 +41,7 @@ describe('RedisPresenceAdapter', () => {
   let redisMock: RedisMock;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     redisMock = createRedisMock();
     // Inject the mock Redis client directly via the overloaded constructor
     adapter = new RedisPresenceAdapter(redisMock as never);
@@ -51,7 +53,7 @@ describe('RedisPresenceAdapter', () => {
 
   describe('constructor with string URL', () => {
     it('should instantiate ioredis Redis with the provided URL and lazyConnect option', () => {
-      const MockRedis = Redis as jest.MockedClass<typeof Redis>;
+      const MockRedis = Redis as MockedClass<typeof Redis>;
       MockRedis.mockClear();
 
       new RedisPresenceAdapter('redis://localhost:6379');
@@ -95,7 +97,7 @@ describe('RedisPresenceAdapter', () => {
 
       await adapter.setOnline('u1', 'sock-1');
 
-      const saddCalls = (redisMock.sadd as jest.Mock).mock.calls as [string, ...unknown[]][];
+      const saddCalls = (redisMock.sadd as Mock).mock.calls as [string, ...unknown[]][];
       expect(saddCalls.every((args) => !String(args[0]).startsWith('presence:room:'))).toBe(true);
     });
 
@@ -119,7 +121,7 @@ describe('RedisPresenceAdapter', () => {
       await adapter.setOffline('u1', 'sock-1');
 
       expect(redisMock.eval).toHaveBeenCalled();
-      const evalArgs = (redisMock.eval as jest.Mock).mock.calls[0] as [
+      const evalArgs = (redisMock.eval as Mock).mock.calls[0] as [
         string,
         number,
         string,

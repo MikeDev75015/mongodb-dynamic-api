@@ -1,4 +1,5 @@
-import { createMock } from '@golevelup/ts-jest';
+import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
+import { createMock } from '@test-helpers';
 import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
 import { ObjectId } from 'mongoose';
@@ -231,7 +232,7 @@ describe('AuthGatewayMixin', () => {
       );
       gateway = new AuthGateway(service, jwtService);
       service.validateUser.mockResolvedValue(fakeUser);
-      login.abilityPredicate = jest.fn(() => false);
+      login.abilityPredicate = vi.fn(() => false);
 
       await expect(gateway.login(socket, loginDto)).rejects.toThrow(new WsException('Access denied'));
 
@@ -367,7 +368,7 @@ describe('AuthGatewayMixin', () => {
     let socket: ExtendedSocket<TestEntity>;
 
     beforeEach(() => {
-      service.logout = jest.fn().mockResolvedValue(undefined);
+      service.logout = vi.fn().mockResolvedValue(undefined);
       socket = {} as ExtendedSocket<TestEntity>;
     });
 
@@ -433,7 +434,7 @@ describe('AuthGatewayMixin', () => {
     beforeEach(() => {
       socket = {
         user: fakeUser,
-        broadcast: { emit: jest.fn() },
+        broadcast: { emit: vi.fn() },
         handshake: { query: {} },
       } as unknown as ExtendedSocket<TestEntity>;
 
@@ -445,7 +446,7 @@ describe('AuthGatewayMixin', () => {
       jwtService.decode.mockReturnValue({ id: fakeUser.id, loginField: fakeUser.loginField, iat: 1, exp: 9999 });
     });
 
-    afterEach(() => jest.clearAllMocks());
+    afterEach(() => vi.clearAllMocks());
 
     describe('login broadcast', () => {
       it('should broadcast user fields on login with broadcast enabled', async () => {

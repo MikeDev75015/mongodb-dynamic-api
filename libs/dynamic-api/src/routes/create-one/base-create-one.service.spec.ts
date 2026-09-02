@@ -1,3 +1,5 @@
+import { describe, expect, it, test, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { Model } from 'mongoose';
 import {
   CallbackMethods,
@@ -24,7 +26,7 @@ type InternalService = {
   callbackMethods: CallbackMethods;
   beforeSaveCallback: BeforeSaveCallback<TestEntity> | undefined;
   auditLog: boolean | undefined;
-  writeAuditLog: jest.Mock;
+  writeAuditLog: Mock;
 };
 
 const internal = (svc: TestService) => svc as unknown as InternalService;
@@ -38,10 +40,10 @@ describe('BaseCreateOneService', () => {
 
   const initService = (document?: object) => {
     modelMock = {
-      create: jest.fn().mockResolvedValue(created),
-      findOne: jest.fn().mockReturnThis(),
-      lean: jest.fn().mockReturnThis(),
-      exec: jest.fn().mockResolvedValue(document),
+      create: vi.fn().mockResolvedValue(created),
+      findOne: vi.fn().mockReturnThis(),
+      lean: vi.fn().mockReturnThis(),
+      exec: vi.fn().mockResolvedValue(document),
     } as unknown as Model<TestEntity>;
 
     return new TestService(modelMock);
@@ -66,7 +68,7 @@ describe('BaseCreateOneService', () => {
 
     it('should call callback if it is defined', async () => {
       service = initService(created);
-      const callback = jest.fn(() => Promise.resolve());
+      const callback = vi.fn(() => Promise.resolve());
       internal(service).callback = callback;
       await service.createOne(toCreate);
 
@@ -76,7 +78,7 @@ describe('BaseCreateOneService', () => {
 
     it('should pass user to callback if it is defined', async () => {
       service = initService(created);
-      const callback = jest.fn(() => Promise.resolve());
+      const callback = vi.fn(() => Promise.resolve());
       internal(service).callback = callback;
       const fakeUser = { id: 'user-1', email: 'test@test.com' };
       await service.createOne(toCreate, fakeUser);
@@ -87,7 +89,7 @@ describe('BaseCreateOneService', () => {
 
     it('should not throw and should still return the created entity when callback rejects', async () => {
       service = initService(created);
-      internal(service).callback = jest.fn(() => Promise.reject(new Error('boom')));
+      internal(service).callback = vi.fn(() => Promise.reject(new Error('boom')));
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { _id, __v, ...documentWithoutIdAndVersion } = created;
 
@@ -99,7 +101,7 @@ describe('BaseCreateOneService', () => {
 
     it('should succeed on retry when callbackRetry is configured', async () => {
       service = initService(created);
-      const callback = jest.fn()
+      const callback = vi.fn()
         .mockRejectedValueOnce(new Error('transient'))
         .mockResolvedValueOnce(undefined);
       internal(service).callback = callback;
@@ -112,7 +114,7 @@ describe('BaseCreateOneService', () => {
 
     it('should throw an error if the document already exists', async () => {
       service = initService();
-      (modelMock.create as jest.Mock).mockRejectedValue({
+      (modelMock.create as Mock).mockRejectedValue({
         code: 11000,
         keyValue: { name: 'test' },
       });
@@ -124,14 +126,14 @@ describe('BaseCreateOneService', () => {
 
     it('should throw an error if the create query fails', async () => {
       service = initService();
-      (modelMock.create as jest.Mock).mockRejectedValue(new Error('create error'));
+      (modelMock.create as Mock).mockRejectedValue(new Error('create error'));
 
       await expect(service.createOne(toCreate)).rejects.toThrow('create error');
     });
 
     it('should call beforeSaveCallback if it is defined', async () => {
       service = initService(created);
-      const beforeSaveCallback = jest.fn(() => Promise.resolve(toCreate));
+      const beforeSaveCallback = vi.fn(() => Promise.resolve(toCreate));
       internal(service).beforeSaveCallback = beforeSaveCallback;
       await service.createOne(toCreate);
 
@@ -146,7 +148,7 @@ describe('BaseCreateOneService', () => {
 
     it('should pass user to beforeSaveCallback if it is defined', async () => {
       service = initService(created);
-      const beforeSaveCallback = jest.fn(() => Promise.resolve(toCreate));
+      const beforeSaveCallback = vi.fn(() => Promise.resolve(toCreate));
       internal(service).beforeSaveCallback = beforeSaveCallback;
       const fakeUser = { id: 'user-1', email: 'test@test.com' };
       await service.createOne(toCreate, fakeUser);
@@ -162,8 +164,8 @@ describe('BaseCreateOneService', () => {
 
     it('should call applyDerivedFields with "save" trigger after beforeSaveCallback', async () => {
       service = initService(created);
-      const applyDerivedFieldsSpy = jest
-        .spyOn(service as unknown as { applyDerivedFields: jest.Mock }, 'applyDerivedFields')
+      const applyDerivedFieldsSpy = vi
+        .spyOn(service as unknown as { applyDerivedFields: Mock }, 'applyDerivedFields')
         .mockImplementation((p) => p);
 
       await service.createOne(toCreate);
@@ -174,8 +176,8 @@ describe('BaseCreateOneService', () => {
     it('should apply applyDerivedFields result to the entity persisted', async () => {
       service = initService(created);
       const withDerived = { ...toCreate, slug: 'test-slug' };
-      jest
-        .spyOn(service as unknown as { applyDerivedFields: jest.Mock }, 'applyDerivedFields')
+      vi
+        .spyOn(service as unknown as { applyDerivedFields: Mock }, 'applyDerivedFields')
         .mockReturnValue(withDerived);
 
       await service.createOne(toCreate);
@@ -186,8 +188,8 @@ describe('BaseCreateOneService', () => {
     it('should call writeAuditLog with the created document when auditLog is enabled', async () => {
       service = initService(created);
       internal(service).auditLog = true;
-      const writeAuditLogSpy = jest
-        .spyOn(service as unknown as { writeAuditLog: jest.Mock }, 'writeAuditLog')
+      const writeAuditLogSpy = vi
+        .spyOn(service as unknown as { writeAuditLog: Mock }, 'writeAuditLog')
         .mockResolvedValue(undefined);
       const fakeUser = { id: 'user-1' };
 
@@ -199,8 +201,8 @@ describe('BaseCreateOneService', () => {
 
     it('should not call writeAuditLog when auditLog is not enabled', async () => {
       service = initService(created);
-      const writeAuditLogSpy = jest
-        .spyOn(service as unknown as { writeAuditLog: jest.Mock }, 'writeAuditLog')
+      const writeAuditLogSpy = vi
+        .spyOn(service as unknown as { writeAuditLog: Mock }, 'writeAuditLog')
         .mockResolvedValue(undefined);
 
       await service.createOne(toCreate);

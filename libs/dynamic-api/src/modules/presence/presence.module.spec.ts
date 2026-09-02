@@ -1,31 +1,34 @@
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { InMemoryPresenceAdapter } from './adapters/in-memory-presence.adapter';
 import { RedisPresenceAdapter } from './adapters/redis-presence.adapter';
+import { createPresenceGateway } from './presence.gateway';
 import { DynamicApiPresenceModule } from './presence.module';
 
-jest.mock('../../dynamic-api.module', () => ({
-  DynamicApiModule: { state: { get: jest.fn() } },
+vi.mock('../../dynamic-api.module', () => ({
+  DynamicApiModule: { state: { get: vi.fn() } },
 }));
 
-jest.mock('./adapters/redis-presence.adapter', () => ({
-  RedisPresenceAdapter: jest.fn().mockImplementation(() => ({ type: 'redis' })),
+vi.mock('./adapters/redis-presence.adapter', () => ({
+  RedisPresenceAdapter: vi.fn().mockImplementation(function RedisPresenceAdapter() { return { type: 'redis' }; }),
 }));
 
-jest.mock('./adapters/in-memory-presence.adapter', () => ({
-  InMemoryPresenceAdapter: jest.fn().mockImplementation(() => ({ type: 'memory' })),
+vi.mock('./adapters/in-memory-presence.adapter', () => ({
+  InMemoryPresenceAdapter: vi.fn().mockImplementation(function InMemoryPresenceAdapter() { return { type: 'memory' }; }),
 }));
 
-jest.mock('./presence.gateway', () => ({
-  createPresenceGateway: jest.fn().mockReturnValue(
+vi.mock('./presence.gateway', () => ({
+  createPresenceGateway: vi.fn().mockReturnValue(
     class MockPresenceGateway {},
   ),
 }));
 
-const mockStateGet = DynamicApiModule.state.get as jest.Mock;
+const mockStateGet = DynamicApiModule.state.get as Mock;
 
 describe('DynamicApiPresenceModule', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockStateGet.mockReturnValue(undefined);
   });
 
@@ -97,7 +100,6 @@ describe('DynamicApiPresenceModule', () => {
           return undefined;
         });
 
-        const { createPresenceGateway } = require('./presence.gateway');
         DynamicApiPresenceModule.register({ adapter: 'memory' });
 
         expect(createPresenceGateway).toHaveBeenCalledWith(gatewayOpts);
@@ -110,7 +112,6 @@ describe('DynamicApiPresenceModule', () => {
           return undefined;
         });
 
-        const { createPresenceGateway } = require('./presence.gateway');
         DynamicApiPresenceModule.register({ adapter: 'memory' });
 
         expect(createPresenceGateway).toHaveBeenCalledWith(broadcastOpts);
@@ -118,7 +119,6 @@ describe('DynamicApiPresenceModule', () => {
 
       it('should fall back to empty object when no gateway options exist', () => {
         mockStateGet.mockReturnValue(undefined);
-        const { createPresenceGateway } = require('./presence.gateway');
 
         DynamicApiPresenceModule.register({ adapter: 'memory' });
 

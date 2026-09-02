@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { INestApplication } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import mongoose, { Connection } from 'mongoose';
@@ -25,7 +26,7 @@ describe('DynamicApiModule forRoot - useAuth with passwordless options (e2e)', (
   /** Captures the most recently sent OTP code for assertions. */
   let capturedCode: string | undefined;
 
-  const sendCodeCallback = jest.fn();
+  const sendCodeCallback = vi.fn();
 
   const user: Partial<User> = { email: 'passwordless@test.co' };
 

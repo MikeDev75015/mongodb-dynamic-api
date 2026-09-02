@@ -1,4 +1,6 @@
-import { createMock } from '@golevelup/ts-jest';
+import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
+import type { Mock } from 'vitest';
+import { createMock } from '@test-helpers';
 import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
 import { DynamicApiModule } from '../dynamic-api.module';
@@ -20,11 +22,16 @@ class TestGateway extends BaseGateway<Entity> {
 describe('BaseGateway', () => {
   let gateway: TestGateway;
   let socket: ExtendedSocket<Entity>;
+  let jwtService: JwtService;
 
-  const jwtService = createMock<JwtService>();
   const accessToken = 'accessToken';
 
   beforeEach(() => {
+    // Fresh proxy per test: createMock's `get` trap caches a fabricated `verify` mock the first
+    // time it's read, so a shared instance would keep serving test #1's mock forever once any
+    // later test reassigns `jwtService.verify` directly (vi.spyOn — the original approach — isn't
+    // usable here, see the file-level note below).
+    jwtService = createMock<JwtService>();
     gateway = new TestGateway(jwtService);
     socket = {
       handshake: {
@@ -41,14 +48,14 @@ describe('BaseGateway', () => {
   describe('addUserToSocket', () => {
     it('should not throw an exception if isAuthEnabled is false', () => {
       const isPublic = false;
-      jest.spyOn(DynamicApiModule.state, 'get').mockReturnValue(false);
+      vi.spyOn(DynamicApiModule.state, 'get').mockReturnValue(false);
 
       expect(() => gateway['addUserToSocket'](socket, isPublic)).not.toThrow();
     });
 
     it('should not throw an exception if isPublic is true', () => {
       const isPublic = true;
-      jest.spyOn(DynamicApiModule.state, 'get').mockReturnValue(true);
+      vi.spyOn(DynamicApiModule.state, 'get').mockReturnValue(true);
 
       expect(() => gateway['addUserToSocket'](socket, isPublic)).not.toThrow();
     });
@@ -56,12 +63,12 @@ describe('BaseGateway', () => {
     it('should throw an exception and warn if the access token is invalid', () => {
       socket.handshake.query = { accessToken };
       const isPublic = false;
-      jest.spyOn(DynamicApiModule.state, 'get').mockReturnValue(true);
-      jest.spyOn(jwtService, 'verify').mockImplementation(() => {
+      vi.spyOn(DynamicApiModule.state, 'get').mockReturnValue(true);
+      (jwtService.verify = vi.fn()).mockImplementation(() => {
         throw new Error('verify error');
       });
-      const spyLoggerWarn = jest.spyOn(gateway['logger'], 'warn');
-      const spyLoggerError = jest.spyOn(gateway['logger'], 'error');
+      const spyLoggerWarn = vi.spyOn(gateway['logger'], 'warn');
+      const spyLoggerError = vi.spyOn(gateway['logger'], 'error');
 
 
       expect(() => gateway['addUserToSocket'](socket, isPublic)).toThrow(new WsException('Unauthorized'));
@@ -75,8 +82,8 @@ describe('BaseGateway', () => {
     it('should throw an exception if the user is not valid', () => {
       socket.handshake.query = { accessToken };
       const isPublic = false;
-      jest.spyOn(DynamicApiModule.state, 'get').mockReturnValue(true);
-      jest.spyOn(jwtService, 'verify').mockReturnValue({
+      vi.spyOn(DynamicApiModule.state, 'get').mockReturnValue(true);
+      (jwtService.verify = vi.fn()).mockReturnValue({
         iat: Date.now() / 1000,
         exp: Date.now() / 1000 + 1000,
       });
@@ -88,8 +95,8 @@ describe('BaseGateway', () => {
       socket.handshake.query = { accessToken };
       const isPublic = false;
       const fakeUser = { id: 'id', name: 'name' };
-      jest.spyOn(DynamicApiModule.state, 'get').mockReturnValue(true);
-      jest.spyOn(jwtService, 'verify').mockReturnValue({
+      vi.spyOn(DynamicApiModule.state, 'get').mockReturnValue(true);
+      (jwtService.verify = vi.fn()).mockReturnValue({
         iat: Date.now() / 1000,
         exp: Date.now() / 1000 + 1000,
         ...fakeUser,
@@ -105,8 +112,8 @@ describe('BaseGateway', () => {
       socket.handshake.auth = { token: accessToken };
       const isPublic = false;
       const fakeUser = { id: 'id', name: 'name' };
-      jest.spyOn(DynamicApiModule.state, 'get').mockReturnValue(true);
-      jest.spyOn(jwtService, 'verify').mockReturnValue({
+      vi.spyOn(DynamicApiModule.state, 'get').mockReturnValue(true);
+      (jwtService.verify = vi.fn()).mockReturnValue({
         iat: Date.now() / 1000,
         exp: Date.now() / 1000 + 1000,
         ...fakeUser,
@@ -123,8 +130,8 @@ describe('BaseGateway', () => {
       socket.handshake.auth = { token: authToken };
       const isPublic = false;
       const fakeUser = { id: 'id', name: 'name' };
-      jest.spyOn(DynamicApiModule.state, 'get').mockReturnValue(true);
-      const verifySpy = jest.spyOn(jwtService, 'verify').mockReturnValue({
+      vi.spyOn(DynamicApiModule.state, 'get').mockReturnValue(true);
+      const verifySpy = (jwtService.verify = vi.fn()).mockReturnValue({
         iat: Date.now() / 1000,
         exp: Date.now() / 1000 + 1000,
         ...fakeUser,
@@ -158,22 +165,22 @@ describe('BaseGateway', () => {
   describe('broadcastIfNeeded', () => {
     let mockSocket: ExtendedSocket<Entity>;
     const event = 'test-event';
-    const mockNspToEmit = jest.fn();
+    const mockNspToEmit = vi.fn();
 
     beforeEach(() => {
       mockSocket = {
         user: { id: '123', name: 'Test User' } as Entity,
         broadcast: {
-          emit: jest.fn(),
+          emit: vi.fn(),
         },
         nsp: {
-          to: jest.fn().mockReturnValue({ emit: mockNspToEmit }),
+          to: vi.fn().mockReturnValue({ emit: mockNspToEmit }),
         },
       } as unknown as ExtendedSocket<Entity>;
     });
 
     afterEach(() => {
-      jest.clearAllMocks();
+      vi.clearAllMocks();
     });
 
     it('should not broadcast if broadcastConfig is undefined', () => {
@@ -262,7 +269,7 @@ describe('BaseGateway', () => {
 
     it('should pass user to AbilityPredicate for permission checks', () => {
       const data = [{ id: '1', name: 'Entity 1' } as Entity];
-      const abilityPredicate = jest.fn().mockReturnValue(true);
+      const abilityPredicate = vi.fn().mockReturnValue(true);
       const broadcastConfig = {
         enabled: abilityPredicate,
       };
@@ -355,7 +362,7 @@ describe('BaseGateway', () => {
           { id: '1', name: 'Post 1', ownerId: 'user-42' } as Entity & { ownerId: string },
           { id: '2', name: 'Post 2', ownerId: 'user-99' } as Entity & { ownerId: string },
         ];
-        const roomsFn = jest.fn(
+        const roomsFn = vi.fn(
           (item: Entity & { ownerId: string }, u?: Entity) =>
             u && (u as unknown as { id: string }).id === item.ownerId ? [] : ['all'],
         );
@@ -389,7 +396,7 @@ describe('BaseGateway', () => {
 
       it('should log event and rooms when debug is true', () => {
         DynamicApiWsConfigStore.debug = true;
-        const spyLog = jest.spyOn(gateway['logger'], 'log').mockImplementation(() => {});
+        const spyLog = vi.spyOn(gateway['logger'], 'log').mockImplementation(() => {});
         const data = [{ id: '1', name: 'Entity 1' } as Entity];
         const broadcastConfig = { enabled: true, rooms: 'room-a' };
 
@@ -402,7 +409,7 @@ describe('BaseGateway', () => {
 
       it('should log "all" when debug is true and no rooms are configured', () => {
         DynamicApiWsConfigStore.debug = true;
-        const spyLog = jest.spyOn(gateway['logger'], 'log').mockImplementation(() => {});
+        const spyLog = vi.spyOn(gateway['logger'], 'log').mockImplementation(() => {});
         const data = [{ id: '1', name: 'Entity 1' } as Entity];
         const broadcastConfig = { enabled: true }; // no rooms → resolvedRooms = undefined
 
@@ -415,7 +422,7 @@ describe('BaseGateway', () => {
 
       it('should not log when debug is false', () => {
         DynamicApiWsConfigStore.debug = false;
-        const spyLog = jest.spyOn(gateway['logger'], 'log').mockImplementation(() => {});
+        const spyLog = vi.spyOn(gateway['logger'], 'log').mockImplementation(() => {});
         const data = [{ id: '1', name: 'Entity 1' } as Entity];
         const broadcastConfig = { enabled: true };
 
@@ -427,8 +434,8 @@ describe('BaseGateway', () => {
 
     describe('emit failures', () => {
       it('should catch and log an error when socket.broadcast.emit throws (no rooms)', () => {
-        const errorSpy = jest.spyOn(gateway['logger'], 'error').mockImplementation();
-        (mockSocket.broadcast.emit as jest.Mock).mockImplementation(() => {
+        const errorSpy = vi.spyOn(gateway['logger'], 'error').mockImplementation();
+        (mockSocket.broadcast.emit as Mock).mockImplementation(() => {
           throw new Error('boom');
         });
         const data = [{ id: '1', name: 'Entity 1' } as Entity];
@@ -440,7 +447,7 @@ describe('BaseGateway', () => {
       });
 
       it('should catch and log an error when socket.nsp.to(...).emit throws (rooms)', () => {
-        const errorSpy = jest.spyOn(gateway['logger'], 'error').mockImplementation();
+        const errorSpy = vi.spyOn(gateway['logger'], 'error').mockImplementation();
         mockNspToEmit.mockImplementation(() => {
           throw new Error('boom');
         });
@@ -453,7 +460,7 @@ describe('BaseGateway', () => {
       });
 
       it('should catch and log an error when a custom `rooms` resolver throws, without emitting', () => {
-        const errorSpy = jest.spyOn(gateway['logger'], 'error').mockImplementation();
+        const errorSpy = vi.spyOn(gateway['logger'], 'error').mockImplementation();
         const data = [{ id: '1', name: 'Entity 1' } as Entity];
         const broadcastConfig = {
           enabled: true,
@@ -471,7 +478,7 @@ describe('BaseGateway', () => {
       });
 
       it('should catch and log an error when a custom `enabled` predicate throws, without emitting', () => {
-        const errorSpy = jest.spyOn(gateway['logger'], 'error').mockImplementation();
+        const errorSpy = vi.spyOn(gateway['logger'], 'error').mockImplementation();
         const data = [{ id: '1', name: 'Entity 1' } as Entity];
         const broadcastConfig = {
           enabled: () => { throw new Error('predicate boom'); },

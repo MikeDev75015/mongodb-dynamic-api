@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { INestApplication } from '@nestjs/common';
 import mongoose from 'mongoose';
 import { DynamicApiModule } from '../../src';
@@ -42,7 +43,7 @@ describe('DynamicApiModule forRoot - useAuth with broadcast options (e2e)', () =
       app.useWebSocketAdapter(new TestSocketAdapter(app));
     },
     );
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('[login] should broadcast user data via HTTP after login', async () => {
@@ -83,7 +84,7 @@ describe('DynamicApiModule forRoot - useAuth with broadcast options (e2e)', () =
     await server.post('/auth/register', { email: 'broadcast3@test.co', password: 'pass3' });
     const { body: { accessToken } } = await server.post('/auth/login', { email: 'broadcast3@test.co', password: 'pass3' });
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     const { broadcastData } = await server.httpWithBroadcast(
       'get',
@@ -107,7 +108,7 @@ describe('DynamicApiModule forRoot - useAuth with broadcast options (e2e)', () =
     await server.post('/auth/register', { email: 'broadcast4@test.co', password: 'pass4' });
     const { body: { accessToken } } = await server.post('/auth/login', { email: 'broadcast4@test.co', password: 'pass4' });
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     const { broadcastData } = await server.httpWithBroadcast(
       'patch',

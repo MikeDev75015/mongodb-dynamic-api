@@ -1,9 +1,12 @@
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { SocketAdapter } from './socket-adapter';
 import { IoAdapter } from '@nestjs/platform-socket.io';
+import * as jwt from 'jsonwebtoken';
 import { DynamicApiWsConfigStore } from '../helpers/ws-config.store';
 
-jest.mock('jsonwebtoken', () => ({
-  verify: jest.fn(),
+vi.mock('jsonwebtoken', () => ({
+  verify: vi.fn(),
 }));
 
 describe('SocketAdapter', () => {
@@ -11,7 +14,7 @@ describe('SocketAdapter', () => {
   let connectionHandler: (socket: any) => void;
 
   const fakeServer = {
-    on: jest.fn((event: string, handler: any) => {
+    on: vi.fn((event: string, handler: any) => {
       if (event === 'connection') {
         connectionHandler = handler;
       }
@@ -20,9 +23,9 @@ describe('SocketAdapter', () => {
 
   beforeEach(() => {
     adapter = new SocketAdapter();
-    jest.spyOn(IoAdapter.prototype, 'createIOServer').mockImplementation(() => fakeServer);
+    vi.spyOn(IoAdapter.prototype, 'createIOServer').mockImplementation(() => fakeServer);
     DynamicApiWsConfigStore.reset();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should create', () => {
@@ -50,8 +53,7 @@ describe('SocketAdapter', () => {
     });
 
     it('should decode JWT and set user on socket when jwtSecret is set', () => {
-      const jwt = require('jsonwebtoken');
-      jwt.verify.mockReturnValue({ iat: 1, exp: 2, id: 'user-1', name: 'Test' });
+      (jwt.verify as Mock).mockReturnValue({ iat: 1, exp: 2, id: 'user-1', name: 'Test' });
       DynamicApiWsConfigStore.jwtSecret = 'secret';
 
       const socket = {
@@ -77,7 +79,7 @@ describe('SocketAdapter', () => {
     });
 
     it('should call onConnection hook if provided', () => {
-      const onConnection = jest.fn();
+      const onConnection = vi.fn();
       DynamicApiWsConfigStore.onConnection = onConnection;
 
       const socket = { id: 'sock-3', handshake: { auth: {}, query: {} } };
@@ -88,10 +90,9 @@ describe('SocketAdapter', () => {
     });
 
     it('should call onConnection with user when JWT is valid', () => {
-      const jwt = require('jsonwebtoken');
-      jwt.verify.mockReturnValue({ iat: 1, exp: 2, id: 'u1' });
+      (jwt.verify as Mock).mockReturnValue({ iat: 1, exp: 2, id: 'u1' });
       DynamicApiWsConfigStore.jwtSecret = 'secret';
-      const onConnection = jest.fn();
+      const onConnection = vi.fn();
       DynamicApiWsConfigStore.onConnection = onConnection;
 
       const socket = { id: 'sock-4', handshake: { auth: { token: 'tok' }, query: {} } };
@@ -102,7 +103,7 @@ describe('SocketAdapter', () => {
 
     it('should log debug info when debug is true', () => {
       DynamicApiWsConfigStore.debug = true;
-      const spyLog = jest.spyOn(adapter['logger'], 'log').mockImplementation(() => {});
+      const spyLog = vi.spyOn(adapter['logger'], 'log').mockImplementation(() => {});
 
       const socket = { id: 'sock-5', handshake: { auth: {}, query: {} } };
       connectionHandler(socket);
@@ -113,11 +114,10 @@ describe('SocketAdapter', () => {
     });
 
     it('should warn on JWT verification failure when debug is true', () => {
-      const jwt = require('jsonwebtoken');
-      jwt.verify.mockImplementation(() => { throw new Error('bad token'); });
+      (jwt.verify as Mock).mockImplementation(() => { throw new Error('bad token'); });
       DynamicApiWsConfigStore.jwtSecret = 'secret';
       DynamicApiWsConfigStore.debug = true;
-      const spyWarn = jest.spyOn(adapter['logger'], 'warn').mockImplementation(() => {});
+      const spyWarn = vi.spyOn(adapter['logger'], 'warn').mockImplementation(() => {});
 
       const socket = { id: 'sock-6', handshake: { auth: { token: 'bad' }, query: {} } };
       connectionHandler(socket);
@@ -129,8 +129,8 @@ describe('SocketAdapter', () => {
 
     it('should catch async onConnection errors', async () => {
       const error = new Error('hook error');
-      DynamicApiWsConfigStore.onConnection = jest.fn().mockRejectedValue(error);
-      const spyError = jest.spyOn(adapter['logger'], 'error').mockImplementation(() => {});
+      DynamicApiWsConfigStore.onConnection = vi.fn().mockRejectedValue(error);
+      const spyError = vi.spyOn(adapter['logger'], 'error').mockImplementation(() => {});
 
       const socket = { id: 'sock-7', handshake: { auth: {}, query: {} } };
       connectionHandler(socket);
@@ -146,11 +146,11 @@ describe('SocketAdapter', () => {
 
     describe('customEvents', () => {
       it('registers socket.on for each customEvent on connection', () => {
-        const handler = jest.fn();
+        const handler = vi.fn();
         const eventSocket = {
           id: 'sock-ev',
           handshake: { auth: {}, query: {} },
-          on: jest.fn(),
+          on: vi.fn(),
         };
 
         DynamicApiWsConfigStore.customEvents = [
@@ -166,13 +166,13 @@ describe('SocketAdapter', () => {
       });
 
       it('calls the event handler with payload and user', () => {
-        const handler = jest.fn();
+        const handler = vi.fn();
         let capturedListener: ((payload: unknown) => void) | undefined;
 
         const eventSocket = {
           id: 'sock-ev2',
           handshake: { auth: {}, query: {} },
-          on: jest.fn((_name: string, listener: (payload: unknown) => void) => {
+          on: vi.fn((_name: string, listener: (payload: unknown) => void) => {
             capturedListener = listener;
           }),
         };
@@ -186,14 +186,14 @@ describe('SocketAdapter', () => {
       });
 
       it('blocks the event handler when predicate returns false', () => {
-        const handler = jest.fn();
-        const predicate = jest.fn().mockReturnValue(false);
+        const handler = vi.fn();
+        const predicate = vi.fn().mockReturnValue(false);
         let capturedListener: ((payload: unknown) => void) | undefined;
 
         const eventSocket = {
           id: 'sock-pred',
           handshake: { auth: {}, query: {} },
-          on: jest.fn((_name: string, listener: (payload: unknown) => void) => {
+          on: vi.fn((_name: string, listener: (payload: unknown) => void) => {
             capturedListener = listener;
           }),
         };
@@ -208,14 +208,14 @@ describe('SocketAdapter', () => {
       });
 
       it('calls the event handler when predicate returns true', () => {
-        const handler = jest.fn();
-        const predicate = jest.fn().mockReturnValue(true);
+        const handler = vi.fn();
+        const predicate = vi.fn().mockReturnValue(true);
         let capturedListener: ((payload: unknown) => void) | undefined;
 
         const eventSocket = {
           id: 'sock-pred2',
           handshake: { auth: {}, query: {} },
-          on: jest.fn((_name: string, listener: (payload: unknown) => void) => {
+          on: vi.fn((_name: string, listener: (payload: unknown) => void) => {
             capturedListener = listener;
           }),
         };
@@ -230,14 +230,14 @@ describe('SocketAdapter', () => {
 
       it('catches async custom event handler errors', async () => {
         const error = new Error('event error');
-        const handler = jest.fn().mockRejectedValue(error);
-        const spyError = jest.spyOn(adapter['logger'], 'error').mockImplementation(() => {});
+        const handler = vi.fn().mockRejectedValue(error);
+        const spyError = vi.spyOn(adapter['logger'], 'error').mockImplementation(() => {});
         let capturedListener: ((payload: unknown) => void) | undefined;
 
         const eventSocket = {
           id: 'sock-err',
           handshake: { auth: {}, query: {} },
-          on: jest.fn((_name: string, listener: (payload: unknown) => void) => {
+          on: vi.fn((_name: string, listener: (payload: unknown) => void) => {
             capturedListener = listener;
           }),
         };
@@ -257,15 +257,15 @@ describe('SocketAdapter', () => {
 
       it('logs debug warning when predicate blocks event and debug is true', () => {
         DynamicApiWsConfigStore.debug = true;
-        const spyWarn = jest.spyOn(adapter['logger'], 'warn').mockImplementation(() => {});
-        const handler = jest.fn();
-        const predicate = jest.fn().mockReturnValue(false);
+        const spyWarn = vi.spyOn(adapter['logger'], 'warn').mockImplementation(() => {});
+        const handler = vi.fn();
+        const predicate = vi.fn().mockReturnValue(false);
         let capturedListener: ((payload: unknown) => void) | undefined;
 
         const eventSocket = {
           id: 'sock-dbg',
           handshake: { auth: {}, query: {} },
-          on: jest.fn((_name: string, listener: (payload: unknown) => void) => {
+          on: vi.fn((_name: string, listener: (payload: unknown) => void) => {
             capturedListener = listener;
           }),
         };

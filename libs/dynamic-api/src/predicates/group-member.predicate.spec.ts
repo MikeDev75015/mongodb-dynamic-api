@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { BaseEntity } from '../models';
 import { isGroupMember } from './group-member.predicate';
 

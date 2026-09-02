@@ -1,3 +1,5 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { CacheModule } from '@nestjs/cache-manager';
 import { DynamicModule, NestInterceptor } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
@@ -30,17 +32,17 @@ import { DynamicApiCacheInterceptor } from './interceptors';
 import { DynamicApiCachePathRegistryStore } from './helpers/cache-path-registry.store';
 import { DynamicApiJwtAuthGuard } from './guards';
 
-jest.mock('./helpers');
+vi.mock('./helpers');
 
 describe('DynamicApiModule', () => {
   beforeEach(() => {
-    jest.spyOn(MongooseModule, 'forRoot').mockReturnValue(null);
-    jest.spyOn(MongooseModule, 'forFeature').mockReturnValue(null);
+    vi.spyOn(MongooseModule, 'forRoot').mockReturnValue(null);
+    vi.spyOn(MongooseModule, 'forFeature').mockReturnValue(null);
     DynamicApiModule.state['_'] = (new DynamicApiGlobalStateService())['defaultGlobalState'];
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   describe('forRoot', () => {
@@ -75,7 +77,7 @@ describe('DynamicApiModule', () => {
     });
 
     it('should add auth module with basic options if userEntity is provided', () => {
-      const spyAuthModule = jest.spyOn(AuthModule, 'forRoot').mockImplementationOnce(() => null);
+      const spyAuthModule = vi.spyOn(AuthModule, 'forRoot').mockImplementationOnce(() => null);
 
       DynamicApiModule.forRoot(uri, {
         useAuth: { userEntity: UserEntity },
@@ -93,7 +95,7 @@ describe('DynamicApiModule', () => {
           passwordField: 'pass',
         },
       };
-      const spyAuthModule = jest.spyOn(AuthModule, 'forRoot').mockImplementationOnce(() => null);
+      const spyAuthModule = vi.spyOn(AuthModule, 'forRoot').mockImplementationOnce(() => null);
 
       DynamicApiModule.forRoot(uri, { useAuth: options });
 
@@ -101,7 +103,7 @@ describe('DynamicApiModule', () => {
     });
 
     it('should store refreshTokenField and additionalRequestFields in state when configured', () => {
-      jest.spyOn(AuthModule, 'forRoot').mockImplementationOnce(() => null);
+      vi.spyOn(AuthModule, 'forRoot').mockImplementationOnce(() => null);
 
       DynamicApiModule.forRoot(uri, {
         useAuth: {
@@ -116,10 +118,10 @@ describe('DynamicApiModule', () => {
     });
 
     describe('with cache', () => {
-      let spyCacheModuleRegister: jest.SpyInstance;
+      let spyCacheModuleRegister: Mock;
 
       beforeEach(() => {
-        spyCacheModuleRegister = jest.spyOn(CacheModule, 'register');
+        spyCacheModuleRegister = vi.spyOn(CacheModule, 'register');
       });
 
       afterEach(() => {
@@ -189,7 +191,7 @@ describe('DynamicApiModule', () => {
       });
 
       it('should set onAfterSaveError when provided', () => {
-        const onAfterSaveError = jest.fn();
+        const onAfterSaveError = vi.fn();
         DynamicApiModule.forRoot(uri, { onAfterSaveError });
 
         expect(DynamicApiModule.state.get('onAfterSaveError')).toBe(onAfterSaveError);
@@ -213,8 +215,8 @@ describe('DynamicApiModule', () => {
 
   describe('forFeature', () => {
     let defaultOptions: ReturnType<typeof buildDynamicApiModuleOptionsMock>;
-    let mongooseModuleSpy: jest.SpyInstance;
-    const fakeSchema = { set: jest.fn(), index: jest.fn(), pre: jest.fn() } as unknown as Schema;
+    let mongooseModuleSpy: Mock;
+    const fakeSchema = { set: vi.fn(), index: vi.fn(), pre: vi.fn() } as unknown as Schema;
     const fakeDatabaseModule = { module: 'fake-database-module' };
 
     class AggregateQuery {
@@ -227,14 +229,14 @@ describe('DynamicApiModule', () => {
 
     beforeEach(() => {
       defaultOptions = buildDynamicApiModuleOptionsMock();
-      jest.spyOn(helpers, 'buildSchemaFromEntity').mockReturnValue(fakeSchema as unknown as Schema);
-      jest.spyOn(helpers, 'getDefaultRouteDescription').mockReturnValue('fake-description');
-      jest.spyOn(helpers, 'isValidVersion').mockReturnValue(true);
-      jest.spyOn(helpers, 'addVersionSuffix').mockReturnValue('fake-version');
-      jest.spyOn(helpers, 'getDisplayedName').mockReturnValue('fake-formatted-api-tag');
-      jest.spyOn(helpers, 'RouteDecoratorsHelper').mockReturnValue((_: any) => undefined);
-      jest.spyOn(helpers, 'provideName').mockReturnValue('fake-provided-name');
-      jest.spyOn(helpers, 'getMixinData').mockReturnValue({
+      vi.spyOn(helpers, 'buildSchemaFromEntity').mockReturnValue(fakeSchema as unknown as Schema);
+      vi.spyOn(helpers, 'getDefaultRouteDescription').mockReturnValue('fake-description');
+      vi.spyOn(helpers, 'isValidVersion').mockReturnValue(true);
+      vi.spyOn(helpers, 'addVersionSuffix').mockReturnValue('fake-version');
+      vi.spyOn(helpers, 'getDisplayedName').mockReturnValue('fake-formatted-api-tag');
+      vi.spyOn(helpers, 'RouteDecoratorsHelper').mockReturnValue((_: any) => undefined);
+      vi.spyOn(helpers, 'provideName').mockReturnValue('fake-provided-name');
+      vi.spyOn(helpers, 'getMixinData').mockReturnValue({
         routeType: 'fake-route-type' as RouteType,
         description: 'fake-description',
         isPublic: false,
@@ -244,7 +246,7 @@ describe('DynamicApiModule', () => {
         displayedName: 'fake-displayed-name',
         event: 'fake-event',
       });
-      mongooseModuleSpy = jest
+      mongooseModuleSpy = vi
       .spyOn(MongooseModule, 'forFeature')
       .mockReturnValue(fakeDatabaseModule as unknown as DynamicModule);
     });
@@ -278,7 +280,7 @@ describe('DynamicApiModule', () => {
 
     it('should call DynamicApiGlobalStateService.addEntitySchema with entity and schema', () => {
       const { entity, controllerOptions, routes } = defaultOptions;
-      const addEntitySchemaSpy = jest
+      const addEntitySchemaSpy = vi
       .spyOn(DynamicApiGlobalStateService, 'addEntitySchema');
 
       DynamicApiModule.forFeature({
@@ -291,7 +293,7 @@ describe('DynamicApiModule', () => {
     });
 
     it('should reject if DynamicApiModule state could not be initialized ', async () => {
-      jest.spyOn(global, 'setTimeout').mockImplementationOnce((callback) => {
+      vi.spyOn(global, 'setTimeout').mockImplementationOnce((callback) => {
         if (typeof callback === 'function') {
           DynamicApiModule.state.set(['initialized', false]);
           callback();
@@ -310,18 +312,18 @@ describe('DynamicApiModule', () => {
     });
 
     describe('with routes', () => {
-      let spyCreateManyModule: jest.SpyInstance;
-      let spyCreateOneModule: jest.SpyInstance;
-      let spyDeleteManyModule: jest.SpyInstance;
-      let spyDeleteOneModule: jest.SpyInstance;
-      let spyDuplicateManyModule: jest.SpyInstance;
-      let spyDuplicateOneModule: jest.SpyInstance;
-      let spyGetManyModule: jest.SpyInstance;
-      let spyGetOneModule: jest.SpyInstance;
-      let spyReplaceOneModule: jest.SpyInstance;
-      let spyUpdateManyModule: jest.SpyInstance;
-      let spyUpdateOneModule: jest.SpyInstance;
-      let spyAggregateModule: jest.SpyInstance;
+      let spyCreateManyModule: Mock;
+      let spyCreateOneModule: Mock;
+      let spyDeleteManyModule: Mock;
+      let spyDeleteOneModule: Mock;
+      let spyDuplicateManyModule: Mock;
+      let spyDuplicateOneModule: Mock;
+      let spyGetManyModule: Mock;
+      let spyGetOneModule: Mock;
+      let spyReplaceOneModule: Mock;
+      let spyUpdateManyModule: Mock;
+      let spyUpdateOneModule: Mock;
+      let spyAggregateModule: Mock;
 
       class fakeQuery {}
       class fakeParam {}
@@ -341,18 +343,18 @@ describe('DynamicApiModule', () => {
       }
 
       beforeEach(() => {
-        spyCreateManyModule = jest.spyOn(CreateManyModule, 'forFeature');
-        spyCreateOneModule = jest.spyOn(CreateOneModule, 'forFeature');
-        spyDeleteManyModule = jest.spyOn(DeleteManyModule, 'forFeature');
-        spyDeleteOneModule = jest.spyOn(DeleteOneModule, 'forFeature');
-        spyDuplicateManyModule = jest.spyOn(DuplicateManyModule, 'forFeature');
-        spyDuplicateOneModule = jest.spyOn(DuplicateOneModule, 'forFeature');
-        spyGetManyModule = jest.spyOn(GetManyModule, 'forFeature');
-        spyGetOneModule = jest.spyOn(GetOneModule, 'forFeature');
-        spyReplaceOneModule = jest.spyOn(ReplaceOneModule, 'forFeature');
-        spyUpdateManyModule = jest.spyOn(UpdateManyModule, 'forFeature');
-        spyUpdateOneModule = jest.spyOn(UpdateOneModule, 'forFeature');
-        spyAggregateModule = jest.spyOn(AggregateModule, 'forFeature');
+        spyCreateManyModule = vi.spyOn(CreateManyModule, 'forFeature');
+        spyCreateOneModule = vi.spyOn(CreateOneModule, 'forFeature');
+        spyDeleteManyModule = vi.spyOn(DeleteManyModule, 'forFeature');
+        spyDeleteOneModule = vi.spyOn(DeleteOneModule, 'forFeature');
+        spyDuplicateManyModule = vi.spyOn(DuplicateManyModule, 'forFeature');
+        spyDuplicateOneModule = vi.spyOn(DuplicateOneModule, 'forFeature');
+        spyGetManyModule = vi.spyOn(GetManyModule, 'forFeature');
+        spyGetOneModule = vi.spyOn(GetOneModule, 'forFeature');
+        spyReplaceOneModule = vi.spyOn(ReplaceOneModule, 'forFeature');
+        spyUpdateManyModule = vi.spyOn(UpdateManyModule, 'forFeature');
+        spyUpdateOneModule = vi.spyOn(UpdateOneModule, 'forFeature');
+        spyAggregateModule = vi.spyOn(AggregateModule, 'forFeature');
         DynamicApiModule.state.set(['initialized', true]);
       });
 
@@ -362,7 +364,7 @@ describe('DynamicApiModule', () => {
         const options = buildDynamicApiModuleOptionsMock({
           controllerOptions: { path: '/version', version: 'v1' },
         });
-        jest.spyOn(helpers, 'isValidVersion').mockReturnValue(false);
+        vi.spyOn(helpers, 'isValidVersion').mockReturnValue(false);
 
         setTimeout(() => {
           DynamicApiModule.state.set(['initialized', true]);
@@ -1171,7 +1173,7 @@ describe('DynamicApiModule', () => {
         });
 
         it('should add one controller per customRoute entry', async () => {
-          const fakeHandler = jest.fn();
+          const fakeHandler = vi.fn();
           const options = buildDynamicApiModuleOptionsMock({
             routes: [],
             controllerOptions: { path: 'fake-path', disableCache: true },
@@ -1187,7 +1189,7 @@ describe('DynamicApiModule', () => {
         });
 
         it('should add one controller per entry for multiple customRoutes', async () => {
-          const fakeHandler = jest.fn();
+          const fakeHandler = vi.fn();
           const options = buildDynamicApiModuleOptionsMock({
             routes: [],
             controllerOptions: { path: 'fake-path', disableCache: true },
@@ -1203,7 +1205,7 @@ describe('DynamicApiModule', () => {
         });
 
         it('should add databaseModule to imports when customRoutes has entries', async () => {
-          const fakeHandler = jest.fn();
+          const fakeHandler = vi.fn();
           const options = buildDynamicApiModuleOptionsMock({
             routes: [],
             controllerOptions: {
@@ -1240,7 +1242,7 @@ describe('DynamicApiModule', () => {
 
       describe('customRoutes with webSocket', () => {
         it('should add a gateway provider when customRoute has webSocket: true', async () => {
-          const fakeHandler = jest.fn();
+          const fakeHandler = vi.fn();
           const options = buildDynamicApiModuleOptionsMock({
             routes: [],
             controllerOptions: { path: 'fake-path', disableCache: true },
@@ -1256,7 +1258,7 @@ describe('DynamicApiModule', () => {
         });
 
         it('should add one gateway provider per webSocket customRoute entry', async () => {
-          const fakeHandler = jest.fn();
+          const fakeHandler = vi.fn();
           const options = buildDynamicApiModuleOptionsMock({
             routes: [],
             controllerOptions: { path: 'fake-path', disableCache: true },
@@ -1273,7 +1275,7 @@ describe('DynamicApiModule', () => {
         });
 
         it('should not add gateway providers when no customRoute has webSocket', async () => {
-          const fakeHandler = jest.fn();
+          const fakeHandler = vi.fn();
           const options = buildDynamicApiModuleOptionsMock({
             routes: [],
             controllerOptions: { path: 'fake-path', disableCache: true },
@@ -1290,7 +1292,7 @@ describe('DynamicApiModule', () => {
 
         it('should set needsDatabaseModule to true when only gateway (no controller) uses webSocket', async () => {
           // This scenario: customRoute with webSocket alone → databaseModule required
-          const fakeHandler = jest.fn();
+          const fakeHandler = vi.fn();
           const options = buildDynamicApiModuleOptionsMock({
             routes: [],
             controllerOptions: {

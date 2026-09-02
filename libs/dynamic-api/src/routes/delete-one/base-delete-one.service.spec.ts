@@ -1,3 +1,5 @@
+import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { BadRequestException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { Model } from 'mongoose';
@@ -37,7 +39,7 @@ type InternalService = {
   beforeDeleteCallback: BeforeDeleteCallback<TestEntity, BeforeSaveDeleteContext> | undefined;
   cascade: CascadeConfig[] | undefined;
   auditLog: boolean | undefined;
-  writeAuditLog: jest.Mock;
+  writeAuditLog: Mock;
 };
 
 const internal = (svc: TestService) => svc as unknown as InternalService;
@@ -59,19 +61,19 @@ describe('BaseDeleteOneService', () => {
 
   const initService = (findOneResult: object | null = document) => {
     modelMock = {
-      findOne: jest.fn(() => ({
-        lean: jest.fn(() => ({
-          exec: jest.fn(() => Promise.resolve(findOneResult)),
+      findOne: vi.fn(() => ({
+        lean: vi.fn(() => ({
+          exec: vi.fn(() => Promise.resolve(findOneResult)),
         })),
       })),
-      deleteOne: jest.fn(() => ({
-        exec: jest.fn(() => Promise.resolve({ deletedCount: 1 })),
+      deleteOne: vi.fn(() => ({
+        exec: vi.fn(() => Promise.resolve({ deletedCount: 1 })),
       })),
-      updateOne: jest.fn(() => ({
-        exec: jest.fn(() => Promise.resolve({ modifiedCount: 1 })),
+      updateOne: vi.fn(() => ({
+        exec: vi.fn(() => Promise.resolve({ modifiedCount: 1 })),
       })),
       db: {
-        startSession: jest.fn().mockRejectedValue(transactionsUnsupportedError),
+        startSession: vi.fn().mockRejectedValue(transactionsUnsupportedError),
       },
     } as unknown as Model<TestEntity>;
 
@@ -89,8 +91,8 @@ describe('BaseDeleteOneService', () => {
 
   it('should set deletedCount to 0 on error', async () => {
     service = initService();
-    jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
-    (modelMock.updateOne as jest.Mock).mockReturnValueOnce({
+    vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
+    (modelMock.updateOne as Mock).mockReturnValueOnce({
       exec: () => Promise.reject(new Error('Test error')),
     });
     presenter.deletedCount = 0;
@@ -101,7 +103,7 @@ describe('BaseDeleteOneService', () => {
   describe('deleteOne without softDeletable', () => {
     it('should call model.deleteOne and return the number of deleted documents', async () => {
       service = initService();
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
 
       await expect(service.deleteOne(id)).resolves.toStrictEqual(presenter);
       expect(modelMock.deleteOne).toHaveBeenCalledWith({ _id: id });
@@ -111,8 +113,8 @@ describe('BaseDeleteOneService', () => {
   describe('deleteOne with softDeletable', () => {
     it('should call model.updateOne and return the number of deleted documents', async () => {
       service = initService();
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
-      (modelMock.updateOne as jest.Mock).mockReturnValueOnce({
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
+      (modelMock.updateOne as Mock).mockReturnValueOnce({
         exec: () => Promise.resolve({ modifiedCount: 1 }),
       });
 
@@ -125,8 +127,8 @@ describe('BaseDeleteOneService', () => {
 
     it('should call model.updateOne and return 0 as number of deleted documents', async () => {
       service = initService();
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
-      (modelMock.updateOne as jest.Mock).mockReturnValueOnce({
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
+      (modelMock.updateOne as Mock).mockReturnValueOnce({
         exec: () => Promise.resolve({ modifiedCount: 0 }),
       });
       presenter.deletedCount = 0;
@@ -137,8 +139,8 @@ describe('BaseDeleteOneService', () => {
 
   it('should call callback if it is defined', async () => {
     service = initService();
-    jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
-    const callback = jest.fn(() => Promise.resolve());
+    vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+    const callback = vi.fn(() => Promise.resolve());
     internal(service).callback = callback;
     await service.deleteOne(id);
 
@@ -152,8 +154,8 @@ describe('BaseDeleteOneService', () => {
 
   it('should pass user to callback if it is defined', async () => {
     service = initService();
-    jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
-    const callback = jest.fn(() => Promise.resolve());
+    vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+    const callback = vi.fn(() => Promise.resolve());
     internal(service).callback = callback;
     const fakeUser = { id: 'user-1', email: 'test@test.com' };
     await service.deleteOne(id, fakeUser);
@@ -168,8 +170,8 @@ describe('BaseDeleteOneService', () => {
 
   it('should return the real deletedCount (not 0) when callback rejects — masking bug fix', async () => {
     service = initService();
-    jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
-    internal(service).callback = jest.fn(() => Promise.reject(new Error('boom')));
+    vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+    internal(service).callback = vi.fn(() => Promise.reject(new Error('boom')));
 
     await expect(service.deleteOne(id)).resolves.toStrictEqual(presenter);
     expect(presenter.deletedCount).toBe(1);
@@ -177,8 +179,8 @@ describe('BaseDeleteOneService', () => {
 
   it('should succeed on retry when callbackRetry is configured', async () => {
     service = initService();
-    jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
-    const callback = jest.fn()
+    vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+    const callback = vi.fn()
       .mockRejectedValueOnce(new Error('transient'))
       .mockResolvedValueOnce(undefined);
     internal(service).callback = callback;
@@ -191,8 +193,8 @@ describe('BaseDeleteOneService', () => {
 
   it('should call beforeSaveCallback if it is defined', async () => {
     service = initService();
-    jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
-    const beforeSaveCallback = jest.fn(() => Promise.resolve());
+    vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+    const beforeSaveCallback = vi.fn(() => Promise.resolve());
     internal(service).beforeSaveCallback = beforeSaveCallback;
     await service.deleteOne(id);
 
@@ -207,8 +209,8 @@ describe('BaseDeleteOneService', () => {
 
   it('should pass user to beforeSaveCallback if it is defined', async () => {
     service = initService();
-    jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
-    const beforeSaveCallback = jest.fn(() => Promise.resolve());
+    vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+    const beforeSaveCallback = vi.fn(() => Promise.resolve());
     internal(service).beforeSaveCallback = beforeSaveCallback;
     const fakeUser = { id: 'user-1', email: 'test@test.com' };
     await service.deleteOne(id, fakeUser);
@@ -224,9 +226,9 @@ describe('BaseDeleteOneService', () => {
 
   it('should propagate exception thrown by beforeSaveCallback (fix: no longer swallowed)', async () => {
     service = initService();
-    jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+    vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
     const error = new BadRequestException('blocked by beforeSaveCallback');
-    internal(service).beforeSaveCallback = jest.fn(() => Promise.reject(error));
+    internal(service).beforeSaveCallback = vi.fn(() => Promise.reject(error));
 
     await expect(service.deleteOne(id)).rejects.toThrow(BadRequestException);
     expect(modelMock.deleteOne).not.toHaveBeenCalled();
@@ -234,8 +236,8 @@ describe('BaseDeleteOneService', () => {
 
   it('should call beforeSaveCallback with undefined entity when document not found', async () => {
     service = initService(null);
-    jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
-    const beforeSaveCallback = jest.fn(() => Promise.resolve());
+    vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+    const beforeSaveCallback = vi.fn(() => Promise.resolve());
     internal(service).beforeSaveCallback = beforeSaveCallback;
     await service.deleteOne(id);
 
@@ -249,9 +251,9 @@ describe('BaseDeleteOneService', () => {
 
   it('should include isDeleted filter in pre-hook findOne when soft-deletable', async () => {
     service = initService();
-    jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
-    (modelMock.updateOne as jest.Mock).mockReturnValueOnce({ exec: () => Promise.resolve({ modifiedCount: 1 }) });
-    const beforeDeleteCallback = jest.fn(() => Promise.resolve());
+    vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
+    (modelMock.updateOne as Mock).mockReturnValueOnce({ exec: () => Promise.resolve({ modifiedCount: 1 }) });
+    const beforeDeleteCallback = vi.fn(() => Promise.resolve());
     internal(service).beforeDeleteCallback = beforeDeleteCallback;
     await service.deleteOne(id);
 
@@ -260,9 +262,9 @@ describe('BaseDeleteOneService', () => {
 
   it('should skip second findOne when document already loaded by hook and callback is set', async () => {
     service = initService();
-    jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
-    const beforeDeleteCallback = jest.fn(() => Promise.resolve());
-    const callback = jest.fn(() => Promise.resolve());
+    vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+    const beforeDeleteCallback = vi.fn(() => Promise.resolve());
+    const callback = vi.fn(() => Promise.resolve());
     internal(service).beforeDeleteCallback = beforeDeleteCallback;
     internal(service).callback = callback;
     await service.deleteOne(id);
@@ -274,9 +276,9 @@ describe('BaseDeleteOneService', () => {
 
   it('should include isDeleted filter in inner findOne for callback when soft-deletable and no hooks set', async () => {
     service = initService();
-    jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
-    (modelMock.updateOne as jest.Mock).mockReturnValueOnce({ exec: () => Promise.resolve({ modifiedCount: 1 }) });
-    const callback = jest.fn(() => Promise.resolve());
+    vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
+    (modelMock.updateOne as Mock).mockReturnValueOnce({ exec: () => Promise.resolve({ modifiedCount: 1 }) });
+    const callback = vi.fn(() => Promise.resolve());
     internal(service).callback = callback;
     await service.deleteOne(id);
 
@@ -287,10 +289,10 @@ describe('BaseDeleteOneService', () => {
   describe('auditLog', () => {
     it('should call writeAuditLog with the deleted document when auditLog is enabled', async () => {
       service = initService();
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       internal(service).auditLog = true;
-      const writeAuditLogSpy = jest
-        .spyOn(service as unknown as { writeAuditLog: jest.Mock }, 'writeAuditLog')
+      const writeAuditLogSpy = vi
+        .spyOn(service as unknown as { writeAuditLog: Mock }, 'writeAuditLog')
         .mockResolvedValue(undefined);
       const fakeUser = { id: 'user-1' };
 
@@ -302,9 +304,9 @@ describe('BaseDeleteOneService', () => {
 
     it('should not call writeAuditLog when auditLog is not enabled', async () => {
       service = initService();
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
-      const writeAuditLogSpy = jest
-        .spyOn(service as unknown as { writeAuditLog: jest.Mock }, 'writeAuditLog')
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const writeAuditLogSpy = vi
+        .spyOn(service as unknown as { writeAuditLog: Mock }, 'writeAuditLog')
         .mockResolvedValue(undefined);
 
       await service.deleteOne(id);
@@ -314,10 +316,10 @@ describe('BaseDeleteOneService', () => {
 
     it('should not call writeAuditLog when the document to delete was not found', async () => {
       service = initService(null);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       internal(service).auditLog = true;
-      const writeAuditLogSpy = jest
-        .spyOn(service as unknown as { writeAuditLog: jest.Mock }, 'writeAuditLog')
+      const writeAuditLogSpy = vi
+        .spyOn(service as unknown as { writeAuditLog: Mock }, 'writeAuditLog')
         .mockResolvedValue(undefined);
 
       await service.deleteOne(id);
@@ -329,8 +331,8 @@ describe('BaseDeleteOneService', () => {
   describe('beforeDeleteCallback', () => {
     it('should call beforeDeleteCallback before the delete', async () => {
       service = initService();
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
-      const beforeDeleteCallback = jest.fn(() => Promise.resolve());
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const beforeDeleteCallback = vi.fn(() => Promise.resolve());
       internal(service).beforeDeleteCallback = beforeDeleteCallback;
       await service.deleteOne(id);
 
@@ -346,8 +348,8 @@ describe('BaseDeleteOneService', () => {
 
     it('should pass user to beforeDeleteCallback', async () => {
       service = initService();
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
-      const beforeDeleteCallback = jest.fn(() => Promise.resolve());
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const beforeDeleteCallback = vi.fn(() => Promise.resolve());
       internal(service).beforeDeleteCallback = beforeDeleteCallback;
       const fakeUser = { id: 'user-1', email: 'test@test.com' };
       await service.deleteOne(id, fakeUser);
@@ -362,9 +364,9 @@ describe('BaseDeleteOneService', () => {
 
     it('should propagate exception and abort delete when beforeDeleteCallback throws', async () => {
       service = initService();
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       const error = new BadRequestException('forbidden');
-      internal(service).beforeDeleteCallback = jest.fn(() => Promise.reject(error));
+      internal(service).beforeDeleteCallback = vi.fn(() => Promise.reject(error));
 
       await expect(service.deleteOne(id)).rejects.toThrow(BadRequestException);
       expect(modelMock.deleteOne).not.toHaveBeenCalled();
@@ -372,8 +374,8 @@ describe('BaseDeleteOneService', () => {
 
     it('should call beforeDeleteCallback with undefined entity when document not found', async () => {
       service = initService(null);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
-      const beforeDeleteCallback = jest.fn(() => Promise.resolve());
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const beforeDeleteCallback = vi.fn(() => Promise.resolve());
       internal(service).beforeDeleteCallback = beforeDeleteCallback;
       await service.deleteOne(id);
 
@@ -387,7 +389,7 @@ describe('BaseDeleteOneService', () => {
   });
 
   describe('cascade', () => {
-    let childModelMock: { deleteMany: jest.Mock; updateMany: jest.Mock };
+    let childModelMock: { deleteMany: Mock; updateMany: Mock };
     const cascadeConfig: CascadeConfig = {
       entity: ChildEntity,
       foreignKey: 'parentId',
@@ -396,21 +398,21 @@ describe('BaseDeleteOneService', () => {
 
     beforeEach(() => {
       childModelMock = {
-        deleteMany: jest.fn(() => ({ exec: jest.fn().mockResolvedValue({ deletedCount: 2 }) })),
-        updateMany: jest.fn(() => ({ exec: jest.fn().mockResolvedValue({ modifiedCount: 2 }) })),
+        deleteMany: vi.fn(() => ({ exec: vi.fn().mockResolvedValue({ deletedCount: 2 }) })),
+        updateMany: vi.fn(() => ({ exec: vi.fn().mockResolvedValue({ modifiedCount: 2 }) })),
       };
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(
+      vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(
         childModelMock as unknown as ReturnType<typeof DynamicApiGlobalStateService.getEntityModel> extends Promise<infer M> ? M : never,
       );
     });
 
     afterEach(() => {
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
     });
 
     it('should hard-delete children when on=delete and parent is hard-deleted', async () => {
       service = initService();
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       internal(service).cascade = [cascadeConfig];
 
       await service.deleteOne(id);
@@ -420,8 +422,8 @@ describe('BaseDeleteOneService', () => {
 
     it('should not cascade when on=delete and parent is soft-deleted', async () => {
       service = initService();
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
-      (modelMock.updateOne as jest.Mock).mockReturnValueOnce({
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
+      (modelMock.updateOne as Mock).mockReturnValueOnce({
         exec: () => Promise.resolve({ modifiedCount: 1 }),
       });
       internal(service).cascade = [cascadeConfig];
@@ -433,8 +435,8 @@ describe('BaseDeleteOneService', () => {
 
     it('should soft-delete children when on=softDelete and parent is soft-deleted', async () => {
       service = initService();
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
-      (modelMock.updateOne as jest.Mock).mockReturnValueOnce({
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
+      (modelMock.updateOne as Mock).mockReturnValueOnce({
         exec: () => Promise.resolve({ modifiedCount: 1 }),
       });
       internal(service).cascade = [{ ...cascadeConfig, on: 'softDelete' }];
@@ -449,8 +451,8 @@ describe('BaseDeleteOneService', () => {
 
     it('should hard-delete children with softDelete:false override even when parent is soft-deleted', async () => {
       service = initService();
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
-      (modelMock.updateOne as jest.Mock).mockReturnValueOnce({
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
+      (modelMock.updateOne as Mock).mockReturnValueOnce({
         exec: () => Promise.resolve({ modifiedCount: 1 }),
       });
       internal(service).cascade = [{ ...cascadeConfig, on: 'softDelete', softDelete: false }];
@@ -462,7 +464,7 @@ describe('BaseDeleteOneService', () => {
 
     it('should soft-delete children with softDelete:true override even when parent is hard-deleted', async () => {
       service = initService();
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       internal(service).cascade = [{ ...cascadeConfig, softDelete: true }];
 
       await service.deleteOne(id);
@@ -475,8 +477,8 @@ describe('BaseDeleteOneService', () => {
 
     it('should not execute cascade when deletedCount is 0', async () => {
       service = initService();
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
-      (modelMock.deleteOne as jest.Mock).mockReturnValueOnce({
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      (modelMock.deleteOne as Mock).mockReturnValueOnce({
         exec: () => Promise.resolve({ deletedCount: 0 }),
       });
       internal(service).cascade = [cascadeConfig];
@@ -489,15 +491,15 @@ describe('BaseDeleteOneService', () => {
     it('should execute multiple cascade configs', async () => {
       class AnotherChild extends BaseEntity { postId: string; }
       const anotherChildModelMock = {
-        deleteMany: jest.fn(() => ({ exec: jest.fn().mockResolvedValue({ deletedCount: 1 }) })),
-        updateMany: jest.fn(() => ({ exec: jest.fn().mockResolvedValue({ modifiedCount: 1 }) })),
+        deleteMany: vi.fn(() => ({ exec: vi.fn().mockResolvedValue({ deletedCount: 1 }) })),
+        updateMany: vi.fn(() => ({ exec: vi.fn().mockResolvedValue({ modifiedCount: 1 }) })),
       };
-      (DynamicApiGlobalStateService.getEntityModel as jest.Mock)
+      (DynamicApiGlobalStateService.getEntityModel as Mock)
         .mockResolvedValueOnce(childModelMock)
         .mockResolvedValueOnce(anotherChildModelMock);
 
       service = initService();
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       internal(service).cascade = [
         cascadeConfig,
         { entity: AnotherChild, foreignKey: 'postId', on: 'delete' },
@@ -516,40 +518,40 @@ describe('BaseDeleteOneService', () => {
       foreignKey: 'parentId',
       on: 'delete',
     };
-    let childModelMock: { deleteMany: jest.Mock; updateMany: jest.Mock };
-    let sessionMock: { withTransaction: jest.Mock; endSession: jest.Mock };
+    let childModelMock: { deleteMany: Mock; updateMany: Mock };
+    let sessionMock: { withTransaction: Mock; endSession: Mock };
 
     beforeEach(() => {
       childModelMock = {
-        deleteMany: jest.fn(() => ({ exec: jest.fn().mockResolvedValue({ deletedCount: 2 }) })),
-        updateMany: jest.fn(() => ({ exec: jest.fn().mockResolvedValue({ modifiedCount: 2 }) })),
+        deleteMany: vi.fn(() => ({ exec: vi.fn().mockResolvedValue({ deletedCount: 2 }) })),
+        updateMany: vi.fn(() => ({ exec: vi.fn().mockResolvedValue({ modifiedCount: 2 }) })),
       };
       // A session-bound cascade write resolves the child model via this.model.db.model(...) —
       // NOT DynamicApiGlobalStateService.getEntityModel, which lives on a separate connection a
       // session can't span. See base.service.ts's executeCascade for why.
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(
+      vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(
         childModelMock as unknown as ReturnType<typeof DynamicApiGlobalStateService.getEntityModel> extends Promise<infer M> ? M : never,
       );
 
       sessionMock = {
-        withTransaction: jest.fn(async (work: () => Promise<void>) => { await work(); }),
-        endSession: jest.fn().mockResolvedValue(undefined),
+        withTransaction: vi.fn(async (work: () => Promise<void>) => { await work(); }),
+        endSession: vi.fn().mockResolvedValue(undefined),
       };
     });
 
     afterEach(() => {
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
     });
 
     const enableTransactionSupport = () => {
-      (modelMock.db as unknown as { startSession: jest.Mock }).startSession = jest.fn().mockResolvedValue(sessionMock);
-      (modelMock.db as unknown as { model: jest.Mock }).model = jest.fn().mockReturnValue(childModelMock);
+      (modelMock.db as unknown as { startSession: Mock }).startSession = vi.fn().mockResolvedValue(sessionMock);
+      (modelMock.db as unknown as { model: Mock }).model = vi.fn().mockReturnValue(childModelMock);
     };
 
     it('deletes the parent and cascades to children within the same session', async () => {
       service = initService();
       enableTransactionSupport();
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       internal(service).cascade = [cascadeConfig];
 
       const result = await service.deleteOne(id);
@@ -567,7 +569,7 @@ describe('BaseDeleteOneService', () => {
     it('soft-deletes the parent within the same session when isSoftDeletable is true', async () => {
       service = initService();
       enableTransactionSupport();
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
       internal(service).cascade = [{ ...cascadeConfig, on: 'softDelete' }];
 
       await service.deleteOne(id);
@@ -583,7 +585,7 @@ describe('BaseDeleteOneService', () => {
       service = initService();
       enableTransactionSupport();
       sessionMock.withTransaction.mockRejectedValueOnce(new Error('unexpected failure'));
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       internal(service).cascade = [cascadeConfig];
 
       await expect(service.deleteOne(id)).resolves.toStrictEqual(

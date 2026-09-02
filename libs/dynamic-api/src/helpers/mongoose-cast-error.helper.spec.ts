@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { Error as MongooseError } from 'mongoose';
 import { isMongooseCastError } from './mongoose-cast-error.helper';
 

@@ -1,4 +1,5 @@
-import { createMock } from '@golevelup/ts-jest';
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
+import { createMock } from '@test-helpers';
 import { ArgumentsHost, HttpException } from '@nestjs/common';
 import { WsArgumentsHost } from '@nestjs/common/interfaces';
 import { WsException } from '@nestjs/websockets';
@@ -19,7 +20,7 @@ describe('WsExceptionFilter', () => {
 
   describe('catch', () => {
     const host = createMock<ArgumentsHost>();
-    const client = { emit: jest.fn() };
+    const client = { emit: vi.fn() };
 
     beforeEach(() => {
       host.switchToWs.mockReturnValue({ getClient: () => client } as WsArgumentsHost);

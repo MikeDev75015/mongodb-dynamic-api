@@ -1,5 +1,7 @@
 import 'reflect-metadata';
-import { createMock } from '@golevelup/ts-jest';
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
+import type { Mock } from 'vitest';
+import { createMock } from '@test-helpers';
 import { validate } from 'class-validator';
 import { Error as MongooseError, Model } from 'mongoose';
 import { BaseEntity } from '../models';
@@ -12,13 +14,13 @@ class TargetEntity extends BaseEntity {
 
 describe('IsUnique', () => {
   let model: Model<TargetEntity>;
-  let getEntityModelSpy: jest.SpyInstance;
+  let getEntityModelSpy: Mock;
 
   beforeEach(() => {
     model = createMock<Model<TargetEntity>>();
     getEntityModelSpy =
       // @ts-ignore
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
+      vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
   });
 
   it('should pass without querying the database when the value is undefined, null or empty', async () => {
@@ -37,7 +39,7 @@ describe('IsUnique', () => {
   });
 
   it('should pass when no document matches the decorated field value', async () => {
-    model.exists = jest.fn().mockResolvedValue(null);
+    model.exists = vi.fn().mockResolvedValue(null);
 
     class Dto {
       @IsUnique(TargetEntity)
@@ -53,7 +55,7 @@ describe('IsUnique', () => {
   });
 
   it('should fail with a default message when a document already has that value', async () => {
-    model.exists = jest.fn().mockResolvedValue({ _id: 'existing-id' });
+    model.exists = vi.fn().mockResolvedValue({ _id: 'existing-id' });
 
     class Dto {
       @IsUnique(TargetEntity)
@@ -70,7 +72,7 @@ describe('IsUnique', () => {
   });
 
   it('should query the overridden field when the `field` option is set', async () => {
-    model.exists = jest.fn().mockResolvedValue(null);
+    model.exists = vi.fn().mockResolvedValue(null);
 
     class Dto {
       @IsUnique(TargetEntity, { field: 'email' })
@@ -84,7 +86,7 @@ describe('IsUnique', () => {
   });
 
   it('should use a case-insensitive regex filter when `caseInsensitive` is true', async () => {
-    model.exists = jest.fn().mockResolvedValue(null);
+    model.exists = vi.fn().mockResolvedValue(null);
 
     class Dto {
       @IsUnique(TargetEntity, { caseInsensitive: true })
@@ -100,7 +102,7 @@ describe('IsUnique', () => {
   });
 
   it('should exclude the current entity id from the check when `ignoreId` resolves to a truthy value', async () => {
-    model.exists = jest.fn().mockResolvedValue(null);
+    model.exists = vi.fn().mockResolvedValue(null);
 
     class Dto {
       @IsUnique(TargetEntity, { ignoreId: 'id' })
@@ -119,7 +121,7 @@ describe('IsUnique', () => {
   });
 
   it('should not add an id exclusion when `ignoreId` resolves to a falsy value', async () => {
-    model.exists = jest.fn().mockResolvedValue(null);
+    model.exists = vi.fn().mockResolvedValue(null);
 
     class Dto {
       @IsUnique(TargetEntity, { ignoreId: 'id' })
@@ -135,7 +137,7 @@ describe('IsUnique', () => {
   });
 
   it('should fail cleanly with the default message when the query raises a Mongoose CastError', async () => {
-    model.exists = jest.fn().mockRejectedValue(new MongooseError.CastError('ObjectId', 'not-an-id', '_id'));
+    model.exists = vi.fn().mockRejectedValue(new MongooseError.CastError('ObjectId', 'not-an-id', '_id'));
 
     class Dto {
       @IsUnique(TargetEntity, { ignoreId: 'id' })
@@ -154,7 +156,7 @@ describe('IsUnique', () => {
   });
 
   it('should not swallow a non-CastError raised while querying', async () => {
-    model.exists = jest.fn().mockRejectedValue(new Error('connection lost'));
+    model.exists = vi.fn().mockRejectedValue(new Error('connection lost'));
 
     class Dto {
       @IsUnique(TargetEntity)

@@ -60,8 +60,6 @@ commands:
             UT_FILES=$(circleci tests glob "libs/**/*.spec.ts" | circleci tests split --split-by=timings)
             echo $UT_FILES
             npm run test:ci:junit $UT_FILES
-          environment:
-            JEST_JUNIT_OUTPUT_DIR: reports/junit
       - store_test_results:
           path: reports/junit
 
@@ -76,7 +74,7 @@ commands:
           command: |
             UT_FILES=$(circleci tests glob "libs/**/*.spec.ts" | circleci tests split --split-by=timings)
             echo $UT_FILES
-            npm run test:ci:sonar -- $UT_FILES --coverageDirectory=../coverage-data/node-${CIRCLE_NODE_INDEX}
+            npm run test:ci:sonar -- $UT_FILES --coverage.reportsDirectory=coverage-data/node-${CIRCLE_NODE_INDEX}
       - run:
           name: Move Sonar XML report to node-specific folder
           command: |
@@ -101,9 +99,7 @@ commands:
             E2E_FILES=$(circleci tests glob "libs/**/*.e2e-spec.ts" | circleci tests split --split-by=timings)
             echo "Running E2E files on node ${CIRCLE_NODE_INDEX}:"
             echo $E2E_FILES
-            npm run test-e2e:ci -- --testResultsProcessor=jest-junit $E2E_FILES
-          environment:
-            JEST_JUNIT_OUTPUT_DIR: reports/junit
+            npm run test-e2e:ci -- $E2E_FILES
       - store_test_results:
           path: reports/junit
 

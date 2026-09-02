@@ -2,7 +2,6 @@ import { Type } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { randomUUID } from 'node:crypto';
 import type { StringValue } from 'ms';
-import { Credentials } from '../interfaces';
 import { BaseEntity } from '../models';
 import { BcryptService, DynamicApiGlobalStateService } from '../services';
 
@@ -74,15 +73,10 @@ async function mintTokenPair<Entity extends BaseEntity>(
   user: Entity,
   options: MintTokenPairOptions<Entity> = {},
 ): Promise<MintTokenPairResult> {
-  // Lazy-require to avoid a circular dependency at module load time
-  // (dynamic-api.module.ts imports from './helpers', which includes this file).
-  // The `typeof import(...)` annotation is erased at compile time — it does not itself trigger
-  // the circular require, only the runtime `require()` call above (deferred until this function runs) does.
-  const { DynamicApiModule }: { DynamicApiModule: typeof import('../dynamic-api.module').DynamicApiModule } =
-    require('../dynamic-api.module');
-  const state = DynamicApiModule.state;
-
-  const jwtSecret = state.get<string | undefined>('jwtSecret');
+  // Read via the static getValue() accessor, never by instantiating DynamicApiGlobalStateService
+  // here: its constructor resets the shared state to defaults (see its own doc comment) - `new`ing
+  // it just to read a value would wipe out whatever DynamicApiModule.forRoot() already configured.
+  const jwtSecret = DynamicApiGlobalStateService.getValue('jwtSecret');
 
   if (!jwtSecret) {
     throw new Error(
@@ -91,16 +85,16 @@ async function mintTokenPair<Entity extends BaseEntity>(
     );
   }
 
-  const credentials = state.get<Credentials | null>('credentials');
+  const credentials = DynamicApiGlobalStateService.getValue('credentials');
   const loginField = (options.loginField ?? credentials?.loginField) as keyof Entity;
   const additionalFields =
-    (options.additionalFields ?? state.get<string[]>('additionalRequestFields') ?? []) as (keyof Entity)[];
+    (options.additionalFields ?? DynamicApiGlobalStateService.getValue('additionalRequestFields') ?? []) as (keyof Entity)[];
   const refreshTokenField =
-    (options.refreshTokenField ?? state.get<string | undefined>('refreshTokenField')) as keyof Entity | undefined;
+    (options.refreshTokenField ?? DynamicApiGlobalStateService.getValue('refreshTokenField')) as keyof Entity | undefined;
 
   const jwtService = new JwtService({
     secret: jwtSecret,
-    signOptions: { expiresIn: state.get<string | number | undefined>('jwtExpirationTime') as StringValue | number },
+    signOptions: { expiresIn: DynamicApiGlobalStateService.getValue('jwtExpirationTime') as StringValue | number },
   });
 
   const fieldsToBuild = ['_id' as keyof Entity, 'id' as keyof Entity, loginField, ...additionalFields];
@@ -111,8 +105,8 @@ async function mintTokenPair<Entity extends BaseEntity>(
 
   const accessToken = jwtService.sign(payload);
 
-  const refreshSecret = state.get<string | undefined>('jwtRefreshSecret');
-  const refreshTokenExpiresIn = state.get<string | number | undefined>('jwtRefreshTokenExpiresIn');
+  const refreshSecret = DynamicApiGlobalStateService.getValue('jwtRefreshSecret');
+  const refreshTokenExpiresIn = DynamicApiGlobalStateService.getValue('jwtRefreshTokenExpiresIn');
   const refreshToken = jwtService.sign(
     { ...payload, jti: randomUUID() },
     {

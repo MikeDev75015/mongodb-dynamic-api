@@ -1,21 +1,23 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { createHealthController } from './health.controller';
 import { DynamicApiHealthModule } from './health.module';
 
-jest.mock('../../dynamic-api.module', () => ({
-  DynamicApiModule: { state: { get: jest.fn() } },
+vi.mock('../../dynamic-api.module', () => ({
+  DynamicApiModule: { state: { get: vi.fn() } },
 }));
 
-jest.mock('./health.controller', () => ({
-  createHealthController: jest.fn().mockReturnValue(class MockHealthController {}),
+vi.mock('./health.controller', () => ({
+  createHealthController: vi.fn().mockReturnValue(class MockHealthController {}),
 }));
 
-const mockStateGet = DynamicApiModule.state.get as jest.Mock;
-const mockCreateHealthController = createHealthController as jest.Mock;
+const mockStateGet = DynamicApiModule.state.get as Mock;
+const mockCreateHealthController = createHealthController as Mock;
 
 describe('DynamicApiHealthModule', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockStateGet.mockReturnValue('dynamic-api-connection');
   });
 

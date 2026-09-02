@@ -1,3 +1,5 @@
+import { describe, expect, it, test, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { Model } from 'mongoose';
 import {
   CallbackMethods,
@@ -24,7 +26,7 @@ type InternalService = {
   callbackMethods: CallbackMethods;
   beforeSaveCallback: BeforeSaveListCallback<TestEntity> | undefined;
   auditLog: boolean | undefined;
-  writeAuditLog: jest.Mock;
+  writeAuditLog: Mock;
 };
 
 const internal = (svc: TestService) => svc as unknown as InternalService;
@@ -38,10 +40,10 @@ describe('BaseCreateManyService', () => {
 
   const initService = (documents: any[] = []) => {
     modelMock = {
-      create: jest.fn().mockResolvedValue([created]),
-      find: jest.fn().mockReturnThis(),
-      lean: jest.fn().mockReturnThis(),
-      exec: jest.fn().mockResolvedValue(documents),
+      create: vi.fn().mockResolvedValue([created]),
+      find: vi.fn().mockReturnThis(),
+      lean: vi.fn().mockReturnThis(),
+      exec: vi.fn().mockResolvedValue(documents),
     } as unknown as Model<TestEntity>;
 
     return new TestService(modelMock);
@@ -66,7 +68,7 @@ describe('BaseCreateManyService', () => {
 
     it('should call callback if it is defined', async () => {
       service = initService([created]);
-      const callback = jest.fn(() => Promise.resolve());
+      const callback = vi.fn(() => Promise.resolve());
       internal(service).callback = callback;
       await service.createMany([toCreate]);
 
@@ -75,7 +77,7 @@ describe('BaseCreateManyService', () => {
 
     it('should pass user to callback if it is defined', async () => {
       service = initService([created]);
-      const callback = jest.fn(() => Promise.resolve());
+      const callback = vi.fn(() => Promise.resolve());
       internal(service).callback = callback;
       const fakeUser = { id: 'user-1', email: 'test@test.com' };
       await service.createMany([toCreate], fakeUser);
@@ -86,7 +88,7 @@ describe('BaseCreateManyService', () => {
     it('should not throw and should still return the full batch when one document\'s callback rejects', async () => {
       const created2 = { _id: 'ObjectId2', __v: 1, name: 'test2' };
       service = initService([created, created2]);
-      internal(service).callback = jest.fn((entity: TestEntity) => (
+      internal(service).callback = vi.fn((entity: TestEntity) => (
         (entity as unknown as { id: string }).id === created._id
           ? Promise.reject(new Error('boom'))
           : Promise.resolve()
@@ -104,7 +106,7 @@ describe('BaseCreateManyService', () => {
 
     it('should succeed on retry when callbackRetry is configured', async () => {
       service = initService([created]);
-      const callback = jest.fn()
+      const callback = vi.fn()
         .mockRejectedValueOnce(new Error('transient'))
         .mockResolvedValueOnce(undefined);
       internal(service).callback = callback;
@@ -117,7 +119,7 @@ describe('BaseCreateManyService', () => {
 
     it('should throw an error if the document already exists', async () => {
       service = initService();
-      (modelMock.create as jest.Mock).mockRejectedValue({
+      (modelMock.create as Mock).mockRejectedValue({
         code: 11000,
         keyValue: { name: 'test' },
       });
@@ -129,14 +131,14 @@ describe('BaseCreateManyService', () => {
 
     it('should throw an error if the create query fails', async () => {
       service = initService();
-      (modelMock.create as jest.Mock).mockRejectedValue(new Error('create error'));
+      (modelMock.create as Mock).mockRejectedValue(new Error('create error'));
 
       await expect(service.createMany([toCreate])).rejects.toThrow('create error');
     });
 
     it('should call beforeSaveCallback if it is defined', async () => {
       service = initService([created]);
-      const beforeSaveCallback = jest.fn(() => Promise.resolve([toCreate]));
+      const beforeSaveCallback = vi.fn(() => Promise.resolve([toCreate]));
       internal(service).beforeSaveCallback = beforeSaveCallback;
       await service.createMany([toCreate]);
 
@@ -151,7 +153,7 @@ describe('BaseCreateManyService', () => {
 
     it('should pass user to beforeSaveCallback if it is defined', async () => {
       service = initService([created]);
-      const beforeSaveCallback = jest.fn(() => Promise.resolve([toCreate]));
+      const beforeSaveCallback = vi.fn(() => Promise.resolve([toCreate]));
       internal(service).beforeSaveCallback = beforeSaveCallback;
       const fakeUser = { id: 'user-1', email: 'test@test.com' };
       await service.createMany([toCreate], fakeUser);
@@ -169,8 +171,8 @@ describe('BaseCreateManyService', () => {
       const created2 = { _id: 'ObjectId2', __v: 1, name: 'test2' };
       service = initService([created, created2]);
       internal(service).auditLog = true;
-      const writeAuditLogSpy = jest
-        .spyOn(service as unknown as { writeAuditLog: jest.Mock }, 'writeAuditLog')
+      const writeAuditLogSpy = vi
+        .spyOn(service as unknown as { writeAuditLog: Mock }, 'writeAuditLog')
         .mockResolvedValue(undefined);
       const fakeUser = { id: 'user-1' };
 
@@ -183,8 +185,8 @@ describe('BaseCreateManyService', () => {
 
     it('should not call writeAuditLog when auditLog is not enabled', async () => {
       service = initService([created]);
-      const writeAuditLogSpy = jest
-        .spyOn(service as unknown as { writeAuditLog: jest.Mock }, 'writeAuditLog')
+      const writeAuditLogSpy = vi
+        .spyOn(service as unknown as { writeAuditLog: Mock }, 'writeAuditLog')
         .mockResolvedValue(undefined);
 
       await service.createMany([toCreate]);

@@ -1,3 +1,4 @@
+import { describe, expect, it, test } from 'vitest';
 import { PipelineStage } from 'mongodb-pipeline-builder';
 import { isPagingPipeline } from './pipeline-paging.helper';
 

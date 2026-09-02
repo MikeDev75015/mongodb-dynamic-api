@@ -1,4 +1,6 @@
 import 'reflect-metadata';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { getMetadataStorage, IsEmail } from 'class-validator';
 import * as classValidator from 'class-validator';
 import { EntityExists } from '../decorators/entity-exists.decorator';
@@ -6,9 +8,9 @@ import { IsUnique } from '../decorators/is-unique.decorator';
 import { BaseEntity } from '../models';
 import { stripBusinessValidators } from './strip-business-validators.helper';
 
-jest.mock('class-validator', () => {
-  const actual = jest.requireActual('class-validator');
-  return { ...actual, getMetadataStorage: jest.fn(actual.getMetadataStorage) };
+vi.mock('class-validator', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('class-validator')>();
+  return { ...actual, getMetadataStorage: vi.fn(actual.getMetadataStorage) };
 });
 
 class TargetEntity extends BaseEntity {
@@ -23,7 +25,7 @@ function metadataNamesFor(target: Function): (string | undefined)[] {
 
 describe('stripBusinessValidators', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('does nothing when the target has no registered validation metadata', () => {
@@ -73,7 +75,7 @@ describe('stripBusinessValidators', () => {
       email: string;
     }
 
-    (classValidator.getMetadataStorage as jest.Mock).mockReturnValueOnce(
+    (classValidator.getMetadataStorage as Mock).mockReturnValueOnce(
       { validationMetadatas: {} } as unknown as ReturnType<typeof classValidator.getMetadataStorage>,
     );
 

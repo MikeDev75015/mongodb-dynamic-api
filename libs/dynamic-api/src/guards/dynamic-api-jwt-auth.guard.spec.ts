@@ -1,3 +1,5 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { AuthGuard } from '@nestjs/passport';
 import { Test } from '@nestjs/testing';
 import { Reflector } from '@nestjs/core';
@@ -19,7 +21,7 @@ describe('DynamicApiJwtAuthGuard', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         { provide: 'DynamicApiGlobalState', useValue: DynamicApiModule.state.get() },
-        { provide: Reflector, useValue: { getAllAndOverride: jest.fn() } },
+        { provide: Reflector, useValue: { getAllAndOverride: vi.fn() } },
         {
           provide: DynamicApiJwtAuthGuard,
           inject: [Reflector, 'DynamicApiGlobalState'],
@@ -31,11 +33,11 @@ describe('DynamicApiJwtAuthGuard', () => {
 
     guard = moduleRef.get<DynamicApiJwtAuthGuard>(DynamicApiJwtAuthGuard);
     reflector = moduleRef.get<Reflector>(Reflector);
-    context = { getHandler: jest.fn(), getClass: jest.fn() } as unknown as ExecutionContext;
+    context = { getHandler: vi.fn(), getClass: vi.fn() } as unknown as ExecutionContext;
   });
 
   it('should allow access if route is public', () => {
-    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(true);
+    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue(true);
 
     expect(guard.canActivate(context)).toBe(true);
   });
@@ -47,16 +49,16 @@ describe('DynamicApiJwtAuthGuard', () => {
   });
 
   it('should deny access if route is not public and auth is enabled', () => {
-    const spy = jest.spyOn(AuthGuard('jwt').prototype, 'canActivate').mockImplementationOnce(() => false);
-    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
+    const spy = vi.spyOn(AuthGuard('jwt').prototype, 'canActivate').mockImplementationOnce(() => false);
+    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
 
     expect(guard.canActivate(context)).toBe(false);
     expect(spy).toHaveBeenCalledWith(context);
   });
 
   it('should allow access if route is not public and auth is enabled', () => {
-    const spy = jest.spyOn(AuthGuard('jwt').prototype, 'canActivate').mockImplementationOnce(() => true);
-    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
+    const spy = vi.spyOn(AuthGuard('jwt').prototype, 'canActivate').mockImplementationOnce(() => true);
+    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
 
 
     expect(guard.canActivate(context)).toBe(true);
@@ -64,11 +66,11 @@ describe('DynamicApiJwtAuthGuard', () => {
   });
 
   describe('handleRequest', () => {
-    let superHandleRequestSpy: jest.SpyInstance;
-    let loggerWarnSpy: jest.SpyInstance;
+    let superHandleRequestSpy: Mock;
+    let loggerWarnSpy: Mock;
 
     beforeEach(() => {
-      superHandleRequestSpy = jest.spyOn(AuthGuard('jwt').prototype, 'handleRequest').mockImplementationOnce(
+      superHandleRequestSpy = vi.spyOn(AuthGuard('jwt').prototype, 'handleRequest').mockImplementationOnce(
         (err, user) => {
           if (err || !user) {
             throw err || new Error('Unauthorized');
@@ -76,7 +78,7 @@ describe('DynamicApiJwtAuthGuard', () => {
           return user;
         },
       );
-      loggerWarnSpy = jest.spyOn(guard['logger'], 'warn').mockImplementation(() => undefined);
+      loggerWarnSpy = vi.spyOn(guard['logger'], 'warn').mockImplementation(() => undefined);
     });
 
     it('should return the user without logging when authentication succeeds', () => {

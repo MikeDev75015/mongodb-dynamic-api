@@ -1,3 +1,5 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { DynamicModule, ValidationPipeOptions } from '@nestjs/common';
 import * as Helpers from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
@@ -6,21 +8,21 @@ import { DynamicApiBroadcastService } from '../../services';
 import * as UpdateManyHelpers from './update-many.helper';
 import { UpdateManyModule } from './update-many.module';
 
-jest.mock('./update-many.helper');
-jest.mock('../../helpers');
+vi.mock('./update-many.helper');
+vi.mock('../../helpers');
 
 class Entity extends BaseEntity {}
 
 describe('UpdateManyModule', () => {
-  let spyCreateUpdateManyController: jest.SpyInstance;
-  let spyCreateUpdateManyServiceProvider: jest.SpyInstance;
-  let spyCreateUpdateManyGateway: jest.SpyInstance;
+  let spyCreateUpdateManyController: Mock;
+  let spyCreateUpdateManyServiceProvider: Mock;
+  let spyCreateUpdateManyGateway: Mock;
 
-  const FakeController = jest.fn();
+  const FakeController = vi.fn();
   const FakeServiceProvider = { provide: 'fakeProvider' } as unknown as DynamicAPIServiceProvider;
-  const FakeGateway = jest.fn();
+  const FakeGateway = vi.fn();
 
-  const routeConfigCallback = jest.fn();
+  const routeConfigCallback = vi.fn();
   const databaseModule = { module: 'databaseModule' } as unknown as DynamicModule;
   const controllerOptions: DynamicApiControllerOptions<Entity> = { path: 'fakePath' };
   const routeConfig: DynamicAPIRouteConfig<Entity> = { type: 'UpdateMany', callback: routeConfigCallback };
@@ -30,11 +32,11 @@ describe('UpdateManyModule', () => {
   const fakeGatewayOptions = { namespace: 'fakeNamespace' };
 
   beforeEach(() => {
-    spyCreateUpdateManyController = jest.spyOn(UpdateManyHelpers, 'createUpdateManyController').mockReturnValue(FakeController);
-    spyCreateUpdateManyServiceProvider = jest.spyOn(UpdateManyHelpers, 'createUpdateManyServiceProvider').mockReturnValue(FakeServiceProvider);
-    spyCreateUpdateManyGateway = jest.spyOn(UpdateManyHelpers, 'createUpdateManyGateway').mockReturnValue(FakeGateway);
-    jest.spyOn(Helpers, 'getDisplayedName').mockReturnValue(fakeDisplayedName);
-    jest.spyOn(Helpers, 'initializeConfigFromOptions').mockReturnValue(fakeGatewayOptions);
+    spyCreateUpdateManyController = vi.spyOn(UpdateManyHelpers, 'createUpdateManyController').mockReturnValue(FakeController);
+    spyCreateUpdateManyServiceProvider = vi.spyOn(UpdateManyHelpers, 'createUpdateManyServiceProvider').mockReturnValue(FakeServiceProvider);
+    spyCreateUpdateManyGateway = vi.spyOn(UpdateManyHelpers, 'createUpdateManyGateway').mockReturnValue(FakeGateway);
+    vi.spyOn(Helpers, 'getDisplayedName').mockReturnValue(fakeDisplayedName);
+    vi.spyOn(Helpers, 'initializeConfigFromOptions').mockReturnValue(fakeGatewayOptions);
   });
 
   describe('forFeature', () => {

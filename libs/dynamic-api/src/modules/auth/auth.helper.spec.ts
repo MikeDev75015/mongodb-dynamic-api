@@ -1,4 +1,5 @@
-import { createMock } from '@golevelup/ts-jest';
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
+import { createMock } from '@test-helpers';
 import { ForbiddenException, Type, UnauthorizedException, ValidationPipeOptions } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { BaseEntity } from '../../models';
@@ -30,21 +31,21 @@ describe('AuthHelper', () => {
   const loginField = 'login';
   const passwordField = 'pass';
   const additionalRequestFields: (keyof UserEntity)[] = ['nickname'];
-  const loginCallback = jest.fn();
+  const loginCallback = vi.fn();
   const registerOptions: DynamicApiRegisterOptions<UserEntity> = {
-    callback: jest.fn(),
+    callback: vi.fn(),
     additionalFields: ['nickname'],
     protected: false,
   };
   const getAccountOptions: DynamicApiGetAccountOptions<UserEntity> = {
-    callback: jest.fn(),
+    callback: vi.fn(),
     useInterceptors: [],
   };
   const resetPasswordOptions: DynamicApiResetPasswordOptions = {
-    resetPasswordCallback: jest.fn(),
-    changePasswordCallback: jest.fn(),
+    resetPasswordCallback: vi.fn(),
+    changePasswordCallback: vi.fn(),
     emailField: 'email',
-    changePasswordAbilityPredicate: jest.fn(),
+    changePasswordAbilityPredicate: vi.fn(),
     expirationInMinutes: 60,
   };
   const validationPipeOptions: ValidationPipeOptions = {
@@ -56,8 +57,8 @@ describe('AuthHelper', () => {
     },
   };
   const updateAccountOptions: DynamicApiUpdateAccountOptions<UserEntity> = {
-    callback: jest.fn(),
-    abilityPredicate: jest.fn(),
+    callback: vi.fn(),
+    abilityPredicate: vi.fn(),
     additionalFieldsToExclude: ['pass'],
   };
 
@@ -66,7 +67,7 @@ describe('AuthHelper', () => {
     let LocalStrategy: Type;
     const loginField = 'login';
     const passwordField = 'pass';
-    const abilityPredicate = jest.fn();
+    const abilityPredicate = vi.fn();
 
     beforeEach(() => {
       provider = createLocalStrategyProvider<UserEntity>(loginField, passwordField, undefined);
@@ -89,7 +90,7 @@ describe('AuthHelper', () => {
 
       beforeEach(() => {
         authService = {
-          validateUser: jest.fn(),
+          validateUser: vi.fn(),
         };
         strategy = new LocalStrategy(authService);
       });
@@ -144,12 +145,12 @@ describe('AuthHelper', () => {
       const fakePass = '';
 
       beforeEach(() => {
-        authService = { validateUser: jest.fn() };
+        authService = { validateUser: vi.fn() };
       });
 
       it('should return user from customValidate without calling validateUser', async () => {
         const fakeUser = { id: 2 };
-        const customValidate = jest.fn().mockResolvedValueOnce(fakeUser);
+        const customValidate = vi.fn().mockResolvedValueOnce(fakeUser);
         provider = createLocalStrategyProvider<UserEntity>(loginField, passwordField, undefined, customValidate);
         strategy = new provider.useClass(authService);
 
@@ -162,7 +163,7 @@ describe('AuthHelper', () => {
 
       it('should fallback to validateUser when customValidate returns null', async () => {
         const fakeUser = { id: 3 };
-        const customValidate = jest.fn().mockResolvedValueOnce(null);
+        const customValidate = vi.fn().mockResolvedValueOnce(null);
         authService.validateUser.mockResolvedValueOnce(fakeUser);
         provider = createLocalStrategyProvider<UserEntity>(loginField, passwordField, undefined, customValidate);
         strategy = new provider.useClass(authService);
@@ -176,8 +177,8 @@ describe('AuthHelper', () => {
 
       it('should throw ForbiddenException from customValidate user if abilityPredicate returns false', async () => {
         const fakeUser = { id: 4 };
-        const customValidate = jest.fn().mockResolvedValueOnce(fakeUser);
-        const abilityPredicate = jest.fn().mockReturnValueOnce(false);
+        const customValidate = vi.fn().mockResolvedValueOnce(fakeUser);
+        const abilityPredicate = vi.fn().mockReturnValueOnce(false);
         provider = createLocalStrategyProvider<UserEntity>(loginField, passwordField, abilityPredicate, customValidate);
         strategy = new provider.useClass(authService);
 
@@ -187,7 +188,7 @@ describe('AuthHelper', () => {
       });
 
       it('should throw UnauthorizedException when customValidate returns null and validateUser returns null', async () => {
-        const customValidate = jest.fn().mockResolvedValueOnce(null);
+        const customValidate = vi.fn().mockResolvedValueOnce(null);
         authService.validateUser.mockResolvedValueOnce(null);
         provider = createLocalStrategyProvider<UserEntity>(loginField, passwordField, undefined, customValidate);
         strategy = new provider.useClass(authService);
@@ -203,17 +204,17 @@ describe('AuthHelper', () => {
       let authService: any;
 
       beforeEach(() => {
-        authService = { validateUser: jest.fn() };
+        authService = { validateUser: vi.fn() };
       });
 
       it('should bypass passport-local missing credentials check and call success when customValidate returns a user', async () => {
         const fakeUser = { id: 5, login: 'device-user' };
-        const customValidate = jest.fn().mockResolvedValueOnce(fakeUser);
+        const customValidate = vi.fn().mockResolvedValueOnce(fakeUser);
         provider = createLocalStrategyProvider<UserEntity>(loginField, passwordField, undefined, customValidate);
         strategy = new provider.useClass(authService);
 
-        const successFn = jest.fn();
-        const errorFn = jest.fn();
+        const successFn = vi.fn();
+        const errorFn = vi.fn();
         strategy.success = successFn;
         strategy.error = errorFn;
 
@@ -231,13 +232,13 @@ describe('AuthHelper', () => {
       });
 
       it('should bypass passport-local missing credentials check and call error when customValidate returns null and validateUser returns null', async () => {
-        const customValidate = jest.fn().mockResolvedValueOnce(null);
+        const customValidate = vi.fn().mockResolvedValueOnce(null);
         authService.validateUser.mockResolvedValueOnce(null);
         provider = createLocalStrategyProvider<UserEntity>(loginField, passwordField, undefined, customValidate);
         strategy = new provider.useClass(authService);
 
-        const successFn = jest.fn();
-        const errorFn = jest.fn();
+        const successFn = vi.fn();
+        const errorFn = vi.fn();
         strategy.success = successFn;
         strategy.error = errorFn;
 
@@ -256,7 +257,7 @@ describe('AuthHelper', () => {
         provider = createLocalStrategyProvider<UserEntity>(loginField, passwordField, undefined);
         strategy = new provider.useClass(authService);
 
-        const superAuthenticateSpy = jest.spyOn(
+        const superAuthenticateSpy = vi.spyOn(
           Object.getPrototypeOf(Object.getPrototypeOf(strategy)),
           'authenticate',
         ).mockImplementation(() => {});
@@ -275,14 +276,14 @@ describe('AuthHelper', () => {
       const aliasLoginField = 'nickname';
 
       beforeEach(() => {
-        authService = { validateUser: jest.fn() };
+        authService = { validateUser: vi.fn() };
       });
 
       it('should map body.login to body[loginField] when loginField is not present', () => {
         const provider = createLocalStrategyProvider<UserEntity>(aliasLoginField, passwordField, undefined);
         strategy = new provider.useClass(authService);
 
-        const superAuthenticateSpy = jest.spyOn(
+        const superAuthenticateSpy = vi.spyOn(
           Object.getPrototypeOf(Object.getPrototypeOf(strategy)),
           'authenticate',
         ).mockImplementation(() => {});
@@ -299,7 +300,7 @@ describe('AuthHelper', () => {
         const provider = createLocalStrategyProvider<UserEntity>(aliasLoginField, passwordField, undefined);
         strategy = new provider.useClass(authService);
 
-        const superAuthenticateSpy = jest.spyOn(
+        const superAuthenticateSpy = vi.spyOn(
           Object.getPrototypeOf(Object.getPrototypeOf(strategy)),
           'authenticate',
         ).mockImplementation(() => {});
@@ -313,12 +314,12 @@ describe('AuthHelper', () => {
 
       it('should map body.login to body[loginField] in customValidate path', async () => {
         const fakeUser = { id: 10 };
-        const customValidate = jest.fn().mockResolvedValueOnce(fakeUser);
+        const customValidate = vi.fn().mockResolvedValueOnce(fakeUser);
         const provider = createLocalStrategyProvider<UserEntity>(aliasLoginField, passwordField, undefined, customValidate);
         strategy = new provider.useClass(authService);
 
-        const successFn = jest.fn();
-        const errorFn = jest.fn();
+        const successFn = vi.fn();
+        const errorFn = vi.fn();
         strategy.success = successFn;
         strategy.error = errorFn;
 
@@ -347,7 +348,7 @@ describe('AuthHelper', () => {
 
       it('should ignore loginField, passwordField and abilityPredicate when useStrategy is provided', () => {
         class CustomStrategy {}
-        const abilityPredicate = jest.fn();
+        const abilityPredicate = vi.fn();
         const provider = createLocalStrategyProvider<UserEntity>(
           loginField, passwordField, abilityPredicate, undefined, CustomStrategy as any,
         );
@@ -405,11 +406,11 @@ describe('AuthHelper', () => {
           name: 'UserEntity',
         };
         jwtService = {
-          sign: jest.fn(),
+          sign: vi.fn(),
         };
         bcryptService = {
-          hash: jest.fn(),
-          compare: jest.fn(),
+          hash: vi.fn(),
+          compare: vi.fn(),
         };
         authService = new AuthService(model, jwtService, bcryptService);
       });

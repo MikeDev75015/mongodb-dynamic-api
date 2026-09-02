@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { ModuleMetadata, Type } from '@nestjs/common';
 import { BaseEntity } from '../src';
 import { DynamicApiAuthOptions } from '../src/modules';
@@ -19,38 +20,38 @@ export const getFullAuthOptionsMock = <Entity extends BaseEntity>(
     loginField,
     passwordField,
     additionalFields: [...loginAdditionalFields],
-    abilityPredicate: jest.fn(),
-    callback: jest.fn(),
+    abilityPredicate: vi.fn(),
+    callback: vi.fn(),
     useInterceptors: [],
   },
   getAccount: {
-    callback: jest.fn(),
+    callback: vi.fn(),
     useInterceptors: [],
   },
   register: {
     additionalFields: [...registerAdditionalFields],
     protected: false,
-    abilityPredicate: jest.fn(),
-    beforeSaveCallback: jest.fn(),
-    callback: jest.fn(),
+    abilityPredicate: vi.fn(),
+    beforeSaveCallback: vi.fn(),
+    callback: vi.fn(),
     useInterceptors: [],
   },
   updateAccount: {
-    abilityPredicate: jest.fn(),
-    callback: jest.fn(),
-    beforeSaveCallback: jest.fn(),
+    abilityPredicate: vi.fn(),
+    callback: vi.fn(),
+    beforeSaveCallback: vi.fn(),
     additionalFieldsToExclude: [...updateAccountAdditionalFieldsToExclude],
     useInterceptors: [],
   },
   resetPassword: {
-    beforeChangePasswordCallback: jest.fn(),
-    resetPasswordCallback: jest.fn(),
+    beforeChangePasswordCallback: vi.fn(),
+    resetPasswordCallback: vi.fn(),
     resetPasswordUseInterceptors: [],
-    changePasswordCallback: jest.fn(),
+    changePasswordCallback: vi.fn(),
     changePasswordUseInterceptors: [],
     emailField: 'email',
     expirationInMinutes: 30,
-    changePasswordAbilityPredicate: jest.fn(),
+    changePasswordAbilityPredicate: vi.fn(),
   },
   refreshToken: {
     useInterceptors: [],

@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it } from 'vitest';
 import { DynamicApiCachePathRegistryStore } from './cache-path-registry.store';
 
 describe('DynamicApiCachePathRegistryStore', () => {

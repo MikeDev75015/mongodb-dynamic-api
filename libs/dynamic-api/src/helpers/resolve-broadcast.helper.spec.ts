@@ -1,3 +1,4 @@
+import { describe, expect, it, vi } from 'vitest';
 import { resolveBroadcast } from './resolve-broadcast.helper';
 import { BroadcastConfig } from '../interfaces';
 
@@ -50,7 +51,7 @@ describe('resolveBroadcast', () => {
   });
 
   it('should pass the user to the enabled predicate', () => {
-    const predicate = jest.fn((item: Item, user?: { id: string }) => item.ownerId === user?.id);
+    const predicate = vi.fn((item: Item, user?: { id: string }) => item.ownerId === user?.id);
     const user = { id: '1' };
     const scoped: Item[] = [{ id: 'a', ownerId: '1' }, { id: 'b', ownerId: '2' }];
 
@@ -76,7 +77,7 @@ describe('resolveBroadcast', () => {
 
   it('should resolve dynamic rooms with the user', () => {
     const user = { id: 'user-1' };
-    const roomsFn = jest.fn((item: Item, u?: { id: string }) => `${item.id}-${u?.id}`);
+    const roomsFn = vi.fn((item: Item, u?: { id: string }) => `${item.id}-${u?.id}`);
     const config: BroadcastConfig<Item, { id: string }> = { enabled: true, rooms: roomsFn };
 
     const result = resolveBroadcast('event', data, config, user);

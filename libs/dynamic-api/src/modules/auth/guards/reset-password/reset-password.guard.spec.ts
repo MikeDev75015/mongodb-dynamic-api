@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { ServiceUnavailableException } from '@nestjs/common';
 import { ResetPasswordGuard } from './reset-password.guard';
 

@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import * as supertest from 'supertest';
 import mongoose from 'mongoose';
 import { DynamicApiModule } from '../../src';

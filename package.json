@@ -11,12 +11,12 @@
     "build": "tsc && tsc -p tsconfig.schematics.json && node scripts/copy-schematics-assets.cjs",
     "format": "prettier --write \"src/**/*.ts\"",
     "lint": "tslint -p tsconfig.json -c tslint.json",
-    "test": "jest --runInBand",
-    "test-cov": "jest --runInBand --coverage",
-    "test-e2e": "jest --runInBand --config ./libs/dynamic-api/test/jest-e2e.json",
-    "test-e2e:ci": "jest --ci --runInBand --config ./libs/dynamic-api/test/jest-e2e.json",
-    "test:ci:junit": "jest --ci --runInBand --coverage --testResultsProcessor=jest-junit",
-    "test:ci:sonar": "jest --ci --runInBand --coverage --testResultsProcessor=jest-sonar-reporter",
+    "test": "vitest run",
+    "test-cov": "vitest run --coverage",
+    "test-e2e": "vitest run --config vitest.e2e.config.ts",
+    "test-e2e:ci": "vitest run --config vitest.e2e.config.ts --reporter=default --reporter=junit --outputFile=reports/junit/results.xml",
+    "test:ci:junit": "vitest run --coverage --reporter=default --reporter=junit --outputFile=reports/junit/results.xml",
+    "test:ci:sonar": "vitest run --coverage --reporter=default --reporter=vitest-sonar-reporter --outputFile=reports/sonar/test-report.xml",
     "pre-release-tag": "git tag -f prerelease && git push -f origin prerelease",
     "release-tag": "git tag -f release && git push -f origin release",
     "auto-prerelease": "release-it --ci --preRelease=beta",
@@ -60,6 +60,7 @@
     "cookie-parser": "^1.4.7",
     "dotenv": "^16.4.5",
     "ioredis": "^5.10.1",
+    "jsonwebtoken": "^9.0.3",
     "mongodb-pipeline-builder": "^4.0.2",
     "mongoose": "^8.9.5",
     "passport": "^0.7.0",
@@ -70,7 +71,6 @@
     "socket.io-client": "^4.7.5"
   },
   "devDependencies": {
-    "@golevelup/ts-jest": "^0.4.0",
     "@nestjs/cli": "^11.0.16",
     "@nestjs/schematics": "^11.0.9",
     "@nestjs/testing": "^11.1.16",
@@ -82,59 +82,30 @@
     "@types/bcrypt": "^5.0.2",
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^4.17.21",
-    "@types/jest": "^29.5.12",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20.11.16",
     "@types/passport-jwt": "^4.0.1",
     "@types/passport-local": "^1.0.38",
     "@types/supertest": "^6.0.2",
     "@typescript-eslint/eslint-plugin": "^8.57.0",
     "@typescript-eslint/parser": "^8.57.0",
+    "@vitest/coverage-istanbul": "^4.1.11",
     "eslint": "^10.0.3",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
-    "jest": "^29.7.0",
-    "jest-junit": "^16.0.0",
-    "jest-mock-extended": "^3.0.5",
-    "jest-sonar-reporter": "^2.0.0",
     "lcov-result-merger": "^5.0.1",
     "mongodb-memory-server": "^11.2.0",
     "prettier": "^3.2.5",
     "release-it": "^20.0.1",
     "source-map-support": "^0.5.21",
     "supertest": "^6.3.4",
-    "ts-jest": "^29.1.2",
     "ts-loader": "^9.5.1",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.3.3"
-  },
-  "jest": {
-    "clearMocks": true,
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
-    ],
-    "rootDir": "libs",
-    "testRegex": ".*\\.spec\\.ts$",
-    "transform": {
-      "^.+\\.ts$": "ts-jest"
-    },
-    "collectCoverage": true,
-    "coverageDirectory": "../coverage",
-    "testEnvironment": "node",
-    "roots": [
-      "<rootDir>/"
-    ],
-    "coveragePathIgnorePatterns": [
-      ".*\\.mock\\.ts"
-    ],
-    "reporters": [
-      "default"
-    ]
-  },
-  "jestSonar": {
-    "reportPath": "reports/sonar"
+    "typescript": "^5.3.3",
+    "unplugin-swc": "^1.5.11",
+    "vitest": "^4.1.11",
+    "vitest-sonar-reporter": "^3.0.0"
   },
   "publishConfig": {
     "access": "public"

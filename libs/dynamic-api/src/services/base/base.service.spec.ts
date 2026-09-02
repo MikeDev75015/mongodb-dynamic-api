@@ -1,3 +1,5 @@
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { BadRequestException, ConflictException, ForbiddenException, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { PipelineStage } from 'mongodb-pipeline-builder';
 import { Model, ObjectId } from 'mongoose';
@@ -5,13 +7,6 @@ import { AbilityPredicate, AfterSaveCallback, DeleteResult, MongoUpdateOperators
 import { BaseEntity, SoftDeletableEntity } from '../../models';
 import { DynamicApiGlobalStateService } from '../dynamic-api-global-state/dynamic-api-global-state.service';
 import { BaseService } from './base.service';
-
-jest.mock('../../dynamic-api.module', () => ({
-  DynamicApiModule: { state: { get: jest.fn() } },
-}));
-
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { DynamicApiModule } = require('../../dynamic-api.module');
 
 class TestEntity extends BaseEntity {
   name: string;
@@ -41,14 +36,14 @@ class TestSoftService extends BaseService<TestSoftEntity> {
 
 describe('BaseService', () => {
   type FakeModel = {
-    aggregate: jest.Mock;
-    find: jest.Mock;
-    findOne: jest.Mock;
-    create: jest.Mock;
-    updateOne: jest.Mock;
-    updateMany: jest.Mock;
-    deleteOne: jest.Mock;
-    deleteMany: jest.Mock;
+    aggregate: Mock;
+    find: Mock;
+    findOne: Mock;
+    create: Mock;
+    updateOne: Mock;
+    updateMany: Mock;
+    deleteOne: Mock;
+    deleteMany: Mock;
     schema: { paths: Record<string, unknown> };
   };
 
@@ -62,7 +57,7 @@ describe('BaseService', () => {
   const fakeQuery = { _id: fakeId };
   const fakeUpdateResult = { modifiedCount: 1 } as UpdateResult;
   const fakeDeleteResult = { deletedCount: 1 } as DeleteResult;
-  const exec = jest.fn();
+  const exec = vi.fn();
 
   const documents = [{ _id: '_id1', name: 'toto' }, { _id: '_id2', name: 'unit' }];
   const expectedDocuments = [{ _id: '_id1', id: '_id1', name: 'toto' }, { _id: '_id2', id: '_id2', name: 'unit' }];
@@ -71,30 +66,30 @@ describe('BaseService', () => {
   const expectedDocument = expectedDocuments[0];
 
   beforeEach(() => {
-    const lean = jest.fn(() => (
+    const lean = vi.fn(() => (
       { exec }
     ));
     fakeModel = {
-      aggregate: jest.fn(() => (
+      aggregate: vi.fn(() => (
         { exec }
       )),
-      find: jest.fn(() => (
+      find: vi.fn(() => (
         { lean }
       )),
-      findOne: jest.fn(() => (
+      findOne: vi.fn(() => (
         { lean }
       )),
-      create: jest.fn(),
-      updateOne: jest.fn(() => (
+      create: vi.fn(),
+      updateOne: vi.fn(() => (
         { exec }
       )),
-      updateMany: jest.fn(() => (
+      updateMany: vi.fn(() => (
         { exec }
       )),
-      deleteOne: jest.fn(() => (
+      deleteOne: vi.fn(() => (
         { exec }
       )),
-      deleteMany: jest.fn(() => (
+      deleteMany: vi.fn(() => (
         { exec }
       )),
       schema: {
@@ -159,10 +154,10 @@ describe('BaseService', () => {
   describe('aggregateDocumentsWithAbilityPredicate', () => {
     beforeEach(() => {
       model = {
-        aggregate: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue(documents),
+        aggregate: vi.fn().mockReturnThis(),
+        exec: vi.fn().mockResolvedValue(documents),
       } as unknown as Model<TestEntity>;
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model as unknown as Model<unknown>);
+      vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model as unknown as Model<unknown>);
     });
 
     it('should not call handleAbilityPredicate return an array of documents', async () => {
@@ -179,7 +174,7 @@ describe('BaseService', () => {
       const service = new TestService(model);
       // @ts-ignore
       service['entity'] = TestEntity;
-      service['abilityPredicate'] = jest.fn().mockReturnValue(true);
+      service['abilityPredicate'] = vi.fn().mockReturnValue(true);
 
       const result = await service['aggregateDocumentsWithAbilityPredicate']([]);
 
@@ -191,7 +186,7 @@ describe('BaseService', () => {
       const service = new TestService(model);
       // @ts-ignore
       service['entity'] = TestEntity;
-      service['abilityPredicate'] = jest.fn().mockReturnValue(false);
+      service['abilityPredicate'] = vi.fn().mockReturnValue(false);
 
       await expect(service['aggregateDocumentsWithAbilityPredicate']([])).rejects.toThrow(
         new ForbiddenException('Forbidden resource'),
@@ -202,11 +197,11 @@ describe('BaseService', () => {
   describe('findManyDocumentsWithAbilityPredicate', () => {
     beforeEach(() => {
       model = {
-        find: jest.fn().mockReturnThis(),
-        lean: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue(documents),
+        find: vi.fn().mockReturnThis(),
+        lean: vi.fn().mockReturnThis(),
+        exec: vi.fn().mockResolvedValue(documents),
       } as unknown as Model<TestEntity>;
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model as unknown as Model<unknown>);
+      vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model as unknown as Model<unknown>);
     });
 
     it('should not call handleAbilityPredicate return an array of documents', async () => {
@@ -223,7 +218,7 @@ describe('BaseService', () => {
       const service = new TestService(model);
       // @ts-ignore
       service['entity'] = TestEntity;
-      service['abilityPredicate'] = jest.fn().mockReturnValue(true);
+      service['abilityPredicate'] = vi.fn().mockReturnValue(true);
 
       const result = await service['findManyDocumentsWithAbilityPredicate']();
 
@@ -235,7 +230,7 @@ describe('BaseService', () => {
       const service = new TestService(model);
       // @ts-ignore
       service['entity'] = TestEntity;
-      service['abilityPredicate'] = jest.fn().mockReturnValue(false);
+      service['abilityPredicate'] = vi.fn().mockReturnValue(false);
 
       await expect(service['findManyDocumentsWithAbilityPredicate']()).rejects.toThrow(
         new ForbiddenException('Forbidden resource'),
@@ -246,11 +241,11 @@ describe('BaseService', () => {
   describe('findOneDocumentWithAbilityPredicate', () => {
     beforeEach(() => {
       model = {
-        findOne: jest.fn().mockReturnThis(),
-        lean: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue(document),
+        findOne: vi.fn().mockReturnThis(),
+        lean: vi.fn().mockReturnThis(),
+        exec: vi.fn().mockResolvedValue(document),
       } as unknown as Model<TestEntity>;
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model as unknown as Model<unknown>);
+      vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model as unknown as Model<unknown>);
     });
 
     it('should not call handleAbilityPredicate return the document', async () => {
@@ -267,7 +262,7 @@ describe('BaseService', () => {
       const service = new TestService(model);
       // @ts-ignore
       service['entity'] = TestEntity;
-      service['abilityPredicate'] = jest.fn().mockReturnValue(true);
+      service['abilityPredicate'] = vi.fn().mockReturnValue(true);
 
       const result = await service['findOneDocumentWithAbilityPredicate']('id');
 
@@ -279,8 +274,8 @@ describe('BaseService', () => {
       const service = new TestService(model);
       // @ts-ignore
       service['entity'] = TestEntity;
-      service['abilityPredicate'] = jest.fn().mockReturnValue(true);
-      const authAbilityPredicate = jest.fn().mockReturnValue(true);
+      service['abilityPredicate'] = vi.fn().mockReturnValue(true);
+      const authAbilityPredicate = vi.fn().mockReturnValue(true);
 
       const result = await service['findOneDocumentWithAbilityPredicate']('id', undefined, authAbilityPredicate);
 
@@ -292,26 +287,26 @@ describe('BaseService', () => {
       const service = new TestService(model);
       // @ts-ignore
       service['entity'] = TestEntity;
-      service['abilityPredicate'] = jest.fn().mockReturnValue(false);
+      service['abilityPredicate'] = vi.fn().mockReturnValue(false);
 
       await expect(service['findOneDocumentWithAbilityPredicate'](undefined)).rejects.toThrow(
         new ForbiddenException('Forbidden resource'),
       );
     });
 
-    it('should throw a NotFoundException if the document is not found', async () => {
+    it('should throw a BadRequestException if the document is not found', async () => {
       const model = {
-        findOne: jest.fn().mockReturnThis(),
-        lean: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue(null),
+        findOne: vi.fn().mockReturnThis(),
+        lean: vi.fn().mockReturnThis(),
+        exec: vi.fn().mockResolvedValue(null),
       } as unknown as Model<TestEntity>;
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model as unknown as Model<unknown>);
+      vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model as unknown as Model<unknown>);
       const service = new TestService(model);
       // @ts-ignore
       service['entity'] = TestEntity;
 
       await expect(service['findOneDocumentWithAbilityPredicate']('id')).rejects.toThrow(
-        new NotFoundException('Document not found'),
+        new BadRequestException('Document not found'),
       );
     });
   });
@@ -319,7 +314,7 @@ describe('BaseService', () => {
   describe('aggregateDocuments', () => {
     it('should call the model aggregate method with the pipeline and return the documents', async () => {
       exec.mockResolvedValue(documents);
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
+      vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
       const service = new TestService(fakeModel as unknown as Model<TestEntity>);
 
       const result = await service['callbackMethods'].aggregateDocuments(TestEntity, []);
@@ -334,7 +329,7 @@ describe('BaseService', () => {
       fakeModel.aggregate.mockResolvedValueOnce([
         { docs: [document], count: [{ totalElements: 1 }] },
       ]);
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
+      vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
       const service = new TestService(fakeModel as unknown as Model<TestEntity>);
       const pagingPipeline = [
         { $facet: { docs: [{ $limit: 10 }], count: [{ $count: 'totalElements' }] } },
@@ -349,7 +344,7 @@ describe('BaseService', () => {
   describe('findManyDocuments', () => {
     it('should call the model find method with the query and return the documents', async () => {
       exec.mockResolvedValue(documents);
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
+      vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
       const service = new TestService(fakeModel as unknown as Model<TestEntity>);
 
       const result = await service['callbackMethods'].findManyDocuments(TestEntity, fakeQuery);
@@ -362,7 +357,7 @@ describe('BaseService', () => {
   describe('findOneDocument', () => {
     it('should call the model findOne method with the query and return the document', async () => {
       exec.mockResolvedValue(fakeEntity);
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
+      vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
       const service = new TestService(fakeModel as unknown as Model<TestEntity>);
 
       const result = await service['callbackMethods'].findOneDocument(TestEntity, fakeQuery);
@@ -376,7 +371,7 @@ describe('BaseService', () => {
     it('should call the model create method with the data and return the documents', async () => {
       const data = [{ name: 'toto' }, { name: 'unit' }];
       fakeModel.create.mockResolvedValue(documents);
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
+      vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
       const service = new TestService(fakeModel as unknown as Model<TestEntity>);
 
       const result = await service['callbackMethods'].createManyDocuments(TestEntity, data);
@@ -389,7 +384,7 @@ describe('BaseService', () => {
   describe('createOneDocument', () => {
     it('should call the model create method with the data and return the document', async () => {
       fakeModel.create.mockResolvedValue(fakeEntity);
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
+      vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
       const service = new TestService(fakeModel as unknown as Model<TestEntity>);
 
       const result = await service['callbackMethods'].createOneDocument(TestEntity, fakeEntity);
@@ -403,7 +398,7 @@ describe('BaseService', () => {
     it('should call the model updateMany method with the query and data and return the documents', async () => {
       const data = { name: 'unit' };
       exec.mockResolvedValue(fakeUpdateResult);
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
+      vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
       const service = new TestService(fakeModel as unknown as Model<TestEntity>);
 
       const result = await service['callbackMethods'].updateManyDocuments(TestEntity, fakeQuery, data);
@@ -417,7 +412,7 @@ describe('BaseService', () => {
     it('should call the model updateOne method with the query and data and return the document', async () => {
       const data = { name: 'unit' };
       exec.mockResolvedValue(fakeUpdateResult);
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
+      vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
       const service = new TestService(fakeModel as unknown as Model<TestEntity>);
 
       const result = await service['callbackMethods'].updateOneDocument(TestEntity, fakeQuery, data);
@@ -430,7 +425,7 @@ describe('BaseService', () => {
   describe('rawUpdateManyDocuments', () => {
     const setupService = () => {
       exec.mockResolvedValue(fakeUpdateResult);
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
+      vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
       return new TestService(fakeModel as unknown as Model<TestEntity>);
     };
 
@@ -480,7 +475,7 @@ describe('BaseService', () => {
   describe('rawUpdateOneDocument', () => {
     const setupService = () => {
       exec.mockResolvedValue(fakeUpdateResult);
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
+      vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
       return new TestService(fakeModel as unknown as Model<TestEntity>);
     };
 
@@ -545,15 +540,15 @@ describe('BaseService', () => {
     });
 
     const setupDerivedModel = () => {
-      const findOneExec = jest.fn().mockResolvedValue({ _id: fakeId });
-      const findByIdExec = jest.fn().mockResolvedValue({ _id: fakeId, val: 5 });
-      const updateOneExec = jest.fn().mockResolvedValue(fakeUpdateResult);
+      const findOneExec = vi.fn().mockResolvedValue({ _id: fakeId });
+      const findByIdExec = vi.fn().mockResolvedValue({ _id: fakeId, val: 5 });
+      const updateOneExec = vi.fn().mockResolvedValue(fakeUpdateResult);
       const derivedModel = {
-        findOne: jest.fn(() => ({ lean: jest.fn(() => ({ exec: findOneExec })) })),
-        findById: jest.fn(() => ({ lean: jest.fn(() => ({ exec: findByIdExec })) })),
-        updateOne: jest.fn(() => ({ exec: updateOneExec })),
+        findOne: vi.fn(() => ({ lean: vi.fn(() => ({ exec: findOneExec })) })),
+        findById: vi.fn(() => ({ lean: vi.fn(() => ({ exec: findByIdExec })) })),
+        updateOne: vi.fn(() => ({ exec: updateOneExec })),
       };
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(derivedModel as unknown as Model<unknown>);
+      vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(derivedModel as unknown as Model<unknown>);
 
       return derivedModel;
     };
@@ -585,14 +580,14 @@ describe('BaseService', () => {
     });
 
     it('updateOneDocument should not resolve a target id or recompute anything when no document matches the query', async () => {
-      const findOneExec = jest.fn().mockResolvedValue(null);
-      const updateOneExec = jest.fn().mockResolvedValue(fakeUpdateResult);
+      const findOneExec = vi.fn().mockResolvedValue(null);
+      const updateOneExec = vi.fn().mockResolvedValue(fakeUpdateResult);
       const derivedModel = {
-        findOne: jest.fn(() => ({ lean: jest.fn(() => ({ exec: findOneExec })) })),
-        findById: jest.fn(),
-        updateOne: jest.fn(() => ({ exec: updateOneExec })),
+        findOne: vi.fn(() => ({ lean: vi.fn(() => ({ exec: findOneExec })) })),
+        findById: vi.fn(),
+        updateOne: vi.fn(() => ({ exec: updateOneExec })),
       };
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(derivedModel as unknown as Model<unknown>);
+      vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(derivedModel as unknown as Model<unknown>);
       const svc = new TestService(fakeModel as unknown as Model<TestEntity>);
 
       await svc['callbackMethods'].updateOneDocument(DerivedUpdateEntity, fakeQuery, { val: 5 });
@@ -603,7 +598,7 @@ describe('BaseService', () => {
 
     it('updateOneDocument should not call findOne at all when the entity has no derived fields declared', async () => {
       exec.mockResolvedValue(fakeUpdateResult);
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
+      vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
       const svc = new TestService(fakeModel as unknown as Model<TestEntity>);
 
       await svc['callbackMethods'].updateOneDocument(TestEntity, fakeQuery, { name: 'unit' });
@@ -615,7 +610,7 @@ describe('BaseService', () => {
   describe('deleteManyDocuments', () => {
     it('should call the model deleteMany method with the query and return the delete result', async () => {
       exec.mockResolvedValue(fakeDeleteResult);
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
+      vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
       const service = new TestService(fakeModel as unknown as Model<TestEntity>);
 
       const result = await service['callbackMethods'].deleteManyDocuments(TestEntity, [fakeId]);
@@ -630,7 +625,7 @@ describe('BaseService', () => {
         deletedAt: {},
         isDeleted: {},
       };
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
+      vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
       const service = new TestSoftService(fakeModel as unknown as Model<TestSoftEntity>);
 
       const result = await service['callbackMethods'].deleteManyDocuments(TestSoftEntity, [fakeId]);
@@ -646,7 +641,7 @@ describe('BaseService', () => {
   describe('deleteOneDocument', () => {
     it('should call the model deleteOne method with the query and return the document', async () => {
       exec.mockResolvedValue(fakeDeleteResult);
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
+      vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
       const service = new TestService(fakeModel as unknown as Model<TestEntity>);
 
       const result = await service['callbackMethods'].deleteOneDocument(TestEntity, fakeId);
@@ -661,7 +656,7 @@ describe('BaseService', () => {
         deletedAt: {},
         isDeleted: {},
       };
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
+      vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
       const service = new TestSoftService(fakeModel as unknown as Model<TestSoftEntity>);
 
       const result = await service['callbackMethods'].deleteOneDocument(TestSoftEntity, fakeId);
@@ -897,11 +892,11 @@ describe('BaseService', () => {
   });
 
   describe('handleDocumentNotFound', () => {
-    it('should throw a BadRequestException with the message "Document not found"', () => {
+    it('should throw a NotFoundException with the message "Document not found"', () => {
       const service = new TestService({} as unknown as Model<TestEntity>);
 
       expect(() => service['handleDocumentNotFound']()).toThrow(
-        new BadRequestException('Document not found'),
+        new NotFoundException('Document not found'),
       );
     });
   });
@@ -1053,7 +1048,7 @@ describe('BaseService', () => {
     });
 
     it('should be a no-op and never resolve a model when the entity has no derived fields declared', async () => {
-      const getEntityModelSpy = jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel');
+      const getEntityModelSpy = vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel');
       const svc = new TestService(fakeModel as unknown as Model<TestEntity>);
 
       await svc['callbackMethods'].recomputeDerivedFields(TestEntity, fakeId);
@@ -1069,13 +1064,13 @@ describe('BaseService', () => {
         RecomputeEntity.prototype,
         'double',
       );
-      const findByIdExec = jest.fn().mockResolvedValue({ _id: fakeId, val: 5 });
-      const updateOneExec = jest.fn().mockResolvedValue(fakeUpdateResult);
+      const findByIdExec = vi.fn().mockResolvedValue({ _id: fakeId, val: 5 });
+      const updateOneExec = vi.fn().mockResolvedValue(fakeUpdateResult);
       const recomputeModel = {
-        findById: jest.fn(() => ({ lean: jest.fn(() => ({ exec: findByIdExec })) })),
-        updateOne: jest.fn(() => ({ exec: updateOneExec })),
+        findById: vi.fn(() => ({ lean: vi.fn(() => ({ exec: findByIdExec })) })),
+        updateOne: vi.fn(() => ({ exec: updateOneExec })),
       };
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(recomputeModel as unknown as Model<unknown>);
+      vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(recomputeModel as unknown as Model<unknown>);
       const svc = new TestService(fakeModel as unknown as Model<TestEntity>);
 
       await svc['callbackMethods'].recomputeDerivedFields(RecomputeEntity, fakeId);
@@ -1092,12 +1087,12 @@ describe('BaseService', () => {
         RecomputeEntity.prototype,
         'double',
       );
-      const findByIdExec = jest.fn().mockResolvedValue(null);
+      const findByIdExec = vi.fn().mockResolvedValue(null);
       const recomputeModel = {
-        findById: jest.fn(() => ({ lean: jest.fn(() => ({ exec: findByIdExec })) })),
-        updateOne: jest.fn(),
+        findById: vi.fn(() => ({ lean: vi.fn(() => ({ exec: findByIdExec })) })),
+        updateOne: vi.fn(),
       };
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(recomputeModel as unknown as Model<unknown>);
+      vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(recomputeModel as unknown as Model<unknown>);
       const svc = new TestService(fakeModel as unknown as Model<TestEntity>);
 
       await svc['callbackMethods'].recomputeDerivedFields(RecomputeEntity, fakeId);
@@ -1114,12 +1109,12 @@ describe('BaseService', () => {
         RecomputeEntity.prototype,
         'double',
       );
-      const findByIdExec = jest.fn().mockResolvedValue({ _id: fakeId, val: 5 });
+      const findByIdExec = vi.fn().mockResolvedValue({ _id: fakeId, val: 5 });
       const recomputeModel = {
-        findById: jest.fn(() => ({ lean: jest.fn(() => ({ exec: findByIdExec })) })),
-        updateOne: jest.fn(),
+        findById: vi.fn(() => ({ lean: vi.fn(() => ({ exec: findByIdExec })) })),
+        updateOne: vi.fn(),
       };
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(recomputeModel as unknown as Model<unknown>);
+      vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(recomputeModel as unknown as Model<unknown>);
       const svc = new TestService(fakeModel as unknown as Model<TestEntity>);
 
       await svc['callbackMethods'].recomputeDerivedFields(RecomputeEntity, fakeId);
@@ -1135,9 +1130,9 @@ describe('BaseService', () => {
         RecomputeEntity.prototype,
         'double',
       );
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockRejectedValue(new Error('boom'));
+      vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockRejectedValue(new Error('boom'));
       const svc = new TestService(fakeModel as unknown as Model<TestEntity>);
-      const warnSpy = jest.spyOn(svc['baseServiceLogger'], 'warn').mockImplementation();
+      const warnSpy = vi.spyOn(svc['baseServiceLogger'], 'warn').mockImplementation();
 
       await expect(
         svc['callbackMethods'].recomputeDerivedFields(RecomputeEntity, fakeId),
@@ -1147,23 +1142,24 @@ describe('BaseService', () => {
   });
 
   describe('invokeAfterSaveCallback', () => {
-    let errorSpy: jest.SpyInstance;
+    let errorSpy: Mock;
+    let getValueSpy: Mock;
 
     beforeEach(() => {
       (service as unknown as { entity: typeof TestEntity }).entity = TestEntity;
-      errorSpy = jest.spyOn(service['baseServiceLogger'], 'error').mockImplementation();
-      (DynamicApiModule.state.get as jest.Mock).mockReset();
+      errorSpy = vi.spyOn(service['baseServiceLogger'], 'error').mockImplementation();
+      getValueSpy = vi.spyOn(DynamicApiGlobalStateService, 'getValue');
     });
 
     it('should do nothing when callback is undefined', async () => {
       await service['invokeAfterSaveCallback'](undefined, expectedEntity, undefined);
 
       expect(errorSpy).not.toHaveBeenCalled();
-      expect(DynamicApiModule.state.get).not.toHaveBeenCalled();
+      expect(getValueSpy).not.toHaveBeenCalled();
     });
 
     it('should call the callback once and not log on success', async () => {
-      const callback: AfterSaveCallback<TestEntity> = jest.fn().mockResolvedValue(undefined);
+      const callback: AfterSaveCallback<TestEntity> = vi.fn().mockResolvedValue(undefined);
 
       await service['invokeAfterSaveCallback'](callback, expectedEntity, 'user-1');
 
@@ -1174,9 +1170,9 @@ describe('BaseService', () => {
 
     it('should log and call the global onAfterSaveError hook when callback rejects without retry', async () => {
       const error = new Error('boom');
-      const callback: AfterSaveCallback<TestEntity> = jest.fn().mockRejectedValue(error);
-      const onAfterSaveError = jest.fn();
-      (DynamicApiModule.state.get as jest.Mock).mockReturnValue(onAfterSaveError);
+      const callback: AfterSaveCallback<TestEntity> = vi.fn().mockRejectedValue(error);
+      const onAfterSaveError = vi.fn();
+      getValueSpy.mockReturnValue(onAfterSaveError);
 
       await expect(
         service['invokeAfterSaveCallback'](callback, expectedEntity, 'user-1'),
@@ -1184,7 +1180,7 @@ describe('BaseService', () => {
 
       expect(callback).toHaveBeenCalledTimes(1);
       expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('boom'), error.stack);
-      expect(DynamicApiModule.state.get).toHaveBeenCalledWith('onAfterSaveError');
+      expect(getValueSpy).toHaveBeenCalledWith('onAfterSaveError');
       expect(onAfterSaveError).toHaveBeenCalledWith(error, {
         entityName: 'TestEntity',
         entity: expectedEntity,
@@ -1193,7 +1189,7 @@ describe('BaseService', () => {
     });
 
     it('should not log or call the hook when a failing attempt is followed by a successful retry', async () => {
-      const callback: AfterSaveCallback<TestEntity> = jest.fn()
+      const callback: AfterSaveCallback<TestEntity> = vi.fn()
         .mockRejectedValueOnce(new Error('transient'))
         .mockResolvedValueOnce(undefined);
 
@@ -1201,13 +1197,13 @@ describe('BaseService', () => {
 
       expect(callback).toHaveBeenCalledTimes(2);
       expect(errorSpy).not.toHaveBeenCalled();
-      expect(DynamicApiModule.state.get).not.toHaveBeenCalled();
+      expect(getValueSpy).not.toHaveBeenCalled();
     });
 
     it('should log once after exhausting all retry attempts', async () => {
       const error = new Error('always fails');
-      const callback: AfterSaveCallback<TestEntity> = jest.fn().mockRejectedValue(error);
-      (DynamicApiModule.state.get as jest.Mock).mockReturnValue(undefined);
+      const callback: AfterSaveCallback<TestEntity> = vi.fn().mockRejectedValue(error);
+      getValueSpy.mockReturnValue(undefined);
 
       await service['invokeAfterSaveCallback'](callback, expectedEntity, undefined, { attempts: 3 });
 
@@ -1217,7 +1213,7 @@ describe('BaseService', () => {
     });
 
     it('should wait delayMs between attempts', async () => {
-      const callback: AfterSaveCallback<TestEntity> = jest.fn()
+      const callback: AfterSaveCallback<TestEntity> = vi.fn()
         .mockRejectedValueOnce(new Error('transient'))
         .mockResolvedValueOnce(undefined);
       const start = Date.now();
@@ -1228,8 +1224,8 @@ describe('BaseService', () => {
     });
 
     it('should not delay after the last attempt', async () => {
-      const callback: AfterSaveCallback<TestEntity> = jest.fn().mockRejectedValue(new Error('boom'));
-      (DynamicApiModule.state.get as jest.Mock).mockReturnValue(undefined);
+      const callback: AfterSaveCallback<TestEntity> = vi.fn().mockRejectedValue(new Error('boom'));
+      getValueSpy.mockReturnValue(undefined);
       const start = Date.now();
 
       await service['invokeAfterSaveCallback'](callback, expectedEntity, undefined, { attempts: 1, delayMs: 1000 });
@@ -1239,9 +1235,9 @@ describe('BaseService', () => {
 
     it('should catch and log when the global onAfterSaveError hook itself throws', async () => {
       const error = new Error('boom');
-      const callback: AfterSaveCallback<TestEntity> = jest.fn().mockRejectedValue(error);
+      const callback: AfterSaveCallback<TestEntity> = vi.fn().mockRejectedValue(error);
       const hookError = new Error('hook failed');
-      (DynamicApiModule.state.get as jest.Mock).mockReturnValue(jest.fn().mockRejectedValue(hookError));
+      getValueSpy.mockReturnValue(vi.fn().mockRejectedValue(hookError));
 
       await expect(
         service['invokeAfterSaveCallback'](callback, expectedEntity, undefined),
@@ -1253,8 +1249,8 @@ describe('BaseService', () => {
 
     it('should treat a missing onAfterSaveError hook as a no-op', async () => {
       const error = new Error('boom');
-      const callback: AfterSaveCallback<TestEntity> = jest.fn().mockRejectedValue(error);
-      (DynamicApiModule.state.get as jest.Mock).mockReturnValue(undefined);
+      const callback: AfterSaveCallback<TestEntity> = vi.fn().mockRejectedValue(error);
+      getValueSpy.mockReturnValue(undefined);
 
       await expect(
         service['invokeAfterSaveCallback'](callback, expectedEntity, undefined),
@@ -1266,9 +1262,9 @@ describe('BaseService', () => {
 
   describe('deleteWithCascade', () => {
     it('skips the transaction entirely and just runs deleteParent when cascade is empty', async () => {
-      const model = { db: { startSession: jest.fn() } } as unknown as Model<TestEntity>;
+      const model = { db: { startSession: vi.fn() } } as unknown as Model<TestEntity>;
       const testService = new TestService(model);
-      const deleteParent = jest.fn().mockResolvedValue(3);
+      const deleteParent = vi.fn().mockResolvedValue(3);
 
       const result = await testService['deleteWithCascade'](deleteParent, ['id'], false, []);
 
@@ -1280,10 +1276,10 @@ describe('BaseService', () => {
 
   describe('writeAuditLog', () => {
     it('writes an entry to <collection>_audit_log via the native driver', async () => {
-      const insertOne = jest.fn().mockResolvedValue({ acknowledged: true });
+      const insertOne = vi.fn().mockResolvedValue({ acknowledged: true });
       const testModel = {
         collection: { collectionName: 'widgets' },
-        db: { collection: jest.fn().mockReturnValue({ insertOne }) },
+        db: { collection: vi.fn().mockReturnValue({ insertOne }) },
       } as unknown as Model<TestEntity>;
       const testService = new TestService(testModel);
       const before = { name: 'old' };
@@ -1305,10 +1301,10 @@ describe('BaseService', () => {
     it('logs and swallows the error instead of throwing when the write fails', async () => {
       const testModel = {
         collection: { collectionName: 'widgets' },
-        db: { collection: jest.fn().mockReturnValue({ insertOne: jest.fn().mockRejectedValue(new Error('boom')) }) },
+        db: { collection: vi.fn().mockReturnValue({ insertOne: vi.fn().mockRejectedValue(new Error('boom')) }) },
       } as unknown as Model<TestEntity>;
       const testService = new TestService(testModel);
-      const warnSpy = jest.spyOn(testService['baseServiceLogger'], 'warn').mockImplementation();
+      const warnSpy = vi.spyOn(testService['baseServiceLogger'], 'warn').mockImplementation();
 
       await expect(
         testService['writeAuditLog']('delete', 'entity-id', { name: 'old' }, null, undefined),
@@ -1320,10 +1316,10 @@ describe('BaseService', () => {
     it('stringifies a non-Error rejection instead of throwing', async () => {
       const testModel = {
         collection: { collectionName: 'widgets' },
-        db: { collection: jest.fn().mockReturnValue({ insertOne: jest.fn().mockRejectedValue('boom') }) },
+        db: { collection: vi.fn().mockReturnValue({ insertOne: vi.fn().mockRejectedValue('boom') }) },
       } as unknown as Model<TestEntity>;
       const testService = new TestService(testModel);
-      const warnSpy = jest.spyOn(testService['baseServiceLogger'], 'warn').mockImplementation();
+      const warnSpy = vi.spyOn(testService['baseServiceLogger'], 'warn').mockImplementation();
 
       await expect(
         testService['writeAuditLog']('delete', 'entity-id', { name: 'old' }, null, undefined),

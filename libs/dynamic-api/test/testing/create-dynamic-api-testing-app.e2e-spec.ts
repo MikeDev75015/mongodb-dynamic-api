@@ -1,8 +1,13 @@
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { Prop, Schema } from '@nestjs/mongoose';
-import * as request from 'supertest';
+import * as supertestNamespace from 'supertest';
 import { BaseEntity, DynamicApiModule } from '../../src';
 import { createDynamicApiTestingApp } from '../../src/testing';
 import 'dotenv/config';
+
+// supertest's CJS `module.exports` is itself the callable request factory. Same tsc-CJS-vs-Vite-ESM
+// interop split as auth.module.ts's cookieParser — see that file's comment for the full reasoning.
+const request = (supertestNamespace as unknown as { default?: typeof supertestNamespace }).default ?? supertestNamespace;
 
 @Schema({ collection: 'testing-helper-items' })
 class TestingHelperItemEntity extends BaseEntity {

@@ -1,4 +1,5 @@
-import { createMock } from '@golevelup/ts-jest';
+import { describe, expect, it, test } from 'vitest';
+import { createMock } from '@test-helpers';
 import { JwtService } from '@nestjs/jwt';
 import { BaseGateway } from '../../gateways';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket } from '../../interfaces';

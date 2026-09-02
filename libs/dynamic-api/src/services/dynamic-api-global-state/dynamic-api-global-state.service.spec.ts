@@ -1,6 +1,20 @@
+import { describe, expect, it, vi } from 'vitest';
 import mongoose, { Model, Schema } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
 import { DynamicApiGlobalStateService } from './dynamic-api-global-state.service';
+
+// `vi.spyOn(mongoose, 'createConnection')` doesn't affect dynamic-api-global-state.service.ts's own
+// named `import { createConnection } from 'mongoose'` under Vite's ESM/CJS interop (unlike Jest/CJS,
+// where they're the same mutable reference) — mock the module itself instead, which both the default
+// import here and the named import in the source resolve through identically.
+vi.mock('mongoose', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('mongoose')>();
+  const createConnection = vi.fn();
+  // Both the named export (what the source imports) and the default export's own property (what
+  // this spec's `import mongoose from 'mongoose'` reads) must point at the same mock — Vite's CJS
+  // interop keeps them as distinct copies otherwise, unlike Jest/CJS where they're one reference.
+  return { ...actual, createConnection, default: { ...actual.default, createConnection } };
+});
 
 describe('DynamicApiGlobalStateService', () => {
   let service: DynamicApiGlobalStateService;
@@ -97,8 +111,8 @@ describe('DynamicApiGlobalStateService', () => {
   describe('getEntitySchema', () => {
     it('should get entity schema', async () => {
       const fakeModel = {} as Model<any>;
-      const fakeConnection = { model: jest.fn().mockReturnValue(fakeModel) } as unknown as mongoose.Connection;
-      jest.spyOn(mongoose, 'createConnection').mockReturnValue({ asPromise: jest.fn().mockResolvedValue(fakeConnection) } as unknown as ReturnType<typeof mongoose.createConnection>);
+      const fakeConnection = { model: vi.fn().mockReturnValue(fakeModel) } as unknown as mongoose.Connection;
+      vi.mocked(mongoose.createConnection).mockReturnValue({ asPromise: vi.fn().mockResolvedValue(fakeConnection) } as unknown as ReturnType<typeof mongoose.createConnection>);
 
       const fakeSchema = {} as Schema;
       DynamicApiGlobalStateService.addEntitySchema(User, fakeSchema);

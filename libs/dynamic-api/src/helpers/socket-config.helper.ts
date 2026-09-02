@@ -1,13 +1,16 @@
 import { INestApplication } from '@nestjs/common';
+import * as events from 'node:events';
 import { SocketAdapter } from '../adapters/socket-adapter';
 import { DynamicApiWebSocketOptions, DynamicApiWebSocketSetupOptions, GatewayOptions } from '../interfaces';
+import { DynamicApiGlobalStateService } from '../services/dynamic-api-global-state/dynamic-api-global-state.service';
 import { DynamicApiEventRegistryStore } from './event-registry.store';
 import { DynamicApiWsConfigStore } from './ws-config.store';
 
 function initEventsListeners(maxListeners = 10) {
-  require('events').EventEmitter.prototype._maxListeners = 100;
-  require('events').defaultMaxListeners = 100;
-  require('events').EventEmitter.prototype.setMaxListeners(maxListeners);
+  // _maxListeners is a real but undocumented/untyped EventEmitter internal.
+  (events.EventEmitter.prototype as unknown as { _maxListeners: number })._maxListeners = 100;
+  events.EventEmitter.defaultMaxListeners = 100;
+  events.EventEmitter.prototype.setMaxListeners(maxListeners);
 }
 
 /**
@@ -67,13 +70,7 @@ function enableDynamicAPIWebSockets(
   DynamicApiWsConfigStore.debug = resolvedOptions.debug ?? false;
 
   // Read jwtSecret from global state (may be undefined when auth is not configured)
-  try {
-    // Lazy-require to avoid circular dependency at module load time
-    const { DynamicApiModule } = require('../dynamic-api.module');
-    DynamicApiWsConfigStore.jwtSecret = DynamicApiModule.state.get('jwtSecret');
-  } catch {
-    // state not yet available – will be resolved later in the adapter
-  }
+  DynamicApiWsConfigStore.jwtSecret = DynamicApiGlobalStateService.getValue('jwtSecret');
 
   process.on('warning', function (err) {
     if ('MaxListenersExceededWarning' === err.name) {

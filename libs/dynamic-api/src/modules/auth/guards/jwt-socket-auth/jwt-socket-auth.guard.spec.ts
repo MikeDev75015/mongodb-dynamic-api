@@ -1,4 +1,6 @@
-import { createMock } from '@golevelup/ts-jest';
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
+import type { Mock } from 'vitest';
+import { createMock } from '@test-helpers';
 import { ExecutionContext } from '@nestjs/common';
 import { WsException } from '@nestjs/websockets';
 import { ExtendedSocket } from '../../../../interfaces';
@@ -8,7 +10,7 @@ import * as JWT from '@nestjs/jwt';
 describe('JwtSocketAuthGuard', () => {
   let guard: JwtSocketAuthGuard;
   let socket: ExtendedSocket;
-  let verifyAsyncSpy: jest.SpyInstance;
+  let verifyAsyncSpy: Mock;
 
   const context = createMock<ExecutionContext>();
 
@@ -20,7 +22,7 @@ describe('JwtSocketAuthGuard', () => {
       },
     } as ExtendedSocket;
 
-    verifyAsyncSpy = jest.spyOn(JWT.JwtService.prototype, 'verifyAsync');
+    verifyAsyncSpy = vi.spyOn(JWT.JwtService.prototype, 'verifyAsync');
   });
 
   it('should have auth guard methods', () => {
