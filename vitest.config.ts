@@ -50,6 +50,11 @@ export default defineConfig({
       // istanbul chosen over v8 for parity with Jest's own istanbul-based coverage model, to
       // avoid a coverage-% swing on SonarCloud's quality gate that isn't a real regression.
       exclude: [...coverageConfigDefaults.exclude, '**/*.mock.ts'],
+      // Unlike Jest (which always writes lcov.info alongside its other coverage output), Vitest's
+      // coverage.reporter defaults to ['text', 'html', 'clover', 'json'] - no lcov unless asked
+      // for explicitly. CI's merge-coverage-command needs lcov.info specifically
+      // (lcov-result-merger), and text is kept for local `npm run test-cov` terminal output.
+      reporter: ['lcov', 'text'],
     },
   },
 });
