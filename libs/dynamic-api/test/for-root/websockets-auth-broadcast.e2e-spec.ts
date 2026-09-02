@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { INestApplication } from '@nestjs/common';
 import mongoose from 'mongoose';
 import { DynamicApiModule } from '../../src';
@@ -48,7 +49,7 @@ describe('DynamicApiModule forRoot - Websockets useAuth with broadcast options (
 
     const { accessToken } = await server.emit<any, any>('auth-register', { email: 'broadcast-ws@test.co', password: 'ws-pass' });
     wsAccessToken = accessToken;
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('[auth-login] should broadcast user data when login via WS with enabled broadcast', async () => {
