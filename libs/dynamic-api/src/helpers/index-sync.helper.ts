@@ -2,6 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { getConnectionToken } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
 import { MongoDBDynamicApiLogger } from '../logger';
+import { DynamicApiGlobalStateService } from '../services/dynamic-api-global-state/dynamic-api-global-state.service';
 
 /**
  * Options for {@link enableDynamicAPIIndexSync}.
@@ -74,11 +75,7 @@ async function enableDynamicAPIIndexSync(
   const { throwOnError = true } = options;
   const logger = new MongoDBDynamicApiLogger('enableDynamicAPIIndexSync');
 
-  // Lazy-require to avoid a circular dependency at module load time
-  // (dynamic-api.module.ts imports from './helpers', which includes this file).
-  const { DynamicApiModule }: { DynamicApiModule: typeof import('../dynamic-api.module').DynamicApiModule } =
-    require('../dynamic-api.module');
-  const connectionName = DynamicApiModule.state.get<string>('connectionName');
+  const connectionName = DynamicApiGlobalStateService.getValue('connectionName');
   const connection = app.get<Connection>(getConnectionToken(connectionName));
 
   for (const [name, model] of Object.entries(connection.models)) {

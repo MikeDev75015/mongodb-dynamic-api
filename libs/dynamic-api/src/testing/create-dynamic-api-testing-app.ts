@@ -74,9 +74,9 @@ async function createDynamicApiTestingApp(
     let mongodbMemoryServer: typeof import('mongodb-memory-server');
 
     try {
-      // Lazy require: mongodb-memory-server is an optional dependency, only needed when the
+      // Lazy import: mongodb-memory-server is an optional dependency, only needed when the
       // caller doesn't pass its own `uri`.
-      mongodbMemoryServer = require('mongodb-memory-server');
+      mongodbMemoryServer = await import('mongodb-memory-server');
     } catch {
       throw new Error(
         '[DynamicAPI] createDynamicApiTestingApp: no `uri` was provided, so an in-memory MongoDB '

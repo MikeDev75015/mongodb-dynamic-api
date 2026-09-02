@@ -655,10 +655,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
     );
 
     try {
-      // Lazy-require to avoid circular dependency at module load time (same pattern as
-      // helpers/socket-config.helper.ts).
-      const { DynamicApiModule } = require('../../dynamic-api.module');
-      await DynamicApiModule.state.get('onAfterSaveError')?.(
+      await DynamicApiGlobalStateService.getValue('onAfterSaveError')?.(
         lastError,
         { entityName: this.entity?.name, entity, user },
       );

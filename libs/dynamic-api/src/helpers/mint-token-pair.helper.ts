@@ -74,14 +74,7 @@ async function mintTokenPair<Entity extends BaseEntity>(
   user: Entity,
   options: MintTokenPairOptions<Entity> = {},
 ): Promise<MintTokenPairResult> {
-  // Lazy-require to avoid a circular dependency at module load time
-  // (dynamic-api.module.ts imports from './helpers', which includes this file).
-  // The `typeof import(...)` annotation is erased at compile time — it does not itself trigger
-  // the circular require, only the runtime `require()` call above (deferred until this function runs) does.
-  const { DynamicApiModule }: { DynamicApiModule: typeof import('../dynamic-api.module').DynamicApiModule } =
-    require('../dynamic-api.module');
-  const state = DynamicApiModule.state;
-
+  const state = new DynamicApiGlobalStateService();
   const jwtSecret = state.get<string | undefined>('jwtSecret');
 
   if (!jwtSecret) {

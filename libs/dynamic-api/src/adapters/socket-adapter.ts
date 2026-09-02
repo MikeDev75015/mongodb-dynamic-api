@@ -1,4 +1,5 @@
 import { IoAdapter } from '@nestjs/platform-socket.io';
+import * as jwt from 'jsonwebtoken';
 import { Server, ServerOptions, Socket } from 'socket.io';
 import { DynamicApiWsConfigStore } from '../helpers/ws-config.store';
 import { ExtendedSocket } from '../interfaces';
@@ -36,9 +37,7 @@ export class SocketAdapter extends IoAdapter {
 
       if (token) {
         try {
-          // eslint-disable-next-line @typescript-eslint/no-var-requires
-          const jwt = require('jsonwebtoken');
-          const { iat, exp, ...payload } = jwt.verify(token, jwtSecret);
+          const { iat, exp, ...payload } = jwt.verify(token, jwtSecret) as jwt.JwtPayload;
           user = payload;
           socket.user = user;
         } catch (e) {
