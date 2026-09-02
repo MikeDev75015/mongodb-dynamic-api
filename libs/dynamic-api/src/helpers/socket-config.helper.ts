@@ -1,5 +1,5 @@
 import { INestApplication } from '@nestjs/common';
-import * as events from 'events';
+import * as events from 'node:events';
 import { SocketAdapter } from '../adapters/socket-adapter';
 import { DynamicApiWebSocketOptions, DynamicApiWebSocketSetupOptions, GatewayOptions } from '../interfaces';
 import { DynamicApiGlobalStateService } from '../services/dynamic-api-global-state/dynamic-api-global-state.service';
