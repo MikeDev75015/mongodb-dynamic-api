@@ -449,14 +449,22 @@ workflows:
                 - develop
                 - /^release\/.*/
 
+  # TEMPORARY (2nd time this session): re-widened to feat/vitest-migration to get a real,
+  # fresh-container CircleCI e2e run on the new aggregate-swagger-paginated-response.e2e-spec.ts
+  # (merged in from develop), since local e2e runs on this machine turned flaky after many hours
+  # of continuous Vitest/Docker use. Revert once confirmed, same as the first time (a6c1e48/0dda1c7).
   ci-develop-workflow:
     when:
-      equal: [ << pipeline.git.branch >>, develop ]
+      or:
+        - equal: [ << pipeline.git.branch >>, develop ]
+        - equal: [ << pipeline.git.branch >>, feat/vitest-migration ]
     jobs:
       - dependencies-job:
           filters:
             branches:
-              only: develop
+              only:
+                - develop
+                - feat/vitest-migration
       - test-with-coverage-job:
           requires:
             - dependencies-job
@@ -464,7 +472,9 @@ workflows:
             - SLACK
           filters:
             branches:
-              only: develop
+              only:
+                - develop
+                - feat/vitest-migration
       - merge-and-sonarcloud-job:
           requires:
             - test-with-coverage-job
@@ -473,7 +483,9 @@ workflows:
             - SLACK
           filters:
             branches:
-              only: develop
+              only:
+                - develop
+                - feat/vitest-migration
       - e2e-tests-mongodb-job:
           requires:
             - dependencies-job
@@ -481,7 +493,9 @@ workflows:
             - SLACK
           filters:
             branches:
-              only: develop
+              only:
+                - develop
+                - feat/vitest-migration
 
   # Dedicated release-branch workflow: no SonarCloud here — the code was already analyzed on
   # every `develop` push by ci-develop-workflow above; release/vX.Y.Z is just that same code
