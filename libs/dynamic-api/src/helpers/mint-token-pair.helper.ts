@@ -2,7 +2,6 @@ import { Type } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { randomUUID } from 'node:crypto';
 import type { StringValue } from 'ms';
-import { Credentials } from '../interfaces';
 import { BaseEntity } from '../models';
 import { BcryptService, DynamicApiGlobalStateService } from '../services';
 
