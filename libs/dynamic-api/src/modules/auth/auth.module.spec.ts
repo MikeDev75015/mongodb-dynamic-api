@@ -1,3 +1,5 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { DynamicModule } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -14,63 +16,68 @@ import { AuthModule } from './auth.module';
 import { DynamicApiAuthOptions } from './interfaces';
 import { JwtRefreshStrategy, JwtStrategy } from './strategies';
 
-jest.mock(
+vi.mock(
   '@nestjs/mongoose',
-  () => (
+  async (importOriginal) => (
     {
-      ...jest.requireActual('@nestjs/mongoose'),
-      MongooseModule: { forFeature: jest.fn() },
+      ...(await importOriginal<typeof import('@nestjs/mongoose')>()),
+      MongooseModule: { forFeature: vi.fn() },
     }
   ),
 );
-jest.mock(
+vi.mock(
   '@nestjs/passport',
   () => (
-    { PassportModule: { register: jest.fn() } }
+    { PassportModule: { register: vi.fn() } }
   ),
 );
-jest.mock(
+vi.mock(
   '../../dynamic-api.module',
   () => (
-    { DynamicApiModule: { state: { get: jest.fn() } } }
+    { DynamicApiModule: { state: { get: vi.fn() } } }
   ),
 );
-jest.mock(
+vi.mock(
   '../../helpers',
   () => (
     {
-      buildSchemaFromEntity: jest.fn(),
-      initializeConfigFromOptions: jest.fn(),
+      buildSchemaFromEntity: vi.fn(),
+      initializeConfigFromOptions: vi.fn(),
     }
   ),
 );
-jest.mock(
+vi.mock(
   '../../gateways',
   () => (
-    { createDynamicApiBroadcastGateway: jest.fn(() => jest.fn()) }
+    { createDynamicApiBroadcastGateway: vi.fn(() => vi.fn()) }
   ),
 );
-jest.mock(
+vi.mock(
   '../../services',
   () => (
-    { BcryptService: jest.fn(), DynamicApiGlobalStateService: { addEntitySchema: jest.fn() }, DynamicApiBroadcastService: jest.fn() }
+    { BcryptService: vi.fn(), DynamicApiGlobalStateService: { addEntitySchema: vi.fn() }, DynamicApiBroadcastService: vi.fn() }
   ),
 );
-jest.mock(
+vi.mock(
   './auth.helper',
   () => (
     {
-      createAuthController: jest.fn(),
-      createAuthServiceProvider: jest.fn(),
-      createLocalStrategyProvider: jest.fn(),
-      createAuthGateway: jest.fn(),
+      createAuthController: vi.fn(),
+      createAuthServiceProvider: vi.fn(),
+      createLocalStrategyProvider: vi.fn(),
+      createAuthGateway: vi.fn(),
+      // Not stubbed originally under Jest, which silently returned undefined for a mock factory's
+      // missing property; Vitest throws instead ("No ... export is defined on the mock") since this
+      // plain string constant is imported directly by this spec (not just used internally by the
+      // module under test) — real value from auth.helper.ts, must match on both sides of the mock.
+      authGatewayProviderName: 'DynamicApiAuthGateway',
     }
   ),
 );
-jest.mock(
+vi.mock(
   './strategies',
   () => (
-    { JwtStrategy: jest.fn(), JwtRefreshStrategy: jest.fn() }
+    { JwtStrategy: vi.fn(), JwtRefreshStrategy: vi.fn() }
   ),
 );
 
@@ -84,14 +91,14 @@ class UserEntity extends BaseEntity {
 
 describe('AuthModule', () => {
   let module: DynamicModule;
-  let spyInitializeAuthOptions: jest.SpyInstance;
+  let spyInitializeAuthOptions: Mock;
 
   const basicOptions: DynamicApiAuthOptions<UserEntity> = { userEntity: UserEntity };
 
   const fakeGatewayOptions = { namespace: 'namespace' };
   const fakeImport = { module: 'fake-import' } as unknown as DynamicModule;
   const fakeProvider = { provide: 'fake-provider', useValue: {} };
-  const fakeController = jest.fn();
+  const fakeController = vi.fn();
 
   const fullOptions = getFullAuthOptionsMock(
     UserEntity,
@@ -105,50 +112,50 @@ describe('AuthModule', () => {
     [fakeController],
   );
 
-  let spyBuildSchemaFromEntity: jest.SpyInstance;
-  let spyInitializeConfigFromOptions: jest.SpyInstance;
-  let spyMongooseModuleForFeature: jest.SpyInstance;
-  let spyDynamicApiModuleStateGet: jest.SpyInstance;
-  let spyJwtModuleRegister: jest.SpyInstance;
-  let spyCreateAuthController: jest.SpyInstance;
-  let spyCreateAuthServiceProvider: jest.SpyInstance;
-  let spyCreateLocalStrategyProvider: jest.SpyInstance;
-  let spyCreateAuthGateway: jest.SpyInstance;
-  let addEntitySchemaSpy: jest.SpyInstance;
+  let spyBuildSchemaFromEntity: Mock;
+  let spyInitializeConfigFromOptions: Mock;
+  let spyMongooseModuleForFeature: Mock;
+  let spyDynamicApiModuleStateGet: Mock;
+  let spyJwtModuleRegister: Mock;
+  let spyCreateAuthController: Mock;
+  let spyCreateAuthServiceProvider: Mock;
+  let spyCreateLocalStrategyProvider: Mock;
+  let spyCreateAuthGateway: Mock;
+  let addEntitySchemaSpy: Mock;
 
-  const AuthController = jest.fn();
-  const AuthServiceProvider = { provide: 'authServiceProviderName', useClass: jest.fn() };
-  const LocalStrategyProvider = { provide: 'localStrategyProviderName', useClass: jest.fn() };
-  const AuthGateway = jest.fn();
+  const AuthController = vi.fn();
+  const AuthServiceProvider = { provide: 'authServiceProviderName', useClass: vi.fn() };
+  const LocalStrategyProvider = { provide: 'localStrategyProviderName', useClass: vi.fn() };
+  const AuthGateway = vi.fn();
   const fakeMongooseDynamicModule = { module: 'MongooseDynamicModule' } as unknown as DynamicModule;
   const fakeJwtDynamicModule = { module: 'JwtDynamicModule' } as unknown as DynamicModule;
   const fakeSchema = {} as Schema;
   const fakeConnectionName = 'ut-connection-name';
 
-  const fakeMongooseModuleForFeature = jest.fn(() => fakeMongooseDynamicModule);
-  const fakeDynamicApiModuleStateGet = jest.fn(() => fakeConnectionName);
-  const fakeJwtModuleRegister = jest.fn(() => fakeJwtDynamicModule);
+  const fakeMongooseModuleForFeature = vi.fn(() => fakeMongooseDynamicModule);
+  const fakeDynamicApiModuleStateGet = vi.fn(() => fakeConnectionName);
+  const fakeJwtModuleRegister = vi.fn(() => fakeJwtDynamicModule);
 
   beforeEach(() => {
-    spyInitializeAuthOptions = jest.spyOn<any, any>(AuthModule, 'initializeAuthOptions');
+    spyInitializeAuthOptions = vi.spyOn<any, any>(AuthModule, 'initializeAuthOptions');
     spyBuildSchemaFromEntity =
-      jest.spyOn(Helpers, 'buildSchemaFromEntity').mockImplementationOnce(() => fakeSchema);
+      vi.spyOn(Helpers, 'buildSchemaFromEntity').mockImplementationOnce(() => fakeSchema);
     spyMongooseModuleForFeature =
-      jest.spyOn(MongooseModule, 'forFeature').mockImplementationOnce(fakeMongooseModuleForFeature);
+      vi.spyOn(MongooseModule, 'forFeature').mockImplementationOnce(fakeMongooseModuleForFeature);
     spyDynamicApiModuleStateGet =
-      jest.spyOn(DynamicApiModule.state, 'get').mockImplementation(fakeDynamicApiModuleStateGet);
-    spyJwtModuleRegister = jest.spyOn(JwtModule, 'register').mockImplementationOnce(fakeJwtModuleRegister);
+      vi.spyOn(DynamicApiModule.state, 'get').mockImplementation(fakeDynamicApiModuleStateGet);
+    spyJwtModuleRegister = vi.spyOn(JwtModule, 'register').mockImplementationOnce(fakeJwtModuleRegister);
 
     spyCreateAuthController =
-      jest.spyOn(AuthHelpers, 'createAuthController').mockImplementationOnce(jest.fn(() => AuthController));
+      vi.spyOn(AuthHelpers, 'createAuthController').mockImplementationOnce(vi.fn(() => AuthController));
     spyCreateAuthServiceProvider =
-      jest.spyOn(AuthHelpers, 'createAuthServiceProvider').mockImplementationOnce(jest.fn(() => AuthServiceProvider));
+      vi.spyOn(AuthHelpers, 'createAuthServiceProvider').mockImplementationOnce(vi.fn(() => AuthServiceProvider));
     spyCreateLocalStrategyProvider =
-      jest.spyOn(AuthHelpers, 'createLocalStrategyProvider')
-      .mockImplementationOnce(jest.fn(() => LocalStrategyProvider));
+      vi.spyOn(AuthHelpers, 'createLocalStrategyProvider')
+      .mockImplementationOnce(vi.fn(() => LocalStrategyProvider));
     spyCreateAuthGateway =
-      jest.spyOn(AuthHelpers, 'createAuthGateway').mockImplementationOnce(jest.fn(() => AuthGateway));
-    addEntitySchemaSpy = jest
+      vi.spyOn(AuthHelpers, 'createAuthGateway').mockImplementationOnce(vi.fn(() => AuthGateway));
+    addEntitySchemaSpy = vi
     .spyOn(DynamicApiGlobalStateService, 'addEntitySchema');
   });
 
@@ -157,7 +164,7 @@ describe('AuthModule', () => {
       beforeEach(() => {
         module = AuthModule.forRoot(basicOptions);
         spyInitializeConfigFromOptions =
-          jest.spyOn(Helpers, 'initializeConfigFromOptions').mockImplementationOnce(() => undefined);
+          vi.spyOn(Helpers, 'initializeConfigFromOptions').mockImplementationOnce(() => undefined);
       });
 
       it('should return dynamic module', () => {
@@ -250,7 +257,7 @@ describe('AuthModule', () => {
       beforeEach(() => {
         module = AuthModule.forRoot(fullOptions);
         spyInitializeConfigFromOptions =
-          jest.spyOn(Helpers, 'initializeConfigFromOptions').mockImplementationOnce(() => fakeGatewayOptions);
+          vi.spyOn(Helpers, 'initializeConfigFromOptions').mockImplementationOnce(() => fakeGatewayOptions);
       });
 
       it('should have initialized options', () => {
@@ -366,7 +373,7 @@ describe('AuthModule', () => {
       beforeEach(() => {
         module = AuthModule.forRoot(broadcastOptions);
         spyInitializeConfigFromOptions =
-          jest.spyOn(Helpers, 'initializeConfigFromOptions').mockImplementationOnce(() => undefined);
+          vi.spyOn(Helpers, 'initializeConfigFromOptions').mockImplementationOnce(() => undefined);
       });
 
       it('should include DynamicApiBroadcastService in providers when broadcast is configured', () => {
