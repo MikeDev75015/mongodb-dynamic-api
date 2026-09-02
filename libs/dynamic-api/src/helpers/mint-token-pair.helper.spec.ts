@@ -38,7 +38,7 @@ describe('mintTokenPair', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.spyOn(DynamicApiGlobalStateService.prototype, 'get').mockImplementation((key?: string) => mockStateGet(key));
+    vi.spyOn(DynamicApiGlobalStateService, 'getValue').mockImplementation((key?: string) => mockStateGet(key));
     mockStateGet.mockImplementation((key: string) => defaultState[key]);
     hashPasswordSpy = vi.spyOn(BcryptService.prototype, 'hashPassword').mockResolvedValue('hashed-jti');
     updateOneExec = vi.fn();
