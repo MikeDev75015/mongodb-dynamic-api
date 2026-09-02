@@ -1,3 +1,4 @@
+import { describe, expect, it, vi } from 'vitest';
 import { resolveRooms } from './resolve-rooms.helper';
 
 describe('resolveRooms', () => {
@@ -68,7 +69,7 @@ describe('resolveRooms', () => {
     it('should pass user to the rooms function when provided', () => {
       const data = [{ id: '1', ownerId: 'user-1' }];
       const user = { id: 'user-1' };
-      const roomsFn = jest.fn(
+      const roomsFn = vi.fn(
         (item: { id: string; ownerId: string }, u?: { id: string }) =>
           u?.id === item.ownerId ? [] : ['all'],
       );
@@ -98,7 +99,7 @@ describe('resolveRooms', () => {
 
     it('should call the function with undefined user when user is not provided', () => {
       const data = [{ id: '1' }];
-      const roomsFn = jest.fn(() => 'room-a');
+      const roomsFn = vi.fn(() => 'room-a');
 
       resolveRooms(roomsFn, data);
 
@@ -107,7 +108,7 @@ describe('resolveRooms', () => {
 
     it('should call the function with undefined when user is explicitly undefined', () => {
       const data = [{ id: '1' }];
-      const roomsFn = jest.fn(() => 'room-b');
+      const roomsFn = vi.fn(() => 'room-b');
 
       resolveRooms(roomsFn, data, undefined);
 

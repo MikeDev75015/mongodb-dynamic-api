@@ -1,4 +1,5 @@
-import { createMock } from '@golevelup/ts-jest';
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
+import { createMock } from '@test-helpers';
 import { Type } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
@@ -50,7 +51,7 @@ describe('DuplicateManyHelper', () => {
 
     it('should instantiate DuplicateMany controller with default values', async () => {
       const service = {
-        duplicateMany: jest.fn(),
+        duplicateMany: vi.fn(),
       };
       const controllerClass = createDuplicateManyController(
         entity,
@@ -59,7 +60,7 @@ describe('DuplicateManyHelper', () => {
         { type: 'DuplicateMany' },
       );
       const controller = new controllerClass(service);
-      const spyServiceDuplicateMany = jest.spyOn(service, 'duplicateMany');
+      const spyServiceDuplicateMany = vi.spyOn(service, 'duplicateMany');
 
       expect(controller).toBeDefined();
       expect(controller['service']).toBe(service);

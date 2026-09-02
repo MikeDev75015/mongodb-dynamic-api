@@ -1,26 +1,28 @@
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { INestApplication } from '@nestjs/common';
 import { MongoDBDynamicApiLogger } from '../logger';
 import { enableDynamicAPIIndexSync } from './index-sync.helper';
 
-jest.mock('../dynamic-api.module', () => ({
-  DynamicApiModule: { state: { get: jest.fn().mockReturnValue('dynamic-api-connection') } },
+vi.mock('../dynamic-api.module', () => ({
+  DynamicApiModule: { state: { get: vi.fn().mockReturnValue('dynamic-api-connection') } },
 }));
 
 describe('enableDynamicAPIIndexSync', () => {
-  let loggerErrorSpy: jest.SpyInstance;
-  let syncIndexesA: jest.Mock;
-  let syncIndexesB: jest.Mock;
+  let loggerErrorSpy: Mock;
+  let syncIndexesA: Mock;
+  let syncIndexesB: Mock;
   let app: INestApplication;
 
   const buildApp = (models: Record<string, unknown>): INestApplication => ({
-    get: jest.fn().mockReturnValue({ models }),
+    get: vi.fn().mockReturnValue({ models }),
   } as unknown as INestApplication);
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    loggerErrorSpy = jest.spyOn(MongoDBDynamicApiLogger.prototype, 'error').mockImplementation(() => undefined);
-    syncIndexesA = jest.fn().mockResolvedValue(undefined);
-    syncIndexesB = jest.fn().mockResolvedValue(undefined);
+    vi.clearAllMocks();
+    loggerErrorSpy = vi.spyOn(MongoDBDynamicApiLogger.prototype, 'error').mockImplementation(() => undefined);
+    syncIndexesA = vi.fn().mockResolvedValue(undefined);
+    syncIndexesB = vi.fn().mockResolvedValue(undefined);
     app = buildApp({
       UserA: { syncIndexes: syncIndexesA, collection: { collectionName: 'usera' } },
       UserB: { syncIndexes: syncIndexesB, collection: { collectionName: 'userb' } },

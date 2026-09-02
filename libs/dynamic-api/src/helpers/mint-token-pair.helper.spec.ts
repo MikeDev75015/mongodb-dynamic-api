@@ -1,13 +1,15 @@
-import { createMock } from '@golevelup/ts-jest';
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
+import type { Mock } from 'vitest';
+import { createMock } from '@test-helpers';
 import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
 import { BaseEntity } from '../models';
 import { BcryptService, DynamicApiGlobalStateService } from '../services';
 import { mintTokenPair } from './mint-token-pair.helper';
 
-const mockStateGet = jest.fn();
+const mockStateGet = vi.fn();
 
-jest.mock('../dynamic-api.module', () => ({
+vi.mock('../dynamic-api.module', () => ({
   DynamicApiModule: { state: { get: (key?: string) => mockStateGet(key) } },
 }));
 
@@ -21,9 +23,9 @@ class TestUser extends BaseEntity {
 
 describe('mintTokenPair', () => {
   let model: Model<TestUser>;
-  let updateOneExec: jest.Mock;
-  let getEntityModelSpy: jest.SpyInstance;
-  let hashPasswordSpy: jest.SpyInstance;
+  let updateOneExec: Mock;
+  let getEntityModelSpy: Mock;
+  let hashPasswordSpy: Mock;
 
   const defaultState: Record<string, unknown> = {
     jwtSecret: 'secret',
@@ -39,15 +41,15 @@ describe('mintTokenPair', () => {
     new JwtService().decode(token) as Record<string, unknown>;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockStateGet.mockImplementation((key: string) => defaultState[key]);
-    hashPasswordSpy = jest.spyOn(BcryptService.prototype, 'hashPassword').mockResolvedValue('hashed-jti');
-    updateOneExec = jest.fn();
+    hashPasswordSpy = vi.spyOn(BcryptService.prototype, 'hashPassword').mockResolvedValue('hashed-jti');
+    updateOneExec = vi.fn();
     model = createMock<Model<TestUser>>();
-    model.updateOne = jest.fn(() => ({ exec: updateOneExec })) as unknown as Model<TestUser>['updateOne'];
+    model.updateOne = vi.fn(() => ({ exec: updateOneExec })) as unknown as Model<TestUser>['updateOne'];
     getEntityModelSpy =
       // @ts-ignore
-      jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
+      vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
   });
 
   it('should throw when useAuth is not configured (no jwtSecret)', async () => {
@@ -179,7 +181,7 @@ describe('mintTokenPair', () => {
     mockStateGet.mockImplementation((key: string) => (
       { ...defaultState, refreshTokenField: 'refreshToken' }[key]
     ));
-    jest.spyOn(JwtService.prototype, 'decode').mockReturnValueOnce(null);
+    vi.spyOn(JwtService.prototype, 'decode').mockReturnValueOnce(null);
     const user = { id: '1', email: 'u@test.co' } as TestUser;
 
     await mintTokenPair(TestUser, user);

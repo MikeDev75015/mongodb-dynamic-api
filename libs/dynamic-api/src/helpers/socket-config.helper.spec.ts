@@ -1,3 +1,5 @@
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { INestApplication } from '@nestjs/common';
 import * as Adapter from '../adapters/socket-adapter';
 import { GatewayOptions } from '../interfaces';
@@ -5,26 +7,26 @@ import { DynamicApiEventRegistryStore } from './event-registry.store';
 import { enableDynamicAPIWebSockets, initializeConfigFromOptions } from './socket-config.helper';
 import { DynamicApiWsConfigStore } from './ws-config.store';
 
-jest.mock('../adapters/socket-adapter', () => ({
-  SocketAdapter: jest.fn(),
+vi.mock('../adapters/socket-adapter', () => ({
+  SocketAdapter: vi.fn(),
 }));
 
-jest.mock('../dynamic-api.module', () => ({
-  DynamicApiModule: { state: { get: jest.fn().mockReturnValue('test-jwt-secret') } },
+vi.mock('../dynamic-api.module', () => ({
+  DynamicApiModule: { state: { get: vi.fn().mockReturnValue('test-jwt-secret') } },
 }));
 
 describe('SocketConfigHelper', () => {
-  let spySocketAdapter: jest.SpyInstance;
+  let spySocketAdapter: Mock;
 
   const fakeApp = {
-    useWebSocketAdapter: jest.fn(),
+    useWebSocketAdapter: vi.fn(),
   } as unknown as INestApplication;
 
   beforeEach(() => {
-    spySocketAdapter = jest.spyOn(Adapter, 'SocketAdapter');
+    spySocketAdapter = vi.spyOn(Adapter, 'SocketAdapter');
     DynamicApiWsConfigStore.reset();
     DynamicApiEventRegistryStore.reset();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('enableDynamicAPIWebSockets', () => {
@@ -39,7 +41,7 @@ describe('SocketConfigHelper', () => {
     });
 
     it('should accept an options object and populate the config store', () => {
-      const onConnection = jest.fn();
+      const onConnection = vi.fn();
       enableDynamicAPIWebSockets(fakeApp, { maxListeners: 20, onConnection, debug: true });
 
       expect(fakeApp.useWebSocketAdapter).toHaveBeenCalledTimes(1);
@@ -50,10 +52,10 @@ describe('SocketConfigHelper', () => {
     });
 
     it('should populate customEvents in the config store', () => {
-      const handler = jest.fn();
+      const handler = vi.fn();
       const customEvents = [
         { name: 'voice-call', handler },
-        { name: 'admin-action', predicate: jest.fn(), handler },
+        { name: 'admin-action', predicate: vi.fn(), handler },
       ];
 
       enableDynamicAPIWebSockets(fakeApp, { customEvents });
@@ -68,7 +70,7 @@ describe('SocketConfigHelper', () => {
     });
 
     it('should accept a number (deprecated) and warn', () => {
-      const spyConsoleWarn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const spyConsoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
       enableDynamicAPIWebSockets(fakeApp, 50);
 
@@ -79,7 +81,7 @@ describe('SocketConfigHelper', () => {
     });
 
     it('should throw on MaxListenersExceededWarning error', () => {
-      const spyConsoleWarn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const spyConsoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
       const fakeError = {
         name: 'MaxListenersExceededWarning',
@@ -103,7 +105,7 @@ describe('SocketConfigHelper', () => {
 
     describe('failOnEventCollision', () => {
       const registerCollision = () => {
-        jest.spyOn(DynamicApiEventRegistryStore['logger'], 'warn').mockImplementation();
+        vi.spyOn(DynamicApiEventRegistryStore['logger'], 'warn').mockImplementation();
 
         DynamicApiEventRegistryStore.register({
           event: 'shared-event',

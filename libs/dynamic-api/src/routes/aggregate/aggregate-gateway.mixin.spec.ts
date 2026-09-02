@@ -1,4 +1,5 @@
-import { createMock } from '@golevelup/ts-jest';
+import { describe, expect, it, test } from 'vitest';
+import { createMock } from '@test-helpers';
 import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
 import { PipelineStage } from 'mongodb-pipeline-builder';

@@ -1,4 +1,6 @@
-import { createMock } from '@golevelup/ts-jest';
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
+import type { Mock, MockedFunction } from 'vitest';
+import { createMock } from '@test-helpers';
 import { JwtService } from '@nestjs/jwt';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { BaseGateway } from '../../gateways';
@@ -16,8 +18,8 @@ import {
 } from './create-custom-route-gateway';
 import { CustomRouteCallbackService } from './custom-route-callback.service';
 
-jest.mock('../../mixins', () => ({
-  SocketPoliciesGuardMixin: jest.fn().mockImplementation(() => {
+vi.mock('../../mixins', () => ({
+  SocketPoliciesGuardMixin: vi.fn().mockImplementation(() => {
     class FakeSocketPoliciesGuard {
       canActivate() { return true; }
     }
@@ -29,7 +31,7 @@ jest.mock('../../mixins', () => ({
 
 interface GatewayInstanceShape {
   model: unknown;
-  moduleRef?: { get: jest.Mock };
+  moduleRef?: { get: Mock };
   callbackService?: CustomRouteCallbackService<FakeEntity>;
   handle: (
     socket: ExtendedSocket<FakeEntity>,
@@ -52,7 +54,7 @@ Object.defineProperty(FakeEntity, 'name', { value: 'FakeEntity', writable: false
 
 const fakeControllerOptions: DynamicApiControllerOptions<FakeEntity> = { path: 'fakes' };
 
-const fakeHandler = jest.fn().mockResolvedValue({ id: '1', name: 'result' }) as jest.MockedFunction<
+const fakeHandler = vi.fn().mockResolvedValue({ id: '1', name: 'result' }) as MockedFunction<
   CustomRouteConfig<FakeEntity>['handler']
 >;
 
@@ -79,7 +81,7 @@ function makeGateway(
 function makeInstance(overrides: Partial<CustomRouteConfig<FakeEntity>> = {}): GatewayInstanceShape {
   const Gateway = makeGateway(overrides);
   const instance = Object.create(Gateway.prototype) as GatewayInstanceShape;
-  const model = { findById: jest.fn() };
+  const model = { findById: vi.fn() };
   instance.model = model;
   // Object.create bypasses the real constructor (deliberately, to isolate handle() from
   // DI/decorator concerns) — callbackService (normally built in the constructor) needs to be
@@ -92,9 +94,9 @@ function makeInstance(overrides: Partial<CustomRouteConfig<FakeEntity>> = {}): G
 
 describe('createCustomRouteGateway', () => {
   beforeEach(() => {
-    (jest.spyOn(DynamicApiModule.state, 'get') as jest.SpyInstance).mockReturnValue('test-connection');
+    (vi.spyOn(DynamicApiModule.state, 'get') as Mock).mockReturnValue('test-connection');
     fakeHandler.mockClear();
-    (SocketPoliciesGuardMixin as jest.Mock).mockClear();
+    (SocketPoliciesGuardMixin as Mock).mockClear();
   });
 
   // ── Naming ──────────────────────────────────────────────────────────────
@@ -194,7 +196,7 @@ describe('createCustomRouteGateway', () => {
 
   describe('handle()', () => {
     it('calls handler with model, user from socket, empty params and query, body', async () => {
-      const fakeModel = { findById: jest.fn() };
+      const fakeModel = { findById: vi.fn() };
       const instance = makeInstance();
       instance.model = fakeModel;
 
@@ -236,7 +238,7 @@ describe('createCustomRouteGateway', () => {
     it('maps result through presenter.fromEntity when present', async () => {
       const raw = { id: '2', name: 'raw' } as unknown as FakeEntity;
       const mapped = { id: '2', displayName: 'mapped' };
-      const fromEntity = jest.fn().mockReturnValue(mapped);
+      const fromEntity = vi.fn().mockReturnValue(mapped);
 
       class FakePresenter {
         static fromEntity = fromEntity;
@@ -259,7 +261,7 @@ describe('createCustomRouteGateway', () => {
     it('resolves each inject token via moduleRef.get({ strict: false }) and passes the results to handler', async () => {
       const instance = makeInstance({ inject: [FakeMailService] });
       const fakeMailInstance = new FakeMailService();
-      instance.moduleRef = { get: jest.fn().mockReturnValue(fakeMailInstance) };
+      instance.moduleRef = { get: vi.fn().mockReturnValue(fakeMailInstance) };
 
       await instance.handle({} as ExtendedSocket<FakeEntity>, {});
 
@@ -269,7 +271,7 @@ describe('createCustomRouteGateway', () => {
 
     it('never touches moduleRef when inject is not provided', async () => {
       const instance = makeInstance();
-      instance.moduleRef = { get: jest.fn() };
+      instance.moduleRef = { get: vi.fn() };
 
       await instance.handle({} as ExtendedSocket<FakeEntity>, {});
 
@@ -282,7 +284,7 @@ describe('createCustomRouteGateway', () => {
 
   describe('abilityPredicate', () => {
     it('calls SocketPoliciesGuardMixin when abilityPredicate is provided', () => {
-      const predicate = jest.fn().mockReturnValue(true);
+      const predicate = vi.fn().mockReturnValue(true);
       makeGateway({ abilityPredicate: predicate });
 
       expect(SocketPoliciesGuardMixin).toHaveBeenCalledWith(
@@ -295,7 +297,7 @@ describe('createCustomRouteGateway', () => {
     });
 
     it('passes predicateBehavior to SocketPoliciesGuardMixin', () => {
-      const predicate = jest.fn().mockReturnValue(true);
+      const predicate = vi.fn().mockReturnValue(true);
       makeGateway({ abilityPredicate: predicate, predicateBehavior: 'filter' });
 
       expect(SocketPoliciesGuardMixin).toHaveBeenCalledWith(
@@ -317,7 +319,7 @@ describe('createCustomRouteGateway', () => {
 
   describe('authAbilityPredicate', () => {
     it('calls SocketPoliciesGuardMixin when only authAbilityPredicate is provided (no abilityPredicate)', () => {
-      const authAbilityPredicate = jest.fn().mockReturnValue(true);
+      const authAbilityPredicate = vi.fn().mockReturnValue(true);
       makeGateway({ authAbilityPredicate });
 
       expect(SocketPoliciesGuardMixin).toHaveBeenCalledWith(
@@ -335,7 +337,7 @@ describe('createCustomRouteGateway', () => {
   describe('constructor', () => {
     it('assigns injected model to this.model', () => {
       const GW = makeGateway();
-      const fakeModel = { find: jest.fn() };
+      const fakeModel = { find: vi.fn() };
       const instance = new GW(fakeModel, jwtService);
       expect(instance.model).toBe(fakeModel);
     });

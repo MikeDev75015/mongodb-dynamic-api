@@ -1,3 +1,5 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { DynamicApiCachePathRegistryStore } from '../../helpers/cache-path-registry.store';
 import { DynamicApiCacheService } from './dynamic-api-cache.service';
 
@@ -19,7 +21,7 @@ function fakeIterableStore(entries: [string, unknown][]) {
 }
 
 describe('DynamicApiCacheService', () => {
-  let cacheManager: { stores: any[]; del: jest.Mock; clear: jest.Mock };
+  let cacheManager: { stores: any[]; del: Mock; clear: Mock };
   let service: DynamicApiCacheService;
 
   beforeEach(() => {
@@ -37,8 +39,8 @@ describe('DynamicApiCacheService', () => {
           ['/orders', ['x']],
         ]),
       ],
-      del: jest.fn().mockResolvedValue(true),
-      clear: jest.fn().mockResolvedValue(true),
+      del: vi.fn().mockResolvedValue(true),
+      clear: vi.fn().mockResolvedValue(true),
     };
 
     service = new DynamicApiCacheService(cacheManager as any);

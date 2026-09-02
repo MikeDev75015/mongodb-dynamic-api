@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it } from 'vitest';
 import { Type } from '@nestjs/common';
 import { buildDynamicApiModuleOptionsMock } from '../../__mocks__/dynamic-api.module.mock';
 import { DynamicAPISchemaOptionsInterface } from '../interfaces';

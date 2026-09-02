@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import {
   AUTH_CHANGE_PASSWORD_EVENT,
   AUTH_GET_ACCOUNT_BROADCAST_EVENT,

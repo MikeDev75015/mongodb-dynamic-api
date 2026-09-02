@@ -1,3 +1,4 @@
+import { describe, expect, it, test } from 'vitest';
 import { Type } from '@nestjs/common';
 import { BaseEntity, SoftDeletableEntity } from '../models';
 import { EntityPresenterMixin } from './entity-presenter.mixin';

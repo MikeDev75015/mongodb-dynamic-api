@@ -1,4 +1,5 @@
-import { createMock } from '@golevelup/ts-jest';
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
+import { createMock } from '@test-helpers';
 import { ExecutionContext } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
@@ -24,7 +25,7 @@ describe('JwtSocketGuard', () => {
   });
 
   beforeEach(() => {
-    jest.spyOn(DynamicApiModule.state, 'get').mockImplementation((key: string) => key);
+    vi.spyOn(DynamicApiModule.state, 'get').mockImplementation((key: string) => key);
   });
 
   it('should allow access with isPublic set to true', async () => {
@@ -56,7 +57,7 @@ describe('JwtSocketGuard', () => {
     it('should allow access with valid JWT via query.accessToken', async () => {
       const accessToken = 'valid.jwt.token';
       query['accessToken'] = accessToken;
-      const verifyAsyncSpy = jest.spyOn(JwtService.prototype, 'verifyAsync').mockResolvedValueOnce({
+      const verifyAsyncSpy = vi.spyOn(JwtService.prototype, 'verifyAsync').mockResolvedValueOnce({
         user,
       });
 
@@ -72,7 +73,7 @@ describe('JwtSocketGuard', () => {
     it('should allow access with valid JWT via auth.token', async () => {
       const accessToken = 'valid.jwt.token.from.auth';
       auth['token'] = accessToken;
-      const verifyAsyncSpy = jest.spyOn(JwtService.prototype, 'verifyAsync').mockResolvedValueOnce({
+      const verifyAsyncSpy = vi.spyOn(JwtService.prototype, 'verifyAsync').mockResolvedValueOnce({
         user,
       });
 
@@ -90,7 +91,7 @@ describe('JwtSocketGuard', () => {
       const queryToken = 'query.token.value';
       auth['token'] = authToken;
       query['accessToken'] = queryToken;
-      const verifyAsyncSpy = jest.spyOn(JwtService.prototype, 'verifyAsync').mockResolvedValueOnce({
+      const verifyAsyncSpy = vi.spyOn(JwtService.prototype, 'verifyAsync').mockResolvedValueOnce({
         user,
       });
 
@@ -111,7 +112,7 @@ describe('JwtSocketGuard', () => {
 
     it('should deny access with invalid JWT', async () => {
       query['accessToken'] = 'valid.jwt.token';
-      jest.spyOn(JwtService.prototype, 'verifyAsync').mockRejectedValueOnce(
+      vi.spyOn(JwtService.prototype, 'verifyAsync').mockRejectedValueOnce(
         new Error('Invalid token'),
       );
 
@@ -120,7 +121,7 @@ describe('JwtSocketGuard', () => {
 
     it('should deny access if user data is not present in the token', async () => {
       query['accessToken'] = 'valid.jwt.token';
-      jest.spyOn(JwtService.prototype, 'verifyAsync').mockResolvedValueOnce({});
+      vi.spyOn(JwtService.prototype, 'verifyAsync').mockResolvedValueOnce({});
 
       await expect(guard.canActivate(context)).rejects.toThrow(WsException);
     });

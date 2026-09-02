@@ -1,3 +1,4 @@
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { INestApplication, VersioningOptions, VersioningType } from '@nestjs/common';
 import { closeApp, initApp } from '../../__mocks__/app.mock';
 import { enableDynamicAPIVersioning } from './versioning-config.helper';
@@ -11,7 +12,7 @@ describe('VersioningConfigHelper', () => {
 
   describe('enableDynamicAPIVersioning', () => {
     it('should call enableVersioning with default options', () => {
-      const enableVersioningSpy = jest.spyOn(app, 'enableVersioning');
+      const enableVersioningSpy = vi.spyOn(app, 'enableVersioning');
 
       enableDynamicAPIVersioning(app);
 
@@ -19,7 +20,7 @@ describe('VersioningConfigHelper', () => {
     });
 
     it('should call enableVersioning with custom options', () => {
-      const enableVersioningSpy = jest.spyOn(app, 'enableVersioning');
+      const enableVersioningSpy = vi.spyOn(app, 'enableVersioning');
       const customOptions = {
         type: VersioningType.CUSTOM,
         defaultVersion: '1.0',

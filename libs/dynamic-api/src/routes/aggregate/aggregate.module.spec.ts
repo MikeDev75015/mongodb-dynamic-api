@@ -1,3 +1,5 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { DynamicModule, ValidationPipeOptions } from '@nestjs/common';
 import * as Helpers from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
@@ -5,21 +7,21 @@ import { BaseEntity } from '../../models';
 import * as AggregateHelpers from './aggregate.helper';
 import { AggregateModule } from './aggregate.module';
 
-jest.mock('./aggregate.helper');
-jest.mock('../../helpers');
+vi.mock('./aggregate.helper');
+vi.mock('../../helpers');
 
 class Entity extends BaseEntity {}
 
 describe('AggregateModule', () => {
-  let spyCreateAggregateController: jest.SpyInstance;
-  let spyCreateAggregateServiceProvider: jest.SpyInstance;
-  let spyCreateAggregateGateway: jest.SpyInstance;
+  let spyCreateAggregateController: Mock;
+  let spyCreateAggregateServiceProvider: Mock;
+  let spyCreateAggregateGateway: Mock;
 
-  const FakeController = jest.fn();
+  const FakeController = vi.fn();
   const FakeServiceProvider = { provide: 'fakeProvider' } as unknown as DynamicAPIServiceProvider;
-  const FakeGateway = jest.fn();
+  const FakeGateway = vi.fn();
 
-  const routeConfigCallback = jest.fn();
+  const routeConfigCallback = vi.fn();
   const databaseModule = { module: 'databaseModule' } as unknown as DynamicModule;
   const controllerOptions: DynamicApiControllerOptions<Entity> = { path: 'fakePath' };
   const routeConfig: DynamicAPIRouteConfig<Entity> = { type: 'Aggregate', callback: routeConfigCallback };
@@ -29,11 +31,11 @@ describe('AggregateModule', () => {
   const fakeGatewayOptions = { namespace: 'fakeNamespace' };
 
   beforeEach(() => {
-    spyCreateAggregateController = jest.spyOn(AggregateHelpers, 'createAggregateController').mockReturnValue(FakeController);
-    spyCreateAggregateServiceProvider = jest.spyOn(AggregateHelpers, 'createAggregateServiceProvider').mockReturnValue(FakeServiceProvider);
-    spyCreateAggregateGateway = jest.spyOn(AggregateHelpers, 'createAggregateGateway').mockReturnValue(FakeGateway);
-    jest.spyOn(Helpers, 'getDisplayedName').mockReturnValue(fakeDisplayedName);
-    jest.spyOn(Helpers, 'initializeConfigFromOptions').mockReturnValue(fakeGatewayOptions);
+    spyCreateAggregateController = vi.spyOn(AggregateHelpers, 'createAggregateController').mockReturnValue(FakeController);
+    spyCreateAggregateServiceProvider = vi.spyOn(AggregateHelpers, 'createAggregateServiceProvider').mockReturnValue(FakeServiceProvider);
+    spyCreateAggregateGateway = vi.spyOn(AggregateHelpers, 'createAggregateGateway').mockReturnValue(FakeGateway);
+    vi.spyOn(Helpers, 'getDisplayedName').mockReturnValue(fakeDisplayedName);
+    vi.spyOn(Helpers, 'initializeConfigFromOptions').mockReturnValue(fakeGatewayOptions);
   });
 
   describe('forFeature', () => {

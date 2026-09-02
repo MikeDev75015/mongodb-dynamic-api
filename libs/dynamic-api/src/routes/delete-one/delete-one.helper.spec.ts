@@ -1,4 +1,5 @@
-import { createMock } from '@golevelup/ts-jest';
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
+import { createMock } from '@test-helpers';
 import { Type } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
@@ -28,7 +29,7 @@ describe('DeleteOneHelper', () => {
     });
 
     it('should wire beforeDeleteCallback and cascade into the service', () => {
-      const beforeDeleteCallback = jest.fn();
+      const beforeDeleteCallback = vi.fn();
       const cascade = [{ entity, foreignKey: 'parentId', on: 'delete' as const }];
 
       const { useClass } = createDeleteOneServiceProvider(
@@ -59,7 +60,7 @@ describe('DeleteOneHelper', () => {
 
     it('should instantiate DeleteOne controller with default values', async () => {
       const service = {
-        deleteOne: jest.fn(),
+        deleteOne: vi.fn(),
       };
       const controllerClass = createDeleteOneController(
         entity,
@@ -68,7 +69,7 @@ describe('DeleteOneHelper', () => {
         { type: 'DeleteOne' },
       );
       const controller = new controllerClass(service);
-      const spyServiceDeleteOne = jest.spyOn(service, 'deleteOne');
+      const spyServiceDeleteOne = vi.spyOn(service, 'deleteOne');
 
       expect(controller).toBeDefined();
       expect(controller['service']).toBe(service);

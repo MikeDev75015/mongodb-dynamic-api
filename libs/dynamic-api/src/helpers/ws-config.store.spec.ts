@@ -1,3 +1,4 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DynamicApiWsConfigStore } from './ws-config.store';
 
 describe('DynamicApiWsConfigStore', () => {
@@ -12,7 +13,7 @@ describe('DynamicApiWsConfigStore', () => {
   });
 
   it('should store and retrieve onConnection', () => {
-    const handler = jest.fn();
+    const handler = vi.fn();
     DynamicApiWsConfigStore.onConnection = handler;
 
     expect(DynamicApiWsConfigStore.onConnection).toBe(handler);
@@ -33,7 +34,7 @@ describe('DynamicApiWsConfigStore', () => {
   it('should reset all values', () => {
     DynamicApiWsConfigStore.debug = true;
     DynamicApiWsConfigStore.jwtSecret = 'secret';
-    DynamicApiWsConfigStore.onConnection = jest.fn();
+    DynamicApiWsConfigStore.onConnection = vi.fn();
 
     DynamicApiWsConfigStore.reset();
 
