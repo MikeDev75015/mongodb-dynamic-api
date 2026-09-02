@@ -244,6 +244,28 @@ describe('DynamicApiCacheInterceptor', () => {
   });
 
   describe('intercept', () => {
+    it('should return next.handle() without touching request/cache state for a non-http context '
+      + '(e.g. websocket gateway handlers, for which the underlying "request" is a socket with '
+      + 'neither .method nor .url)', () => new Promise<void>((resolve) => {
+      state.isGlobalCacheEnabled = true;
+      const context = {
+        switchToHttp: () => ({
+          getRequest: () => { throw new Error('should never be called for a non-http context'); },
+        }),
+        getHandler: fakeHandler,
+        getType: () => 'ws',
+      } as unknown as ExecutionContext;
+      const next = { handle: () => of('handled') } as CallHandler;
+
+      interceptor.intercept(context, next).then((obs) => {
+        obs.subscribe((result) => {
+          expect(result).toBe('handled');
+          expect(cacheService.invalidateForUrl).not.toHaveBeenCalled();
+          resolve();
+        });
+      });
+    }));
+
     it('should return next.handle() if global cache is disabled', () => new Promise<void>((resolve) => {
       state.isGlobalCacheEnabled = false;
       const context = {

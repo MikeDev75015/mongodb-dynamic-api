@@ -17,6 +17,22 @@ export class DynamicApiJwtAuthGuard extends AuthGuard('jwt') {
   }
 
   canActivate(context: ExecutionContext) {
+    // `@nestjs/core` v12 changed global `APP_GUARD`s to also run for WebSocket gateway handlers —
+    // verified by diffing v11/v12: under v11 this guard was simply never invoked for `ws` contexts,
+    // so gateway auth has always been handled entirely by the dedicated socket guards
+    // (JwtSocketAuthGuard, AuthSocketPoliciesGuardMixin, ResetPasswordGuard, PasswordlessGuard, ...)
+    // applied explicitly per-handler in the gateway mixins — never by this HTTP-oriented guard. Under
+    // v12, letting it run for `ws` breaks every gateway handler that isn't already behind one of those
+    // guards (e.g. the public auth-register/auth-login events): passport's `AuthGuard()` mixin calls
+    // `context.switchToHttp().getRequest()`, which for a `ws` context returns the raw connected socket
+    // (not an HTTP request), and passport-jwt's extractor then throws reading `.headers` off it. This
+    // guard's own doc comment already scoped it to "every Nest controller" (HTTP) — this bypass just
+    // makes that pre-existing design intent explicit instead of relying on the framework's old,
+    // now-changed behaviour to enforce it.
+    if (context.getType() !== 'http') {
+      return true;
+    }
+
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
