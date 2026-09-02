@@ -1,3 +1,5 @@
+import { describe, expect, it, test, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { Model } from 'mongoose';
 import { CallbackMethods, AfterSaveCallback, CallbackRetryOptions, PopulateConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
@@ -28,10 +30,10 @@ describe('BaseGetManyService', () => {
 
   const response = [{ _id: 'ObjectId', __v: 1, name: 'test' }];
 
-  const initService = (exec = jest.fn()) => {
+  const initService = (exec = vi.fn()) => {
     modelMock = {
-      find: jest.fn(() => ({
-        lean: jest.fn(() => ({ exec })),
+      find: vi.fn(() => ({
+        lean: vi.fn(() => ({ exec })),
       })),
     } as unknown as Model<TestEntity>;
 
@@ -45,9 +47,9 @@ describe('BaseGetManyService', () => {
 
   describe('getMany', () => {
     it('should call model.find and return the response', async () => {
-      const exec = jest.fn().mockResolvedValueOnce(response);
+      const exec = vi.fn().mockResolvedValueOnce(response);
       service = initService(exec);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { _id, __v, ...documentWithoutIdAndVersion } = response[0];
 
@@ -58,18 +60,18 @@ describe('BaseGetManyService', () => {
     });
 
     it('should call model.find with soft deletable query', async () => {
-      const exec = jest.fn().mockResolvedValueOnce([]);
+      const exec = vi.fn().mockResolvedValueOnce([]);
       service = initService(exec);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
       await service.getMany();
       expect(modelMock.find).toHaveBeenCalledWith({ isDeleted: false });
     });
 
     it('should call callback if it is defined', async () => {
-      const exec = jest.fn().mockResolvedValueOnce(response);
+      const exec = vi.fn().mockResolvedValueOnce(response);
       service = initService(exec);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
-      const callback = jest.fn(() => Promise.resolve());
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const callback = vi.fn(() => Promise.resolve());
       internal(service).callback = callback;
       const user = { id: 'userId' };
       await service.getMany(undefined, user);
@@ -78,10 +80,10 @@ describe('BaseGetManyService', () => {
     });
 
     it('should not throw and should still return the full list when callback rejects', async () => {
-      const exec = jest.fn().mockResolvedValueOnce(response);
+      const exec = vi.fn().mockResolvedValueOnce(response);
       service = initService(exec);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
-      internal(service).callback = jest.fn(() => Promise.reject(new Error('boom')));
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      internal(service).callback = vi.fn(() => Promise.reject(new Error('boom')));
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { _id, __v, ...documentWithoutIdAndVersion } = response[0];
 
@@ -91,10 +93,10 @@ describe('BaseGetManyService', () => {
     });
 
     it('should succeed on retry when callbackRetry is configured', async () => {
-      const exec = jest.fn().mockResolvedValueOnce(response);
+      const exec = vi.fn().mockResolvedValueOnce(response);
       service = initService(exec);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
-      const callback = jest.fn()
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const callback = vi.fn()
         .mockRejectedValueOnce(new Error('transient'))
         .mockResolvedValueOnce(undefined);
       internal(service).callback = callback;
@@ -106,17 +108,17 @@ describe('BaseGetManyService', () => {
     });
 
     it('should populate the query when populate is configured', async () => {
-      const exec = jest.fn().mockResolvedValueOnce(response);
-      const findQueryMock: { populate: jest.Mock; lean: jest.Mock } = {
-        populate: jest.fn(),
-        lean: jest.fn(() => ({ exec })),
+      const exec = vi.fn().mockResolvedValueOnce(response);
+      const findQueryMock: { populate: Mock; lean: Mock } = {
+        populate: vi.fn(),
+        lean: vi.fn(() => ({ exec })),
       };
       findQueryMock.populate.mockReturnValue(findQueryMock);
       modelMock = {
-        find: jest.fn(() => findQueryMock),
+        find: vi.fn(() => findQueryMock),
       } as unknown as Model<TestEntity>;
       service = new TestService(modelMock);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       internal(service).populate = ['author', 'comments'];
 
       await service.getMany();
@@ -129,9 +131,9 @@ describe('BaseGetManyService', () => {
         { _id: 'id1', __v: 1, name: 'allowed' },
         { _id: 'id2', __v: 1, name: 'denied' },
       ];
-      const exec = jest.fn().mockResolvedValueOnce(documents);
+      const exec = vi.fn().mockResolvedValueOnce(documents);
       service = initService(exec);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       Object.defineProperty(service, 'abilityPredicate', { value: (entity: TestEntity) => entity.name === 'allowed', configurable: true });
       Object.defineProperty(service, 'predicateBehavior', { value: 'filter', configurable: true });
       const user = { id: 'userId' };
@@ -144,9 +146,9 @@ describe('BaseGetManyService', () => {
 
     it('should return empty array when predicateBehavior is filter and abilityPredicate rejects all', async () => {
       const documents = [{ _id: 'id1', __v: 1, name: 'denied' }];
-      const exec = jest.fn().mockResolvedValueOnce(documents);
+      const exec = vi.fn().mockResolvedValueOnce(documents);
       service = initService(exec);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       Object.defineProperty(service, 'abilityPredicate', { value: () => false, configurable: true });
       Object.defineProperty(service, 'predicateBehavior', { value: 'filter', configurable: true });
 
@@ -156,9 +158,9 @@ describe('BaseGetManyService', () => {
     });
 
     it('should return all documents when predicateBehavior is filter and abilityPredicate allows all', async () => {
-      const exec = jest.fn().mockResolvedValueOnce(response);
+      const exec = vi.fn().mockResolvedValueOnce(response);
       service = initService(exec);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       Object.defineProperty(service, 'abilityPredicate', { value: () => true, configurable: true });
       Object.defineProperty(service, 'predicateBehavior', { value: 'filter', configurable: true });
       const { _id, __v, ...documentWithoutIdAndVersion } = response[0];
@@ -169,9 +171,9 @@ describe('BaseGetManyService', () => {
     });
 
     it('should not filter when predicateBehavior is throw (default behavior)', async () => {
-      const exec = jest.fn().mockResolvedValueOnce(response);
+      const exec = vi.fn().mockResolvedValueOnce(response);
       service = initService(exec);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       Object.defineProperty(service, 'abilityPredicate', { value: () => false, configurable: true });
       Object.defineProperty(service, 'predicateBehavior', { value: 'throw', configurable: true });
       const { _id, __v, ...documentWithoutIdAndVersion } = response[0];

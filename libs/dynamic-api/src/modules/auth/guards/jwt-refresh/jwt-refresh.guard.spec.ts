@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ExecutionContext } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Test } from '@nestjs/testing';
@@ -27,11 +28,11 @@ describe('JwtRefreshGuard', () => {
       switchToHttp: () => ({
         getRequest: () => ({ headers: { authorization: 'Bearer fake-token' } }),
       }),
-      getHandler: jest.fn(),
-      getClass: jest.fn(),
+      getHandler: vi.fn(),
+      getClass: vi.fn(),
     } as unknown as ExecutionContext;
 
-    jest.spyOn(AuthGuard('jwt-refresh').prototype, 'canActivate').mockResolvedValueOnce(true);
+    vi.spyOn(AuthGuard('jwt-refresh').prototype, 'canActivate').mockResolvedValueOnce(true);
     const result = await guard.canActivate(mockContext);
     expect(result).toBe(true);
   });

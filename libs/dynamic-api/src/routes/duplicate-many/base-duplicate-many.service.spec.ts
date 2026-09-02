@@ -1,3 +1,5 @@
+import { describe, expect, it, test, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { Model } from 'mongoose';
 import {
   CallbackMethods,
@@ -24,7 +26,7 @@ type InternalService = {
   callbackMethods: CallbackMethods;
   beforeSaveCallback: BeforeSaveListCallback<TestEntity> | undefined;
   auditLog: boolean | undefined;
-  writeAuditLog: jest.Mock;
+  writeAuditLog: Mock;
 };
 
 const internal = (svc: TestService) => svc as unknown as InternalService;
@@ -43,10 +45,10 @@ describe('BaseDuplicateManyService', () => {
     { ...documents[1], _id: 'NewObjectId2' },
   ];
 
-  const initService = (exec = jest.fn(), created: object[] = []) => {
+  const initService = (exec = vi.fn(), created: object[] = []) => {
     modelMock = {
-      find: jest.fn(() => ({ lean: jest.fn(() => ({ exec })) })),
-      create: jest.fn(() => Promise.resolve(created)),
+      find: vi.fn(() => ({ lean: vi.fn(() => ({ exec })) })),
+      create: vi.fn(() => Promise.resolve(created)),
     } as unknown as Model<TestEntity>;
 
     return new TestService(modelMock);
@@ -60,15 +62,15 @@ describe('BaseDuplicateManyService', () => {
   describe('duplicateMany', () => {
     it('should throw an error if documents to duplicate do not exist', async () => {
       service = initService();
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
 
       await expect(service.duplicateMany(ids, undefined)).rejects.toThrow('Document not found');
     });
 
     it('should call model.find, model.create and return the duplicated documents', async () => {
-      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(duplicatedDocuments);
+      const exec = vi.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(duplicatedDocuments);
       service = initService(exec, duplicatedDocuments);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
 
       await expect(service.duplicateMany(ids, undefined)).resolves.toStrictEqual(
         duplicatedDocuments.map(({ _id: id, name }) => ({ name, id })),
@@ -82,10 +84,10 @@ describe('BaseDuplicateManyService', () => {
     });
 
     it('should call callback if it is defined', async () => {
-      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(duplicatedDocuments);
+      const exec = vi.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(duplicatedDocuments);
       service = initService(exec, duplicatedDocuments);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
-      const callback = jest.fn(() => Promise.resolve());
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
+      const callback = vi.fn(() => Promise.resolve());
       internal(service).callback = callback;
 
       await service.duplicateMany(ids, undefined);
@@ -105,10 +107,10 @@ describe('BaseDuplicateManyService', () => {
     });
 
     it('should pass user to callback if it is defined', async () => {
-      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(duplicatedDocuments);
+      const exec = vi.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(duplicatedDocuments);
       service = initService(exec, duplicatedDocuments);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
-      const callback = jest.fn(() => Promise.resolve());
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
+      const callback = vi.fn(() => Promise.resolve());
       internal(service).callback = callback;
       const fakeUser = { id: 'user-1', email: 'test@test.com' };
 
@@ -129,10 +131,10 @@ describe('BaseDuplicateManyService', () => {
     });
 
     it('should not throw and should still return the full batch when one document\'s callback rejects', async () => {
-      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(duplicatedDocuments);
+      const exec = vi.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(duplicatedDocuments);
       service = initService(exec, duplicatedDocuments);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
-      internal(service).callback = jest.fn((entity: TestEntity) => (
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
+      internal(service).callback = vi.fn((entity: TestEntity) => (
         (entity as unknown as { id: string }).id === duplicatedDocuments[0]._id
           ? Promise.reject(new Error('boom'))
           : Promise.resolve()
@@ -144,10 +146,10 @@ describe('BaseDuplicateManyService', () => {
     });
 
     it('should succeed on retry when callbackRetry is configured', async () => {
-      const exec = jest.fn().mockResolvedValueOnce([documents[0]]).mockResolvedValueOnce([duplicatedDocuments[0]]);
+      const exec = vi.fn().mockResolvedValueOnce([documents[0]]).mockResolvedValueOnce([duplicatedDocuments[0]]);
       service = initService(exec, [duplicatedDocuments[0]]);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
-      const callback = jest.fn()
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
+      const callback = vi.fn()
         .mockRejectedValueOnce(new Error('transient'))
         .mockResolvedValueOnce(undefined);
       internal(service).callback = callback;
@@ -159,10 +161,10 @@ describe('BaseDuplicateManyService', () => {
     });
 
     it('should call beforeSaveCallback if it is defined', async () => {
-      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(duplicatedDocuments);
+      const exec = vi.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(duplicatedDocuments);
       service = initService(exec, duplicatedDocuments);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
-      const beforeSaveCallback = jest.fn(() => Promise.resolve([{ name: 'test 1' }, { name: 'test 2' }]));
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const beforeSaveCallback = vi.fn(() => Promise.resolve([{ name: 'test 1' }, { name: 'test 2' }]));
       internal(service).beforeSaveCallback = beforeSaveCallback;
       await service.duplicateMany(ids, undefined);
 
@@ -176,10 +178,10 @@ describe('BaseDuplicateManyService', () => {
     });
 
     it('should pass user to beforeSaveCallback if it is defined', async () => {
-      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(duplicatedDocuments);
+      const exec = vi.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(duplicatedDocuments);
       service = initService(exec, duplicatedDocuments);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
-      const beforeSaveCallback = jest.fn(() => Promise.resolve([{ name: 'test 1' }, { name: 'test 2' }]));
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const beforeSaveCallback = vi.fn(() => Promise.resolve([{ name: 'test 1' }, { name: 'test 2' }]));
       internal(service).beforeSaveCallback = beforeSaveCallback;
       const fakeUser = { id: 'user-1', email: 'test@test.com' };
       await service.duplicateMany(ids, undefined, fakeUser);
@@ -194,12 +196,12 @@ describe('BaseDuplicateManyService', () => {
     });
 
     it('should call writeAuditLog for each duplicated document when auditLog is enabled', async () => {
-      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(duplicatedDocuments);
+      const exec = vi.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(duplicatedDocuments);
       service = initService(exec, duplicatedDocuments);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       internal(service).auditLog = true;
       const writeAuditLogSpy = jest
-        .spyOn(service as unknown as { writeAuditLog: jest.Mock }, 'writeAuditLog')
+        .spyOn(service as unknown as { writeAuditLog: Mock }, 'writeAuditLog')
         .mockResolvedValue(undefined);
       const fakeUser = { id: 'user-1' };
 
@@ -215,11 +217,11 @@ describe('BaseDuplicateManyService', () => {
     });
 
     it('should not call writeAuditLog when auditLog is not enabled', async () => {
-      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(duplicatedDocuments);
+      const exec = vi.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(duplicatedDocuments);
       service = initService(exec, duplicatedDocuments);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       const writeAuditLogSpy = jest
-        .spyOn(service as unknown as { writeAuditLog: jest.Mock }, 'writeAuditLog')
+        .spyOn(service as unknown as { writeAuditLog: Mock }, 'writeAuditLog')
         .mockResolvedValue(undefined);
 
       await service.duplicateMany(ids, undefined);

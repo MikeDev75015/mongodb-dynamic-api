@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { SoftDeletableEntity } from '../models';
 import { isNotDeleted } from './soft-delete.predicate';
 

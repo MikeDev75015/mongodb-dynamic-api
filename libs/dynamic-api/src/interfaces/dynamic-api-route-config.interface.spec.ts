@@ -1,3 +1,4 @@
+import { describe, expect, it, test } from 'vitest';
 /**
  * Compile-time + runtime tests for the discriminated union `DynamicApiRouteConfig`.
  *

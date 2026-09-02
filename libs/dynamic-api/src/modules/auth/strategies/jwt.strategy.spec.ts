@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, test } from 'vitest';
 import { Test } from '@nestjs/testing';
 import { JwtStrategy } from './jwt.strategy';
 import { DynamicApiModule } from '../../../dynamic-api.module';

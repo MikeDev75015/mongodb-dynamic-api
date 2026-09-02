@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { CallHandler, ExecutionContext } from '@nestjs/common';
 import { of } from 'rxjs';
 import { MergeIdParamInterceptor } from './merge-id-param.interceptor';
@@ -14,7 +15,7 @@ describe('MergeIdParamInterceptor', () => {
 
   beforeEach(() => {
     interceptor = new MergeIdParamInterceptor();
-    next = { handle: jest.fn().mockReturnValue(of('handled')) };
+    next = { handle: vi.fn().mockReturnValue(of('handled')) };
   });
 
   it('copies the route param id onto the body before calling next.handle()', () => {

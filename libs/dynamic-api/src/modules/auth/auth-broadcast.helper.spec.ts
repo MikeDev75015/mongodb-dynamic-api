@@ -1,3 +1,4 @@
+import { describe, expect, it, test } from 'vitest';
 import { BaseEntity } from '../../models';
 import { buildAuthBroadcastData } from './auth-broadcast.helper';
 

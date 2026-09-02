@@ -1,9 +1,11 @@
+import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { PipelineStage } from 'mongodb-pipeline-builder';
 import { MongoDBDynamicApiLogger } from '../logger';
 import { warnIfPagingResultDropped } from './paging-presenter-warning.helper';
 
 describe('warnIfPagingResultDropped', () => {
-  let warnSpy: jest.SpyInstance;
+  let warnSpy: Mock;
 
   const pagingPipeline = [
     { $facet: { docs: [{ $limit: 10 }], count: [{ $count: 'totalElements' }] } },
@@ -12,7 +14,7 @@ describe('warnIfPagingResultDropped', () => {
   const plainPipeline = [{ $match: { name: 'test' } }] as PipelineStage[];
 
   beforeEach(() => {
-    warnSpy = jest.spyOn(MongoDBDynamicApiLogger.prototype, 'warn').mockImplementation();
+    warnSpy = vi.spyOn(MongoDBDynamicApiLogger.prototype, 'warn').mockImplementation();
   });
 
   afterEach(() => {

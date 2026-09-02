@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { camelCase, cloneDeep, isEmpty, kebabCase, lowerCase, lowerFirst, pick, upperFirst } from './lodash.helper';
 
 describe('lodash.helper', () => {

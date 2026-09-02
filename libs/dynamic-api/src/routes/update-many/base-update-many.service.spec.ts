@@ -1,3 +1,5 @@
+import { describe, expect, it, test, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { Model } from 'mongoose';
 import {
   CallbackMethods,
@@ -24,7 +26,7 @@ type InternalService = {
   callbackMethods: CallbackMethods;
   beforeSaveCallback: BeforeSaveListCallback<TestEntity> | undefined;
   auditLog: boolean | undefined;
-  writeAuditLog: jest.Mock;
+  writeAuditLog: Mock;
 };
 
 const internal = (svc: TestService) => svc as unknown as InternalService;
@@ -40,11 +42,11 @@ describe('BaseUpdateManyService', () => {
     { ...documents[1], _id: 'UpdatedObjectId2', name: 'updated' },
   ];
 
-  const initService = (exec = jest.fn()) => {
+  const initService = (exec = vi.fn()) => {
     modelMock = {
-      find: jest.fn(() => ({ lean: jest.fn(() => ({ exec })) })),
-      updateMany: jest.fn(() => ({ lean: jest.fn(() => ({ exec: jest.fn().mockResolvedValueOnce([]) })) })),
-      findByIdAndUpdate: jest.fn(() => ({ lean: jest.fn(() => ({ exec: jest.fn().mockResolvedValueOnce({}) })) })),
+      find: vi.fn(() => ({ lean: vi.fn(() => ({ exec })) })),
+      updateMany: vi.fn(() => ({ lean: vi.fn(() => ({ exec: vi.fn().mockResolvedValueOnce([]) })) })),
+      findByIdAndUpdate: vi.fn(() => ({ lean: vi.fn(() => ({ exec: vi.fn().mockResolvedValueOnce({}) })) })),
     } as unknown as Model<TestEntity>;
 
     return new TestService(modelMock);
@@ -57,9 +59,9 @@ describe('BaseUpdateManyService', () => {
 
   describe('updateMany', () => {
     it('should throw an error if one of the documents to update does not exist', async () => {
-      const exec = jest.fn().mockResolvedValueOnce([documents[0]]);
+      const exec = vi.fn().mockResolvedValueOnce([documents[0]]);
       service = initService(exec);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
 
       await expect(
         service.updateMany(ids, { name: 'replaced' } as Partial<TestEntity>),
@@ -67,9 +69,9 @@ describe('BaseUpdateManyService', () => {
     });
 
     it('should call model.updateMany and return the updated documents', async () => {
-      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedDocuments);
+      const exec = vi.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedDocuments);
       service = initService(exec);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
 
       await expect(
         service.updateMany(ids, { name: 'updated' } as Partial<TestEntity>),
@@ -81,9 +83,9 @@ describe('BaseUpdateManyService', () => {
     });
 
     it('should call with isDeleted: false if isSoftDeletable is true', async () => {
-      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedDocuments);
+      const exec = vi.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedDocuments);
       service = initService(exec);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
 
       await service.updateMany(ids, { name: 'updated' } as Partial<TestEntity>);
 
@@ -94,10 +96,10 @@ describe('BaseUpdateManyService', () => {
     });
 
     it('should call callback if it is defined', async () => {
-      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedDocuments);
+      const exec = vi.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedDocuments);
       service = initService(exec);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
-      const callback = jest.fn(() => Promise.resolve());
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const callback = vi.fn(() => Promise.resolve());
       internal(service).callback = callback;
       await service.updateMany(ids, { name: 'updated' } as Partial<TestEntity>);
 
@@ -116,10 +118,10 @@ describe('BaseUpdateManyService', () => {
     });
 
     it('should pass user to callback if it is defined', async () => {
-      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedDocuments);
+      const exec = vi.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedDocuments);
       service = initService(exec);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
-      const callback = jest.fn(() => Promise.resolve());
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const callback = vi.fn(() => Promise.resolve());
       internal(service).callback = callback;
       const fakeUser = { id: 'user-1', email: 'test@test.com' };
       await service.updateMany(ids, { name: 'updated' } as Partial<TestEntity>, fakeUser);
@@ -139,10 +141,10 @@ describe('BaseUpdateManyService', () => {
     });
 
     it('should not throw and should still return the full batch when one document\'s callback rejects', async () => {
-      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedDocuments);
+      const exec = vi.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedDocuments);
       service = initService(exec);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
-      internal(service).callback = jest.fn((entity: TestEntity) => (
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      internal(service).callback = vi.fn((entity: TestEntity) => (
         (entity as unknown as { id: string }).id === updatedDocuments[0]._id
           ? Promise.reject(new Error('boom'))
           : Promise.resolve()
@@ -154,10 +156,10 @@ describe('BaseUpdateManyService', () => {
     });
 
     it('should succeed on retry when callbackRetry is configured', async () => {
-      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedDocuments);
+      const exec = vi.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedDocuments);
       service = initService(exec);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
-      const callback = jest.fn()
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const callback = vi.fn()
         .mockRejectedValueOnce(new Error('transient'))
         .mockResolvedValue(undefined);
       internal(service).callback = callback;
@@ -169,10 +171,10 @@ describe('BaseUpdateManyService', () => {
     });
 
     it('should call beforeSaveCallback if it is defined and use findByIdAndUpdate per entity', async () => {
-      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedDocuments);
+      const exec = vi.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedDocuments);
       service = initService(exec);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
-      const beforeSaveCallback = jest.fn(() => Promise.resolve([{ name: 'updated' }, { name: 'updated' }]));
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const beforeSaveCallback = vi.fn(() => Promise.resolve([{ name: 'updated' }, { name: 'updated' }]));
       internal(service).beforeSaveCallback = beforeSaveCallback;
       await service.updateMany(ids, { name: 'updated' } as Partial<TestEntity>);
 
@@ -201,10 +203,10 @@ describe('BaseUpdateManyService', () => {
     });
 
     it('should pass user to beforeSaveCallback if it is defined', async () => {
-      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedDocuments);
+      const exec = vi.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedDocuments);
       service = initService(exec);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
-      const beforeSaveCallback = jest.fn(() => Promise.resolve([{ name: 'updated' }, { name: 'updated' }]));
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      const beforeSaveCallback = vi.fn(() => Promise.resolve([{ name: 'updated' }, { name: 'updated' }]));
       internal(service).beforeSaveCallback = beforeSaveCallback;
       const fakeUser = { id: 'user-1', email: 'test@test.com' };
       await service.updateMany(ids, { name: 'updated' } as Partial<TestEntity>, fakeUser);
@@ -220,12 +222,12 @@ describe('BaseUpdateManyService', () => {
 
     it('should call writeAuditLog with the matched before document per updated entity when auditLog is enabled', async () => {
       const updatedSameId = documents.map((d) => ({ ...d, name: 'updated' }));
-      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedSameId);
+      const exec = vi.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedSameId);
       service = initService(exec);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       internal(service).auditLog = true;
       const writeAuditLogSpy = jest
-        .spyOn(service as unknown as { writeAuditLog: jest.Mock }, 'writeAuditLog')
+        .spyOn(service as unknown as { writeAuditLog: Mock }, 'writeAuditLog')
         .mockResolvedValue(undefined);
       const fakeUser = { id: 'user-1' };
 
@@ -237,12 +239,12 @@ describe('BaseUpdateManyService', () => {
     });
 
     it('should fall back to a null before-state when no matching document was pre-fetched', async () => {
-      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedDocuments);
+      const exec = vi.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedDocuments);
       service = initService(exec);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       internal(service).auditLog = true;
       const writeAuditLogSpy = jest
-        .spyOn(service as unknown as { writeAuditLog: jest.Mock }, 'writeAuditLog')
+        .spyOn(service as unknown as { writeAuditLog: Mock }, 'writeAuditLog')
         .mockResolvedValue(undefined);
 
       await service.updateMany(ids, { name: 'updated' } as Partial<TestEntity>);
@@ -252,11 +254,11 @@ describe('BaseUpdateManyService', () => {
     });
 
     it('should not call writeAuditLog when auditLog is not enabled', async () => {
-      const exec = jest.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedDocuments);
+      const exec = vi.fn().mockResolvedValueOnce(documents).mockResolvedValueOnce(updatedDocuments);
       service = initService(exec);
-      jest.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       const writeAuditLogSpy = jest
-        .spyOn(service as unknown as { writeAuditLog: jest.Mock }, 'writeAuditLog')
+        .spyOn(service as unknown as { writeAuditLog: Mock }, 'writeAuditLog')
         .mockResolvedValue(undefined);
 
       await service.updateMany(ids, { name: 'updated' } as Partial<TestEntity>);

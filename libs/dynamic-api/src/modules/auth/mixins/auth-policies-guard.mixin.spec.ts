@@ -1,3 +1,5 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { MockedFunction } from 'vitest';
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { WsException } from '@nestjs/websockets';
 import { AuthAbilityPredicate, ExtendedSocket, PoliciesGuard } from '../../../interfaces';
@@ -100,7 +102,7 @@ describe('AuthSocketPoliciesGuardMixin', () => {
         query: {},
       },
     } as ExtendedSocket<User>;
-    context = { getArgs: jest.fn(() => [socket, fakeData]) } as unknown as ExecutionContext;
+    context = { getArgs: vi.fn(() => [socket, fakeData]) } as unknown as ExecutionContext;
   });
 
   describe('canActivate', () => {
@@ -111,10 +113,10 @@ describe('AuthSocketPoliciesGuardMixin', () => {
     });
 
     describe('with abilityPredicate', () => {
-      let abilityPredicate: jest.MockedFunction<AuthAbilityPredicate<User>>;
+      let abilityPredicate: MockedFunction<AuthAbilityPredicate<User>>;
 
       beforeEach(() => {
-        abilityPredicate = jest.fn();
+        abilityPredicate = vi.fn();
         guard['abilityPredicate'] = abilityPredicate;
       });
 
@@ -123,8 +125,8 @@ describe('AuthSocketPoliciesGuardMixin', () => {
       });
 
       it('should throw a ws exception if user does not exists', async () => {
-        jest.spyOn<any, any>(guard, 'extractUserFromToken').mockResolvedValueOnce(undefined);
-        jest.spyOn<any, any>(guard, 'getAccessTokenFromSocketQuery').mockReturnValueOnce('token');
+        vi.spyOn<any, any>(guard, 'extractUserFromToken').mockResolvedValueOnce(undefined);
+        vi.spyOn<any, any>(guard, 'getAccessTokenFromSocketQuery').mockReturnValueOnce('token');
 
         await expect(guard.canActivate(context)).rejects.toThrow(new WsException('Access denied'));
       });
@@ -132,8 +134,8 @@ describe('AuthSocketPoliciesGuardMixin', () => {
       it('should throw a ws exception if user exists and abilityPredicate returns false', async () => {
         abilityPredicate.mockReturnValue(false);
         user = new User(false);
-        jest.spyOn<any, any>(guard, 'extractUserFromToken').mockResolvedValueOnce(user);
-        jest.spyOn<any, any>(guard, 'getAccessTokenFromSocketQuery').mockReturnValueOnce('token');
+        vi.spyOn<any, any>(guard, 'extractUserFromToken').mockResolvedValueOnce(user);
+        vi.spyOn<any, any>(guard, 'getAccessTokenFromSocketQuery').mockReturnValueOnce('token');
 
         await expect(guard.canActivate(context)).rejects.toThrow(new WsException('Access denied'));
         expect(abilityPredicate).toHaveBeenCalledWith(user, fakeData);
@@ -142,8 +144,8 @@ describe('AuthSocketPoliciesGuardMixin', () => {
       it('should allow access if user exists and abilityPredicate returns true', async () => {
         abilityPredicate.mockReturnValue(true);
         user = new User(true);
-        jest.spyOn<any, any>(guard, 'extractUserFromToken').mockResolvedValueOnce(user);
-        jest.spyOn<any, any>(guard, 'getAccessTokenFromSocketQuery').mockReturnValueOnce('token');
+        vi.spyOn<any, any>(guard, 'extractUserFromToken').mockResolvedValueOnce(user);
+        vi.spyOn<any, any>(guard, 'getAccessTokenFromSocketQuery').mockReturnValueOnce('token');
 
         await expect(guard.canActivate(context)).resolves.toBe(true);
         expect(socket.user).toBe(user);

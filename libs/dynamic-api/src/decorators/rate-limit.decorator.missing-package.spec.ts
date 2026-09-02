@@ -1,10 +1,11 @@
+import { describe, expect, it, vi } from 'vitest';
 import { RateLimit } from './rate-limit.decorator';
 
 // Simulates the optional "@nestjs/throttler" package not being installed at all.
 // No `{ virtual: true }` here: the package IS installed (as this repo's own devDependency, to
 // exercise the happy path elsewhere) — virtual would tell Jest the module doesn't exist on disk,
 // which is false and makes this mock unreliable across files in a full-suite run.
-jest.mock('@nestjs/throttler', () => {
+vi.mock('@nestjs/throttler', () => {
   throw new Error("Cannot find module '@nestjs/throttler'");
 });
 

@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import { describe, expect, it } from 'vitest';
 import { DERIVED_FIELD_KEYS_METADATA, DERIVED_FIELD_METADATA, DerivedField, DerivedFieldMeta } from './derived-field.decorator';
 
 class TestEntity {

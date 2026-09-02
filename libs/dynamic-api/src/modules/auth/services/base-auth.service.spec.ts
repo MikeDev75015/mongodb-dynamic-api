@@ -1,3 +1,5 @@
+import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { BadRequestException, ForbiddenException, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { plainToInstance } from 'class-transformer';
@@ -20,11 +22,11 @@ describe('BaseAuthService', () => {
   let model: any;
   let jwtService: JwtService;
   let bcryptService: BcryptService;
-  let spyBcriptHashPassword: jest.SpyInstance;
-  let spyJwtSign: jest.SpyInstance;
-  let spyBuildUserFields: jest.SpyInstance;
-  let spyFindOneDocumentWithAbilityPredicate: jest.SpyInstance;
-  let exec: jest.Mock;
+  let spyBcriptHashPassword: Mock;
+  let spyJwtSign: Mock;
+  let spyBuildUserFields: Mock;
+  let spyFindOneDocumentWithAbilityPredicate: Mock;
+  let exec: Mock;
 
   const fakeDate = new Date();
   const fakeHash = 'fake-hash';
@@ -55,15 +57,15 @@ describe('BaseAuthService', () => {
   const fakePasswordField = 'pass' as keyof User;
   const fakeEmailField = 'login' as keyof User;
   const fakeExpirationInMinutes = 1;
-  const fakeBeforeRegisterCallback = jest.fn();
-  const fakeRegisterCallback = jest.fn();
-  const fakeLoginCallback = jest.fn();
-  const fakeGetAccountCallback = jest.fn();
-  const resetPasswordCallback = jest.fn();
-  const beforeChangePasswordCallback = jest.fn();
-  const changePasswordCallback = jest.fn();
-  const fakeBeforeUpdateAccountCallback = jest.fn();
-  const updateAccountCallback = jest.fn();
+  const fakeBeforeRegisterCallback = vi.fn();
+  const fakeRegisterCallback = vi.fn();
+  const fakeLoginCallback = vi.fn();
+  const fakeGetAccountCallback = vi.fn();
+  const resetPasswordCallback = vi.fn();
+  const beforeChangePasswordCallback = vi.fn();
+  const changePasswordCallback = vi.fn();
+  const fakeBeforeUpdateAccountCallback = vi.fn();
+  const updateAccountCallback = vi.fn();
 
   class AuthService extends BaseAuthService<User> {
     // Real generated AuthService (auth.helper.ts) always sets this — needed since updateAccount's
@@ -101,39 +103,39 @@ describe('BaseAuthService', () => {
 
   beforeEach(async () => {
     fakeGetAccountCallback.mockClear();
-    exec = jest.fn();
-    const lean = jest.fn(() => ({ exec }));
+    exec = vi.fn();
+    const lean = vi.fn(() => ({ exec }));
     model = {
-      create: jest.fn(),
-      find: jest.fn(() => ({ lean })),
-      findOne: jest.fn(() => ({ lean })),
-      findOneAndUpdate: jest.fn(() => ({ lean })),
-      updateOne: jest.fn(() => ({ exec })),
-      updateMany: jest.fn(() => ({ exec })),
-      deleteOne: jest.fn(() => ({ exec })),
-      deleteMany: jest.fn(() => ({ exec })),
+      create: vi.fn(),
+      find: vi.fn(() => ({ lean })),
+      findOne: vi.fn(() => ({ lean })),
+      findOneAndUpdate: vi.fn(() => ({ lean })),
+      updateOne: vi.fn(() => ({ exec })),
+      updateMany: vi.fn(() => ({ exec })),
+      deleteOne: vi.fn(() => ({ exec })),
+      deleteMany: vi.fn(() => ({ exec })),
       schema: {
         paths: {},
       } as Schema<any>
     };
 
     jwtService = {
-      decode: jest.fn(),
-      sign: jest.fn(),
-      verify: jest.fn(),
+      decode: vi.fn(),
+      sign: vi.fn(),
+      verify: vi.fn(),
     } as unknown as JwtService;
     bcryptService = {
-      comparePassword: jest.fn(),
-      hashPassword: jest.fn(),
+      comparePassword: vi.fn(),
+      hashPassword: vi.fn(),
     } as unknown as BcryptService;
     service = new AuthService(model, jwtService, bcryptService);
 
-    spyBcriptHashPassword = jest.spyOn(bcryptService, 'hashPassword').mockResolvedValue(fakeHash);
-    spyJwtSign = jest.spyOn(jwtService, 'sign');
-    spyBuildUserFields = jest.spyOn<any, any>(service, 'buildUserFields');
+    spyBcriptHashPassword = vi.spyOn(bcryptService, 'hashPassword').mockResolvedValue(fakeHash);
+    spyJwtSign = vi.spyOn(jwtService, 'sign');
+    spyBuildUserFields = vi.spyOn<any, any>(service, 'buildUserFields');
     spyFindOneDocumentWithAbilityPredicate =
-      jest.spyOn<any, any>(service, 'findOneDocumentWithAbilityPredicate');
-    jest.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
+      vi.spyOn<any, any>(service, 'findOneDocumentWithAbilityPredicate');
+    vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(model);
   });
 
   describe('service methods', () => {
@@ -167,8 +169,8 @@ describe('BaseAuthService', () => {
   });
 
   describe('refreshToken', () => {
-    let spyDynamicApiModuleStateGet: jest.SpyInstance;
-    let spyBcryptCompare: jest.SpyInstance;
+    let spyDynamicApiModuleStateGet: Mock;
+    let spyBcryptCompare: Mock;
 
     const refreshToken = 'fake-refresh-token';
     const fakeHash = 'fake-hashed-refresh';
@@ -176,12 +178,12 @@ describe('BaseAuthService', () => {
     beforeEach(() => {
       spyJwtSign.mockReturnValue(accessToken);
       spyBuildUserFields.mockReturnValue(fakeLoginBuilt);
-      spyDynamicApiModuleStateGet = jest.spyOn(DynamicApiModule.state, 'get');
-      spyBcryptCompare = jest.spyOn(bcryptService, 'comparePassword');
+      spyDynamicApiModuleStateGet = vi.spyOn(DynamicApiModule.state, 'get');
+      spyBcryptCompare = vi.spyOn(bcryptService, 'comparePassword');
     });
 
     afterEach(() => {
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
     });
 
     it('should have logout method', () => {
@@ -251,7 +253,7 @@ describe('BaseAuthService', () => {
 
       it('should throw UnauthorizedException if hash comparison fails', async () => {
         exec.mockResolvedValueOnce({ ...fakeUser, nickname: fakeHash });
-        jest.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'some-jti' });
+        vi.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'some-jti' });
         spyBcryptCompare.mockResolvedValueOnce(false);
 
         await expect(service['refreshToken'](fakeUser, 'wrong-token')).rejects.toThrow(
@@ -261,7 +263,7 @@ describe('BaseAuthService', () => {
 
       it('should handle rawToken without jti (decode returns object without jti)', async () => {
         exec.mockResolvedValueOnce({ ...fakeUser, nickname: JSON.stringify({ currentHash: fakeHash }) });
-        jest.spyOn(jwtService, 'decode').mockReturnValueOnce({});
+        vi.spyOn(jwtService, 'decode').mockReturnValueOnce({});
 
         await expect(service['refreshToken'](fakeUser, 'token-without-jti')).rejects.toThrow(
           new UnauthorizedException('Invalid refresh token'),
@@ -273,7 +275,7 @@ describe('BaseAuthService', () => {
         exec
           .mockResolvedValueOnce({ ...fakeUser, nickname: jsonRecord })   // findOne
           .mockResolvedValueOnce({ ...fakeUser, nickname: jsonRecord });  // CAS success
-        jest.spyOn(jwtService, 'decode')
+        vi.spyOn(jwtService, 'decode')
           .mockReturnValueOnce({ jti: 'input-jti' })
           .mockReturnValueOnce({ jti: 'new-jti' });
         spyBcryptCompare.mockResolvedValueOnce(true);
@@ -295,7 +297,7 @@ describe('BaseAuthService', () => {
         exec
           .mockResolvedValueOnce({ ...fakeUser, nickname: fakeHash })  // findOne (legacy)
           .mockResolvedValueOnce({ ...fakeUser, nickname: fakeHash }); // CAS success
-        jest.spyOn(jwtService, 'decode')
+        vi.spyOn(jwtService, 'decode')
           .mockReturnValueOnce({ jti: 'input-jti' })
           .mockReturnValueOnce({ jti: 'new-jti' });
         spyBcryptCompare.mockResolvedValueOnce(true);
@@ -317,7 +319,7 @@ describe('BaseAuthService', () => {
         exec
           .mockResolvedValueOnce({ ...fakeUser, nickname: jsonRecord })
           .mockResolvedValueOnce({ ...fakeUser, nickname: jsonRecord });
-        jest.spyOn(jwtService, 'decode')
+        vi.spyOn(jwtService, 'decode')
           .mockReturnValueOnce({ jti: 'input-jti' })  // decode rawToken
           .mockReturnValueOnce(null);                  // decode new refreshToken → null → jti=''
         spyBcryptCompare.mockResolvedValueOnce(true);
@@ -334,7 +336,7 @@ describe('BaseAuthService', () => {
         exec
           .mockResolvedValueOnce({ ...fakeUser, nickname: jsonRecord })
           .mockResolvedValueOnce({ ...fakeUser, nickname: jsonRecord });
-        jest.spyOn(jwtService, 'decode')
+        vi.spyOn(jwtService, 'decode')
           .mockReturnValueOnce({ jti: 'input-jti' })
           .mockReturnValueOnce({ jti: 'new-jti' });
         spyBcryptCompare.mockResolvedValueOnce(true);
@@ -356,7 +358,7 @@ describe('BaseAuthService', () => {
         it('should validate and return new pair without updating DB', async () => {
           const jsonRecord = JSON.stringify({ currentHash: fakeHash });
           exec.mockResolvedValueOnce({ ...fakeUser, nickname: jsonRecord });
-          jest.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'input-jti' });
+          vi.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'input-jti' });
           spyBcryptCompare.mockResolvedValueOnce(true);
 
           const result = await service['refreshToken'](fakeUser, 'valid-token');
@@ -369,7 +371,7 @@ describe('BaseAuthService', () => {
         it('should throw 401 on invalid token even when rotate=false', async () => {
           const jsonRecord = JSON.stringify({ currentHash: fakeHash });
           exec.mockResolvedValueOnce({ ...fakeUser, nickname: jsonRecord });
-          jest.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'bad-jti' });
+          vi.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'bad-jti' });
           spyBcryptCompare.mockResolvedValueOnce(false);
 
           await expect(service['refreshToken'](fakeUser, 'bad-token')).rejects.toThrow(
@@ -395,7 +397,7 @@ describe('BaseAuthService', () => {
             cachedTokens,
           });
           exec.mockResolvedValueOnce({ ...fakeUser, nickname: graceRecord });
-          jest.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'old-jti' });
+          vi.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'old-jti' });
           spyBcryptCompare
             .mockResolvedValueOnce(false)  // vs currentHash
             .mockResolvedValueOnce(true);  // vs previousHash
@@ -414,7 +416,7 @@ describe('BaseAuthService', () => {
             cachedTokens,
           });
           exec.mockResolvedValueOnce({ ...fakeUser, nickname: expiredRecord });
-          jest.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'old-jti' });
+          vi.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'old-jti' });
           spyBcryptCompare.mockResolvedValueOnce(false);
 
           await expect(service['refreshToken'](fakeUser, 'old-token')).rejects.toThrow(
@@ -430,7 +432,7 @@ describe('BaseAuthService', () => {
             cachedTokens,
           });
           exec.mockResolvedValueOnce({ ...fakeUser, nickname: graceRecord });
-          jest.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'wrong-jti' });
+          vi.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'wrong-jti' });
           spyBcryptCompare
             .mockResolvedValueOnce(false)  // vs currentHash
             .mockResolvedValueOnce(false); // vs previousHash
@@ -443,7 +445,7 @@ describe('BaseAuthService', () => {
         it('should throw 401 when no previousHash in record', async () => {
           const noGraceRecord = JSON.stringify({ currentHash: 'current-hash' });
           exec.mockResolvedValueOnce({ ...fakeUser, nickname: noGraceRecord });
-          jest.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'old-jti' });
+          vi.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'old-jti' });
           spyBcryptCompare.mockResolvedValueOnce(false);
 
           await expect(service['refreshToken'](fakeUser, 'old-token')).rejects.toThrow(
@@ -460,7 +462,7 @@ describe('BaseAuthService', () => {
             // no cachedTokens
           });
           exec.mockResolvedValueOnce({ ...fakeUser, nickname: noCacheRecord });
-          jest.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'old-jti' });
+          vi.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'old-jti' });
           spyBcryptCompare
             .mockResolvedValueOnce(false)  // vs currentHash
             .mockResolvedValueOnce(true);  // vs previousHash (matches)
@@ -475,7 +477,7 @@ describe('BaseAuthService', () => {
           exec
             .mockResolvedValueOnce({ ...fakeUser, nickname: simpleRecord })
             .mockResolvedValueOnce({ ...fakeUser, nickname: simpleRecord });
-          jest.spyOn(jwtService, 'decode')
+          vi.spyOn(jwtService, 'decode')
             .mockReturnValueOnce({ jti: 'input-jti' })
             .mockReturnValueOnce({ jti: 'new-jti' });
           spyBcryptCompare.mockResolvedValueOnce(true);
@@ -511,7 +513,7 @@ describe('BaseAuthService', () => {
             .mockResolvedValueOnce({ ...fakeUser, nickname: storedRecord })  // first findOne
             .mockResolvedValueOnce(null)                                       // CAS miss
             .mockResolvedValueOnce({ ...fakeUser, nickname: winnerRecord });   // re-read
-          jest.spyOn(jwtService, 'decode')
+          vi.spyOn(jwtService, 'decode')
             .mockReturnValueOnce({ jti: 'input-jti' })
             .mockReturnValueOnce({ jti: 'new-jti' });
           spyBcryptCompare
@@ -536,7 +538,7 @@ describe('BaseAuthService', () => {
             .mockResolvedValueOnce({ ...fakeUser, nickname: storedRecord })
             .mockResolvedValueOnce(null)
             .mockResolvedValueOnce({ ...fakeUser, nickname: expiredWinner });
-          jest.spyOn(jwtService, 'decode')
+          vi.spyOn(jwtService, 'decode')
             .mockReturnValueOnce({ jti: 'input-jti' })
             .mockReturnValueOnce({ jti: 'new-jti' });
           spyBcryptCompare.mockResolvedValueOnce(true);
@@ -553,7 +555,7 @@ describe('BaseAuthService', () => {
             .mockResolvedValueOnce({ ...fakeUser, nickname: storedRecord })
             .mockResolvedValueOnce(null)
             .mockResolvedValueOnce(null);  // user gone
-          jest.spyOn(jwtService, 'decode')
+          vi.spyOn(jwtService, 'decode')
             .mockReturnValueOnce({ jti: 'input-jti' })
             .mockReturnValueOnce({ jti: 'new-jti' });
           spyBcryptCompare.mockResolvedValueOnce(true);
@@ -573,22 +575,22 @@ describe('BaseAuthService', () => {
     });
 
     it('should return undefined when decode returns null', () => {
-      jest.spyOn(jwtService, 'decode').mockReturnValueOnce(null);
+      vi.spyOn(jwtService, 'decode').mockReturnValueOnce(null);
       expect(service['extractIncomingJti']('some-token')).toBeUndefined();
     });
 
     it('should return undefined when decode returns a plain string', () => {
-      jest.spyOn(jwtService, 'decode').mockReturnValueOnce('plain-string');
+      vi.spyOn(jwtService, 'decode').mockReturnValueOnce('plain-string');
       expect(service['extractIncomingJti']('some-token')).toBeUndefined();
     });
 
     it('should return undefined when decoded object has no jti', () => {
-      jest.spyOn(jwtService, 'decode').mockReturnValueOnce({ sub: '123' });
+      vi.spyOn(jwtService, 'decode').mockReturnValueOnce({ sub: '123' });
       expect(service['extractIncomingJti']('some-token')).toBeUndefined();
     });
 
     it('should return jti when decoded object has jti', () => {
-      jest.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'abc-jti' });
+      vi.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'abc-jti' });
       expect(service['extractIncomingJti']('some-token')).toBe('abc-jti');
     });
   });
@@ -596,11 +598,11 @@ describe('BaseAuthService', () => {
   describe('handleInvalidCurrentJti (private)', () => {
     const userId = 'user-123';
 
-    afterEach(() => jest.restoreAllMocks());
+    afterEach(() => vi.restoreAllMocks());
 
     it('should return cached tokens when grace window is valid', async () => {
       const cachedTokens = { accessToken: 'a', refreshToken: 'r' };
-      jest.spyOn<any, any>(service as any, 'checkGraceWindow').mockResolvedValueOnce(cachedTokens);
+      vi.spyOn<any, any>(service as any, 'checkGraceWindow').mockResolvedValueOnce(cachedTokens);
 
       const result = await service['handleInvalidCurrentJti']('jti', { currentHash: 'h' }, userId);
 
@@ -608,7 +610,7 @@ describe('BaseAuthService', () => {
     });
 
     it('should throw UnauthorizedException when grace window returns null', async () => {
-      jest.spyOn<any, any>(service as any, 'checkGraceWindow').mockResolvedValueOnce(null);
+      vi.spyOn<any, any>(service as any, 'checkGraceWindow').mockResolvedValueOnce(null);
 
       await expect(service['handleInvalidCurrentJti']('jti', { currentHash: 'h' }, userId))
         .rejects.toThrow(new UnauthorizedException('Invalid refresh token'));
@@ -622,13 +624,13 @@ describe('BaseAuthService', () => {
       service['refreshTokenField'] = 'nickname' as keyof User;
     });
 
-    afterEach(() => jest.restoreAllMocks());
+    afterEach(() => vi.restoreAllMocks());
 
     it('should return cached tokens when re-read record is within grace window', async () => {
       const cachedTokens = { accessToken: 'ca', refreshToken: 'cr' };
       const rereadRecord = { currentHash: 'h2', previousHash: 'prev', rotatedAt: Date.now() - 500, cachedTokens };
       exec.mockResolvedValueOnce({ ...fakeUser, nickname: JSON.stringify(rereadRecord) });
-      jest.spyOn<any, any>(service as any, 'checkGraceWindow').mockResolvedValueOnce(cachedTokens);
+      vi.spyOn<any, any>(service as any, 'checkGraceWindow').mockResolvedValueOnce(cachedTokens);
 
       const result = await service['handleCasMiss'](userId, 'jti');
 
@@ -637,7 +639,7 @@ describe('BaseAuthService', () => {
 
     it('should throw when re-read record grace window returns null', async () => {
       exec.mockResolvedValueOnce({ ...fakeUser, nickname: JSON.stringify({ currentHash: 'h2' }) });
-      jest.spyOn<any, any>(service as any, 'checkGraceWindow').mockResolvedValueOnce(null);
+      vi.spyOn<any, any>(service as any, 'checkGraceWindow').mockResolvedValueOnce(null);
 
       await expect(service['handleCasMiss'](userId, 'jti'))
         .rejects.toThrow(new UnauthorizedException('Invalid refresh token'));
@@ -659,14 +661,14 @@ describe('BaseAuthService', () => {
   });
 
   describe('logout', () => {
-    let spyLoggerWarn: jest.SpyInstance;
+    let spyLoggerWarn: Mock;
 
     beforeEach(() => {
-      spyLoggerWarn = jest.spyOn<any, any>(service['logger'], 'warn').mockImplementation(jest.fn());
+      spyLoggerWarn = vi.spyOn<any, any>(service['logger'], 'warn').mockImplementation(vi.fn());
     });
 
     afterEach(() => {
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
     });
 
     it('should log warning when refreshTokenField is not configured', async () => {
@@ -703,10 +705,10 @@ describe('BaseAuthService', () => {
   });
 
   describe('validateUser', () => {
-    let spyBcryptCompare: jest.SpyInstance;
+    let spyBcryptCompare: Mock;
 
     beforeEach(() => {
-      spyBcryptCompare = jest.spyOn(bcryptService, 'comparePassword');
+      spyBcryptCompare = vi.spyOn(bcryptService, 'comparePassword');
     });
 
     it('should return null if user is not found', async () => {
@@ -741,11 +743,11 @@ describe('BaseAuthService', () => {
     beforeEach(() => {
       spyJwtSign.mockReturnValueOnce(accessToken).mockReturnValueOnce(fakeRefreshToken);
       spyBuildUserFields.mockReturnValueOnce(fakeLoginBuilt);
-      jest.spyOn(DynamicApiModule.state, 'get').mockReturnValue(undefined);
+      vi.spyOn(DynamicApiModule.state, 'get').mockReturnValue(undefined);
     });
 
     it('should return { accessToken, refreshToken } and call loginCallback if defined and login is not call from member', async () => {
-      jest.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
+      vi.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
       const result = await service['login'](fakeUser);
 
       expect(spyBuildUserFields)
@@ -775,8 +777,8 @@ describe('BaseAuthService', () => {
     });
 
     it('should store hashed refresh token in DB when refreshTokenField is configured', async () => {
-      jest.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
-      jest.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'fake-jti' });
+      vi.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
+      vi.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'fake-jti' });
       service['refreshTokenField'] = 'nickname' as keyof User;
       spyBcriptHashPassword.mockResolvedValueOnce('hashed-refresh');
 
@@ -791,7 +793,7 @@ describe('BaseAuthService', () => {
     });
 
     it('should not store refresh token when refreshTokenField is not configured', async () => {
-      jest.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
+      vi.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
       service['refreshTokenField'] = undefined;
 
       await service['login'](fakeUser);
@@ -800,8 +802,8 @@ describe('BaseAuthService', () => {
     });
 
     it('should store hashed refresh token using user.id when user._id is absent', async () => {
-      jest.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
-      jest.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'fake-jti' });
+      vi.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
+      vi.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'fake-jti' });
       service['refreshTokenField'] = 'nickname' as keyof User;
       spyBcriptHashPassword.mockResolvedValueOnce('hashed-refresh');
       const userWithoutId = { ...fakeUser, _id: undefined as unknown as ObjectId, id: 'only-id' };
@@ -816,9 +818,9 @@ describe('BaseAuthService', () => {
     });
 
     it('should store hash with empty jti when decode returns null for refreshToken', async () => {
-      jest.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
+      vi.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
       // decode returns null (defensive branch)
-      jest.spyOn(jwtService, 'decode').mockReturnValueOnce(null);
+      vi.spyOn(jwtService, 'decode').mockReturnValueOnce(null);
       service['refreshTokenField'] = 'nickname' as keyof User;
       spyBcriptHashPassword.mockResolvedValueOnce('hash-empty');
 
@@ -834,9 +836,9 @@ describe('BaseAuthService', () => {
   });
 
   describe('register', () => {
-    let spyLogin: jest.SpyInstance;
-    let spyHandleDuplicateKeyError: jest.SpyInstance;
-    let spyCheckFieldsValidity: jest.SpyInstance;
+    let spyLogin: Mock;
+    let spyHandleDuplicateKeyError: Mock;
+    let spyCheckFieldsValidity: Mock;
 
     const userToCreate = {
       login: fakeLogin,
@@ -844,17 +846,17 @@ describe('BaseAuthService', () => {
     };
 
     beforeEach(() => {
-      spyCheckFieldsValidity = jest.spyOn<any, any>(service, 'checkFieldsValidity');
-      spyLogin = jest.spyOn<any, any>(service, 'login').mockReturnValueOnce({ accessToken, refreshToken: 'fake-refresh' });
+      spyCheckFieldsValidity = vi.spyOn<any, any>(service, 'checkFieldsValidity');
+      spyLogin = vi.spyOn<any, any>(service, 'login').mockReturnValueOnce({ accessToken, refreshToken: 'fake-refresh' });
       exec.mockResolvedValueOnce(fakeUser);
-      spyHandleDuplicateKeyError = jest.spyOn<any, any>(service, 'handleDuplicateKeyError');
+      spyHandleDuplicateKeyError = vi.spyOn<any, any>(service, 'handleDuplicateKeyError');
     });
 
     it('should return token and call registerCallback if it is defined', async () => {
       service['beforeRegisterCallback'] = undefined;
       model.create.mockResolvedValueOnce(fakeUser);
       exec.mockResolvedValueOnce(fakeUser);
-      jest.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
+      vi.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
       const result = await service['register'](userToCreate);
 
       expect(spyCheckFieldsValidity).toHaveBeenCalledWith(userToCreate);
@@ -881,7 +883,7 @@ describe('BaseAuthService', () => {
     it('should return token and call beforeRegisterCallback if it is defined', async () => {
       model.create.mockResolvedValueOnce(fakeUser);
       exec.mockResolvedValueOnce(fakeUser);
-      jest.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
+      vi.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
       await service['register'](userToCreate);
 
       expect(fakeBeforeRegisterCallback).toHaveBeenCalledTimes(1);
@@ -939,7 +941,7 @@ describe('BaseAuthService', () => {
     });
 
     it('should call getAccountCallback before building response fields', async () => {
-      const spyBuildInstance = jest.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
+      const spyBuildInstance = vi.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
       await service['getAccount']({ id: fakeUserId } as User);
 
       expect(spyBuildInstance).toHaveBeenCalledWith({ ...fakeUser, id: fakeUserId });
@@ -958,15 +960,15 @@ describe('BaseAuthService', () => {
   });
 
   describe('updateAccount', () => {
-    let spyBuildInstance: jest.SpyInstance;
-    let spyGetAccount: jest.SpyInstance;
+    let spyBuildInstance: Mock;
+    let spyGetAccount: Mock;
 
     const fakeUserId = 'fake-id';
     const update = { nickname: 'new-nickname' };
 
     beforeEach(() => {
-      spyGetAccount = jest.spyOn<any, any>(service, 'getAccount').mockResolvedValueOnce(fakeUser);
-      spyBuildInstance = jest.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
+      spyGetAccount = vi.spyOn<any, any>(service, 'getAccount').mockResolvedValueOnce(fakeUser);
+      spyBuildInstance = vi.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
     });
 
     it('should update user and return getAccount response', async () => {
@@ -1007,13 +1009,13 @@ describe('BaseAuthService', () => {
     });
 
     describe('with refreshTokenOnUpdate = true', () => {
-      let spyLogin: jest.SpyInstance;
+      let spyLogin: Mock;
 
       beforeEach(() => {
         service['refreshTokenOnUpdate'] = true;
         service['beforeUpdateAccountCallback'] = undefined;
         service['updateAccountCallback'] = undefined;
-        spyLogin = jest.spyOn<any, any>(service, 'login').mockResolvedValueOnce({ accessToken, refreshToken: 'fresh-rt' });
+        spyLogin = vi.spyOn<any, any>(service, 'login').mockResolvedValueOnce({ accessToken, refreshToken: 'fresh-rt' });
       });
 
       afterEach(() => {
@@ -1092,7 +1094,7 @@ describe('BaseAuthService', () => {
       beforeEach(async () => {
         spyJwtSign.mockReturnValueOnce(resetPasswordToken);
         await service['resetPassword'](fakeEmail);
-        jest.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
+        vi.spyOn<any, any>(service, 'buildInstance').mockReturnValueOnce(fakeUserInstance);
       });
 
       it('should find user by email', async () => {
@@ -1139,18 +1141,18 @@ describe('BaseAuthService', () => {
   });
 
   describe('changePassword', () => {
-    let spyJwtDecode: jest.SpyInstance;
-    let spyDateNow: jest.SpyInstance;
-    let spyMathRound: jest.SpyInstance;
-    let spyLoggerWarn: jest.SpyInstance;
+    let spyJwtDecode: Mock;
+    let spyDateNow: Mock;
+    let spyMathRound: Mock;
+    let spyLoggerWarn: Mock;
 
     const fakeDecodedToken = { email: fakeUser.login, exp: 1000 };
 
     beforeEach(() => {
-      spyJwtDecode = jest.spyOn(jwtService, 'decode');
-      spyDateNow = jest.spyOn(Date, 'now');
-      spyMathRound = jest.spyOn(Math, 'round');
-      spyLoggerWarn = jest.spyOn<any, any>(service['logger'], 'warn').mockImplementation(jest.fn());
+      spyJwtDecode = vi.spyOn(jwtService, 'decode');
+      spyDateNow = vi.spyOn(Date, 'now');
+      spyMathRound = vi.spyOn(Math, 'round');
+      spyLoggerWarn = vi.spyOn<any, any>(service['logger'], 'warn').mockImplementation(vi.fn());
     });
 
     it('should throw bad request if token is invalid', async () => {
@@ -1226,7 +1228,7 @@ describe('BaseAuthService', () => {
       spyFindOneDocumentWithAbilityPredicate.mockResolvedValueOnce(fakeUser);
       exec.mockResolvedValueOnce(fakeUser);
       spyBcriptHashPassword.mockResolvedValueOnce(hashedPassword);
-      jest.spyOn(bcryptService, 'hashPassword').mockResolvedValueOnce(hashedPassword);
+      vi.spyOn(bcryptService, 'hashPassword').mockResolvedValueOnce(hashedPassword);
 
       await service['changePassword'](resetPasswordToken, newPassword);
       expect(spyFindOneDocumentWithAbilityPredicate).toHaveBeenCalledTimes(1);
@@ -1329,7 +1331,7 @@ describe('BaseAuthService', () => {
     const identifier = 'user@test.co';
     const plainCode = '123456';
     const fakeExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
-    const sendCodeCallback = jest.fn().mockResolvedValue(undefined);
+    const sendCodeCallback = vi.fn().mockResolvedValue(undefined);
 
     beforeEach(() => {
       spyBcriptHashPassword.mockResolvedValue(fakeHash);
@@ -1348,13 +1350,13 @@ describe('BaseAuthService', () => {
 
     describe('with passwordlessOptions configured', () => {
       let serviceWithPasswordless: AuthService;
-      let otpModel: { findOneAndUpdate: jest.Mock; findOne: jest.Mock; deleteOne: jest.Mock };
+      let otpModel: { findOneAndUpdate: Mock; findOne: Mock; deleteOne: Mock };
 
       beforeEach(() => {
         otpModel = {
-          findOneAndUpdate: jest.fn().mockReturnValue({ exec: jest.fn().mockResolvedValue(null) }),
-          findOne: jest.fn().mockReturnValue({ exec: jest.fn() }),
-          deleteOne: jest.fn().mockReturnValue({ exec: jest.fn() }),
+          findOneAndUpdate: vi.fn().mockReturnValue({ exec: vi.fn().mockResolvedValue(null) }),
+          findOne: vi.fn().mockReturnValue({ exec: vi.fn() }),
+          deleteOne: vi.fn().mockReturnValue({ exec: vi.fn() }),
         };
 
         serviceWithPasswordless = new AuthService(
@@ -1370,7 +1372,7 @@ describe('BaseAuthService', () => {
       });
 
       it('should hash code, upsert OTP doc, and call sendCodeCallback', async () => {
-        jest.spyOn(global.Math, 'random').mockReturnValue(0.123456);
+        vi.spyOn(global.Math, 'random').mockReturnValue(0.123456);
 
         await serviceWithPasswordless.sendOtpCode(identifier);
 
@@ -1382,7 +1384,7 @@ describe('BaseAuthService', () => {
         );
         expect(sendCodeCallback).toHaveBeenCalledWith(identifier, expect.stringMatching(/^\d{6}$/));
 
-        jest.spyOn(global.Math, 'random').mockRestore();
+        vi.spyOn(global.Math, 'random').mockRestore();
       });
 
       it('should use custom generateCode when provided', async () => {
@@ -1411,14 +1413,14 @@ describe('BaseAuthService', () => {
     const tokenResult = { accessToken: 'at', refreshToken: 'rt' };
 
     let serviceWithPasswordless: AuthService;
-    let otpModel: { findOneAndUpdate: jest.Mock; findOne: jest.Mock; deleteOne: jest.Mock };
-    let spyBcryptCompare: jest.SpyInstance;
+    let otpModel: { findOneAndUpdate: Mock; findOne: Mock; deleteOne: Mock };
+    let spyBcryptCompare: Mock;
 
     beforeEach(() => {
       otpModel = {
-        findOneAndUpdate: jest.fn().mockReturnValue({ exec: jest.fn() }),
-        findOne: jest.fn().mockReturnValue({ exec: jest.fn() }),
-        deleteOne: jest.fn().mockReturnValue({ exec: jest.fn() }),
+        findOneAndUpdate: vi.fn().mockReturnValue({ exec: vi.fn() }),
+        findOne: vi.fn().mockReturnValue({ exec: vi.fn() }),
+        deleteOne: vi.fn().mockReturnValue({ exec: vi.fn() }),
       };
 
       serviceWithPasswordless = new AuthService(
@@ -1429,23 +1431,23 @@ describe('BaseAuthService', () => {
       );
       serviceWithPasswordless['passwordlessOptions'] = {
         otpExpirationMinutes: 10,
-        sendCodeCallback: jest.fn(),
+        sendCodeCallback: vi.fn(),
       };
 
-      spyBcryptCompare = jest.spyOn(bcryptService, 'comparePassword');
+      spyBcryptCompare = vi.spyOn(bcryptService, 'comparePassword');
       spyBuildUserFields.mockReturnValue(fakeLoginBuilt);
       spyJwtSign.mockReturnValue('fake-token');
     });
 
     it('should return tokens when OTP is valid and user exists', async () => {
       otpModel.findOne.mockReturnValue({
-        exec: jest.fn().mockResolvedValue({ identifier, hashedCode: fakeHash, expiresAt: futureDate }),
+        exec: vi.fn().mockResolvedValue({ identifier, hashedCode: fakeHash, expiresAt: futureDate }),
       });
       spyBcryptCompare.mockResolvedValue(true);
       exec.mockResolvedValue({ ...fakeUser, login: identifier, _id: fakeUserId });
-      jest.spyOn(bcryptService, 'hashPassword').mockResolvedValue('hashed-jti');
-      otpModel.deleteOne.mockReturnValue({ exec: jest.fn().mockResolvedValue(null) });
-      jest.spyOn(DynamicApiModule.state, 'get').mockReturnValue(undefined);
+      vi.spyOn(bcryptService, 'hashPassword').mockResolvedValue('hashed-jti');
+      otpModel.deleteOne.mockReturnValue({ exec: vi.fn().mockResolvedValue(null) });
+      vi.spyOn(DynamicApiModule.state, 'get').mockReturnValue(undefined);
 
       const result = await serviceWithPasswordless.verifyOtpCode(identifier, plainCode);
 
@@ -1456,7 +1458,7 @@ describe('BaseAuthService', () => {
     });
 
     it('should throw UnauthorizedException if OTP doc not found', async () => {
-      otpModel.findOne.mockReturnValue({ exec: jest.fn().mockResolvedValue(null) });
+      otpModel.findOne.mockReturnValue({ exec: vi.fn().mockResolvedValue(null) });
 
       await expect(serviceWithPasswordless.verifyOtpCode(identifier, plainCode))
         .rejects.toThrow(UnauthorizedException);
@@ -1464,7 +1466,7 @@ describe('BaseAuthService', () => {
 
     it('should throw UnauthorizedException if OTP is expired', async () => {
       otpModel.findOne.mockReturnValue({
-        exec: jest.fn().mockResolvedValue({ identifier, hashedCode: fakeHash, expiresAt: pastDate }),
+        exec: vi.fn().mockResolvedValue({ identifier, hashedCode: fakeHash, expiresAt: pastDate }),
       });
 
       await expect(serviceWithPasswordless.verifyOtpCode(identifier, plainCode))
@@ -1473,7 +1475,7 @@ describe('BaseAuthService', () => {
 
     it('should throw UnauthorizedException if code is wrong', async () => {
       otpModel.findOne.mockReturnValue({
-        exec: jest.fn().mockResolvedValue({ identifier, hashedCode: fakeHash, expiresAt: futureDate }),
+        exec: vi.fn().mockResolvedValue({ identifier, hashedCode: fakeHash, expiresAt: futureDate }),
       });
       spyBcryptCompare.mockResolvedValue(false);
 
@@ -1483,7 +1485,7 @@ describe('BaseAuthService', () => {
 
     it('should throw UnauthorizedException if user not found', async () => {
       otpModel.findOne.mockReturnValue({
-        exec: jest.fn().mockResolvedValue({ identifier, hashedCode: fakeHash, expiresAt: futureDate }),
+        exec: vi.fn().mockResolvedValue({ identifier, hashedCode: fakeHash, expiresAt: futureDate }),
       });
       spyBcryptCompare.mockResolvedValue(true);
       exec.mockResolvedValue(null);
@@ -1493,16 +1495,16 @@ describe('BaseAuthService', () => {
     });
 
     it('should call passwordlessOptions.callback if provided after verification', async () => {
-      const verifyCallback = jest.fn().mockResolvedValue(undefined);
+      const verifyCallback = vi.fn().mockResolvedValue(undefined);
       serviceWithPasswordless['passwordlessOptions'].callback = verifyCallback;
 
       otpModel.findOne.mockReturnValue({
-        exec: jest.fn().mockResolvedValue({ identifier, hashedCode: fakeHash, expiresAt: futureDate }),
+        exec: vi.fn().mockResolvedValue({ identifier, hashedCode: fakeHash, expiresAt: futureDate }),
       });
       spyBcryptCompare.mockResolvedValue(true);
       exec.mockResolvedValue({ ...fakeUser, login: identifier, _id: fakeUserId });
-      otpModel.deleteOne.mockReturnValue({ exec: jest.fn().mockResolvedValue(null) });
-      jest.spyOn(DynamicApiModule.state, 'get').mockReturnValue(undefined);
+      otpModel.deleteOne.mockReturnValue({ exec: vi.fn().mockResolvedValue(null) });
+      vi.spyOn(DynamicApiModule.state, 'get').mockReturnValue(undefined);
 
       await serviceWithPasswordless.verifyOtpCode(identifier, plainCode);
 

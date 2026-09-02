@@ -1,3 +1,5 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { DynamicModule, ValidationPipeOptions } from '@nestjs/common';
 import * as Helpers from '../../helpers';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
@@ -6,19 +8,19 @@ import { DynamicApiBroadcastService } from '../../services';
 import * as DeleteOneHelpers from './delete-one.helper';
 import { DeleteOneModule } from './delete-one.module';
 
-jest.mock('./delete-one.helper');
-jest.mock('../../helpers');
+vi.mock('./delete-one.helper');
+vi.mock('../../helpers');
 
 class Entity extends BaseEntity {}
 
 describe('DeleteOneModule', () => {
-  let spyCreateDeleteOneController: jest.SpyInstance;
-  let spyCreateDeleteOneServiceProvider: jest.SpyInstance;
-  let spyCreateDeleteOneGateway: jest.SpyInstance;
+  let spyCreateDeleteOneController: Mock;
+  let spyCreateDeleteOneServiceProvider: Mock;
+  let spyCreateDeleteOneGateway: Mock;
 
-  const FakeController = jest.fn();
+  const FakeController = vi.fn();
   const FakeServiceProvider = { provide: 'fakeProvider' } as unknown as DynamicAPIServiceProvider;
-  const FakeGateway = jest.fn();
+  const FakeGateway = vi.fn();
 
   const databaseModule = { module: 'databaseModule' } as unknown as DynamicModule;
   const controllerOptions: DynamicApiControllerOptions<Entity> = { path: 'fakePath' };
@@ -29,11 +31,11 @@ describe('DeleteOneModule', () => {
   const fakeGatewayOptions = { namespace: 'fakeNamespace' };
 
   beforeEach(() => {
-    spyCreateDeleteOneController = jest.spyOn(DeleteOneHelpers, 'createDeleteOneController').mockReturnValue(FakeController);
-    spyCreateDeleteOneServiceProvider = jest.spyOn(DeleteOneHelpers, 'createDeleteOneServiceProvider').mockReturnValue(FakeServiceProvider);
-    spyCreateDeleteOneGateway = jest.spyOn(DeleteOneHelpers, 'createDeleteOneGateway').mockReturnValue(FakeGateway);
-    jest.spyOn(Helpers, 'getDisplayedName').mockReturnValue(fakeDisplayedName);
-    jest.spyOn(Helpers, 'initializeConfigFromOptions').mockReturnValue(fakeGatewayOptions);
+    spyCreateDeleteOneController = vi.spyOn(DeleteOneHelpers, 'createDeleteOneController').mockReturnValue(FakeController);
+    spyCreateDeleteOneServiceProvider = vi.spyOn(DeleteOneHelpers, 'createDeleteOneServiceProvider').mockReturnValue(FakeServiceProvider);
+    spyCreateDeleteOneGateway = vi.spyOn(DeleteOneHelpers, 'createDeleteOneGateway').mockReturnValue(FakeGateway);
+    vi.spyOn(Helpers, 'getDisplayedName').mockReturnValue(fakeDisplayedName);
+    vi.spyOn(Helpers, 'initializeConfigFromOptions').mockReturnValue(fakeGatewayOptions);
   });
 
   describe('forFeature', () => {

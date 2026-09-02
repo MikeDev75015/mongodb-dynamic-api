@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
 import { SendOtpCodeDto } from './send-otp-code.dto';

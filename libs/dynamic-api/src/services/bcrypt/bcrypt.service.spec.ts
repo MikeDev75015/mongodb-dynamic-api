@@ -1,9 +1,11 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { BcryptService } from './bcrypt.service';
 import * as bcrypt from 'bcrypt';
 
-jest.mock('bcrypt', () => ({
-  hash: jest.fn(),
-  compare: jest.fn(),
+vi.mock('bcrypt', () => ({
+  hash: vi.fn(),
+  compare: vi.fn(),
 }));
 
 describe('BcryptService', () => {
@@ -21,7 +23,7 @@ describe('BcryptService', () => {
     it('should return a hashed password', async () => {
       const password = 'password';
       const hash = 'hashedPassword';
-      (bcrypt.hash as jest.Mock).mockResolvedValue(hash);
+      (bcrypt.hash as Mock).mockResolvedValue(hash);
       const result = await service.hashPassword(password);
 
       expect(result).toBe(hash);
@@ -33,14 +35,14 @@ describe('BcryptService', () => {
     const hash = 'hashedPassword';
 
     it('should return true if the password matches the hash', async () => {
-      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+      (bcrypt.compare as Mock).mockResolvedValue(true);
       const result = await service.comparePassword(password, hash);
 
       expect(result).toBe(true);
     });
 
     it('should return false if the password does not match the hash', async () => {
-      (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+      (bcrypt.compare as Mock).mockResolvedValue(false);
       const result = await service.comparePassword(password, hash);
 
       expect(result).toBe(false);

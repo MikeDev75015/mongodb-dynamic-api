@@ -1,3 +1,4 @@
+import { describe, expect, it, test } from 'vitest';
 import { Type } from '@nestjs/common';
 import { ProtectedField } from '../decorators';
 import { BaseEntity, SoftDeletableEntity } from '../models';

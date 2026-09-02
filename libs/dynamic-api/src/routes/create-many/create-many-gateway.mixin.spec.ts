@@ -1,4 +1,5 @@
-import { createMock } from '@golevelup/ts-jest';
+import { describe, expect, it, test, vi } from 'vitest';
+import { createMock } from '@test-helpers';
 import { JwtService } from '@nestjs/jwt';
 import { BaseGateway } from '../../gateways';
 import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket } from '../../interfaces';
@@ -151,7 +152,7 @@ describe('CreateManyGatewayMixin', () => {
 
     const fakeResponse = [{ id: '1', field1: 'test' }, { id: '2', field1: 'unit' }];
 
-    service.createMany = jest.fn().mockResolvedValueOnce(fakeResponse);
+    service.createMany = vi.fn().mockResolvedValueOnce(fakeResponse);
 
     const body = { list: [{ field1: 'test' }, { field1: 'unit' }] };
     const expectedArg = [{ field1: '0 - test' }, { field1: '1 - unit' }];

@@ -1,3 +1,5 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Mock, MockedFunction } from 'vitest';
 ﻿import { CanActivate } from '@nestjs/common';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { MongoDBDynamicApiLogger } from '../../logger';
@@ -15,8 +17,8 @@ import {
 } from './create-custom-route-controller';
 import { CustomRouteCallbackService } from './custom-route-callback.service';
 
-jest.mock('../../mixins', () => ({
-  RoutePoliciesGuardMixin: jest.fn().mockImplementation(() => {
+vi.mock('../../mixins', () => ({
+  RoutePoliciesGuardMixin: vi.fn().mockImplementation(() => {
     class FakePoliciesGuard implements CanActivate {
       canActivate() {
         return true;
@@ -30,7 +32,7 @@ jest.mock('../../mixins', () => ({
 
 interface ControllerInstanceShape {
   model: unknown;
-  moduleRef?: { get: jest.Mock };
+  moduleRef?: { get: Mock };
   callbackService?: CustomRouteCallbackService<FakeEntity>;
   handle: (
     params: Record<string, string>,
@@ -67,7 +69,7 @@ Object.defineProperty(FakeEntity, 'name', { value: 'FakeEntity', writable: false
 
 const fakeControllerOptions: DynamicApiControllerOptions<FakeEntity> = { path: 'fakes' };
 
-const fakeHandler = jest.fn().mockResolvedValue({ id: '1', name: 'result' }) as jest.MockedFunction<
+const fakeHandler = vi.fn().mockResolvedValue({ id: '1', name: 'result' }) as MockedFunction<
   CustomRouteConfig<FakeEntity>['handler']
 >;
 
@@ -92,7 +94,7 @@ function makeController(
 
 describe('createCustomRouteController', () => {
   beforeEach(() => {
-    (jest.spyOn(DynamicApiModule.state, 'get') as jest.SpyInstance).mockReturnValue(false);
+    (vi.spyOn(DynamicApiModule.state, 'get') as Mock).mockReturnValue(false);
     fakeHandler.mockClear();
   });
 
@@ -177,19 +179,19 @@ describe('createCustomRouteController', () => {
 
   describe('auth decorators', () => {
     it('does not apply ApiBearerAuth when isAuthEnabled is false and isPublic is false', () => {
-      (jest.spyOn(DynamicApiModule.state, 'get') as jest.SpyInstance).mockReturnValue(false);
+      (vi.spyOn(DynamicApiModule.state, 'get') as Mock).mockReturnValue(false);
       const Ctrl = makeController({ isPublic: false });
       expect(Ctrl).toBeDefined();
     });
 
     it('applies ApiBearerAuth when isAuthEnabled is true and isPublic is falsy', () => {
-      (jest.spyOn(DynamicApiModule.state, 'get') as jest.SpyInstance).mockReturnValue(true);
+      (vi.spyOn(DynamicApiModule.state, 'get') as Mock).mockReturnValue(true);
       const Ctrl = makeController();
       expect(Ctrl.name).toBe('CustomE2eeWrappedKeysFakeEntityController');
     });
 
     it('applies Public when isPublic is true', () => {
-      (jest.spyOn(DynamicApiModule.state, 'get') as jest.SpyInstance).mockReturnValue(false);
+      (vi.spyOn(DynamicApiModule.state, 'get') as Mock).mockReturnValue(false);
       const Ctrl = makeController({ isPublic: true });
       expect(Ctrl).toBeDefined();
     });
@@ -199,11 +201,11 @@ describe('createCustomRouteController', () => {
 
   describe('abilityPredicate', () => {
     beforeEach(() => {
-      (RoutePoliciesGuardMixin as jest.Mock).mockClear();
+      (RoutePoliciesGuardMixin as Mock).mockClear();
     });
 
     it('creates and names PoliciesGuard when abilityPredicate is provided', () => {
-      const predicate = jest.fn().mockReturnValue(true);
+      const predicate = vi.fn().mockReturnValue(true);
       makeController({ abilityPredicate: predicate });
 
       expect(RoutePoliciesGuardMixin).toHaveBeenCalledWith(
@@ -217,7 +219,7 @@ describe('createCustomRouteController', () => {
     });
 
     it('passes predicateBehavior to RoutePoliciesGuardMixin', () => {
-      const predicate = jest.fn().mockReturnValue(true);
+      const predicate = vi.fn().mockReturnValue(true);
       makeController({ abilityPredicate: predicate, predicateBehavior: 'filter' });
 
       expect(RoutePoliciesGuardMixin).toHaveBeenCalledWith(
@@ -240,11 +242,11 @@ describe('createCustomRouteController', () => {
 
   describe('authAbilityPredicate', () => {
     beforeEach(() => {
-      (RoutePoliciesGuardMixin as jest.Mock).mockClear();
+      (RoutePoliciesGuardMixin as Mock).mockClear();
     });
 
     it('creates PoliciesGuard when only authAbilityPredicate is provided (no abilityPredicate)', () => {
-      const authAbilityPredicate = jest.fn().mockReturnValue(true);
+      const authAbilityPredicate = vi.fn().mockReturnValue(true);
       makeController({ authAbilityPredicate });
 
       expect(RoutePoliciesGuardMixin).toHaveBeenCalledWith(
@@ -266,11 +268,11 @@ describe('createCustomRouteController', () => {
   // ── targetParam / boot-time warning ─────────────────────────────────────
 
   describe('targetParam and the missing-targetParam warning', () => {
-    let warnSpy: jest.SpyInstance;
+    let warnSpy: Mock;
 
     beforeEach(() => {
-      warnSpy = jest.spyOn(MongoDBDynamicApiLogger.prototype, 'warn').mockImplementation();
-      (RoutePoliciesGuardMixin as jest.Mock).mockClear();
+      warnSpy = vi.spyOn(MongoDBDynamicApiLogger.prototype, 'warn').mockImplementation();
+      (RoutePoliciesGuardMixin as Mock).mockClear();
     });
 
     afterEach(() => {
@@ -278,7 +280,7 @@ describe('createCustomRouteController', () => {
     });
 
     it('passes targetParam through to RoutePoliciesGuardMixin', () => {
-      const predicate = jest.fn().mockReturnValue(true);
+      const predicate = vi.fn().mockReturnValue(true);
       makeController({
         path: 'parental-consent/:userId',
         abilityPredicate: predicate,
@@ -298,7 +300,7 @@ describe('createCustomRouteController', () => {
     it('warns when abilityPredicate is set on a route with a non-id path param and no targetParam', () => {
       makeController({
         path: 'parental-consent/:userId',
-        abilityPredicate: jest.fn().mockReturnValue(true),
+        abilityPredicate: vi.fn().mockReturnValue(true),
       });
 
       expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("targetParam: 'userId'"));
@@ -307,7 +309,7 @@ describe('createCustomRouteController', () => {
     it('does not warn when targetParam is set', () => {
       makeController({
         path: 'parental-consent/:userId',
-        abilityPredicate: jest.fn().mockReturnValue(true),
+        abilityPredicate: vi.fn().mockReturnValue(true),
         targetParam: 'userId',
       });
 
@@ -317,7 +319,7 @@ describe('createCustomRouteController', () => {
     it('does not warn when the path param is already named id', () => {
       makeController({
         path: 'accounts/:id/consent',
-        abilityPredicate: jest.fn().mockReturnValue(true),
+        abilityPredicate: vi.fn().mockReturnValue(true),
       });
 
       expect(warnSpy).not.toHaveBeenCalled();
@@ -326,7 +328,7 @@ describe('createCustomRouteController', () => {
     it('does not warn when predicateBehavior is filter', () => {
       makeController({
         path: 'parental-consent/:userId',
-        abilityPredicate: jest.fn().mockReturnValue(true),
+        abilityPredicate: vi.fn().mockReturnValue(true),
         predicateBehavior: 'filter',
       });
 
@@ -336,7 +338,7 @@ describe('createCustomRouteController', () => {
     it('does not warn when the route has no path params', () => {
       makeController({
         path: 'parental-consent',
-        abilityPredicate: jest.fn().mockReturnValue(true),
+        abilityPredicate: vi.fn().mockReturnValue(true),
       });
 
       expect(warnSpy).not.toHaveBeenCalled();
@@ -354,7 +356,7 @@ describe('createCustomRouteController', () => {
   describe('constructor', () => {
     it('assigns injected model to this.model', () => {
       const Ctrl = makeController();
-      const fakeModel = { find: jest.fn() };
+      const fakeModel = { find: vi.fn() };
       // Instantiate directly (bypassing DI decorator) to cover the constructor
       const instance = new Ctrl(fakeModel);
       expect(instance.model).toBe(fakeModel);
@@ -366,7 +368,7 @@ describe('createCustomRouteController', () => {
   describe('handle()', () => {
     it('calls handler with model, user, params, body, query', async () => {
       const Ctrl = makeController();
-      const fakeModel = { findById: jest.fn() };
+      const fakeModel = { findById: vi.fn() };
       const instance: ControllerInstanceShape = makeControllerInstance(Ctrl, fakeModel);
 
       const params = { id: 'abc' };
@@ -402,7 +404,7 @@ describe('createCustomRouteController', () => {
       const rawResult = { id: '2', name: 'raw' };
       const mappedResult = { id: '2', displayName: 'mapped' };
       fakeHandler.mockResolvedValueOnce(rawResult);
-      const fromEntity = jest.fn().mockReturnValue(mappedResult);
+      const fromEntity = vi.fn().mockReturnValue(mappedResult);
 
       class FakePresenter {
         static fromEntity = fromEntity;
@@ -453,7 +455,7 @@ describe('createCustomRouteController', () => {
       const fakeMailInstance = new FakeMailService();
       const fakeTokenInstance = { resolved: true };
       instance.moduleRef = {
-        get: jest.fn()
+        get: vi.fn()
           .mockReturnValueOnce(fakeMailInstance)
           .mockReturnValueOnce(fakeTokenInstance),
       };
@@ -471,7 +473,7 @@ describe('createCustomRouteController', () => {
     it('never touches moduleRef when inject is not provided', async () => {
       const Ctrl = makeController();
       const instance: ControllerInstanceShape = makeControllerInstance(Ctrl);
-      instance.moduleRef = { get: jest.fn() };
+      instance.moduleRef = { get: vi.fn() };
 
       await instance.handle({}, {}, {}, undefined);
 
@@ -568,7 +570,7 @@ describe('createCustomRouteController', () => {
   describe('useInterceptors (route-level)', () => {
     it('applies route-level UseInterceptors decorator to the handle method', () => {
       class LoggingInterceptor {
-        intercept = jest.fn();
+        intercept = vi.fn();
       }
 
       const Ctrl = createCustomRouteController(

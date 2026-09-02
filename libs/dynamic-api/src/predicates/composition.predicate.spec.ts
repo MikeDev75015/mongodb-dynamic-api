@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { AbilityPredicate } from '../interfaces';
 import { BaseEntity } from '../models';
 import { allOf, anyOf, not } from './composition.predicate';

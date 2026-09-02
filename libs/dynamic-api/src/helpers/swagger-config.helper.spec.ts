@@ -1,3 +1,5 @@
+import { afterAll, beforeAll, beforeEach, describe, expect, it, test, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { INestApplication } from '@nestjs/common';
 import { OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
 import { closeApp, initApp } from '../../__mocks__/app.mock';
@@ -5,7 +7,7 @@ import { DynamicAPISwaggerExtraConfig } from '../interfaces';
 import { enableDynamicAPISwagger } from './swagger-config.helper';
 import * as fs from 'node:fs';
 
-jest.mock('node:fs');
+vi.mock('node:fs');
 
 describe('SwaggerConfigHelper', () => {
   let app: INestApplication;
@@ -15,13 +17,13 @@ describe('SwaggerConfigHelper', () => {
   });
 
   describe('enableDynamicAPISwagger', () => {
-    let createDocumentSpy: jest.SpyInstance;
-    let setupSpy: jest.SpyInstance;
+    let createDocumentSpy: Mock;
+    let setupSpy: Mock;
     const document = {} as OpenAPIObject;
 
     beforeEach(() => {
-      createDocumentSpy = jest.spyOn(SwaggerModule, 'createDocument');
-      setupSpy = jest.spyOn(SwaggerModule, 'setup');
+      createDocumentSpy = vi.spyOn(SwaggerModule, 'createDocument');
+      setupSpy = vi.spyOn(SwaggerModule, 'setup');
     });
 
     it('should call createDocument with default config', () => {
@@ -35,7 +37,7 @@ describe('SwaggerConfigHelper', () => {
 
     it('should call createDocument with custom config', () => {
       createDocumentSpy.mockReturnValue(document);
-      const writeFileSyncSpy = jest.spyOn(fs, 'writeFileSync');
+      const writeFileSyncSpy = vi.spyOn(fs, 'writeFileSync');
 
       enableDynamicAPISwagger(app, {
         title: 'My API',

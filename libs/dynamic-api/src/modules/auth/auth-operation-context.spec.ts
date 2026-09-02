@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { AuthOperationContext, authOperationStorage, getAuthOperationContext } from './auth-operation-context';
 
 describe('auth-operation-context', () => {

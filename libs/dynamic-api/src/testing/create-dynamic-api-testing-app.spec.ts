@@ -1,35 +1,37 @@
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { DynamicApiModule } from '../dynamic-api.module';
 import { createDynamicApiTestingApp } from './create-dynamic-api-testing-app';
 
-jest.mock('@nestjs/testing', () => ({
-  Test: { createTestingModule: jest.fn() },
+vi.mock('@nestjs/testing', () => ({
+  Test: { createTestingModule: vi.fn() },
 }));
 
-jest.mock('../dynamic-api.module', () => ({
-  DynamicApiModule: { forRoot: jest.fn() },
+vi.mock('../dynamic-api.module', () => ({
+  DynamicApiModule: { forRoot: vi.fn() },
 }));
 
-jest.mock('mongodb-memory-server', () => ({
-  MongoMemoryServer: { create: jest.fn() },
+vi.mock('mongodb-memory-server', () => ({
+  MongoMemoryServer: { create: vi.fn() },
 }));
 
 describe('createDynamicApiTestingApp', () => {
   let appMock: INestApplication;
-  let moduleRefMock: { createNestApplication: jest.Mock };
+  let moduleRefMock: { createNestApplication: Mock };
   let forRootModule: object;
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    appMock = { init: jest.fn(), close: jest.fn() } as unknown as INestApplication;
-    moduleRefMock = { createNestApplication: jest.fn().mockReturnValue(appMock) };
-    (Test.createTestingModule as jest.Mock).mockReturnValue({
-      compile: jest.fn().mockResolvedValue(moduleRefMock),
+    vi.clearAllMocks();
+    appMock = { init: vi.fn(), close: vi.fn() } as unknown as INestApplication;
+    moduleRefMock = { createNestApplication: vi.fn().mockReturnValue(appMock) };
+    (Test.createTestingModule as Mock).mockReturnValue({
+      compile: vi.fn().mockResolvedValue(moduleRefMock),
     });
     forRootModule = { module: 'FakeForRootModule' };
-    (DynamicApiModule.forRoot as jest.Mock).mockReturnValue(forRootModule);
+    (DynamicApiModule.forRoot as Mock).mockReturnValue(forRootModule);
   });
 
   describe('when a uri is provided', () => {
@@ -78,10 +80,10 @@ describe('createDynamicApiTestingApp', () => {
   describe('when no uri is provided', () => {
     it('starts an in-memory MongoDB and uses its uri', async () => {
       const mongoServerMock = {
-        getUri: jest.fn().mockReturnValue('mongodb://127.0.0.1:12345/test'),
-        stop: jest.fn().mockResolvedValue(true),
+        getUri: vi.fn().mockReturnValue('mongodb://127.0.0.1:12345/test'),
+        stop: vi.fn().mockResolvedValue(true),
       };
-      (MongoMemoryServer.create as jest.Mock).mockResolvedValue(mongoServerMock);
+      (MongoMemoryServer.create as Mock).mockResolvedValue(mongoServerMock);
 
       const result = await createDynamicApiTestingApp();
 
@@ -92,10 +94,10 @@ describe('createDynamicApiTestingApp', () => {
 
     it('stops the in-memory server in addition to the app on close()', async () => {
       const mongoServerMock = {
-        getUri: jest.fn().mockReturnValue('mongodb://127.0.0.1:12345/test'),
-        stop: jest.fn().mockResolvedValue(true),
+        getUri: vi.fn().mockReturnValue('mongodb://127.0.0.1:12345/test'),
+        stop: vi.fn().mockResolvedValue(true),
       };
-      (MongoMemoryServer.create as jest.Mock).mockResolvedValue(mongoServerMock);
+      (MongoMemoryServer.create as Mock).mockResolvedValue(mongoServerMock);
 
       const result = await createDynamicApiTestingApp();
       await result.close();

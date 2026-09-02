@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SchemaFactory } from '@nestjs/mongoose';
 import { buildDynamicApiModuleOptionsMock } from '../../__mocks__/dynamic-api.module.mock';
 import { SchemaHook } from '../interfaces';
@@ -8,23 +9,23 @@ describe('buildSchemaFromEntity', () => {
 
   beforeEach(() => {
     fakeSchema = {
-      set: jest.fn(),
-      index: jest.fn(),
-      pre: jest.fn(),
-      post: jest.fn(),
+      set: vi.fn(),
+      index: vi.fn(),
+      pre: vi.fn(),
+      post: vi.fn(),
       paths: {
         createdAt: {},
         updatedAt: {},
       },
     };
 
-    jest.spyOn(SchemaFactory, 'createForClass').mockReturnValue(fakeSchema);
+    vi.spyOn(SchemaFactory, 'createForClass').mockReturnValue(fakeSchema);
   });
 
   it('should not build schema with timestamps if entity does not have createdAt and updatedAt fields', () => {
     const { entity } = buildDynamicApiModuleOptionsMock();
     fakeSchema.paths = {};
-    jest.spyOn(SchemaFactory, 'createForClass').mockReturnValueOnce(fakeSchema);
+    vi.spyOn(SchemaFactory, 'createForClass').mockReturnValueOnce(fakeSchema);
 
     buildSchemaFromEntity(entity);
 
@@ -74,19 +75,19 @@ describe('buildSchemaFromEntity', () => {
       {
         type: 'GetMany',
         method: 'pre',
-        callback: jest.fn(),
+        callback: vi.fn(),
         options: { query: false },
       },
       {
         type: 'CreateMany',
         method: 'post',
-        callback: jest.fn(),
+        callback: vi.fn(),
         options: { document: false },
       },
       {
         type: 'ReplaceOne',
         method: 'pre',
-        callback: jest.fn(),
+        callback: vi.fn(),
       },
     ];
     const { entity } = buildDynamicApiModuleOptionsMock({}, {
@@ -111,7 +112,7 @@ describe('buildSchemaFromEntity', () => {
   });
 
   it('should build schema with soft deletable hooks if entity extends SoftDeletableEntity', () => {
-    jest.spyOn(SchemaFactory, 'createForClass').mockReturnValue({
+    vi.spyOn(SchemaFactory, 'createForClass').mockReturnValue({
       ...fakeSchema,
       paths: { ...fakeSchema.paths, deletedAt: {} }
     });
@@ -119,19 +120,19 @@ describe('buildSchemaFromEntity', () => {
       {
         type: 'GetMany',
         method: 'pre',
-        callback: jest.fn(),
+        callback: vi.fn(),
         options: { query: false },
       },
       {
         type: 'DeleteMany',
         method: 'post',
-        callback: jest.fn(),
+        callback: vi.fn(),
         options: { document: false },
       },
       {
         type: 'DeleteOne',
         method: 'pre',
-        callback: jest.fn(),
+        callback: vi.fn(),
       },
     ];
     const { entity } = buildDynamicApiModuleOptionsMock({}, {
@@ -157,7 +158,7 @@ describe('buildSchemaFromEntity', () => {
   });
 
   it('should call customInit if provided', () => {
-    const customInit = jest.fn();
+    const customInit = vi.fn();
     const { entity } = buildDynamicApiModuleOptionsMock({}, {
       customInit,
     });

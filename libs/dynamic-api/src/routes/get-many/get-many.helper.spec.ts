@@ -1,4 +1,5 @@
-import { createMock } from '@golevelup/ts-jest';
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
+import { createMock } from '@test-helpers';
 import { Type } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
@@ -53,11 +54,11 @@ describe('GetManyHelper', () => {
 
     it('should instantiate GetMany controller with default values', async () => {
       const service = {
-        getMany: jest.fn(),
+        getMany: vi.fn(),
       };
       const controllerClass = createGetManyController(entity, displayedName, { path: 'path' }, { type: 'GetMany' });
       const controller = new controllerClass(service);
-      const spyServiceGetMany = jest.spyOn(service, 'getMany');
+      const spyServiceGetMany = vi.spyOn(service, 'getMany');
 
       expect(controller).toBeDefined();
       expect(controller['service']).toBe(service);

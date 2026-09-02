@@ -1,4 +1,5 @@
-import { createMock } from '@golevelup/ts-jest';
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
+import { createMock } from '@test-helpers';
 import { Type } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
@@ -58,7 +59,7 @@ describe('AggregateHelper', () => {
 
     it('should instantiate Aggregate controller with default values', async () => {
       const service = {
-        aggregate: jest.fn(),
+        aggregate: vi.fn(),
       };
       const controllerClass = createAggregateController(
         entity,

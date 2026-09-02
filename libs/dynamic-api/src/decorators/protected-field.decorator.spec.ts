@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import { describe, expect, it } from 'vitest';
 import { PROTECTED_FIELD_METADATA, ProtectedField } from './protected-field.decorator';
 
 describe('ProtectedField', () => {

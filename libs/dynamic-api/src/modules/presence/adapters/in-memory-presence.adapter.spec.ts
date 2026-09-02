@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it } from 'vitest';
 import { InMemoryPresenceAdapter } from './in-memory-presence.adapter';
 
 describe('InMemoryPresenceAdapter', () => {

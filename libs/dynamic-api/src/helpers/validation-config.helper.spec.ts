@@ -1,3 +1,4 @@
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { INestApplication, ValidationPipe, ValidationPipeOptions } from '@nestjs/common';
 import { closeApp, initApp } from '../../__mocks__/app.mock';
 import { enableDynamicAPIValidation } from './validation-config.helper';
@@ -11,7 +12,7 @@ describe('ValidationConfigHelper', () => {
 
   describe('enableDynamicAPIValidation', () => {
     it('should call useGlobalPipes with default pipe options', () => {
-      const useGlobalPipesSpy = jest.spyOn(app, 'useGlobalPipes');
+      const useGlobalPipesSpy = vi.spyOn(app, 'useGlobalPipes');
 
       enableDynamicAPIValidation(app);
 
@@ -19,7 +20,7 @@ describe('ValidationConfigHelper', () => {
     });
 
     it('should call useGlobalPipes with custom pipe options', () => {
-      const useGlobalPipesSpy = jest.spyOn(app, 'useGlobalPipes');
+      const useGlobalPipesSpy = vi.spyOn(app, 'useGlobalPipes');
       const customOptions = {
         transform: true,
         disableErrorMessages: true,
