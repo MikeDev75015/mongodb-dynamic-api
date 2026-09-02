@@ -117,6 +117,7 @@ describe('AuthModule', () => {
   let spyMongooseModuleForFeature: Mock;
   let spyDynamicApiModuleStateGet: Mock;
   let spyJwtModuleRegister: Mock;
+  let spyPassportModuleRegister: Mock;
   let spyCreateAuthController: Mock;
   let spyCreateAuthServiceProvider: Mock;
   let spyCreateLocalStrategyProvider: Mock;
@@ -129,12 +130,14 @@ describe('AuthModule', () => {
   const AuthGateway = vi.fn();
   const fakeMongooseDynamicModule = { module: 'MongooseDynamicModule' } as unknown as DynamicModule;
   const fakeJwtDynamicModule = { module: 'JwtDynamicModule' } as unknown as DynamicModule;
+  const fakePassportDynamicModule = { module: 'PassportDynamicModule' } as unknown as DynamicModule;
   const fakeSchema = {} as Schema;
   const fakeConnectionName = 'ut-connection-name';
 
   const fakeMongooseModuleForFeature = vi.fn(() => fakeMongooseDynamicModule);
   const fakeDynamicApiModuleStateGet = vi.fn(() => fakeConnectionName);
   const fakeJwtModuleRegister = vi.fn(() => fakeJwtDynamicModule);
+  const fakePassportModuleRegister = vi.fn(() => fakePassportDynamicModule);
 
   beforeEach(() => {
     spyInitializeAuthOptions = vi.spyOn<any, any>(AuthModule, 'initializeAuthOptions');
@@ -145,6 +148,8 @@ describe('AuthModule', () => {
     spyDynamicApiModuleStateGet =
       vi.spyOn(DynamicApiModule.state, 'get').mockImplementation(fakeDynamicApiModuleStateGet);
     spyJwtModuleRegister = vi.spyOn(JwtModule, 'register').mockImplementationOnce(fakeJwtModuleRegister);
+    spyPassportModuleRegister =
+      vi.spyOn(PassportModule, 'register').mockImplementationOnce(fakePassportModuleRegister);
 
     spyCreateAuthController =
       vi.spyOn(AuthHelpers, 'createAuthController').mockImplementationOnce(vi.fn(() => AuthController));
@@ -226,7 +231,7 @@ describe('AuthModule', () => {
       it('should have imports', () => {
         expect(module.imports).toEqual([
           fakeMongooseDynamicModule,
-          PassportModule,
+          fakePassportDynamicModule,
           fakeJwtDynamicModule,
         ]);
 
@@ -234,6 +239,7 @@ describe('AuthModule', () => {
         expect(spyMongooseModuleForFeature)
         .toHaveBeenCalledWith([{ name: UserEntity.name, schema: fakeSchema }], 'ut-connection-name');
         expect(spyDynamicApiModuleStateGet).toHaveBeenCalled();
+        expect(spyPassportModuleRegister).toHaveBeenCalledWith({});
         expect(spyJwtModuleRegister)
         .toHaveBeenCalledWith({
           global: true,
@@ -324,7 +330,7 @@ describe('AuthModule', () => {
         expect(module.imports).toEqual([
           fakeImport,
           fakeMongooseDynamicModule,
-          PassportModule,
+          fakePassportDynamicModule,
           fakeJwtDynamicModule,
         ]);
 
@@ -332,6 +338,7 @@ describe('AuthModule', () => {
         expect(spyMongooseModuleForFeature)
         .toHaveBeenCalledWith([{ name: UserEntity.name, schema: fakeSchema }], fakeConnectionName);
         expect(spyDynamicApiModuleStateGet).toHaveBeenCalled();
+        expect(spyPassportModuleRegister).toHaveBeenCalledWith({});
         expect(spyJwtModuleRegister)
         .toHaveBeenCalledWith({
           global: true,

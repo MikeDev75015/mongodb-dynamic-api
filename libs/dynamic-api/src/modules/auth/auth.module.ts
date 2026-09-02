@@ -158,7 +158,19 @@ export class AuthModule implements NestModule {
           DynamicApiModule.state.get('connectionName'),
         ),
         ...(otpFeatureModule ? [otpFeatureModule] : []),
-        PassportModule,
+        // `@nestjs/core` v12 regressed `reflectOptionalParams()` from `Reflect.getMetadata` (v11,
+        // climbs the prototype chain) to `Reflect.getOwnMetadata` (own class only) — verified by
+        // diffing the two versions' injector.js. This breaks the standard `class Foo extends
+        // AuthGuard('jwt') {}` pattern (JwtAuthGuard/JwtRefreshGuard/LocalAuthGuard below, all used
+        // via `@UseGuards(SomeGuard)`, i.e. DI-instantiated): @nestjs/passport's `AuthGuard()` mixin
+        // marks its own constructor param `@Optional()`, but that metadata lives on the mixin's
+        // `MixinAuthGuard` base class, not on our guard subclasses (which declare no constructor of
+        // their own), so the DI resolver no longer sees it as optional and throws "Nest can't resolve
+        // dependencies ... AuthModuleOptions" instead of falling back to `{}`. Registering
+        // `AuthModuleOptions` for real here (this is also exactly what the passport lib's own
+        // "import PassportModule in each place where AuthGuard() is being used" warning recommends)
+        // sidesteps the bug entirely — the token is found, so the optional-fallback path is never hit.
+        PassportModule.register({}),
         JwtModule.register({
           global: true,
           secret,
