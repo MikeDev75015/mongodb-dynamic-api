@@ -1,27 +1,29 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { ValidationPipeOptions } from '@nestjs/common';
 import * as NestJsCommon from '@nestjs/common';
 import { ValidatorPipe } from './validator-pipe.decorator';
 
-jest.mock('@nestjs/common', () => {
-  const actual = jest.requireActual('@nestjs/common');
+vi.mock('@nestjs/common', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@nestjs/common')>();
   return {
     ...actual,
-    UsePipes: jest.fn(() => () => {}),
-    ValidationPipe: jest.fn(() => () => {}),
+    UsePipes: vi.fn(() => () => {}),
+    ValidationPipe: vi.fn(function ValidationPipe() { return () => {}; }),
   };
 });
 
 describe('ValidatorPipe decorator', () => {
-  let spyUsePipes: jest.SpyInstance;
-  let spyValidationPipe: jest.SpyInstance;
+  let spyUsePipes: Mock;
+  let spyValidationPipe: Mock;
 
   const validationPipeOptions: ValidationPipeOptions = {
     transform: true,
   };
 
   beforeEach(() => {
-    spyUsePipes = jest.spyOn(NestJsCommon, 'UsePipes');
-    spyValidationPipe = jest.spyOn(NestJsCommon, 'ValidationPipe');
+    spyUsePipes = vi.spyOn(NestJsCommon, 'UsePipes');
+    spyValidationPipe = vi.spyOn(NestJsCommon, 'ValidationPipe');
   });
 
   it('should not call UsePipes', () => {
