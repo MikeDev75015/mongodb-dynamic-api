@@ -3,6 +3,7 @@ import type { Mock } from 'vitest';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { InMemoryPresenceAdapter } from './adapters/in-memory-presence.adapter';
 import { RedisPresenceAdapter } from './adapters/redis-presence.adapter';
+import { createPresenceGateway } from './presence.gateway';
 import { DynamicApiPresenceModule } from './presence.module';
 
 vi.mock('../../dynamic-api.module', () => ({
@@ -10,11 +11,11 @@ vi.mock('../../dynamic-api.module', () => ({
 }));
 
 vi.mock('./adapters/redis-presence.adapter', () => ({
-  RedisPresenceAdapter: vi.fn().mockImplementation(() => ({ type: 'redis' })),
+  RedisPresenceAdapter: vi.fn().mockImplementation(function RedisPresenceAdapter() { return { type: 'redis' }; }),
 }));
 
 vi.mock('./adapters/in-memory-presence.adapter', () => ({
-  InMemoryPresenceAdapter: vi.fn().mockImplementation(() => ({ type: 'memory' })),
+  InMemoryPresenceAdapter: vi.fn().mockImplementation(function InMemoryPresenceAdapter() { return { type: 'memory' }; }),
 }));
 
 vi.mock('./presence.gateway', () => ({
@@ -99,7 +100,6 @@ describe('DynamicApiPresenceModule', () => {
           return undefined;
         });
 
-        const { createPresenceGateway } = require('./presence.gateway');
         DynamicApiPresenceModule.register({ adapter: 'memory' });
 
         expect(createPresenceGateway).toHaveBeenCalledWith(gatewayOpts);
@@ -112,7 +112,6 @@ describe('DynamicApiPresenceModule', () => {
           return undefined;
         });
 
-        const { createPresenceGateway } = require('./presence.gateway');
         DynamicApiPresenceModule.register({ adapter: 'memory' });
 
         expect(createPresenceGateway).toHaveBeenCalledWith(broadcastOpts);
@@ -120,7 +119,6 @@ describe('DynamicApiPresenceModule', () => {
 
       it('should fall back to empty object when no gateway options exist', () => {
         mockStateGet.mockReturnValue(undefined);
-        const { createPresenceGateway } = require('./presence.gateway');
 
         DynamicApiPresenceModule.register({ adapter: 'memory' });
 

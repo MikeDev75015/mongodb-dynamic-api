@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import type { Mock } from 'vitest';
-import { BadRequestException, ForbiddenException, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { plainToInstance } from 'class-transformer';
 import { Model, ObjectId, Schema } from 'mongoose';
@@ -908,13 +908,13 @@ describe('BaseAuthService', () => {
       expect(spyLogin).not.toHaveBeenCalled();
     });
 
-    it('should throw a bad request exception if user already exists', async () => {
+    it('should throw a conflict exception if user already exists', async () => {
       const fakeDuplicateKeyError = { code: 11000, keyValue: { login: 'test' } };
       model.create.mockRejectedValueOnce(fakeDuplicateKeyError);
 
       await expect(() => service['register'](userToCreate))
       .rejects
-      .toThrow(new BadRequestException('login \'test\' is already used'));
+      .toThrow(new ConflictException('login \'test\' is already used'));
       expect(spyHandleDuplicateKeyError).toHaveBeenCalledTimes(1);
       expect(spyHandleDuplicateKeyError).toHaveBeenCalledWith(fakeDuplicateKeyError, false);
     });
@@ -1310,19 +1310,19 @@ describe('BaseAuthService', () => {
       const userToCreate = { pass: fakePass };
 
       expect(() => service['checkFieldsValidity'](userToCreate))
-      .toThrow(new BadRequestException([`${fakeLoginField} is required`]));
+      .toThrow(new BadRequestException([`${fakeLoginField} property is required`]));
     });
 
     it('should throw bad request if user to create does not have password field', () => {
       const userToCreate = { login: fakeLogin };
 
       expect(() => service['checkFieldsValidity'](userToCreate))
-      .toThrow(new BadRequestException([`${fakePasswordField} is required`]));
+      .toThrow(new BadRequestException([`${fakePasswordField} property is required`]));
     });
 
     it('should throw bad request if user to create has no fields', () => {
       expect(() => service['checkFieldsValidity']({})).toThrow(
-        new BadRequestException([`${fakeLoginField} is required`, `${fakePasswordField} is required`]),
+        new BadRequestException([`${fakeLoginField} property is required`, `${fakePasswordField} property is required`]),
       );
     });
   });
