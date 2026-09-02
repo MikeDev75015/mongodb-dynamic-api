@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import type { Mock } from 'vitest';
-import { BadRequestException, ConflictException, ForbiddenException, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { plainToInstance } from 'class-transformer';
 import { Model, ObjectId, Schema } from 'mongoose';

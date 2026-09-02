@@ -306,7 +306,7 @@ describe('BaseDeleteManyService', () => {
       service = initService();
       vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       internal(service).auditLog = true;
-      const writeAuditLogSpy = vi
+      const writeAuditLogSpy = jest
         .spyOn(service as unknown as { writeAuditLog: Mock }, 'writeAuditLog')
         .mockResolvedValue(undefined);
       const fakeUser = { id: 'user-1' };
@@ -321,7 +321,7 @@ describe('BaseDeleteManyService', () => {
     it('should not call writeAuditLog when auditLog is not enabled', async () => {
       service = initService();
       vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
-      const writeAuditLogSpy = vi
+      const writeAuditLogSpy = jest
         .spyOn(service as unknown as { writeAuditLog: Mock }, 'writeAuditLog')
         .mockResolvedValue(undefined);
 
@@ -334,7 +334,7 @@ describe('BaseDeleteManyService', () => {
       service = initService([]);
       vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       internal(service).auditLog = true;
-      const writeAuditLogSpy = vi
+      const writeAuditLogSpy = jest
         .spyOn(service as unknown as { writeAuditLog: Mock }, 'writeAuditLog')
         .mockResolvedValue(undefined);
 

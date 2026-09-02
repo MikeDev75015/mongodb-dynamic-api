@@ -194,7 +194,7 @@ describe('BaseUpdateOneService', () => {
       );
       vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
       internal(service).auditLog = true;
-      const writeAuditLogSpy = vi
+      const writeAuditLogSpy = jest
         .spyOn(service as unknown as { writeAuditLog: Mock }, 'writeAuditLog')
         .mockResolvedValue(undefined);
       const fakeUser = { id: 'user-1' };
@@ -211,7 +211,7 @@ describe('BaseUpdateOneService', () => {
         vi.fn().mockResolvedValueOnce(document),
       );
       vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
-      const writeAuditLogSpy = vi
+      const writeAuditLogSpy = jest
         .spyOn(service as unknown as { writeAuditLog: Mock }, 'writeAuditLog')
         .mockResolvedValue(undefined);
 

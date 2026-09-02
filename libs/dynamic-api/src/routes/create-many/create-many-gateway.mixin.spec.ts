@@ -1,5 +1,4 @@
 import { describe, expect, it, test, vi } from 'vitest';
-import type { Mock } from 'vitest';
 import { createMock } from '@test-helpers';
 import { JwtService } from '@nestjs/jwt';
 import { BaseGateway } from '../../gateways';
@@ -153,10 +152,7 @@ describe('CreateManyGatewayMixin', () => {
 
     const fakeResponse = [{ id: '1', field1: 'test' }, { id: '2', field1: 'unit' }];
 
-    // createMock's `get` caches the first fabricated `createMany` mock and keeps serving that same
-    // instance on later reads even after a direct reassignment (this `service` is shared across the
-    // whole describe block) — queue onto the already-cached mock rather than replacing the reference.
-    (service.createMany as Mock).mockResolvedValueOnce(fakeResponse);
+    service.createMany = vi.fn().mockResolvedValueOnce(fakeResponse);
 
     const body = { list: [{ field1: 'test' }, { field1: 'unit' }] };
     const expectedArg = [{ field1: '0 - test' }, { field1: '1 - unit' }];
