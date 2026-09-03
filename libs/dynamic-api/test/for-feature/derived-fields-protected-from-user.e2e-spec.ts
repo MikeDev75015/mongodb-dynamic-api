@@ -23,14 +23,14 @@ import {
   Injectable,
   NestInterceptor,
 } from '@nestjs/common';
-import { Prop, Schema } from '@nestjs/mongoose';
+import { Prop } from '@nestjs/mongoose';
 import mongoose from 'mongoose';
 import { Observable } from 'rxjs';
 import {
   BaseEntity,
   DerivedField,
   DynamicApiModule,
-  DynamicAPISchemaOptions,
+  DynamicApiSchema,
   ProtectedField,
 } from '../../src';
 import { closeTestingApp, server } from '../e2e.setup';
@@ -51,10 +51,10 @@ class FakeUserInterceptor implements NestInterceptor {
 
 // ── Entity definitions ───────────────────────────────────────────────────────
 
-@DynamicAPISchemaOptions({
+@DynamicApiSchema({
+  collection: 'derived-test-items',
   indexes: [{ fields: { firstName: 1 }, options: { unique: true } }],
 })
-@Schema({ collection: 'derived-test-items' })
 class ItemEntity extends BaseEntity {
   @Prop({ type: String, required: true })
   firstName: string;
