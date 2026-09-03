@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, test } from 'vitest';
-import { Type } from '@nestjs/common';
+import { applyDecorators, Type } from '@nestjs/common';
 import { buildDynamicApiModuleOptionsMock } from '../../../__mocks__/dynamic-api.module.mock';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { RouteType } from '../../interfaces';

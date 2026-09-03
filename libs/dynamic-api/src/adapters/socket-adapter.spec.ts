@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, test, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { SocketAdapter } from './socket-adapter';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import * as jwt from 'jsonwebtoken';

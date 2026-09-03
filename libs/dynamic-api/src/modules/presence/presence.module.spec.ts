@@ -11,11 +11,11 @@ vi.mock('../../dynamic-api.module', () => ({
 }));
 
 vi.mock('./adapters/redis-presence.adapter', () => ({
-  RedisPresenceAdapter: vi.fn().mockImplementation(() => ({ type: 'redis' })),
+  RedisPresenceAdapter: vi.fn().mockImplementation(function RedisPresenceAdapter() { return { type: 'redis' }; }),
 }));
 
 vi.mock('./adapters/in-memory-presence.adapter', () => ({
-  InMemoryPresenceAdapter: vi.fn().mockImplementation(() => ({ type: 'memory' })),
+  InMemoryPresenceAdapter: vi.fn().mockImplementation(function InMemoryPresenceAdapter() { return { type: 'memory' }; }),
 }));
 
 vi.mock('./presence.gateway', () => ({

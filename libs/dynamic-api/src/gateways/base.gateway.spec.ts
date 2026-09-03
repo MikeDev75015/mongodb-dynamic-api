@@ -64,7 +64,7 @@ describe('BaseGateway', () => {
       socket.handshake.auth = { token: accessToken };
       const isPublic = false;
       vi.spyOn(DynamicApiModule.state, 'get').mockReturnValue(true);
-      vi.spyOn(jwtService, 'verify').mockImplementation(() => {
+      (jwtService.verify = vi.fn()).mockImplementation(() => {
         throw new Error('verify error');
       });
       const spyLoggerWarn = vi.spyOn(gateway['logger'], 'warn');
@@ -83,7 +83,7 @@ describe('BaseGateway', () => {
       socket.handshake.auth = { token: accessToken };
       const isPublic = false;
       vi.spyOn(DynamicApiModule.state, 'get').mockReturnValue(true);
-      vi.spyOn(jwtService, 'verify').mockReturnValue({
+      (jwtService.verify = vi.fn()).mockReturnValue({
         iat: Date.now() / 1000,
         exp: Date.now() / 1000 + 1000,
       });
@@ -96,7 +96,7 @@ describe('BaseGateway', () => {
       const isPublic = false;
       const fakeUser = { id: 'id', name: 'name' };
       vi.spyOn(DynamicApiModule.state, 'get').mockReturnValue(true);
-      vi.spyOn(jwtService, 'verify').mockReturnValue({
+      (jwtService.verify = vi.fn()).mockReturnValue({
         iat: Date.now() / 1000,
         exp: Date.now() / 1000 + 1000,
         ...fakeUser,

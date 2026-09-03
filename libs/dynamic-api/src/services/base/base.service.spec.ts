@@ -8,13 +8,6 @@ import { BaseEntity, SoftDeletableEntity } from '../../models';
 import { DynamicApiGlobalStateService } from '../dynamic-api-global-state/dynamic-api-global-state.service';
 import { BaseService } from './base.service';
 
-vi.mock('../../dynamic-api.module', () => ({
-  DynamicApiModule: { state: { get: vi.fn() } },
-}));
-
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { DynamicApiModule } = require('../../dynamic-api.module');
-
 class TestEntity extends BaseEntity {
   name: string;
 
@@ -1150,11 +1143,12 @@ describe('BaseService', () => {
 
   describe('invokeAfterSaveCallback', () => {
     let errorSpy: Mock;
+    let getValueSpy: Mock;
 
     beforeEach(() => {
       (service as unknown as { entity: typeof TestEntity }).entity = TestEntity;
       errorSpy = vi.spyOn(service['baseServiceLogger'], 'error').mockImplementation();
-      (DynamicApiModule.state.get as Mock).mockReset();
+      getValueSpy = vi.spyOn(DynamicApiGlobalStateService, 'getValue');
     });
 
     it('should do nothing when callback is undefined', async () => {
@@ -1178,7 +1172,7 @@ describe('BaseService', () => {
       const error = new Error('boom');
       const callback: AfterSaveCallback<TestEntity> = vi.fn().mockRejectedValue(error);
       const onAfterSaveError = vi.fn();
-      (DynamicApiModule.state.get as Mock).mockReturnValue(onAfterSaveError);
+      getValueSpy.mockReturnValue(onAfterSaveError);
 
       await expect(
         service['invokeAfterSaveCallback'](callback, expectedEntity, 'user-1'),
@@ -1209,7 +1203,7 @@ describe('BaseService', () => {
     it('should log once after exhausting all retry attempts', async () => {
       const error = new Error('always fails');
       const callback: AfterSaveCallback<TestEntity> = vi.fn().mockRejectedValue(error);
-      (DynamicApiModule.state.get as Mock).mockReturnValue(undefined);
+      getValueSpy.mockReturnValue(undefined);
 
       await service['invokeAfterSaveCallback'](callback, expectedEntity, undefined, { attempts: 3 });
 
@@ -1231,7 +1225,7 @@ describe('BaseService', () => {
 
     it('should not delay after the last attempt', async () => {
       const callback: AfterSaveCallback<TestEntity> = vi.fn().mockRejectedValue(new Error('boom'));
-      (DynamicApiModule.state.get as Mock).mockReturnValue(undefined);
+      getValueSpy.mockReturnValue(undefined);
       const start = Date.now();
 
       await service['invokeAfterSaveCallback'](callback, expectedEntity, undefined, { attempts: 1, delayMs: 1000 });
@@ -1243,7 +1237,7 @@ describe('BaseService', () => {
       const error = new Error('boom');
       const callback: AfterSaveCallback<TestEntity> = vi.fn().mockRejectedValue(error);
       const hookError = new Error('hook failed');
-      (DynamicApiModule.state.get as Mock).mockReturnValue(vi.fn().mockRejectedValue(hookError));
+      getValueSpy.mockReturnValue(vi.fn().mockRejectedValue(hookError));
 
       await expect(
         service['invokeAfterSaveCallback'](callback, expectedEntity, undefined),
@@ -1256,7 +1250,7 @@ describe('BaseService', () => {
     it('should treat a missing onAfterSaveError hook as a no-op', async () => {
       const error = new Error('boom');
       const callback: AfterSaveCallback<TestEntity> = vi.fn().mockRejectedValue(error);
-      (DynamicApiModule.state.get as Mock).mockReturnValue(undefined);
+      getValueSpy.mockReturnValue(undefined);
 
       await expect(
         service['invokeAfterSaveCallback'](callback, expectedEntity, undefined),

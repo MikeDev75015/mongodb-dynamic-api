@@ -14,7 +14,7 @@ vi.mock('ioredis', () => {
     eval: vi.fn(),
     quit: vi.fn(),
   };
-  const ctor = vi.fn(() => mockInstance);
+  const ctor = vi.fn(function Redis() { return mockInstance; });
   (ctor as unknown as Record<string, unknown>).__instance = mockInstance;
   return { __esModule: true, default: ctor };
 });
