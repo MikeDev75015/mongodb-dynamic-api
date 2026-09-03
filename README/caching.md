@@ -411,7 +411,7 @@ export class OrdersModule {}
 Every write made through a generated HTTP route (`CreateOne`, `UpdateOne`, `DeleteMany`, ...) invalidates its
 entity's cache automatically — you don't need to do anything for that. `DynamicApiCacheService` exists for
 the case that doesn't go through HTTP at all: a cron job, a queue consumer, or any service that fetches its
-model via `DynamicApiGlobalStateService.getEntityModel(Entity)` and writes directly. Nothing there ever
+model via `DynamicApiEntityService.getModel(Entity)` and writes directly. Nothing there ever
 triggers `DynamicApiCacheInterceptor`, so without calling this yourself, a cached `GetMany`/`GetOne` response
 would keep serving stale data until its TTL expires.
 
@@ -421,7 +421,7 @@ no dependency on `@nestjs/cache-manager` being hoisted into your own `node_modul
 ```typescript
 import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { DynamicApiCacheService, DynamicApiGlobalStateService } from 'mongodb-dynamic-api';
+import { DynamicApiCacheService, DynamicApiEntityService } from 'mongodb-dynamic-api';
 import { Conversation } from './conversation.entity';
 
 @Injectable()
@@ -430,7 +430,7 @@ export class ConversationPurgeService {
 
   @Cron('0 * * * *')
   async purgeExpired() {
-    const model = await DynamicApiGlobalStateService.getEntityModel(Conversation);
+    const model = await DynamicApiEntityService.getModel(Conversation);
     await model.deleteMany({ expiresAt: { $lt: new Date() } });
 
     // Nothing else would ever invalidate cached responses for Conversation — this write

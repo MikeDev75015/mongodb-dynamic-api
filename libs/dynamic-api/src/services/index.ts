@@ -1,5 +1,6 @@
-export * from './base/base.service';
-export * from './bcrypt/bcrypt.service';
-export * from './dynamic-api-broadcast/dynamic-api-broadcast.service';
+// `base.service`, `bcrypt.service`, `dynamic-api-broadcast.service` and
+// `dynamic-api-global-state.service` are internal — not part of the public API.
+// `DynamicApiEntityService` exposes the one capability of `DynamicApiGlobalStateService` that
+// consumers are meant to reach directly (resolving a registered entity's Mongoose model).
 export * from './dynamic-api-cache/dynamic-api-cache.service';
-export * from './dynamic-api-global-state/dynamic-api-global-state.service';
+export * from './dynamic-api-entity/dynamic-api-entity.service';
