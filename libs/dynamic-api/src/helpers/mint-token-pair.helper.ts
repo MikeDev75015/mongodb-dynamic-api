@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import type { StringValue } from 'ms';
 import { BaseEntity } from '../models';
 import { BcryptService } from '../services/bcrypt/bcrypt.service';
+import { DynamicApiEntityService } from '../services/dynamic-api-entity/dynamic-api-entity.service';
 import { DynamicApiGlobalStateService } from '../services/dynamic-api-global-state/dynamic-api-global-state.service';
 
 /**
@@ -120,7 +121,11 @@ async function mintTokenPair<Entity extends BaseEntity>(
     const decoded = jwtService.decode(refreshToken);
     const jti: string = decoded && typeof decoded !== 'string' ? decoded['jti'] : '';
     const hashedJti = await new BcryptService().hashPassword(jti);
-    const model = await DynamicApiGlobalStateService.getEntityModel(entity);
+    // Routed through the public DynamicApiEntityService.getModel() (a thin wrapper over this same
+    // call) rather than the internal DynamicApiGlobalStateService directly, so consumer code can
+    // mock model resolution via the same public API surface used everywhere else — mintTokenPair
+    // was the one caller still reaching past it into the non-exported internal class.
+    const model = await DynamicApiEntityService.getModel(entity);
 
     await model.updateOne(
       { _id: user._id || user.id },
