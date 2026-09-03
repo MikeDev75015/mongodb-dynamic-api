@@ -32,8 +32,7 @@ export class SocketAdapter extends IoAdapter {
     let user: unknown;
 
     if (jwtSecret) {
-      const token = (socket.handshake?.auth?.token
-        ?? socket.handshake?.query?.accessToken) as string | undefined;
+      const token = socket.handshake?.auth?.token as string | undefined;
 
       if (token) {
         try {

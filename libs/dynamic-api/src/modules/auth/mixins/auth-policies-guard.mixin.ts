@@ -43,7 +43,7 @@ function AuthSocketPoliciesGuardMixin<Entity extends BaseEntity>(
       const [socket, data, _, _event] = context.getArgs();
 
       if (this.abilityPredicate) {
-        const accessToken = this.getAccessTokenFromSocketQuery(socket);
+        const accessToken = this.getAccessTokenFromSocket(socket);
 
         socket.user = await this.extractUserFromToken(accessToken);
 
