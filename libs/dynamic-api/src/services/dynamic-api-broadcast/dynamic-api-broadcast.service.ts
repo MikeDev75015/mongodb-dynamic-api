@@ -4,8 +4,14 @@ import { resolveBroadcast } from '../../helpers/resolve-broadcast.helper';
 import { BroadcastConfig } from '../../interfaces';
 import { MongoDBDynamicApiLogger } from '../../logger/mongo-dynamic-api.logger';
 
+/**
+ * Broadcasts an event over the same WebSocket server the library's own auto-generated routes
+ * use, applying the same room resolution and error-isolation guarantees. This is the sanctioned
+ * way to emit realtime updates from a **custom route** that bypasses the auto CRUD pipeline
+ * (which otherwise broadcasts on your behalf) — inject it, or instantiate it directly, from
+ * anywhere `emit()` needs to fire manually.
+ */
 @Injectable()
-/** @internal Not part of the public API — will be removed from the package's public exports in v5. */
 export class DynamicApiBroadcastService {
   private static wsServer: Server | null = null;
 
