@@ -294,6 +294,29 @@ describe('BaseAuthService', () => {
         expect(result).toEqual({ accessToken, refreshToken });
       });
 
+      it('should rebuild the new token pair from the freshly-fetched DB user, not the stale decoded-token argument', async () => {
+        // `user` argument simulates a decoded OLD refresh-token payload — stale login value.
+        const staleUser = { ...fakeUser, login: 'stale-login' };
+        const jsonRecord = JSON.stringify({ currentHash: fakeHash });
+        // storedUser (fetched fresh from DB inside refreshToken) carries the up-to-date login.
+        const freshStoredUser = { ...fakeUser, login: 'fresh-login', nickname: jsonRecord };
+        exec
+          .mockResolvedValueOnce(freshStoredUser)   // findOne (storedUser)
+          .mockResolvedValueOnce(freshStoredUser);  // CAS success
+        vi.spyOn(jwtService, 'decode')
+          .mockReturnValueOnce({ jti: 'input-jti' })
+          .mockReturnValueOnce({ jti: 'new-jti' });
+        spyBcryptCompare.mockResolvedValueOnce(true);
+        spyBcriptHashPassword.mockResolvedValueOnce('new-hash');
+
+        await service['refreshToken'](staleUser, 'valid-token');
+
+        expect(spyBuildUserFields).toHaveBeenCalledWith(
+          expect.objectContaining({ login: 'fresh-login', id: fakeUser._id.toString() }),
+          expect.arrayContaining(['login']),
+        );
+      });
+
       it('should support legacy plain hash format (backward compat)', async () => {
         exec
           .mockResolvedValueOnce({ ...fakeUser, nickname: fakeHash })  // findOne (legacy)
@@ -367,6 +390,21 @@ describe('BaseAuthService', () => {
           expect(model.findOneAndUpdate).not.toHaveBeenCalled();
           expect(model.updateOne).not.toHaveBeenCalled();
           expect(result).toEqual({ accessToken, refreshToken });
+        });
+
+        it('should also rebuild the validated pair from the freshly-fetched DB user, not the stale argument', async () => {
+          const staleUser = { ...fakeUser, login: 'stale-login' };
+          const jsonRecord = JSON.stringify({ currentHash: fakeHash });
+          exec.mockResolvedValueOnce({ ...fakeUser, login: 'fresh-login', nickname: jsonRecord });
+          vi.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'input-jti' });
+          spyBcryptCompare.mockResolvedValueOnce(true);
+
+          await service['refreshToken'](staleUser, 'valid-token');
+
+          expect(spyBuildUserFields).toHaveBeenCalledWith(
+            expect.objectContaining({ login: 'fresh-login', id: fakeUser._id.toString() }),
+            expect.arrayContaining(['login']),
+          );
         });
 
         it('should throw 401 on invalid token even when rotate=false', async () => {

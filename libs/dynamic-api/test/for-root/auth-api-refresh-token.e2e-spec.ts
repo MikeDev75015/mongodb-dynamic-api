@@ -5,7 +5,7 @@ import mongoose from 'mongoose';
 import { DynamicApiModule } from '../../src';
 import { closeTestingApp, server } from '../e2e.setup';
 import 'dotenv/config';
-import { wait } from '../utils';
+import { getModelFromEntity, wait } from '../utils';
 import { createBasicUserEntity, createUserWithRefreshTokenEntity, initModule } from '../shared';
 
 describe('DynamicApiModule forRoot - POST /auth/refresh-token (e2e)', () => {
@@ -311,6 +311,53 @@ describe('DynamicApiModule forRoot - POST /auth/refresh-token (e2e)', () => {
 
       const { status } = await server.post('/auth/refresh-token', {}, { headers });
       expect(status).toBe(401);
+    });
+  });
+
+  describe('claims reflect the current DB state, not the stale token payload', () => {
+    let app: INestApplication;
+    let jwtService: JwtService;
+    let refreshToken: string;
+
+    beforeEach(async () => {
+      const User = createUserWithRefreshTokenEntity();
+      app = await initModule({
+        useAuth: {
+          userEntity: User,
+          jwt: {
+            secret: 'test-secret',
+            expiresIn: '15m',
+            refreshTokenExpiresIn: '7d',
+          },
+          login: { additionalFields: ['role'] },
+          refreshToken: { refreshTokenField: 'refreshTokenHash' },
+        },
+      });
+      jwtService = app.get<JwtService>(JwtService);
+
+      await server.post('/auth/register', { email: 'promoted@test.co', password: 'test' });
+      const { body } = await server.post('/auth/login', { email: 'promoted@test.co', password: 'test' });
+      refreshToken = body.refreshToken;
+
+      const accessDecoded = jwtService.decode(body.accessToken) as { role: string };
+      expect(accessDecoded.role).toBe('user'); // sanity check: role at login time
+    });
+
+    it('should mint the new access token with a field flipped directly in DB after login, not the stale JWT value', async () => {
+      // Simulate an out-of-band promotion (admin script / direct DB write) — no
+      // logout/login round-trip through the application.
+      const User = createUserWithRefreshTokenEntity();
+      const model = await getModelFromEntity(User);
+      await model.updateOne({ email: 'promoted@test.co' }, { $set: { role: 'admin' } });
+
+      const headers = { Authorization: `Bearer ${refreshToken}` };
+      const { body, status } = await server.post('/auth/refresh-token', {}, { headers });
+
+      expect(status).toBe(200);
+      const accessDecoded = jwtService.decode(body.accessToken) as { role: string };
+      const refreshDecoded = jwtService.decode(body.refreshToken) as { role: string };
+      expect(accessDecoded.role).toBe('admin');
+      expect(refreshDecoded.role).toBe('admin');
     });
   });
 });

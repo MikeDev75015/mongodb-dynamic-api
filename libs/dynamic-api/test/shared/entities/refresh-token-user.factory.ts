@@ -15,6 +15,9 @@ export function createUserWithRefreshTokenEntity() {
 
     @Prop({ type: String, default: null })
     refreshTokenHash: string;
+
+    @Prop({ type: String, default: 'user' })
+    role: 'admin' | 'user';
   }
 
   return UserWithRefreshTokenEntity;

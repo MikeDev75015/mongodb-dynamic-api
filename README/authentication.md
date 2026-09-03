@@ -499,6 +499,8 @@ Cookie: refreshToken=<refreshToken>
 
 > **Note:** If `refreshTokenField` is configured, each call rotates the stored hash, effectively invalidating any previously issued refresh token.
 
+> **Note:** The new token pair's claims (`loginField`, `additionalRequestFields`) are always rebuilt from the **current database document**, not from the payload decoded off the incoming refresh token. A field changed directly in the database (e.g. `isAdmin`, `isActive`) is reflected on the very next refresh — no full logout/login round-trip required.
+
 ---
 
 ### 7. Logout ⭐ *New in v4*
@@ -887,6 +889,8 @@ Register `GoogleAuthController` the same way as any hand-written controller — 
 | `refreshTokenField` | `useAuth.refreshToken.refreshTokenField` | Store the refresh-token record on a different field, or force server-side storage without a global default |
 
 > **Requirements:** `useAuth` must be configured in `forRoot` (that's where the JWT secrets/expirations come from — `mintTokenPair` throws a descriptive error otherwise), and `entity` must be registered via `forRoot`/`forFeature`. `user` must carry `_id`/`id` and the login field — typically a document you already fetched or created via your own `Model`/service.
+
+> **Testing/mocking:** when `refreshTokenField` applies, `mintTokenPair` resolves the entity's Mongoose model through the public `DynamicApiEntityService.getModel()` — the same accessor used in [`DynamicApiCacheService`'s cron-job example](./caching.md#dynamicapicacheservice). Mock/spy on `DynamicApiEntityService.getModel` to isolate a unit test that calls `mintTokenPair` from a real Mongo connection.
 
 ---
 

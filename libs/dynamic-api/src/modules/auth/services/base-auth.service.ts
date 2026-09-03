@@ -354,12 +354,20 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
       return this.handleInvalidCurrentJti(incomingJti, record, userId);
     }
 
+    // Rebuild the new access/refresh token claims (additionalRequestFields included) from
+    // storedUser — the document just fetched above to validate rotation — instead of the
+    // `user` argument, which is only the payload decoded from the OLD refresh token. Using
+    // `user` here silently re-signs stale claims (e.g. isAdmin/isActive) forever, since a
+    // refresh never re-reads the DB otherwise: a right flipped directly in DB stays invisible
+    // to the API until a real logout/login, in either direction.
+    const freshUser = { ...storedUser, id: storedUser._id.toString() } as Entity;
+
     if (this.rotate === false) {
       // Persistent-token mode: validate only, no rotation.
-      return this.buildTokenPair(user);
+      return this.buildTokenPair(freshUser);
     }
 
-    return this.rotateCasOrThrow(userId, storedRaw, incomingJti, user, record);
+    return this.rotateCasOrThrow(userId, storedRaw, incomingJti, freshUser, record);
   }
 
   /**
