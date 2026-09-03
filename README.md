@@ -61,6 +61,23 @@
 > ### Removed — `DeepPartial` typo alias
 > `utils/deep-patial.ts` (a typo'd duplicate of `deep-partial.ts`, already marked "will be removed in v5") is deleted. `DeepPartial` itself is still exported — import it as before, from the main package.
 >
+> ### Changed — `@DynamicApiSchema` replaces `@Schema` + `@DynamicApiSchemaOptions`
+> The old stacked pattern:
+> ```typescript
+> @DynamicApiSchemaOptions({ indexes: [...] })
+> @Schema({ collection: 'users' })
+> export class User extends BaseEntity {}
+> ```
+> is now a single decorator taking the union of mongoose's own `SchemaOptions` and DynamicAPI's extras:
+> ```typescript
+> @DynamicApiSchema({
+>   collection: 'users',
+>   indexes: [{ fields: { email: 1 }, options: { unique: true } }],
+> })
+> export class User extends BaseEntity {}
+> ```
+> `DynamicApiSchemaOptions`/`DynamicAPISchemaOptions` (the old decorator) and `DynamicApiSchemaOptionsInterface`/`DynamicAPISchemaOptionsInterface` are gone — `DynamicApiSchemaOptions` is now the type name for just the MDA-specific options (`indexes`/`hooks`/`customInit`). Mongoose's own `@Schema()` still works standalone if you want to call it yourself. See [schema-options.md](./README/schema-options.md).
+>
 > ### Unaffected
 > `DynamicApiCacheService`, `DynamicApiEntityService`, `BcryptService`, `DynamicApiBroadcastService`, `DynamicApiModule`, `DynamicApiHealthModule`, `DynamicApiPresenceModule`, all `decorators/`, all `predicates/`, `BaseEntity`/`SoftDeletableEntity`, every documented route-config/callback/auth/websocket/caching/authorization/validation/schema-options interface and type, and everything else shown in this README and `README/*.md` — none of it moved or changed shape. `DynamicApiPresenceModule`'s DI token `DYNAMIC_API_PRESENCE_ADAPTER` and the `PresenceAdapter` interface are also unaffected — only the internal `InMemoryPresenceAdapter`/`RedisPresenceAdapter` concrete classes are gone, since [Presence](./README/presence.md) was always meant to be consumed through the module's `register()` options and the `PresenceAdapter` DI token, never by importing a concrete adapter class directly.
 >
