@@ -1,5 +1,30 @@
 Changelog
 
+## [4.25.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.24.1...v4.25.0) (2026-09-03)
+
+### guards,cache
+
+* **guards,cache:** bypass global HTTP-only guard/interceptor for websocket contexts under Nest 12 ([0af3125](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/0af3125efa0dace6473822451b9720ea66695cdb))
+
+### auth
+
+* **auth:** register AuthModuleOptions to fix Nest 12 AuthGuard() DI regression ([0dbaaec](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/0dbaaec57ce928117041844da9953c3964114270))
+
+### vitest
+
+* **vitest:** 3 real production bugs surfaced by the e2e Vitest batch conversion ([3cca546](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/3cca546c95245990d621181f1a62876cde9f8524))
+* **vitest:** convert all 53 e2e-spec files + shared e2e.setup.ts (Phase 3 complete) ([392266f](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/392266f601d67aec153639791a7e52c9976957c5))
+* **vitest:** convert the last 6 jest.requireActual unit specs (Phase 3 unit specs done) ([340725d](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/340725d822f3de8ab2ce763d4417aaa04d287336)), closes [#2](https://github.com/MikeDev75015/mongodb-dynamic-api/issues/2)
+* **vitest:** cut CI over from Jest to Vitest (Phase 4) ([5aa9e5b](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/5aa9e5bab94357f07a81bc000409f34af630ecfb))
+* **vitest:** register a native require() hook for .ts, closing the schematics gap ([eab202c](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/eab202c7097e3a1e1d5f7c3bd0ea0f483cce7106))
+* **vitest:** repair 22 spec files after switching to a real vitest run (Phase 3) ([06e0e99](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/06e0e9907c6e7b1f389826e36f117ec7bfd819c9))
+* **vitest:** stop mint-token-pair from resetting global state on every call ([905fe7a](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/905fe7a5458cf7dc2fcf70c305f75e8bec44f35a))
+
+### test
+
+* **test:** Vitest codemod for 154 unit specs + 2 shared mock fixtures (migration Phase 3, partial) ([694faa6](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/694faa641b7d530e2b7d028d28bff0fbd15bbe0f)), closes [#2](https://github.com/MikeDev75015/mongodb-dynamic-api/issues/2)
+* **test:** wire SWC into Vitest, convert 2 pilot unit specs (migration Phase 2) ([bf42159](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/bf42159d39b1f0005c7a37052be91ad4473879c5))
+
 ## [4.24.1](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.24.0...v4.24.1) (2026-09-01)
 
 ### aggregate
