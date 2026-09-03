@@ -13,7 +13,7 @@ export class JwtSocketAuthGuard implements CanActivate {
   public async canActivate(context: ExecutionContext): Promise<boolean> {
     const [socket] = context.getArgs();
 
-    const accessToken = this.getAccessTokenFromSocketQuery(socket);
+    const accessToken = this.getAccessTokenFromSocket(socket);
 
     const user = await this.extractUserFromToken(accessToken);
 
@@ -26,9 +26,8 @@ export class JwtSocketAuthGuard implements CanActivate {
     return true;
   }
 
-  protected getAccessTokenFromSocketQuery(socket: ExtendedSocket): string {
-    const accessToken = socket.handshake.auth?.token
-      ?? socket.handshake.query?.accessToken as string;
+  protected getAccessTokenFromSocket(socket: ExtendedSocket): string {
+    const accessToken = socket.handshake.auth?.token as string;
 
     if (!accessToken) {
       throw new WsException('Unauthorized');

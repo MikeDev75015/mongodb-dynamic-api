@@ -54,22 +54,6 @@ describe('JwtSocketGuard', () => {
       expect(typeof guard.canActivate).toBe('function');
     });
 
-    it('should allow access with valid JWT via query.accessToken', async () => {
-      const accessToken = 'valid.jwt.token';
-      query['accessToken'] = accessToken;
-      const verifyAsyncSpy = vi.spyOn(JwtService.prototype, 'verifyAsync').mockResolvedValueOnce({
-        user,
-      });
-
-      const result = await guard.canActivate(context);
-
-      expect(result).toBe(true);
-      expect(verifyAsyncSpy).toHaveBeenCalledWith(accessToken, {
-        secret: 'jwtSecret',
-        ignoreExpiration: false,
-      });
-    });
-
     it('should allow access with valid JWT via auth.token', async () => {
       const accessToken = 'valid.jwt.token.from.auth';
       auth['token'] = accessToken;
@@ -86,32 +70,22 @@ describe('JwtSocketGuard', () => {
       });
     });
 
-    it('should prefer auth.token over query.accessToken', async () => {
-      const authToken = 'auth.token.value';
-      const queryToken = 'query.token.value';
-      auth['token'] = authToken;
-      query['accessToken'] = queryToken;
-      const verifyAsyncSpy = vi.spyOn(JwtService.prototype, 'verifyAsync').mockResolvedValueOnce({
-        user,
-      });
+    it('ignores a token passed via the deprecated query.accessToken, v5 only reads auth.token', async () => {
+      query['accessToken'] = 'query.token.value';
+      const verifyAsyncSpy = vi.spyOn(JwtService.prototype, 'verifyAsync');
 
-      const result = await guard.canActivate(context);
-
-      expect(result).toBe(true);
-      expect(verifyAsyncSpy).toHaveBeenCalledWith(authToken, {
-        secret: 'jwtSecret',
-        ignoreExpiration: false,
-      });
+      await expect(guard.canActivate(context)).rejects.toThrow(WsException);
+      expect(verifyAsyncSpy).not.toHaveBeenCalled();
     });
 
     it('should deny access if no access token is provided', async () => {
-      query['accessToken'] = undefined;
+      auth['token'] = undefined;
 
       await expect(guard.canActivate(context)).rejects.toThrow(WsException);
     });
 
     it('should deny access with invalid JWT', async () => {
-      query['accessToken'] = 'valid.jwt.token';
+      auth['token'] = 'valid.jwt.token';
       vi.spyOn(JwtService.prototype, 'verifyAsync').mockRejectedValueOnce(
         new Error('Invalid token'),
       );
@@ -120,7 +94,7 @@ describe('JwtSocketGuard', () => {
     });
 
     it('should deny access if user data is not present in the token', async () => {
-      query['accessToken'] = 'valid.jwt.token';
+      auth['token'] = 'valid.jwt.token';
       vi.spyOn(JwtService.prototype, 'verifyAsync').mockResolvedValueOnce({});
 
       await expect(guard.canActivate(context)).rejects.toThrow(WsException);
