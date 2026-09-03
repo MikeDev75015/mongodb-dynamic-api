@@ -26,6 +26,45 @@
 ---
 
 > [!WARNING]
+> **v5 — Breaking changes.** The package's public export surface was curated: internal implementation classes, mixins, builders and helpers that were never meant to be imported directly are no longer exported from `mongodb-dynamic-api`. Everything documented in this README and in `README/*.md` is unaffected.
+>
+> <details>
+> <summary>📋 Full list of removed public exports (v4 → v5)</summary>
+>
+> ### Why
+> Since v1, every internal file was re-exported through `export *` barrels, so essentially every class/function/type under `libs/dynamic-api/src/**` leaked into the package's public API — including plumbing that only exists to build the auto-generated routes internally. None of it was ever documented, and importing it directly was never a supported usage. v5 curates the barrel down to what real consumers actually use.
+>
+> ### Removed — routes internals
+> Every `Base*Service`, controller/gateway/presenter/body mixin, controller/gateway/service interface, route `*Module` class and route `*.helper.ts` factory function for all 12 route types (`Aggregate`, `CreateOne`/`CreateMany`, `UpdateOne`/`UpdateMany`, `ReplaceOne`, `DuplicateOne`/`DuplicateMany`, `DeleteOne`/`DeleteMany`, `GetOne`/`GetMany`), plus `createCustomRouteController`/`createCustomRouteGateway` and `createCachePurgeController`.
+>
+> ### Removed — base services
+> `BaseService`, `BcryptService`, `DynamicApiBroadcastService`, `DynamicApiGlobalStateService`.
+> `DynamicApiGlobalStateService.getEntityModel()` — the one capability consumers actually relied on (resolving a registered entity's Mongoose model outside the HTTP cycle) — is now exposed through a new, narrow **`DynamicApiEntityService.getModel(Entity)`**. See [caching.md](./README/caching.md) for the updated example.
+>
+> ### Removed — mixins & builders
+> `RoutePoliciesGuardMixin`, `SocketPoliciesGuardMixin`, `EntityBodyMixin`, `EntityPresenterMixin`, `AuthDecoratorsBuilder`, `RouteDecoratorsBuilder`.
+>
+> ### Removed — guards, gateways, interceptors, filters, logger
+> `BasePoliciesGuard`, `BaseSocketPoliciesGuard`, `DynamicApiJwtAuthGuard`, `JwtSocketGuard` and every internal auth guard (`JwtAuthGuard`, `JwtRefreshGuard`, `JwtSocketAuthGuard`, `JwtSocketRefreshGuard`, `LocalAuthGuard`, `PasswordlessGuard`, `ResetPasswordGuard`); `BaseGateway`, `createDynamicApiBroadcastGateway`; `DynamicApiCacheInterceptor`, `MergeIdParamInterceptor`; `DynamicAPIWsExceptionFilter`; `MongoDBDynamicApiLogger`.
+>
+> ### Removed — internal DTOs & decorators
+> `ManyEntityQuery`, `DeletePresenter`, `EntityParam`, `EntityQuery`; `ApiEndpointVisibility`, `RateLimit`, `ValidatorPipe`, `IS_PUBLIC_KEY`.
+>
+> ### Removed — internal interfaces
+> `DynamicApiDecoratorBuilder`, `PoliciesGuard`, `PoliciesGuardConstructor`, `AuthPoliciesGuardConstructor`, `RouteModule`, `DYNAMIC_API_GLOBAL_STATE`, `Credentials`, `EntitySchemas`, `DynamicApiGlobalState`, `AfterSaveCallbackConfig`, `GatewayResponse`.
+>
+> ### Removed — internal modules & helpers
+> `AuthModule`, `DynamicApiConfigModule`, and every internal auth controller/gateway/policies-guard mixin, `BaseAuthService`, `JwtStrategy`, `JwtRefreshStrategy`; `HealthController`/`createHealthController`; `PresenceController`, `InMemoryPresenceAdapter`, `RedisPresenceAdapter`, `createPresenceGateway`. Most of `helpers/**` (internal wiring only — the documented `enableDynamicAPI*` functions, `mintTokenPair` and `parsePagingParams` are unaffected).
+>
+> ### Removed — `DeepPartial` typo alias
+> `utils/deep-patial.ts` (a typo'd duplicate of `deep-partial.ts`, already marked "will be removed in v5") is deleted. `DeepPartial` itself is still exported — import it as before, from the main package.
+>
+> ### Unaffected
+> `DynamicApiCacheService`, `DynamicApiEntityService`, `DynamicApiModule`, `DynamicApiHealthModule`, `DynamicApiPresenceModule`, all `decorators/`, all `predicates/`, `BaseEntity`/`SoftDeletableEntity`, every documented route-config/callback/auth/websocket/caching/authorization/validation/schema-options interface and type, and everything else shown in this README and `README/*.md` — none of it moved or changed shape.
+>
+> </details>
+
+> [!WARNING]
 > **v4 — Breaking changes.** Dual-token auth (`accessToken` + `refreshToken`), new default expiry (`expiresIn: '15m'`), 2 new endpoints (`/auth/refresh-token`, `/auth/logout`).
 >
 > <details>
