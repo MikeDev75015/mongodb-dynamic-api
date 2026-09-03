@@ -5,7 +5,7 @@ import { createMock } from '@test-helpers';
 import { validate } from 'class-validator';
 import { Error as MongooseError, Model } from 'mongoose';
 import { BaseEntity } from '../models';
-import { DynamicApiGlobalStateService } from '../services';
+import { DynamicApiGlobalStateService } from '../services/dynamic-api-global-state/dynamic-api-global-state.service';
 import { IsUnique } from './is-unique.decorator';
 
 class TargetEntity extends BaseEntity {

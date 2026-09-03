@@ -7,7 +7,7 @@ import { BaseEntity } from '../../models';
 import { GetOneGatewayConstructor } from './get-one-gateway.interface';
 import { GetOneGatewayMixin } from './get-one-gateway.mixin';
 import { GetOneService } from './get-one-service.interface';
-import { EntityParam } from '../../dtos';
+import { EntityParam } from '../../dtos/entity.param';
 
 describe('GetOneGatewayMixin', () => {
   class TestEntity extends BaseEntity {

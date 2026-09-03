@@ -1,10 +1,11 @@
 import { DynamicModule, Module, ModuleMetadata, Type, ValidationPipeOptions } from '@nestjs/common';
 import { GatewayMetadata } from '@nestjs/websockets';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { getDisplayedName, initializeConfigFromOptions } from '../../helpers';
+import { getDisplayedName } from '../../helpers/format.helper';
+import { initializeConfigFromOptions } from '../../helpers/socket-config.helper';
 import { CreateOneRouteConfig, DynamicApiControllerOptions, DynamicApiWebSocketOptions } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import { DynamicApiBroadcastService } from '../../services';
+import { DynamicApiBroadcastService } from '../../services/dynamic-api-broadcast/dynamic-api-broadcast.service';
 import { createCreateOneController, createCreateOneGateway, createCreateOneServiceProvider } from './create-one.helper';
 
 /** @internal Not part of the public API — will be removed from the package's public exports in v5. */

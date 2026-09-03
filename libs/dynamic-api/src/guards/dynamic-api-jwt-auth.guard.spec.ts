@@ -6,7 +6,7 @@ import { Reflector } from '@nestjs/core';
 import { ExecutionContext } from '@nestjs/common';
 import { DynamicApiModule } from '../dynamic-api.module';
 import { DynamicApiJwtAuthGuard } from './dynamic-api-jwt-auth.guard';
-import { DynamicApiGlobalState } from '../interfaces';
+import { DynamicApiGlobalState } from '../interfaces/dynamic-api-global-state.interface';
 
 describe('DynamicApiJwtAuthGuard', () => {
   let guard: DynamicApiJwtAuthGuard;

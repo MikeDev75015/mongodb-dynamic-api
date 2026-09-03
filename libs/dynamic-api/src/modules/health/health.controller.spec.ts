@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ServiceUnavailableException, Type } from '@nestjs/common';
 import { Connection } from 'mongoose';
-import { IS_PUBLIC_KEY } from '../../decorators';
+import { IS_PUBLIC_KEY } from '../../decorators/public.decorator';
 import { createHealthController } from './health.controller';
 
 describe('createHealthController', () => {

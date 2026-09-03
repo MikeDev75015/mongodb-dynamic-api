@@ -3,7 +3,7 @@ import { createMock } from '@test-helpers';
 import { ForbiddenException, Type, UnauthorizedException, ValidationPipeOptions } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { BaseEntity } from '../../models';
-import { DynamicApiBroadcastService } from '../../services';
+import { DynamicApiBroadcastService } from '../../services/dynamic-api-broadcast/dynamic-api-broadcast.service';
 import {
   authServiceProviderName,
   createAuthController, createAuthGateway,

@@ -5,15 +5,18 @@ import { plainToInstance } from 'class-transformer';
 import { DynamicAPIWsExceptionFilter } from '../../filters';
 import { BaseGateway } from '../../gateways';
 import { JwtSocketGuard } from '../../guards';
-import { addVersionSuffix, getMixinData, provideName, warnIfPagingResultDropped } from '../../helpers';
+import { addVersionSuffix } from '../../helpers/versioning-config.helper';
+import { getMixinData } from '../../helpers/mixin-data.helper';
+import { provideName } from '../../helpers/format.helper';
+import { warnIfPagingResultDropped } from '../../helpers/paging-presenter-warning.helper';
 import {
   Aggregatable,
   DynamicApiControllerOptions,
   DynamicAPIRouteConfig,
   ExtendedSocket,
-  GatewayResponse,
   Mappable,
 } from '../../interfaces';
+import { GatewayResponse } from '../../interfaces/dynamic-api-web-socket.interface';
 import { SocketPoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { AggregateGateway, AggregateGatewayConstructor } from './aggregate-gateway.interface';

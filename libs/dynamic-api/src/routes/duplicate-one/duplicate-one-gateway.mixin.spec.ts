@@ -7,7 +7,7 @@ import { BaseEntity } from '../../models';
 import { DuplicateOneGatewayConstructor } from './duplicate-one-gateway.interface';
 import { DuplicateOneGatewayMixin } from './duplicate-one-gateway.mixin';
 import { DuplicateOneService } from './duplicate-one-service.interface';
-import { EntityParam } from '../../dtos';
+import { EntityParam } from '../../dtos/entity.param';
 
 describe('DuplicateOneGatewayMixin', () => {
   class TestEntity extends BaseEntity {

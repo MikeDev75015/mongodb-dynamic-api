@@ -4,14 +4,17 @@ import { ConnectedSocket, MessageBody, SubscribeMessage, WsException } from '@ne
 import { DynamicAPIWsExceptionFilter } from '../../filters';
 import { BaseGateway } from '../../gateways';
 import { JwtSocketGuard } from '../../guards';
-import { addVersionSuffix, getMixinData, isEmpty, provideName } from '../../helpers';
+import { addVersionSuffix } from '../../helpers/versioning-config.helper';
+import { getMixinData } from '../../helpers/mixin-data.helper';
+import { isEmpty } from '../../helpers/lodash.helper';
+import { provideName } from '../../helpers/format.helper';
 import {
   DynamicApiControllerOptions,
   DynamicAPIRouteConfig,
   ExtendedSocket,
-  GatewayResponse,
   Mappable,
 } from '../../interfaces';
+import { GatewayResponse } from '../../interfaces/dynamic-api-web-socket.interface';
 import { SocketPoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { CreateManyBodyMixin } from './create-many-body.mixin';

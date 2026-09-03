@@ -4,14 +4,13 @@ import { PipelineStage } from 'mongodb-pipeline-builder';
 import { Model } from 'mongoose';
 import { DynamicApiModule } from '../dynamic-api.module';
 import { BasePoliciesGuard, BaseSocketPoliciesGuard } from '../guards';
-import { pascalCase, provideName } from '../helpers';
+import { pascalCase, provideName } from '../helpers/format.helper';
 import {
   AbilityPredicate, AuthAbilityPredicate,
-  PoliciesGuard,
-  PoliciesGuardConstructor,
   PredicateBehavior,
   RouteType,
 } from '../interfaces';
+import { PoliciesGuard, PoliciesGuardConstructor } from '../interfaces/dynamic-api-policy-handler.interface';
 import { BaseEntity } from '../models';
 
 interface RoutePoliciesGuardMixinOptions {

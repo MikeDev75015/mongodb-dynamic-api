@@ -1,6 +1,6 @@
 import { DynamicApiRequest } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import { DynamicApiBroadcastService } from '../../services';
+import { DynamicApiBroadcastService } from '../../services/dynamic-api-broadcast/dynamic-api-broadcast.service';
 import { DuplicateManyService } from './duplicate-many-service.interface';
 
 interface DuplicateManyController<Entity extends BaseEntity, Body = unknown, Response = unknown> {

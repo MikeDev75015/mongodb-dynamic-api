@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import type { Mock } from 'vitest';
 import { plainToInstance } from 'class-transformer';
-import { MongoDBDynamicApiLogger } from '../logger';
+import { MongoDBDynamicApiLogger } from '../logger/mongo-dynamic-api.logger';
 import { BaseEntity } from '../models';
 import { CreateManyBodyMixin } from '../routes';
 import { DynamicApiGlobalStateService } from '../services/dynamic-api-global-state/dynamic-api-global-state.service';

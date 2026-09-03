@@ -1,6 +1,6 @@
 import { DeleteResult, DynamicApiRequest } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import { DynamicApiBroadcastService } from '../../services';
+import { DynamicApiBroadcastService } from '../../services/dynamic-api-broadcast/dynamic-api-broadcast.service';
 import { DeleteOneService } from './delete-one-service.interface';
 
 interface DeleteOneController<_Entity extends BaseEntity, Response = unknown> {

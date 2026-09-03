@@ -12,19 +12,19 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
 import { WebSocketGateway } from '@nestjs/websockets';
 import { Model } from 'mongoose';
-import { ValidatorPipe } from '../../decorators';
+import { ValidatorPipe } from '../../decorators/validator-pipe.decorator';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { provideName } from '../../helpers';
+import { provideName } from '../../helpers/format.helper';
+import { AfterSaveCallbackConfig } from '../../interfaces/dynamic-api-service-callback.interface';
 import {
   DynamicApiControllerOptions,
   DynamicAPIRouteConfig,
   BeforeSaveCallback,
-  AfterSaveCallbackConfig,
   DynamicAPIServiceProvider,
   GatewayOptions,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import { DynamicApiBroadcastService } from '../../services';
+import { DynamicApiBroadcastService } from '../../services/dynamic-api-broadcast/dynamic-api-broadcast.service';
 import { BaseDuplicateOneService } from './base-duplicate-one.service';
 import { DuplicateOneControllerConstructor } from './duplicate-one-controller.interface';
 import { DuplicateOneControllerMixin } from './duplicate-one-controller.mixin';

@@ -1,7 +1,7 @@
 import { JwtService } from '@nestjs/jwt';
 import { Response } from 'express';
 import { BaseEntity } from '../../../models';
-import { DynamicApiBroadcastService } from '../../../services';
+import { DynamicApiBroadcastService } from '../../../services/dynamic-api-broadcast/dynamic-api-broadcast.service';
 import { ChangePasswordDto } from '../dtos/change-password.dto';
 import { ResetPasswordDto } from '../dtos/reset-password.dto';
 import { AuthService, LoginResponse } from './auth-service.interface';

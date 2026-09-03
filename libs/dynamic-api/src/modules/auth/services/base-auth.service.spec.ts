@@ -6,7 +6,8 @@ import { plainToInstance } from 'class-transformer';
 import { Model, ObjectId, Schema } from 'mongoose';
 import { DynamicApiModule } from '../../../dynamic-api.module';
 import { BaseEntity } from '../../../models';
-import { BcryptService, DynamicApiGlobalStateService } from '../../../services';
+import { BcryptService } from '../../../services/bcrypt/bcrypt.service';
+import { DynamicApiGlobalStateService } from '../../../services/dynamic-api-global-state/dynamic-api-global-state.service';
 import { BaseAuthService } from './base-auth.service';
 
 class User extends BaseEntity {

@@ -1,6 +1,6 @@
 import { plainToInstance } from 'class-transformer';
 import { ClientSession, Model } from 'mongoose';
-import { DeletePresenter } from '../../dtos';
+import { DeletePresenter } from '../../dtos/delete.presenter';
 import {
   BeforeSaveDeleteManyCallback,
   BeforeSaveDeleteManyContext,
@@ -10,7 +10,7 @@ import {
   CascadeConfig,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import { BaseService } from '../../services';
+import { BaseService } from '../../services/base/base.service';
 import { DeleteManyService } from './delete-many-service.interface';
 
 export abstract class BaseDeleteManyService<Entity extends BaseEntity>

@@ -4,7 +4,7 @@ import { createMock } from '@test-helpers';
 import { PipelineBuilder } from 'mongodb-pipeline-builder';
 import { Model } from 'mongoose';
 import { BaseEntity } from '../models';
-import { DynamicApiGlobalStateService } from '../services';
+import { DynamicApiGlobalStateService } from '../services/dynamic-api-global-state/dynamic-api-global-state.service';
 import { DynamicApiRepository, RepositoryHelper } from './repository.helper';
 
 describe('RepositoryHelper', () => {

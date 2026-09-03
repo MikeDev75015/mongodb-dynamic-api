@@ -1,7 +1,7 @@
 import { Type, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { Public } from '../../decorators';
-import { DynamicApiDecoratorBuilder } from '../../interfaces';
+import { DynamicApiDecoratorBuilder } from '../../interfaces/dynamic-api-decorator-builder.interface';
 import { JwtAuthGuard } from '../../modules';
 
 /** @internal Not part of the public API — will be removed from the package's public exports in v5. */
