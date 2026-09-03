@@ -1,5 +1,178 @@
 Changelog
 
+## [5.0.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.24.1...v5.0.0) (2026-09-03)
+
+### ⚠ BREAKING CHANGES
+
+* **websockets:** WebSocket clients connecting with `io(url, { query: {
+accessToken } })` are no longer authenticated — switch to `io(url, { auth: {
+token } })`.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_012Rfw85JqCRePDfX9utkEou
+* **interfaces:** the following deprecated aliases are removed:
+DynamicAPIRouteConfig (use DynamicApiRouteConfig), AnyBeforeSaveCallback
+(use the per-route-typed beforeSaveCallback directly),
+DynamicApiServiceBeforeSaveCreateContext/CreateManyContext/UpdateContext/
+UpdateManyContext/ReplaceContext/DeleteContext/DeleteManyContext/
+DuplicateContext/DuplicateManyContext (use the matching
+BeforeSave*Context), DynamicApiServiceBeforeSaveCallback/ListCallback/
+DeleteCallback/DeleteManyCallback (use the matching BeforeSave*Callback),
+DynamicApiCallbackMethods (use CallbackMethods), DynamicApiServiceCallback
+(use AfterSaveCallback), DynamicAPIServiceProvider (use
+DynamicApiServiceProvider), DynamicAPISwaggerExtraConfig (use
+DynamicApiSwaggerExtraConfig), DynamicAPISwaggerOptions (use
+DynamicApiSwaggerOptions).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_012Rfw85JqCRePDfX9utkEou
+* **websockets:** `enableDynamicAPIWebSockets(app, 50)` no longer works.
+Use `enableDynamicAPIWebSockets(app, { maxListeners: 50 })` instead.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_012Rfw85JqCRePDfX9utkEou
+* **schema:** the `DynamicApiSchemaOptions`/`DynamicAPISchemaOptions`
+decorator and the `DynamicApiSchemaOptionsInterface`/`DynamicAPISchemaOptionsInterface`
+type aliases are gone. Use `@DynamicApiSchema({ ...mongooseOptions, ...mdaOptions })`
+instead of stacking `@Schema()` + the old decorator; `DynamicApiSchemaOptions` is
+now the type name for just the MDA-specific options.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_012Rfw85JqCRePDfX9utkEou
+* **services:** restore BcryptService and DynamicApiBroadcastService to the public API
+* **utils:** `utils/deep-patial.ts` no longer exists. Nothing publicly
+exported changes shape or name — `DeepPartial` continues to be exported the
+same way it always has been.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_012Rfw85JqCRePDfX9utkEou
+* **api:** the following are no longer exported from
+`mongodb-dynamic-api`: `ApiEndpointVisibility`, `RateLimit`, `ValidatorPipe`,
+`IS_PUBLIC_KEY`, `ManyEntityQuery`, `DeletePresenter`, `EntityParam`,
+`EntityQuery`, `DynamicApiDecoratorBuilder`, `PoliciesGuard`,
+`PoliciesGuardConstructor`, `AuthPoliciesGuardConstructor`, `RouteModule`,
+`DYNAMIC_API_GLOBAL_STATE`, `Credentials`, `EntitySchemas`,
+`DynamicApiGlobalState`, `AfterSaveCallbackConfig`, `GatewayResponse`, every
+internal helper under `helpers/**` other than the `enableDynamicAPI*`
+functions/`mintTokenPair`/`parsePagingParams`, `MongoDBDynamicApiLogger`,
+`createHealthController`, `PresenceController`, `InMemoryPresenceAdapter`,
+`RedisPresenceAdapter` and `createPresenceGateway`. None of these were ever
+documented; none has a supported replacement.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_012Rfw85JqCRePDfX9utkEou
+* **services:** `DynamicApiGlobalStateService` is no longer exported from
+`mongodb-dynamic-api`. Use `DynamicApiEntityService.getModel(Entity)` instead
+of `DynamicApiGlobalStateService.getEntityModel(Entity)` to resolve a
+registered entity's Mongoose model outside the HTTP request cycle.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_012Rfw85JqCRePDfX9utkEou
+
+### schematics
+
+* **schematics:** scaffold new entities with @DynamicApiSchema ([eec767f](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/eec767fcd9a3fc8e2521aeaff5b282ae379b8f6c))
+
+### migrate-v5
+
+* **migrate-v5:** add a codemod + CLI for the v4 to v5 upgrade ([85bddc6](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/85bddc6f83958b0e7dd9474801fb2e3ed1cbfbb1))
+* **migrate-v5:** catch up the codemod with the deprecated-alias sweep ([313e790](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/313e7909dbebd1c03c068f00d7e6d0f342bfcd31))
+
+### websockets
+
+* **websockets:** remove deprecated numeric overload from enableDynamicAPIWebSockets ([3feb38f](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/3feb38f4f6b240c010bd7318f07cf23f01a00509))
+* **websockets:** remove the deprecated query.accessToken auth fallback ([6e7de96](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/6e7de964e7260b87c767f5e4ae1bb016652dd343))
+
+### interfaces
+
+* **interfaces:** remove deprecated verbose/all-caps type aliases ([33ab1bf](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/33ab1bfdc180d58e3d51949503ee17333c0411f6))
+
+### schema
+
+* **schema:** add DynamicApiSchema decorator, replace @Schema + DynamicApiSchemaOptions ([ff49b49](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/ff49b49e0831d74423c574ea035ca62d165781a1))
+
+### services
+
+* **services:** expose DynamicApiEntityService.getModel instead of the internal DynamicApiGlobalStateService ([925c0c0](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/925c0c0aebee8aa62924ce54f3b8cd27333f5c58))
+* **services:** restore BcryptService and DynamicApiBroadcastService to the public API ([89c317d](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/89c317d65bc8939c656481deb57b29735c596b94))
+
+### utils
+
+* **utils:** remove deep-patial typo alias ([b547822](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/b54782225377eeb3ac795cdfba3f8a5d83f50639))
+
+### api
+
+* **api:** curate decorators, dtos, interfaces, helpers, logger and health/presence exports ([4a62b79](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/4a62b79ee5efa076d13b4189f9f28374ba40ef2e))
+
+### test
+
+* **test:** Vitest codemod for 154 unit specs + 2 shared mock fixtures (migration Phase 3, partial) ([3f06e33](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/3f06e3317c6dd0cf7171c7c8040d5fa3f854fc03)), closes [#2](https://github.com/MikeDev75015/mongodb-dynamic-api/issues/2)
+* **test:** Vitest codemod for 154 unit specs + 2 shared mock fixtures (migration Phase 3, partial) ([c3727df](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/c3727df5bb5ba4e7756c8c4b0a8ddab6b3cfa9a2)), closes [#2](https://github.com/MikeDev75015/mongodb-dynamic-api/issues/2)
+* **test:** wire SWC into Vitest, convert 2 pilot unit specs (migration Phase 2) ([d8908dc](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/d8908dc7e01fe606842ea510e556684169c79a53))
+
+### guards,cache
+
+* **guards,cache:** bypass global HTTP-only guard/interceptor for websocket contexts under Nest 12 ([a2b078c](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/a2b078c8c3419067a1ce484699fa894ace4aa91f))
+
+### auth
+
+* **auth:** register AuthModuleOptions to fix Nest 12 AuthGuard() DI regression ([64a0852](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/64a08523f62266733caee79fadff0e7201e9bd45))
+
+### vitest
+
+* **vitest:** 3 real production bugs surfaced by the e2e Vitest batch conversion ([684b6eb](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/684b6eba05a527958bbbea96d82a2ee82f370acb))
+* **vitest:** convert all 53 e2e-spec files + shared e2e.setup.ts (Phase 3 complete) ([fc6bd55](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/fc6bd55c5b379954f2d8042930057c29e31382fd))
+* **vitest:** convert the last 6 jest.requireActual unit specs (Phase 3 unit specs done) ([3f48c8b](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/3f48c8b098f5a86d060f6310df4a824d554f738d)), closes [#2](https://github.com/MikeDev75015/mongodb-dynamic-api/issues/2)
+* **vitest:** cut CI over from Jest to Vitest (Phase 4) ([ed758b9](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/ed758b9fb5ebea569d7fb51a4cfb0f4859693d1e))
+* **vitest:** register a native require() hook for .ts, closing the schematics gap ([f6b2340](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/f6b23403bf1c8533ae811e4f04deccbb630ba4b5))
+* **vitest:** repair 22 spec files after switching to a real vitest run (Phase 3) ([7af1830](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/7af1830c1fe74b3943a487c6ee263d89559446b7))
+* **vitest:** stop mint-token-pair from resetting global state on every call ([50e5ddb](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/50e5ddb9d3bf4227b832576c3cdc7446b87e2a4f))
+
+## [4.24.1](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.24.0...v4.24.1) (2026-09-01)
+
+### aggregate
+
+* **aggregate:** document paginated { list, count, totalPage } response shape in Swagger ([621bec5](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/621bec59bb404eb3d9da951061a53e88386366a2)), closes [#12](https://github.com/MikeDev75015/mongodb-dynamic-api/issues/12) [#14](https://github.com/MikeDev75015/mongodb-dynamic-api/issues/14) [#14](https://github.com/MikeDev75015/mongodb-dynamic-api/issues/14)
+
+## [4.24.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.23.0...v4.24.0) (2026-08-29)
+
+### aggregate
+
+* **aggregate:** make abilityPredicate compatible with .Paging() pipelines ([450649e](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/450649ebc40f53657dd1c84f760fcfe05ab743c0))
+* **aggregate:** warn on silently dropped paging results, add PagingQuery helper ([7708d5e](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/7708d5e68e9e922023d0519e2de149f05f929f4b))
+
+### entities
+
+* **entities:** recompute @DerivedField on useAuth updateAccount and custom routes ([3526172](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/35261722dd796763c83ac24d0764901e66759224))
+
+### guards
+
+* **guards:** add authAbilityPredicate for document-less custom routes ([f4f99d3](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/f4f99d3a492dda5b07217b6f6b6a66af3f7dcbf6))
+
+## [4.23.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.22.0...v4.23.0) (2026-08-23)
+
+### quality
+
+* **quality:** resolve 6 SonarCloud leak-period issues on develop ([43e51fb](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/43e51fb1281d5896d2a6bbf714386b10661f43f4))
+
+### custom-routes
+
+* **custom-routes:** DI resolution via inject (F8) ([8bc60af](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/8bc60af727152da8eb1b41a27c301aa17bf459c5))
+* **custom-routes:** dTOs.params for OpenAPI path param docs (F9) ([e42449f](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/e42449f9d49d7a2ceecb3b57f3cf25663c92c32c))
+
+### entities
+
+* **entities:** recompute @DerivedField on single-document raw writes (F5) ([411222a](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/411222ae703558dfe1836280baac70dc8dde0f4e))
+
+### cache
+
+* **cache:** identity-aware cache key + filter-mode safety warning (F1, F2) ([4641906](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/464190614571e323d37c704ebca7537395277229))
+* **cache:** scoped invalidation via DynamicApiCacheService (F3, F4) ([c1c701d](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/c1c701d1cf4986655f270284e6ada94923c589ce))
+
+### guards
+
+* **guards:** targetParam for custom routes with a non-id path param (F7) ([977de6d](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/977de6d292af965f639c9749fd4b7973bd14373b))
+
 ## [4.22.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.21.0...v4.22.0) (2026-08-16)
 
 ### ci
