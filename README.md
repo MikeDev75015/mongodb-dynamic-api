@@ -80,6 +80,19 @@
 > ```
 > `DynamicApiSchemaOptions`/`DynamicAPISchemaOptions` (the old decorator) and `DynamicApiSchemaOptionsInterface`/`DynamicAPISchemaOptionsInterface` are gone — `DynamicApiSchemaOptions` is now the type name for just the MDA-specific options (`indexes`/`hooks`/`customInit`). Mongoose's own `@Schema()` still works standalone if you want to call it yourself. See [schema-options.md](./README/schema-options.md).
 >
+> ### Removed — deprecated verbose/all-caps aliases
+> **Route config:** `DynamicAPIRouteConfig` (all-caps) — use `DynamicApiRouteConfig`.
+>
+> **Before-save callback aliases:** `AnyBeforeSaveCallback` — no longer needed, use the discriminated union's per-route narrowing directly. `DynamicApiServiceBeforeSaveCreateContext`, `...CreateManyContext`, `...UpdateContext`, `...UpdateManyContext`, `...ReplaceContext`, `...DeleteContext`, `...DeleteManyContext`, `...DuplicateContext`, `...DuplicateManyContext` — use the matching `BeforeSave*Context` type. `DynamicApiServiceBeforeSaveCallback`, `...ListCallback`, `...DeleteCallback`, `...DeleteManyCallback` — use the matching `BeforeSave*Callback` type.
+>
+> **Service callback aliases:** `DynamicApiCallbackMethods` — use `CallbackMethods`. `DynamicApiServiceCallback` — use `AfterSaveCallback`.
+>
+> **Service provider alias:** `DynamicAPIServiceProvider` (all-caps) — use `DynamicApiServiceProvider`.
+>
+> **Swagger options aliases:** `DynamicAPISwaggerExtraConfig`/`DynamicAPISwaggerOptions` (all-caps) — use `DynamicApiSwaggerExtraConfig`/`DynamicApiSwaggerOptions`.
+>
+> **WebSockets:** `enableDynamicAPIWebSockets(app, maxListeners: number)` — the numeric second-argument overload is gone, pass `enableDynamicAPIWebSockets(app, { maxListeners })` instead.
+>
 > ### Unaffected
 > `DynamicApiCacheService`, `DynamicApiEntityService`, `BcryptService`, `DynamicApiBroadcastService`, `DynamicApiModule`, `DynamicApiHealthModule`, `DynamicApiPresenceModule`, all `decorators/`, all `predicates/`, `BaseEntity`/`SoftDeletableEntity`, every documented route-config/callback/auth/websocket/caching/authorization/validation/schema-options interface and type, and everything else shown in this README and `README/*.md` — none of it moved or changed shape. `DynamicApiPresenceModule`'s DI token `DYNAMIC_API_PRESENCE_ADAPTER` and the `PresenceAdapter` interface are also unaffected — only the internal `InMemoryPresenceAdapter`/`RedisPresenceAdapter` concrete classes are gone, since [Presence](./README/presence.md) was always meant to be consumed through the module's `register()` options and the `PresenceAdapter` DI token, never by importing a concrete adapter class directly.
 >
