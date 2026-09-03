@@ -284,6 +284,113 @@ describe('migrateSourceFile', () => {
     });
   });
 
+  describe('simple verbose/all-caps renames', () => {
+    it('renames a type-only alias and its import', () => {
+      const file = createFile(
+        `import { BaseEntity, DynamicAPIRouteConfig } from 'mongodb-dynamic-api';\n\nconst cfg: DynamicAPIRouteConfig<BaseEntity> = {} as any;\n`,
+      );
+
+      const result = migrateSourceFile(file);
+
+      expect(result.fixes.some((fix) => fix.includes('renamed DynamicAPIRouteConfig to DynamicApiRouteConfig'))).toBe(true);
+      const text = file.getFullText();
+      expect(text).toContain('DynamicApiRouteConfig<BaseEntity>');
+      expect(text).not.toContain('DynamicAPIRouteConfig');
+    });
+
+    it('renames every matching usage without duplicating the import', () => {
+      const file = createFile(
+        `import { DynamicApiServiceCallback } from 'mongodb-dynamic-api';\n\ntype A = DynamicApiServiceCallback<any>;\ntype B = DynamicApiServiceCallback<any>;\n`,
+      );
+
+      const result = migrateSourceFile(file);
+
+      expect(result.fixes.some((fix) => fix.includes('2 usage(s)'))).toBe(true);
+      expect(file.getFullText().match(/AfterSaveCallback/g)).toHaveLength(3);
+    });
+
+    it('renames multiple different aliases in the same file', () => {
+      const file = createFile(
+        `import { DynamicApiCallbackMethods, DynamicAPIServiceProvider } from 'mongodb-dynamic-api';\n\ntype A = DynamicApiCallbackMethods;\ntype B = DynamicAPIServiceProvider;\n`,
+      );
+
+      migrateSourceFile(file);
+
+      const text = file.getFullText();
+      expect(text).toContain('type A = CallbackMethods;');
+      expect(text).toContain('type B = DynamicApiServiceProvider;');
+    });
+
+    it('leaves the file untouched when none of the renamed aliases are imported', () => {
+      const file = createFile(`import { BaseEntity } from 'mongodb-dynamic-api';\n`);
+
+      const result = migrateSourceFile(file);
+
+      expect(result.fixes).toEqual([]);
+    });
+
+    it('warns and skips an aliased import instead of guessing', () => {
+      const file = createFile(
+        `import { DynamicAPIRouteConfig as Cfg } from 'mongodb-dynamic-api';\n\ntype A = Cfg<any>;\n`,
+      );
+
+      const result = migrateSourceFile(file);
+
+      expect(result.warnings).toEqual([
+        expect.stringContaining("imports DynamicAPIRouteConfig under an alias ('as ...')"),
+      ]);
+      expect(file.getFullText()).toContain('DynamicAPIRouteConfig as Cfg');
+    });
+  });
+
+  describe('enableDynamicAPIWebSockets numeric-overload removal', () => {
+    it('rewrites a numeric-literal second argument to the options-object form', () => {
+      const file = createFile(
+        `import { enableDynamicAPIWebSockets } from 'mongodb-dynamic-api';\n\nenableDynamicAPIWebSockets(app, 50);\n`,
+      );
+
+      const result = migrateSourceFile(file);
+
+      expect(result.fixes.some((fix) => fix.includes('options-object form'))).toBe(true);
+      expect(file.getFullText()).toContain('enableDynamicAPIWebSockets(app, { maxListeners: 50 });');
+    });
+
+    it('leaves an already-correct options-object call untouched', () => {
+      const file = createFile(
+        `import { enableDynamicAPIWebSockets } from 'mongodb-dynamic-api';\n\nenableDynamicAPIWebSockets(app, { maxListeners: 50 });\n`,
+      );
+
+      const result = migrateSourceFile(file);
+
+      expect(result.fixes).toEqual([]);
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('warns instead of guessing when the second argument is not a literal', () => {
+      const file = createFile(
+        `import { enableDynamicAPIWebSockets } from 'mongodb-dynamic-api';\n\ndeclare const n: number;\nenableDynamicAPIWebSockets(app, n);\n`,
+      );
+
+      const result = migrateSourceFile(file);
+
+      expect(result.fixes).toEqual([]);
+      expect(result.warnings).toEqual([
+        expect.stringContaining("second argument is not a plain number literal"),
+      ]);
+    });
+
+    it('ignores a single-argument call', () => {
+      const file = createFile(
+        `import { enableDynamicAPIWebSockets } from 'mongodb-dynamic-api';\n\nenableDynamicAPIWebSockets(app);\n`,
+      );
+
+      const result = migrateSourceFile(file);
+
+      expect(result.fixes).toEqual([]);
+      expect(result.warnings).toEqual([]);
+    });
+  });
+
   describe('removed-symbols report', () => {
     it('produces no warning when nothing removed is imported', () => {
       const file = createFile(`import { BaseEntity } from 'mongodb-dynamic-api';\n`);
@@ -299,6 +406,14 @@ describe('migrateSourceFile', () => {
       const result = migrateSourceFile(file);
 
       expect(result.warnings).toEqual([expect.stringContaining("imports 'BaseService'")]);
+    });
+
+    it('flags AnyBeforeSaveCallback (no successor to rename to)', () => {
+      const file = createFile(`import { AnyBeforeSaveCallback } from 'mongodb-dynamic-api';\n`);
+
+      const result = migrateSourceFile(file);
+
+      expect(result.warnings).toEqual([expect.stringContaining("imports 'AnyBeforeSaveCallback'")]);
     });
   });
 });

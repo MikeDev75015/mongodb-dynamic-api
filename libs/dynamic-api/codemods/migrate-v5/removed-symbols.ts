@@ -12,6 +12,10 @@ interface RemovedSymbol {
 }
 
 const REMOVED_SYMBOLS: RemovedSymbol[] = [
+  {
+    name: 'AnyBeforeSaveCallback',
+    guidance: "no longer needed now that DynamicApiRouteConfig is a discriminated union — each per-route config type already carries a precisely-typed beforeSaveCallback, use it directly instead of this wide union.",
+  },
   // Presence — the concrete adapter classes are gone, but there IS a supported migration path.
   {
     name: 'InMemoryPresenceAdapter',

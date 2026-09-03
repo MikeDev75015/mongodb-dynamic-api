@@ -5,10 +5,11 @@
 # Migrating to v5
 
 v5 curates the package's public export surface (see the [v5 migration banner](../README.md) for
-the full list of removed internal exports) and replaces the `@Schema` + schema-options decorator
-stack with a single `@DynamicApiSchema` decorator (see [Schema Options](./schema-options.md)).
+the full list of removed internal exports), replaces the `@Schema` + schema-options decorator
+stack with a single `@DynamicApiSchema` decorator (see [Schema Options](./schema-options.md)), and
+retires a batch of verbose/all-caps aliases in favor of their short canonical names.
 
-Two of these changes are purely mechanical renames — a codemod ships with the package to apply
+Most of these changes are purely mechanical renames — a codemod ships with the package to apply
 them automatically across your codebase.
 
 ## 📋 Table of Contents
@@ -44,7 +45,22 @@ them automatically across your codebase.
    The deprecated all-caps `@DynamicAPISchemaOptions` spelling is recognized too. Both imports
    and decorator arguments are merged automatically wherever they are plain object literals.
 
-Both fixes update the corresponding `import` statements for you, only touching what changed —
+3. **Verbose/all-caps type aliases → their short canonical name** — a pure 1:1 rename, import and
+   every usage:
+   ```diff
+   - import { DynamicAPIRouteConfig } from 'mongodb-dynamic-api';
+   + import { DynamicApiRouteConfig } from 'mongodb-dynamic-api';
+   ```
+   Covers `DynamicAPIRouteConfig`, the 13 `DynamicApiServiceBeforeSave*Context`/`*Callback`
+   aliases, `DynamicApiCallbackMethods`, `DynamicApiServiceCallback`, `DynamicAPIServiceProvider`,
+   `DynamicAPISwaggerExtraConfig`, `DynamicAPISwaggerOptions` — see the [v5 migration banner](../README.md)
+   for the full old-name → new-name table.
+
+4. **`enableDynamicAPIWebSockets(app, 50)` → `enableDynamicAPIWebSockets(app, { maxListeners: 50 })`**
+   — rewrites a bare numeric second argument into the options-object form; a non-literal second
+   argument (a variable, an expression) is flagged for manual review instead.
+
+Every fix updates the corresponding `import` statement for you, only touching what changed —
 everything else in the file is left exactly as it was.
 
 ## What it can only flag for manual review
@@ -56,10 +72,20 @@ guessing:
   `addEntitySchema`) — internal state with no public equivalent.
 - A `@DynamicApiSchemaOptions`/`@Schema` argument that isn't a plain object literal (e.g. a
   variable reference) — merge it into `@DynamicApiSchema` by hand.
+- `enableDynamicAPIWebSockets`'s second argument when it isn't a plain number literal.
+- `AnyBeforeSaveCallback` — no successor to rename to; use the discriminated union's per-route
+  narrowing directly (each `*RouteConfig` type already carries a precisely-typed
+  `beforeSaveCallback`).
 - Every other internal export removed in v5 (`BaseService`, internal mixins/guards/interceptors,
   `InMemoryPresenceAdapter`/`RedisPresenceAdapter`, etc.) that your code still imports — each
   warning includes guidance specific to that symbol (e.g. presence adapters point you to
   `DynamicApiPresenceModule.register()`).
+
+**Not scanned at all — a manual change, not a TypeScript import**: WebSocket **clients** still
+connecting with `io(url, { query: { accessToken } })` must switch to `io(url, { auth: { token } })`
+— the server only reads `socket.handshake.auth.token` in v5 (see the
+[v5 migration banner](../README.md)). This is client-side code the codemod has no way to locate
+from your server-side `mongodb-dynamic-api` usage.
 
 ## Usage
 
@@ -79,7 +105,7 @@ review (handy in CI as a "did I catch everything" gate).
 
 ## Limitations
 
-- A `DynamicApiGlobalStateService` import aliased with `as`
+- A `DynamicApiGlobalStateService` or verbose-alias import aliased with `as`
   (`import { DynamicApiGlobalStateService as GSS } from '...'`) is flagged for manual review
   rather than migrated.
 - `@DynamicApiSchemaOptions`/`@Schema` imported under an alias are not detected at all (no
