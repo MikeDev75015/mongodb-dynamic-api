@@ -1,7 +1,6 @@
-import { Schema } from '@nestjs/mongoose';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsInt, IsNotEmpty, IsOptional, IsPositive, IsString } from 'class-validator';
-import { BaseEntity, DynamicApiForFeatureOptions, DynamicAPISchemaOptions, DynamicAPISchemaOptionsInterface, SoftDeletableEntity } from '../src';
+import { BaseEntity, DynamicApiForFeatureOptions, DynamicApiSchema, DynamicApiSchemaOptions, SoftDeletableEntity } from '../src';
 
 type DynamicApiForFeatureOptionsMock = DynamicApiForFeatureOptions<any>;
 
@@ -16,13 +15,11 @@ function buildDynamicApiModuleOptionsMock(
     extraControllers,
     customRoutes,
   }: Partial<DynamicApiForFeatureOptions<any>> = {},
-  { indexes, hooks, customInit }: Partial<DynamicAPISchemaOptionsInterface> = {},
+  { indexes, hooks, customInit }: Partial<DynamicApiSchemaOptions> = {},
   softDeletable = false,
 ): DynamicApiForFeatureOptionsMock {
   // @ts-ignore
-  @DynamicAPISchemaOptions({ indexes, hooks, customInit })
-  // @ts-ignore
-  @Schema()
+  @DynamicApiSchema({ indexes, hooks, customInit })
   class PersonEntity extends (
     softDeletable
       ? BaseEntity

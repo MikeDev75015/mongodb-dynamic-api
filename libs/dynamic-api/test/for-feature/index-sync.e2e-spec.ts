@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { INestApplication } from '@nestjs/common';
-import { Prop, Schema } from '@nestjs/mongoose';
+import { Prop } from '@nestjs/mongoose';
 import { Test } from '@nestjs/testing';
 import mongoose, { Schema as MongooseSchema } from 'mongoose';
 import {
   BaseEntity,
   DynamicApiModule,
-  DynamicAPISchemaOptions,
+  DynamicApiSchema,
   enableDynamicAPIIndexSync,
 } from '../../src';
 import { closeTestingApp, createTestingApp } from '../e2e.setup';
@@ -26,12 +26,12 @@ describe('enableDynamicAPIIndexSync (e2e)', () => {
 
   // autoIndex is disabled so the unique index only ever gets built by the explicit
   // enableDynamicAPIIndexSync call below — never implicitly on connect.
-  @DynamicAPISchemaOptions({
+  @DynamicApiSchema({
+    collection: 'index-sync-users',
     customInit: (schema: MongooseSchema) => {
       schema.set('autoIndex', false);
     },
   })
-  @Schema({ collection: 'index-sync-users' })
   class IndexSyncUserEntity extends BaseEntity {
     @Prop({ type: String })
     name: string;
@@ -104,7 +104,8 @@ describe('enableDynamicAPIIndexSync (e2e)', () => {
   // fails the exact same way: silently, unless enableDynamicAPIIndexSync is actually called.
   // $ne/$not are rejected by MongoDB's partialFilterExpression validator (only $eq, $exists,
   // $gt(e), $lt(e), $type, and a top-level $and are accepted).
-  @DynamicAPISchemaOptions({
+  @DynamicApiSchema({
+    collection: 'index-sync-invalid-partial-filter-users',
     indexes: [
       {
         fields: { email: 1 },
@@ -112,7 +113,6 @@ describe('enableDynamicAPIIndexSync (e2e)', () => {
       },
     ],
   })
-  @Schema({ collection: 'index-sync-invalid-partial-filter-users' })
   class InvalidPartialFilterUserEntity extends BaseEntity {
     @Prop({ type: String })
     email?: string;

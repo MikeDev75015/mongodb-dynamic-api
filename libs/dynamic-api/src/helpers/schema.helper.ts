@@ -2,11 +2,11 @@ import { Type } from '@nestjs/common';
 import { SchemaFactory } from '@nestjs/mongoose';
 import { Schema } from 'mongoose';
 import { DYNAMIC_API_SCHEMA_OPTIONS_METADATA } from '../decorators';
-import { DynamicAPISchemaOptionsInterface, queryByRouteTypeMap } from '../interfaces';
+import { DynamicApiSchemaOptions, queryByRouteTypeMap } from '../interfaces';
 
 /**
  * buildSchemaFromEntity is a helper function that takes an entity class and returns a Mongoose schema for that entity.
- * It uses the DynamicAPISchemaOptions metadata attached to the entity class to configure the schema.
+ * It uses the DynamicApiSchema metadata attached to the entity class to configure the schema.
  * @param {Type} entity - The entity class to build the schema from.
  * @returns {Schema} - The built Mongoose schema.
  * @internal Not part of the public API — will be removed from the package's public exports in v5.
@@ -17,7 +17,7 @@ function buildSchemaFromEntity<Entity>(
   const schemaOptions = Reflect.getOwnMetadata(
     DYNAMIC_API_SCHEMA_OPTIONS_METADATA,
     entity,
-  ) as DynamicAPISchemaOptionsInterface;
+  ) as DynamicApiSchemaOptions;
 
   const schema = SchemaFactory.createForClass(entity);
 

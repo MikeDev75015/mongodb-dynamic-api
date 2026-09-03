@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { Prop, Schema } from '@nestjs/mongoose';
+import { Prop } from '@nestjs/mongoose';
 import mongoose, { Connection } from 'mongoose';
 import {
   BaseEntity,
   DynamicApiModule,
-  DynamicAPISchemaOptions,
+  DynamicApiSchema,
 } from '../../src';
 import { closeTestingApp, server } from '../e2e.setup';
 import 'dotenv/config';
@@ -21,10 +21,10 @@ describe('DynamicApiModule forFeature - Entity extends BaseEntity (e2e)', () => 
     await closeTestingApp(mongoose.connections);
   });
 
-  @DynamicAPISchemaOptions({
+  @DynamicApiSchema({
+    collection: 'test-entities',
     indexes: [{ fields: { name: 1 }, options: { unique: true } }],
   })
-  @Schema({ collection: 'test-entities' })
   class TestEntity extends BaseEntity {
     @Prop({ type: String, required: true })
     name: string;

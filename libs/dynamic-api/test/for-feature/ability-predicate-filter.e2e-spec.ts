@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { Prop, Schema } from '@nestjs/mongoose';
+import { Prop } from '@nestjs/mongoose';
 import mongoose, { Connection } from 'mongoose';
 import {
   BaseEntity,
   DynamicApiModule,
-  DynamicAPISchemaOptions,
+  DynamicApiSchema,
 } from '../../src';
 import { closeTestingApp, server } from '../e2e.setup';
 import 'dotenv/config';
@@ -29,8 +29,7 @@ describe('DynamicApiModule forFeature - predicateBehavior filter (e2e)', () => {
     await closeTestingApp(mongoose.connections);
   });
 
-  @DynamicAPISchemaOptions({})
-  @Schema({ collection: 'filter-entities' })
+  @DynamicApiSchema({ collection: 'filter-entities' })
   class FilterEntity extends BaseEntity {
     @Prop({ type: String, required: true })
     name: string;
