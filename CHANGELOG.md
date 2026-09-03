@@ -1,5 +1,31 @@
 Changelog
 
+## [5.1.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v5.0.0...v5.1.0) (2026-09-03)
+
+### ci
+
+* **ci:** stop rebasing develop onto main for every release — fast-forward only ([5071caa](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/5071caad5b509c2c507d2b059971375462a590cb)), closes [#2681](https://github.com/MikeDev75015/mongodb-dynamic-api/issues/2681) [#2703](https://github.com/MikeDev75015/mongodb-dynamic-api/issues/2703)
+
+### quality
+
+* **quality:** avoid implicit ObjectId stringification in refreshToken (S6551) ([32dd5c2](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/32dd5c2f291e556678c75ce52095e46d9a7bc7ad))
+
+### presence
+
+* **presence:** add enableGateway option; export isTransactionsUnsupportedError ([65e3074](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/65e3074645fe4beca3bfcbd15f46127e259fb3b7))
+
+### mint-token-pair
+
+* **mint-token-pair:** resolve the entity model via the public DynamicApiEntityService ([c1110bd](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/c1110bd2e28858177e81a7496d2ad59d81f6ece9))
+
+### migrate-v5
+
+* **migrate-v5:** search every import declaration for a module, not just the first ([b24dee4](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/b24dee4dc189ca5a15fbfaa18e3c21d3e27b323d))
+
+### auth
+
+* **auth:** rebuild refresh-token claims from the DB, not the stale JWT payload ([866df26](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/866df26332101b7830a94168c5c3e5ef23671187))
+
 ## [5.0.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v4.24.1...v5.0.0) (2026-09-03)
 
 ### ⚠ BREAKING CHANGES
