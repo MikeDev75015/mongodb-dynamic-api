@@ -360,7 +360,8 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     // `user` here silently re-signs stale claims (e.g. isAdmin/isActive) forever, since a
     // refresh never re-reads the DB otherwise: a right flipped directly in DB stays invisible
     // to the API until a real logout/login, in either direction.
-    const freshUser = { ...storedUser, id: storedUser._id.toString() } as Entity;
+    const freshUserId = (storedUser._id as { toString(): string }).toString();
+    const freshUser = { ...storedUser, id: freshUserId } as Entity;
 
     if (this.rotate === false) {
       // Persistent-token mode: validate only, no rotation.
