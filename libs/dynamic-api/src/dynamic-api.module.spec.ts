@@ -9,8 +9,14 @@ import { Schema } from 'mongoose';
 import { of } from 'rxjs';
 import { buildDynamicApiModuleOptionsMock } from '../__mocks__/dynamic-api.module.mock';
 import { DynamicApiModule } from './dynamic-api.module';
-import * as helpers from './helpers';
-import { DynamicApiGlobalState, DynamicAPIRouteConfig, RoutesConfig, RouteType } from './interfaces';
+import * as SchemaHelpers from './helpers/schema.helper';
+import * as RouteDescriptionHelpers from './helpers/route-description.helper';
+import * as FormatHelpers from './helpers/format.helper';
+import * as VersioningConfigHelpers from './helpers/versioning-config.helper';
+import * as RouteDecoratorsHelpers from './helpers/route-decorators.helper';
+import * as MixinDataHelpers from './helpers/mixin-data.helper';
+import { DynamicApiRouteConfig, RoutesConfig, RouteType } from './interfaces';
+import { DynamicApiGlobalState } from './interfaces/dynamic-api-global-state.interface';
 import { BaseEntity } from './models';
 import { AuthModule, DynamicApiAuthOptions } from './modules';
 import {
@@ -27,12 +33,19 @@ import {
   UpdateOneModule,
   AggregateModule,
 } from './routes';
-import { DynamicApiCacheService, DynamicApiGlobalStateService } from './services';
-import { DynamicApiCacheInterceptor } from './interceptors';
+import { DynamicApiCacheService } from './services';
+import { DynamicApiGlobalStateService } from './services/dynamic-api-global-state/dynamic-api-global-state.service';
+import { DynamicApiCacheInterceptor } from './interceptors/dynamic-api-cache.interceptor';
 import { DynamicApiCachePathRegistryStore } from './helpers/cache-path-registry.store';
-import { DynamicApiJwtAuthGuard } from './guards';
+import { DynamicApiJwtAuthGuard } from './guards/dynamic-api-jwt-auth.guard';
 
-vi.mock('./helpers');
+vi.mock('./helpers/schema.helper');
+vi.mock('./helpers/route-description.helper');
+vi.mock('./helpers/format.helper');
+vi.mock('./helpers/versioning-config.helper');
+vi.mock('./helpers/route-decorators.helper');
+vi.mock('./helpers/mixin-data.helper');
+vi.mock('./helpers/socket-config.helper');
 
 describe('DynamicApiModule', () => {
   beforeEach(() => {
@@ -229,14 +242,14 @@ describe('DynamicApiModule', () => {
 
     beforeEach(() => {
       defaultOptions = buildDynamicApiModuleOptionsMock();
-      vi.spyOn(helpers, 'buildSchemaFromEntity').mockReturnValue(fakeSchema as unknown as Schema);
-      vi.spyOn(helpers, 'getDefaultRouteDescription').mockReturnValue('fake-description');
-      vi.spyOn(helpers, 'isValidVersion').mockReturnValue(true);
-      vi.spyOn(helpers, 'addVersionSuffix').mockReturnValue('fake-version');
-      vi.spyOn(helpers, 'getDisplayedName').mockReturnValue('fake-formatted-api-tag');
-      vi.spyOn(helpers, 'RouteDecoratorsHelper').mockReturnValue((_: any) => undefined);
-      vi.spyOn(helpers, 'provideName').mockReturnValue('fake-provided-name');
-      vi.spyOn(helpers, 'getMixinData').mockReturnValue({
+      vi.spyOn(SchemaHelpers, 'buildSchemaFromEntity').mockReturnValue(fakeSchema as unknown as Schema);
+      vi.spyOn(RouteDescriptionHelpers, 'getDefaultRouteDescription').mockReturnValue('fake-description');
+      vi.spyOn(FormatHelpers, 'isValidVersion').mockReturnValue(true);
+      vi.spyOn(VersioningConfigHelpers, 'addVersionSuffix').mockReturnValue('fake-version');
+      vi.spyOn(FormatHelpers, 'getDisplayedName').mockReturnValue('fake-formatted-api-tag');
+      vi.spyOn(RouteDecoratorsHelpers, 'RouteDecoratorsHelper').mockReturnValue((_: any) => undefined);
+      vi.spyOn(FormatHelpers, 'provideName').mockReturnValue('fake-provided-name');
+      vi.spyOn(MixinDataHelpers, 'getMixinData').mockReturnValue({
         routeType: 'fake-route-type' as RouteType,
         description: 'fake-description',
         isPublic: false,
@@ -260,7 +273,7 @@ describe('DynamicApiModule', () => {
         routes,
       });
 
-      expect(helpers.buildSchemaFromEntity).toHaveBeenCalledWith(entity);
+      expect(SchemaHelpers.buildSchemaFromEntity).toHaveBeenCalledWith(entity);
     });
 
     it('should call MongooseModule.forFeature with DynamicApiModule.connectionName', () => {
@@ -364,7 +377,7 @@ describe('DynamicApiModule', () => {
         const options = buildDynamicApiModuleOptionsMock({
           controllerOptions: { path: '/version', version: 'v1' },
         });
-        vi.spyOn(helpers, 'isValidVersion').mockReturnValue(false);
+        vi.spyOn(FormatHelpers, 'isValidVersion').mockReturnValue(false);
 
         setTimeout(() => {
           DynamicApiModule.state.set(['initialized', true]);
@@ -378,18 +391,18 @@ describe('DynamicApiModule', () => {
       });
 
       it('should import route modules with controller options', async () => {
-        const createManyRoute: DynamicAPIRouteConfig<any> = { type: 'CreateMany' };
-        const createOneRoute: DynamicAPIRouteConfig<any> = { type: 'CreateOne' };
-        const deleteManyRoute: DynamicAPIRouteConfig<any> = { type: 'DeleteMany' };
-        const deleteOneRoute: DynamicAPIRouteConfig<any> = { type: 'DeleteOne' };
-        const duplicateManyRoute: DynamicAPIRouteConfig<any> = { type: 'DuplicateMany' };
-        const duplicateOneRoute: DynamicAPIRouteConfig<any> = { type: 'DuplicateOne' };
-        const getManyRoute: DynamicAPIRouteConfig<any> = { type: 'GetMany' };
-        const getOneRoute: DynamicAPIRouteConfig<any> = { type: 'GetOne' };
-        const replaceOneRoute: DynamicAPIRouteConfig<any> = { type: 'ReplaceOne' };
-        const updateManyRoute: DynamicAPIRouteConfig<any> = { type: 'UpdateMany' };
-        const updateOneRoute: DynamicAPIRouteConfig<any> = { type: 'UpdateOne' };
-        const aggregateRoute: DynamicAPIRouteConfig<any> = { type: 'Aggregate', dTOs: { query: AggregateQuery } };
+        const createManyRoute: DynamicApiRouteConfig<any> = { type: 'CreateMany' };
+        const createOneRoute: DynamicApiRouteConfig<any> = { type: 'CreateOne' };
+        const deleteManyRoute: DynamicApiRouteConfig<any> = { type: 'DeleteMany' };
+        const deleteOneRoute: DynamicApiRouteConfig<any> = { type: 'DeleteOne' };
+        const duplicateManyRoute: DynamicApiRouteConfig<any> = { type: 'DuplicateMany' };
+        const duplicateOneRoute: DynamicApiRouteConfig<any> = { type: 'DuplicateOne' };
+        const getManyRoute: DynamicApiRouteConfig<any> = { type: 'GetMany' };
+        const getOneRoute: DynamicApiRouteConfig<any> = { type: 'GetOne' };
+        const replaceOneRoute: DynamicApiRouteConfig<any> = { type: 'ReplaceOne' };
+        const updateManyRoute: DynamicApiRouteConfig<any> = { type: 'UpdateMany' };
+        const updateOneRoute: DynamicApiRouteConfig<any> = { type: 'UpdateOne' };
+        const aggregateRoute: DynamicApiRouteConfig<any> = { type: 'Aggregate', dTOs: { query: AggregateQuery } };
 
         const options = buildDynamicApiModuleOptionsMock({
           controllerOptions: { path: 'fake-path', version: '1', validationPipeOptions: { transform: true }, useInterceptors: [fakeInterceptor] },
@@ -559,7 +572,7 @@ describe('DynamicApiModule', () => {
       });
 
       it('should import route modules with route options', async () => {
-        const createManyRoute: DynamicAPIRouteConfig<any> = {
+        const createManyRoute: DynamicApiRouteConfig<any> = {
           type: 'CreateMany',
           description: 'Create many items',
           dTOs: { body: fakeManyBody, presenter: fakePresenter },
@@ -567,7 +580,7 @@ describe('DynamicApiModule', () => {
           validationPipeOptions: { forbidNonWhitelisted: true },
           useInterceptors: [fakeInterceptor],
         };
-        const createOneRoute: DynamicAPIRouteConfig<any> = {
+        const createOneRoute: DynamicApiRouteConfig<any> = {
           type: 'CreateOne',
           description: 'Create one item',
           dTOs: { body: fakeBody, presenter: fakePresenter },
@@ -575,21 +588,21 @@ describe('DynamicApiModule', () => {
           validationPipeOptions: { forbidNonWhitelisted: true },
           useInterceptors: [fakeInterceptor],
         };
-        const deleteManyRoute: DynamicAPIRouteConfig<any> = {
+        const deleteManyRoute: DynamicApiRouteConfig<any> = {
           type: 'DeleteMany',
           description: 'Delete many item',
           version: '2',
           validationPipeOptions: { forbidNonWhitelisted: true },
           useInterceptors: [fakeInterceptor],
         };
-        const deleteOneRoute: DynamicAPIRouteConfig<any> = {
+        const deleteOneRoute: DynamicApiRouteConfig<any> = {
           type: 'DeleteOne',
           description: 'Delete one item',
           version: '2',
           validationPipeOptions: { forbidNonWhitelisted: true },
           useInterceptors: [fakeInterceptor],
         };
-        const duplicateManyRoute: DynamicAPIRouteConfig<any> = {
+        const duplicateManyRoute: DynamicApiRouteConfig<any> = {
           type: 'DuplicateMany',
           description: 'Duplicate many item',
           dTOs: { body: fakeBody, presenter: fakePresenter },
@@ -597,7 +610,7 @@ describe('DynamicApiModule', () => {
           validationPipeOptions: { forbidNonWhitelisted: true },
           useInterceptors: [fakeInterceptor],
         };
-        const duplicateOneRoute: DynamicAPIRouteConfig<any> = {
+        const duplicateOneRoute: DynamicApiRouteConfig<any> = {
           type: 'DuplicateOne',
           description: 'Duplicate one item',
           dTOs: { body: fakeBody, presenter: fakePresenter },
@@ -605,7 +618,7 @@ describe('DynamicApiModule', () => {
           validationPipeOptions: { forbidNonWhitelisted: true },
           useInterceptors: [fakeInterceptor],
         };
-        const getManyRoute: DynamicAPIRouteConfig<any> = {
+        const getManyRoute: DynamicApiRouteConfig<any> = {
           type: 'GetMany',
           description: 'Get many items',
           dTOs: { query: fakeQuery, presenter: fakePresenter },
@@ -613,7 +626,7 @@ describe('DynamicApiModule', () => {
           validationPipeOptions: { forbidNonWhitelisted: true },
           useInterceptors: [fakeInterceptor],
         };
-        const getOneRoute: DynamicAPIRouteConfig<any> = {
+        const getOneRoute: DynamicApiRouteConfig<any> = {
           type: 'GetOne',
           description: 'Get one item',
           dTOs: { param: fakeParam, presenter: fakePresenter },
@@ -621,7 +634,7 @@ describe('DynamicApiModule', () => {
           validationPipeOptions: { forbidNonWhitelisted: true },
           useInterceptors: [fakeInterceptor],
         };
-        const replaceOneRoute: DynamicAPIRouteConfig<any> = {
+        const replaceOneRoute: DynamicApiRouteConfig<any> = {
           type: 'ReplaceOne',
           description: 'Replace one item',
           dTOs: { body: fakeBody, presenter: fakePresenter },
@@ -629,7 +642,7 @@ describe('DynamicApiModule', () => {
           validationPipeOptions: { forbidNonWhitelisted: true },
           useInterceptors: [fakeInterceptor],
         };
-        const updateManyRoute: DynamicAPIRouteConfig<any> = {
+        const updateManyRoute: DynamicApiRouteConfig<any> = {
           type: 'UpdateMany',
           description: 'Update many item',
           dTOs: { body: fakeBody, presenter: fakePresenter },
@@ -637,7 +650,7 @@ describe('DynamicApiModule', () => {
           validationPipeOptions: { forbidNonWhitelisted: true },
           useInterceptors: [fakeInterceptor],
         };
-        const updateOneRoute: DynamicAPIRouteConfig<any> = {
+        const updateOneRoute: DynamicApiRouteConfig<any> = {
           type: 'UpdateOne',
           description: 'Update one item',
           dTOs: { body: fakeBody, presenter: fakePresenter },
@@ -645,7 +658,7 @@ describe('DynamicApiModule', () => {
           validationPipeOptions: { forbidNonWhitelisted: true },
           useInterceptors: [fakeInterceptor],
         };
-        const aggregateRoute: DynamicAPIRouteConfig<any> = {
+        const aggregateRoute: DynamicApiRouteConfig<any> = {
           type: 'Aggregate',
           description: 'Aggregate items',
           dTOs: { query: AggregateQuery, presenter: fakePresenter },
@@ -827,7 +840,7 @@ describe('DynamicApiModule', () => {
       });
 
       it('should import route modules with extras', async () => {
-        const createManyRoute: DynamicAPIRouteConfig<any> = {
+        const createManyRoute: DynamicApiRouteConfig<any> = {
           type: 'CreateMany',
           description: 'Create many items',
           dTOs: { body: fakeManyBody, presenter: fakePresenter },
@@ -835,7 +848,7 @@ describe('DynamicApiModule', () => {
           validationPipeOptions: { forbidNonWhitelisted: true },
           useInterceptors: [fakeInterceptor],
         };
-        const createOneRoute: DynamicAPIRouteConfig<any> = {
+        const createOneRoute: DynamicApiRouteConfig<any> = {
           type: 'CreateOne',
           description: 'Create one item',
           dTOs: { body: fakeBody, presenter: fakePresenter },
@@ -843,21 +856,21 @@ describe('DynamicApiModule', () => {
           validationPipeOptions: { forbidNonWhitelisted: true },
           useInterceptors: [fakeInterceptor],
         };
-        const deleteManyRoute: DynamicAPIRouteConfig<any> = {
+        const deleteManyRoute: DynamicApiRouteConfig<any> = {
           type: 'DeleteMany',
           description: 'Delete many item',
           version: '2',
           validationPipeOptions: { forbidNonWhitelisted: true },
           useInterceptors: [fakeInterceptor],
         };
-        const deleteOneRoute: DynamicAPIRouteConfig<any> = {
+        const deleteOneRoute: DynamicApiRouteConfig<any> = {
           type: 'DeleteOne',
           description: 'Delete one item',
           version: '2',
           validationPipeOptions: { forbidNonWhitelisted: true },
           useInterceptors: [fakeInterceptor],
         };
-        const duplicateManyRoute: DynamicAPIRouteConfig<any> = {
+        const duplicateManyRoute: DynamicApiRouteConfig<any> = {
           type: 'DuplicateMany',
           description: 'Duplicate many item',
           dTOs: { body: fakeBody, presenter: fakePresenter },
@@ -865,7 +878,7 @@ describe('DynamicApiModule', () => {
           validationPipeOptions: { forbidNonWhitelisted: true },
           useInterceptors: [fakeInterceptor],
         };
-        const duplicateOneRoute: DynamicAPIRouteConfig<any> = {
+        const duplicateOneRoute: DynamicApiRouteConfig<any> = {
           type: 'DuplicateOne',
           description: 'Duplicate one item',
           dTOs: { body: fakeBody, presenter: fakePresenter },
@@ -873,7 +886,7 @@ describe('DynamicApiModule', () => {
           validationPipeOptions: { forbidNonWhitelisted: true },
           useInterceptors: [fakeInterceptor],
         };
-        const getManyRoute: DynamicAPIRouteConfig<any> = {
+        const getManyRoute: DynamicApiRouteConfig<any> = {
           type: 'GetMany',
           description: 'Get many items',
           dTOs: { query: fakeQuery, presenter: fakePresenter },
@@ -881,7 +894,7 @@ describe('DynamicApiModule', () => {
           validationPipeOptions: { forbidNonWhitelisted: true },
           useInterceptors: [fakeInterceptor],
         };
-        const getOneRoute: DynamicAPIRouteConfig<any> = {
+        const getOneRoute: DynamicApiRouteConfig<any> = {
           type: 'GetOne',
           description: 'Get one item',
           dTOs: { param: fakeParam, presenter: fakePresenter },
@@ -889,7 +902,7 @@ describe('DynamicApiModule', () => {
           validationPipeOptions: { forbidNonWhitelisted: true },
           useInterceptors: [fakeInterceptor],
         };
-        const replaceOneRoute: DynamicAPIRouteConfig<any> = {
+        const replaceOneRoute: DynamicApiRouteConfig<any> = {
           type: 'ReplaceOne',
           description: 'Replace one item',
           dTOs: { body: fakeBody, presenter: fakePresenter },
@@ -897,7 +910,7 @@ describe('DynamicApiModule', () => {
           validationPipeOptions: { forbidNonWhitelisted: true },
           useInterceptors: [fakeInterceptor],
         };
-        const updateManyRoute: DynamicAPIRouteConfig<any> = {
+        const updateManyRoute: DynamicApiRouteConfig<any> = {
           type: 'UpdateMany',
           description: 'Update many item',
           dTOs: { body: fakeBody, presenter: fakePresenter },
@@ -905,7 +918,7 @@ describe('DynamicApiModule', () => {
           validationPipeOptions: { forbidNonWhitelisted: true },
           useInterceptors: [fakeInterceptor],
         };
-        const updateOneRoute: DynamicAPIRouteConfig<any> = {
+        const updateOneRoute: DynamicApiRouteConfig<any> = {
           type: 'UpdateOne',
           description: 'Update one item',
           dTOs: { body: fakeBody, presenter: fakePresenter },
@@ -913,7 +926,7 @@ describe('DynamicApiModule', () => {
           validationPipeOptions: { forbidNonWhitelisted: true },
           useInterceptors: [fakeInterceptor],
         };
-        const aggregateRoute: DynamicAPIRouteConfig<any> = {
+        const aggregateRoute: DynamicApiRouteConfig<any> = {
           type: 'Aggregate',
           description: 'Aggregate items',
           dTOs: { query: AggregateQuery, presenter: fakePresenter },

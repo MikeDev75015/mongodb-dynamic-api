@@ -3,7 +3,7 @@ import type { Mock } from 'vitest';
 import { BadRequestException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { Model } from 'mongoose';
-import { DeletePresenter } from '../../dtos';
+import { DeletePresenter } from '../../dtos/delete.presenter';
 import {
   CallbackMethods,
   BeforeSaveDeleteCallback,

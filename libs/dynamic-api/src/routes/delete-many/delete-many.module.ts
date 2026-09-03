@@ -1,10 +1,11 @@
 import { DynamicModule, Module, ModuleMetadata, Type, ValidationPipeOptions } from '@nestjs/common';
 import { GatewayMetadata } from '@nestjs/websockets';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { getDisplayedName, initializeConfigFromOptions } from '../../helpers';
+import { getDisplayedName } from '../../helpers/format.helper';
+import { initializeConfigFromOptions } from '../../helpers/socket-config.helper';
 import { DeleteManyRouteConfig, DynamicApiControllerOptions, DynamicApiWebSocketOptions } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import { DynamicApiBroadcastService } from '../../services';
+import { DynamicApiBroadcastService } from '../../services/dynamic-api-broadcast/dynamic-api-broadcast.service';
 import {
   createDeleteManyController,
   createDeleteManyGateway,

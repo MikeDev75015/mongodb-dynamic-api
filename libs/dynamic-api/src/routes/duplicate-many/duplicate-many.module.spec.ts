@@ -1,15 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Mock } from 'vitest';
 import { DynamicModule, ValidationPipeOptions } from '@nestjs/common';
-import * as Helpers from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
+import * as FormatHelpers from '../../helpers/format.helper';
+import * as SocketConfigHelpers from '../../helpers/socket-config.helper';
+import { DynamicApiControllerOptions, DynamicApiRouteConfig, DynamicApiServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import { DynamicApiBroadcastService } from '../../services';
+import { DynamicApiBroadcastService } from '../../services/dynamic-api-broadcast/dynamic-api-broadcast.service';
 import * as DuplicateManyHelpers from './duplicate-many.helper';
 import { DuplicateManyModule } from './duplicate-many.module';
 
 vi.mock('./duplicate-many.helper');
-vi.mock('../../helpers');
+vi.mock('../../helpers/format.helper');
+vi.mock('../../helpers/socket-config.helper');
 
 class Entity extends BaseEntity {}
 
@@ -19,13 +21,13 @@ describe('DuplicateManyModule', () => {
   let spyCreateDuplicateManyGateway: Mock;
 
   const FakeController = vi.fn();
-  const FakeServiceProvider = { provide: 'fakeProvider' } as unknown as DynamicAPIServiceProvider;
+  const FakeServiceProvider = { provide: 'fakeProvider' } as unknown as DynamicApiServiceProvider;
   const FakeGateway = vi.fn();
 
   const routeConfigCallback = vi.fn();
   const databaseModule = { module: 'databaseModule' } as unknown as DynamicModule;
   const controllerOptions: DynamicApiControllerOptions<Entity> = { path: 'fakePath' };
-  const routeConfig: DynamicAPIRouteConfig<Entity> = { type: 'DuplicateMany', callback: routeConfigCallback };
+  const routeConfig: DynamicApiRouteConfig<Entity> = { type: 'DuplicateMany', callback: routeConfigCallback };
   const version = 'fakeVersion';
   const validationPipeOptions: ValidationPipeOptions = { transform: true };
   const fakeDisplayedName = 'FakeDisplayedName';
@@ -35,8 +37,8 @@ describe('DuplicateManyModule', () => {
     spyCreateDuplicateManyController = vi.spyOn(DuplicateManyHelpers, 'createDuplicateManyController').mockReturnValue(FakeController);
     spyCreateDuplicateManyServiceProvider = vi.spyOn(DuplicateManyHelpers, 'createDuplicateManyServiceProvider').mockReturnValue(FakeServiceProvider);
     spyCreateDuplicateManyGateway = vi.spyOn(DuplicateManyHelpers, 'createDuplicateManyGateway').mockReturnValue(FakeGateway);
-    vi.spyOn(Helpers, 'getDisplayedName').mockReturnValue(fakeDisplayedName);
-    vi.spyOn(Helpers, 'initializeConfigFromOptions').mockReturnValue(fakeGatewayOptions);
+    vi.spyOn(FormatHelpers, 'getDisplayedName').mockReturnValue(fakeDisplayedName);
+    vi.spyOn(SocketConfigHelpers, 'initializeConfigFromOptions').mockReturnValue(fakeGatewayOptions);
   });
 
   describe('forFeature', () => {
@@ -91,7 +93,7 @@ describe('DuplicateManyModule', () => {
     });
 
     it('should return a DynamicModule with broadcast service when broadcast is configured', () => {
-      const broadcastRouteConfig: DynamicAPIRouteConfig<Entity> = {
+      const broadcastRouteConfig: DynamicApiRouteConfig<Entity> = {
         ...routeConfig,
         broadcast: { enabled: true },
       };

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, test, vi } from 'vitest';
 import type { Mock } from 'vitest';
 import { INestApplication } from '@nestjs/common';
-import { MongoDBDynamicApiLogger } from '../logger';
+import { MongoDBDynamicApiLogger } from '../logger/mongo-dynamic-api.logger';
 import { enableDynamicAPIIndexSync } from './index-sync.helper';
 
 vi.mock('../dynamic-api.module', () => ({

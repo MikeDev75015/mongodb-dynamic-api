@@ -1,7 +1,7 @@
 import { Type } from '@nestjs/common';
 import { kebabCase } from './lodash.helper';
 import { DynamicApiEventRegistryStore } from './event-registry.store';
-import { MongoDBDynamicApiLogger } from '../logger';
+import { MongoDBDynamicApiLogger } from '../logger/mongo-dynamic-api.logger';
 // Imported from its concrete file, not the `../services` barrel: that barrel also re-exports
 // DynamicApiBroadcastService, which itself imports this very helpers barrel — going through it
 // here would re-create the cycle this direct import is meant to avoid.
@@ -10,7 +10,7 @@ import {
   AbilityPredicate,
   BroadcastConfig,
   DynamicApiControllerOptions,
-  DynamicAPIRouteConfig,
+  DynamicApiRouteConfig,
   PredicateBehavior,
   RouteType,
 } from '../interfaces';
@@ -49,7 +49,7 @@ function getMixinData<Entity extends BaseEntity>(
     abilityPredicate: routeAbilityPredicate,
     predicateBehavior,
     eventName,
-  }: DynamicAPIRouteConfig<Entity>,
+  }: DynamicApiRouteConfig<Entity>,
   isGateway = false,
   broadcastConfig?: BroadcastConfig<Entity>,
 ): {

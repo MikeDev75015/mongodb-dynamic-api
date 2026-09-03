@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Reflector } from '@nestjs/core';
-import { IS_PUBLIC_KEY } from '../../decorators';
+import { IS_PUBLIC_KEY } from '../../decorators/public.decorator';
 import { DYNAMIC_API_PRESENCE_ADAPTER } from '../../interfaces';
 import { PresenceController } from './presence.controller';
 

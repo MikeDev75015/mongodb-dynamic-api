@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, test } from 'vitest';
 import { createMock } from '@test-helpers';
 import { BadRequestException } from '@nestjs/common';
-import { DeleteResult, DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { DeleteResult, DynamicApiControllerOptions, DynamicApiRouteConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { DeleteManyController } from './delete-many-controller.interface';
 import { DeleteManyControllerMixin } from './delete-many-controller.mixin';
@@ -13,12 +13,12 @@ describe('DeleteManyControllerMixin', () => {
   let controller: DeleteManyController<Entity>;
 
   const controllerOptions: DynamicApiControllerOptions<Entity> = { path: 'test' };
-  const routeConfig: DynamicAPIRouteConfig<Entity> = { type: 'DeleteMany' };
+  const routeConfig: DynamicApiRouteConfig<Entity> = { type: 'DeleteMany' };
   const version = '1';
   const service = createMock<DeleteManyService<Entity>>();
   const fakeDeleteResult = { deletedCount: 3 };
 
-  const initController = (_routeConfig: DynamicAPIRouteConfig<Entity> = routeConfig) => {
+  const initController = (_routeConfig: DynamicApiRouteConfig<Entity> = routeConfig) => {
     class Controller extends DeleteManyControllerMixin(
       Entity,
       controllerOptions,

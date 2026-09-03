@@ -7,7 +7,7 @@ import {
   PredicateBehavior,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import { BaseService } from '../../services';
+import { BaseService } from '../../services/base/base.service';
 import { GetManyService } from './get-many-service.interface';
 
 export abstract class BaseGetManyService<Entity extends BaseEntity>

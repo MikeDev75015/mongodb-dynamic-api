@@ -1,10 +1,10 @@
-export * from './api-endpoint-visibility.decorator';
 export * from './derived-field.decorator';
 export * from './disable-cache.decorator';
 export * from './entity-exists.decorator';
 export * from './is-unique.decorator';
 export * from './protected-field.decorator';
-export * from './public.decorator';
-export * from './rate-limit.decorator';
-export * from './schema-options.decorator';
-export * from './validator-pipe.decorator';
+// `IS_PUBLIC_KEY` is internal metadata — only `Public` is part of the public API.
+export { Public } from './public.decorator';
+export * from './schema.decorator';
+// `api-endpoint-visibility.decorator`, `rate-limit.decorator` and `validator-pipe.decorator` are
+// internal wiring for the generated routes — not part of the public API.

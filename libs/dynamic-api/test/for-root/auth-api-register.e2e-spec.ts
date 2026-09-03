@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import mongoose, { Connection } from 'mongoose';
-import { BcryptService, DynamicApiModule } from '../../src';
+import { DynamicApiModule } from '../../src';
+import { BcryptService } from '../../src/services/bcrypt/bcrypt.service';
 import { closeTestingApp, server } from '../e2e.setup';
 import 'dotenv/config';
 import { getModelFromEntity } from '../utils';

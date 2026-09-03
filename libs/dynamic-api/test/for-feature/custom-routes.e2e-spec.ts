@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable, Type } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
-import { Prop, Schema } from '@nestjs/mongoose';
+import { Prop } from '@nestjs/mongoose';
 import { IsNotEmpty, IsString } from 'class-validator';
 import mongoose, { Connection, Model } from 'mongoose';
 import {
   BaseEntity,
   DynamicApiModule,
-  DynamicAPISchemaOptions,
+  DynamicApiSchema,
   CustomRouteConfig,
 } from '../../src';
 import { closeTestingApp, handleSocketException, server, TestSocketAdapter } from '../e2e.setup';
@@ -32,8 +32,7 @@ import { initApp } from '../shared';
 
 // ─── Entities ────────────────────────────────────────────────────────────────
 
-@DynamicAPISchemaOptions({})
-@Schema({ collection: 'conversations-custom-routes' })
+@DynamicApiSchema({ collection: 'conversations-custom-routes' })
 class Conversation extends BaseEntity {
   @Prop({ type: String, required: true })
   encryptedContent: string;

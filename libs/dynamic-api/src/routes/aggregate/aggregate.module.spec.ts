@@ -1,14 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Mock } from 'vitest';
 import { DynamicModule, ValidationPipeOptions } from '@nestjs/common';
-import * as Helpers from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
+import * as FormatHelpers from '../../helpers/format.helper';
+import * as SocketConfigHelpers from '../../helpers/socket-config.helper';
+import { DynamicApiControllerOptions, DynamicApiRouteConfig, DynamicApiServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import * as AggregateHelpers from './aggregate.helper';
 import { AggregateModule } from './aggregate.module';
 
 vi.mock('./aggregate.helper');
-vi.mock('../../helpers');
+vi.mock('../../helpers/format.helper');
+vi.mock('../../helpers/socket-config.helper');
 
 class Entity extends BaseEntity {}
 
@@ -18,13 +20,13 @@ describe('AggregateModule', () => {
   let spyCreateAggregateGateway: Mock;
 
   const FakeController = vi.fn();
-  const FakeServiceProvider = { provide: 'fakeProvider' } as unknown as DynamicAPIServiceProvider;
+  const FakeServiceProvider = { provide: 'fakeProvider' } as unknown as DynamicApiServiceProvider;
   const FakeGateway = vi.fn();
 
   const routeConfigCallback = vi.fn();
   const databaseModule = { module: 'databaseModule' } as unknown as DynamicModule;
   const controllerOptions: DynamicApiControllerOptions<Entity> = { path: 'fakePath' };
-  const routeConfig: DynamicAPIRouteConfig<Entity> = { type: 'Aggregate', callback: routeConfigCallback };
+  const routeConfig: DynamicApiRouteConfig<Entity> = { type: 'Aggregate', callback: routeConfigCallback };
   const version = 'fakeVersion';
   const validationPipeOptions: ValidationPipeOptions = { transform: true };
   const fakeDisplayedName = 'FakeDisplayedName';
@@ -34,8 +36,8 @@ describe('AggregateModule', () => {
     spyCreateAggregateController = vi.spyOn(AggregateHelpers, 'createAggregateController').mockReturnValue(FakeController);
     spyCreateAggregateServiceProvider = vi.spyOn(AggregateHelpers, 'createAggregateServiceProvider').mockReturnValue(FakeServiceProvider);
     spyCreateAggregateGateway = vi.spyOn(AggregateHelpers, 'createAggregateGateway').mockReturnValue(FakeGateway);
-    vi.spyOn(Helpers, 'getDisplayedName').mockReturnValue(fakeDisplayedName);
-    vi.spyOn(Helpers, 'initializeConfigFromOptions').mockReturnValue(fakeGatewayOptions);
+    vi.spyOn(FormatHelpers, 'getDisplayedName').mockReturnValue(fakeDisplayedName);
+    vi.spyOn(SocketConfigHelpers, 'initializeConfigFromOptions').mockReturnValue(fakeGatewayOptions);
   });
 
   describe('forFeature', () => {

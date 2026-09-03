@@ -4,7 +4,8 @@ import { createMock } from '@test-helpers';
 import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
 import { BaseEntity } from '../models';
-import { BcryptService, DynamicApiGlobalStateService } from '../services';
+import { BcryptService } from '../services/bcrypt/bcrypt.service';
+import { DynamicApiGlobalStateService } from '../services/dynamic-api-global-state/dynamic-api-global-state.service';
 import { mintTokenPair } from './mint-token-pair.helper';
 
 const mockStateGet = vi.fn();

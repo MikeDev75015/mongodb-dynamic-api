@@ -12,19 +12,19 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
 import { WebSocketGateway } from '@nestjs/websockets';
 import { Model } from 'mongoose';
-import { ValidatorPipe } from '../../decorators';
+import { ValidatorPipe } from '../../decorators/validator-pipe.decorator';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { provideName } from '../../helpers';
+import { provideName } from '../../helpers/format.helper';
+import { AfterSaveCallbackConfig } from '../../interfaces/dynamic-api-service-callback.interface';
 import {
   DynamicApiControllerOptions,
-  DynamicAPIRouteConfig,
+  DynamicApiRouteConfig,
   BeforeSaveListCallback,
-  AfterSaveCallbackConfig,
-  DynamicAPIServiceProvider,
+  DynamicApiServiceProvider,
   GatewayOptions,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import { DynamicApiBroadcastService } from '../../services';
+import { DynamicApiBroadcastService } from '../../services/dynamic-api-broadcast/dynamic-api-broadcast.service';
 import { BaseUpdateManyService } from './base-update-many.service';
 import { UpdateManyControllerConstructor } from './update-many-controller.interface';
 import { UpdateManyControllerMixin } from './update-many-controller.mixin';
@@ -38,7 +38,7 @@ function createUpdateManyServiceProvider<Entity extends BaseEntity>(
   version: string | undefined,
   afterSave: AfterSaveCallbackConfig<Entity> | undefined,
   beforeSaveCallback: BeforeSaveListCallback<Entity> | undefined,
-): DynamicAPIServiceProvider {
+): DynamicApiServiceProvider {
   class UpdateManyService extends BaseUpdateManyService<Entity> {
     protected readonly entity = entity;
     protected readonly beforeSaveCallback = beforeSaveCallback;
@@ -72,7 +72,7 @@ function createUpdateManyController<Entity extends BaseEntity>(
   entity: Type<Entity>,
   displayedName: string,
   { useInterceptors = [], ...controllerOptions }: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  routeConfig: DynamicApiRouteConfig<Entity>,
   version?: string,
   validationPipeOptions?: ValidationPipeOptions,
 ): UpdateManyControllerConstructor<Entity> {
@@ -110,7 +110,7 @@ function createUpdateManyGateway<Entity extends BaseEntity>(
   entity: Type<Entity>,
   displayedName: string,
   { useInterceptors = [], ...controllerOptions }: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  routeConfig: DynamicApiRouteConfig<Entity>,
   version?: string,
   validationPipeOptions?: ValidationPipeOptions,
   gatewayOptions: GatewayOptions = {},

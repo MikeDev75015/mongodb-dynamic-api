@@ -26,6 +26,82 @@
 ---
 
 > [!WARNING]
+> **v5 — Breaking changes.** The package's public export surface was curated: internal implementation classes, mixins, builders and helpers that were never meant to be imported directly are no longer exported from `mongodb-dynamic-api`. Everything documented in this README and in `README/*.md` is unaffected.
+>
+> 🚚 **`npx mongodb-dynamic-api migrate-v5 <path>`** applies the two mechanical renames below (`DynamicApiGlobalStateService` → `DynamicApiEntityService`, `@Schema`+`@DynamicApiSchemaOptions` → `@DynamicApiSchema`) across your codebase automatically, and flags anything else it can't safely fix. See [migration-v5.md](./README/migration-v5.md).
+>
+> <details>
+> <summary>📋 Full list of removed public exports (v4 → v5)</summary>
+>
+> ### Why
+> Since v1, every internal file was re-exported through `export *` barrels, so essentially every class/function/type under `libs/dynamic-api/src/**` leaked into the package's public API — including plumbing that only exists to build the auto-generated routes internally. None of it was ever documented, and importing it directly was never a supported usage. v5 curates the barrel down to what real consumers actually use.
+>
+> ### Removed — routes internals
+> Every `Base*Service`, controller/gateway/presenter/body mixin, controller/gateway/service interface, route `*Module` class and route `*.helper.ts` factory function for all 12 route types (`Aggregate`, `CreateOne`/`CreateMany`, `UpdateOne`/`UpdateMany`, `ReplaceOne`, `DuplicateOne`/`DuplicateMany`, `DeleteOne`/`DeleteMany`, `GetOne`/`GetMany`), plus `createCustomRouteController`/`createCustomRouteGateway` and `createCachePurgeController`.
+>
+> ### Removed — base services
+> `BaseService`, `DynamicApiGlobalStateService`.
+> `DynamicApiGlobalStateService.getEntityModel()` — the one capability consumers actually relied on (resolving a registered entity's Mongoose model outside the HTTP cycle) — is now exposed through a new, narrow **`DynamicApiEntityService.getModel(Entity)`**, a `static` method (no DI required — callable from a bootstrap function, a cron job, or any plain utility) . See [caching.md](./README/caching.md) for the updated example.
+>
+> `BcryptService` and `DynamicApiBroadcastService` were briefly removed in an earlier draft of this cleanup and are **kept public** — both are small, self-contained utilities real consumers reach for directly (password hashing outside `useAuth`; broadcasting from a custom route with the same room-resolution and error-isolation guarantees as the auto-generated routes). See the [Unaffected](#unaffected) list below.
+>
+> ### Removed — mixins & builders
+> `RoutePoliciesGuardMixin`, `SocketPoliciesGuardMixin`, `EntityBodyMixin`, `EntityPresenterMixin`, `AuthDecoratorsBuilder`, `RouteDecoratorsBuilder`.
+>
+> ### Removed — guards, gateways, interceptors, filters, logger
+> `BasePoliciesGuard`, `BaseSocketPoliciesGuard`, `DynamicApiJwtAuthGuard`, `JwtSocketGuard` and every internal auth guard (`JwtAuthGuard`, `JwtRefreshGuard`, `JwtSocketAuthGuard`, `JwtSocketRefreshGuard`, `LocalAuthGuard`, `PasswordlessGuard`, `ResetPasswordGuard`); `BaseGateway`, `createDynamicApiBroadcastGateway`; `DynamicApiCacheInterceptor`, `MergeIdParamInterceptor`; `DynamicAPIWsExceptionFilter`; `MongoDBDynamicApiLogger`.
+>
+> ### Removed — internal DTOs & decorators
+> `ManyEntityQuery`, `DeletePresenter`, `EntityParam`, `EntityQuery`; `ApiEndpointVisibility`, `RateLimit`, `ValidatorPipe`, `IS_PUBLIC_KEY`.
+>
+> ### Removed — internal interfaces
+> `DynamicApiDecoratorBuilder`, `PoliciesGuard`, `PoliciesGuardConstructor`, `AuthPoliciesGuardConstructor`, `RouteModule`, `DYNAMIC_API_GLOBAL_STATE`, `Credentials`, `EntitySchemas`, `DynamicApiGlobalState`, `AfterSaveCallbackConfig`, `GatewayResponse`.
+>
+> ### Removed — internal modules & helpers
+> `AuthModule`, `DynamicApiConfigModule`, and every internal auth controller/gateway/policies-guard mixin, `BaseAuthService`, `JwtStrategy`, `JwtRefreshStrategy`; `HealthController`/`createHealthController`; `PresenceController`, `InMemoryPresenceAdapter`, `RedisPresenceAdapter`, `createPresenceGateway`. Most of `helpers/**` (internal wiring only — the documented `enableDynamicAPI*` functions, `mintTokenPair` and `parsePagingParams` are unaffected).
+>
+> ### Removed — `DeepPartial` typo alias
+> `utils/deep-patial.ts` (a typo'd duplicate of `deep-partial.ts`, already marked "will be removed in v5") is deleted. `DeepPartial` itself is still exported — import it as before, from the main package.
+>
+> ### Changed — `@DynamicApiSchema` replaces `@Schema` + `@DynamicApiSchemaOptions`
+> The old stacked pattern:
+> ```typescript
+> @DynamicApiSchemaOptions({ indexes: [...] })
+> @Schema({ collection: 'users' })
+> export class User extends BaseEntity {}
+> ```
+> is now a single decorator taking the union of mongoose's own `SchemaOptions` and DynamicAPI's extras:
+> ```typescript
+> @DynamicApiSchema({
+>   collection: 'users',
+>   indexes: [{ fields: { email: 1 }, options: { unique: true } }],
+> })
+> export class User extends BaseEntity {}
+> ```
+> `DynamicApiSchemaOptions`/`DynamicAPISchemaOptions` (the old decorator) and `DynamicApiSchemaOptionsInterface`/`DynamicAPISchemaOptionsInterface` are gone — `DynamicApiSchemaOptions` is now the type name for just the MDA-specific options (`indexes`/`hooks`/`customInit`). Mongoose's own `@Schema()` still works standalone if you want to call it yourself. See [schema-options.md](./README/schema-options.md).
+>
+> ### Removed — deprecated verbose/all-caps aliases
+> **Route config:** `DynamicAPIRouteConfig` (all-caps) — use `DynamicApiRouteConfig`.
+>
+> **Before-save callback aliases:** `AnyBeforeSaveCallback` — no longer needed, use the discriminated union's per-route narrowing directly. `DynamicApiServiceBeforeSaveCreateContext`, `...CreateManyContext`, `...UpdateContext`, `...UpdateManyContext`, `...ReplaceContext`, `...DeleteContext`, `...DeleteManyContext`, `...DuplicateContext`, `...DuplicateManyContext` — use the matching `BeforeSave*Context` type. `DynamicApiServiceBeforeSaveCallback`, `...ListCallback`, `...DeleteCallback`, `...DeleteManyCallback` — use the matching `BeforeSave*Callback` type.
+>
+> **Service callback aliases:** `DynamicApiCallbackMethods` — use `CallbackMethods`. `DynamicApiServiceCallback` — use `AfterSaveCallback`.
+>
+> **Service provider alias:** `DynamicAPIServiceProvider` (all-caps) — use `DynamicApiServiceProvider`.
+>
+> **Swagger options aliases:** `DynamicAPISwaggerExtraConfig`/`DynamicAPISwaggerOptions` (all-caps) — use `DynamicApiSwaggerExtraConfig`/`DynamicApiSwaggerOptions`.
+>
+> **WebSockets:** `enableDynamicAPIWebSockets(app, maxListeners: number)` — the numeric second-argument overload is gone, pass `enableDynamicAPIWebSockets(app, { maxListeners })` instead.
+>
+> ### Removed — `query.accessToken` WebSocket authentication
+> The server only reads `socket.handshake.auth.token` now. The `query.accessToken` (query string) transport — deprecated since it exposes the token in URLs and server logs — is gone. Update any client still connecting with `io(url, { query: { accessToken } })` to `io(url, { auth: { token } })` instead. See [Authenticating WebSocket Connections](./README/websockets.md#authenticating-websocket-connections).
+>
+> ### Unaffected
+> `DynamicApiCacheService`, `DynamicApiEntityService`, `BcryptService`, `DynamicApiBroadcastService`, `DynamicApiModule`, `DynamicApiHealthModule`, `DynamicApiPresenceModule`, all `decorators/`, all `predicates/`, `BaseEntity`/`SoftDeletableEntity`, every documented route-config/callback/auth/websocket/caching/authorization/validation/schema-options interface and type, and everything else shown in this README and `README/*.md` — none of it moved or changed shape. `DynamicApiPresenceModule`'s DI token `DYNAMIC_API_PRESENCE_ADAPTER` and the `PresenceAdapter` interface are also unaffected — only the internal `InMemoryPresenceAdapter`/`RedisPresenceAdapter` concrete classes are gone, since [Presence](./README/presence.md) was always meant to be consumed through the module's `register()` options and the `PresenceAdapter` DI token, never by importing a concrete adapter class directly.
+>
+> </details>
+
+> [!WARNING]
 > **v4 — Breaking changes.** Dual-token auth (`accessToken` + `refreshToken`), new default expiry (`expiresIn: '15m'`), 2 new endpoints (`/auth/refresh-token`, `/auth/logout`).
 >
 > <details>
@@ -271,6 +347,7 @@ Register `UsersModule` in `AppModule`, run `npm run start:dev` — your API is l
 | 🩺 **Health Check** | `GET /health` readiness probe, `DynamicApiHealthModule` ⭐ *New* | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/health-check.md) |
 | 🧪 **Testing** | `createDynamicApiTestingApp`, in-memory MongoDB, zero Docker ⭐ *New* | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/testing.md) |
 | 🏗️ **Schematics** | `nest g -c mongodb-dynamic-api resource <name>` — scaffold entity + module in one command ⭐ *New* | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/schematics.md) |
+| 🚚 **Migrating to v5** | `npx mongodb-dynamic-api migrate-v5 <path>` — codemod for the two mechanical v5 renames ⭐ *New* | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/migration-v5.md) |
 
 > [!NOTE]
 > **Key reminders:**

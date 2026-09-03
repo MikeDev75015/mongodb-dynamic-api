@@ -18,7 +18,6 @@ import {
   DuplicateManyRouteConfig,
   DuplicateOneRouteConfig,
   DynamicApiRouteConfig,
-  DynamicAPIRouteConfig,
   GetManyRouteConfig,
   GetOneRouteConfig,
   ReplaceOneRouteConfig,
@@ -446,18 +445,6 @@ describe('DynamicApiRouteConfig — discriminated union narrowing', () => {
     ];
 
     expect(routes).toHaveLength(4);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Deprecated alias — DynamicAPIRouteConfig still works
-// ---------------------------------------------------------------------------
-
-describe('DynamicAPIRouteConfig (deprecated alias)', () => {
-  it('is assignable from any per-route config', () => {
-    const cfg: DynamicAPIRouteConfig<Item> = { type: 'CreateOne' };
-
-    expect(cfg.type).toBe('CreateOne');
   });
 });
 

@@ -7,9 +7,12 @@ import { PassportModule } from '@nestjs/passport';
 import { Schema } from 'mongoose';
 import { getFullAuthOptionsMock } from '../../../__mocks__/auth-full-options.mock';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import * as Helpers from '../../helpers';
+import * as SchemaHelpers from '../../helpers/schema.helper';
+import * as SocketConfigHelpers from '../../helpers/socket-config.helper';
 import { BaseEntity } from '../../models';
-import { BcryptService, DynamicApiGlobalStateService, DynamicApiBroadcastService } from '../../services';
+import { BcryptService } from '../../services/bcrypt/bcrypt.service';
+import { DynamicApiGlobalStateService } from '../../services/dynamic-api-global-state/dynamic-api-global-state.service';
+import { DynamicApiBroadcastService } from '../../services/dynamic-api-broadcast/dynamic-api-broadcast.service';
 import * as AuthHelpers from './auth.helper';
 import { authGatewayProviderName } from './auth.helper';
 import { AuthModule } from './auth.module';
@@ -38,24 +41,39 @@ vi.mock(
   ),
 );
 vi.mock(
-  '../../helpers',
+  '../../helpers/schema.helper',
   () => (
-    {
-      buildSchemaFromEntity: vi.fn(),
-      initializeConfigFromOptions: vi.fn(),
-    }
+    { buildSchemaFromEntity: vi.fn() }
   ),
 );
 vi.mock(
-  '../../gateways',
+  '../../helpers/socket-config.helper',
+  () => (
+    { initializeConfigFromOptions: vi.fn() }
+  ),
+);
+vi.mock(
+  '../../gateways/dynamic-api-broadcast.gateway',
   () => (
     { createDynamicApiBroadcastGateway: vi.fn(() => vi.fn()) }
   ),
 );
 vi.mock(
-  '../../services',
+  '../../services/bcrypt/bcrypt.service',
   () => (
-    { BcryptService: vi.fn(), DynamicApiGlobalStateService: { addEntitySchema: vi.fn() }, DynamicApiBroadcastService: vi.fn() }
+    { BcryptService: vi.fn() }
+  ),
+);
+vi.mock(
+  '../../services/dynamic-api-global-state/dynamic-api-global-state.service',
+  () => (
+    { DynamicApiGlobalStateService: { addEntitySchema: vi.fn() } }
+  ),
+);
+vi.mock(
+  '../../services/dynamic-api-broadcast/dynamic-api-broadcast.service',
+  () => (
+    { DynamicApiBroadcastService: vi.fn() }
   ),
 );
 vi.mock(
@@ -142,7 +160,7 @@ describe('AuthModule', () => {
   beforeEach(() => {
     spyInitializeAuthOptions = vi.spyOn<any, any>(AuthModule, 'initializeAuthOptions');
     spyBuildSchemaFromEntity =
-      vi.spyOn(Helpers, 'buildSchemaFromEntity').mockImplementationOnce(() => fakeSchema);
+      vi.spyOn(SchemaHelpers, 'buildSchemaFromEntity').mockImplementationOnce(() => fakeSchema);
     spyMongooseModuleForFeature =
       vi.spyOn(MongooseModule, 'forFeature').mockImplementationOnce(fakeMongooseModuleForFeature);
     spyDynamicApiModuleStateGet =
@@ -169,7 +187,7 @@ describe('AuthModule', () => {
       beforeEach(() => {
         module = AuthModule.forRoot(basicOptions);
         spyInitializeConfigFromOptions =
-          vi.spyOn(Helpers, 'initializeConfigFromOptions').mockImplementationOnce(() => undefined);
+          vi.spyOn(SocketConfigHelpers, 'initializeConfigFromOptions').mockImplementationOnce(() => undefined);
       });
 
       it('should return dynamic module', () => {
@@ -263,7 +281,7 @@ describe('AuthModule', () => {
       beforeEach(() => {
         module = AuthModule.forRoot(fullOptions);
         spyInitializeConfigFromOptions =
-          vi.spyOn(Helpers, 'initializeConfigFromOptions').mockImplementationOnce(() => fakeGatewayOptions);
+          vi.spyOn(SocketConfigHelpers, 'initializeConfigFromOptions').mockImplementationOnce(() => fakeGatewayOptions);
       });
 
       it('should have initialized options', () => {
@@ -380,7 +398,7 @@ describe('AuthModule', () => {
       beforeEach(() => {
         module = AuthModule.forRoot(broadcastOptions);
         spyInitializeConfigFromOptions =
-          vi.spyOn(Helpers, 'initializeConfigFromOptions').mockImplementationOnce(() => undefined);
+          vi.spyOn(SocketConfigHelpers, 'initializeConfigFromOptions').mockImplementationOnce(() => undefined);
       });
 
       it('should include DynamicApiBroadcastService in providers when broadcast is configured', () => {

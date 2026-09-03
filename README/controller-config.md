@@ -49,7 +49,7 @@
 interface DynamicApiForFeatureOptions<Entity extends BaseEntity> {
   entity: Type<Entity>;                                          // Required
   controllerOptions: DynamicApiControllerOptions<Entity>;        // Required
-  routes?: DynamicAPIRouteConfig<Entity>[];                      // Optional — see route-config.md
+  routes?: DynamicApiRouteConfig<Entity>[];                      // Optional — see route-config.md
   webSocket?: GatewayMetadata | boolean;                         // Optional — feature-level WS
   extraImports?: ModuleMetadata['imports'];                      // Optional — extra NestJS imports
   extraProviders?: ModuleMetadata['providers'];                  // Optional — extra NestJS providers
@@ -414,18 +414,17 @@ it works for any entity, not only the one this route is mounted on.
 ```typescript
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { IsNotEmpty, IsString } from 'class-validator';
-import { Prop, Schema } from '@nestjs/mongoose';
+import { Prop } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
   BaseEntity,
-  DynamicAPISchemaOptions,
+  DynamicApiSchema,
   DynamicApiModule,
   CustomRouteConfig,
 } from 'mongodb-dynamic-api';
 
 // ── Entity ────────────────────────────────────────────────────────────────────
-@DynamicAPISchemaOptions({})
-@Schema({ collection: 'conversations' })
+@DynamicApiSchema({ collection: 'conversations' })
 class Conversation extends BaseEntity {
   @Prop({ type: String, required: true }) encryptedContent: string;
   @Prop({ type: String }) wrappedKey: string;
@@ -489,14 +488,13 @@ import { Model } from 'mongoose';
 import { io } from 'socket.io-client';
 import {
   BaseEntity,
-  DynamicAPISchemaOptions,
+  DynamicApiSchema,
   DynamicApiModule,
   CustomRouteConfig,
 } from 'mongodb-dynamic-api';
-import { Prop, Schema } from '@nestjs/mongoose';
+import { Prop } from '@nestjs/mongoose';
 
-@DynamicAPISchemaOptions({})
-@Schema({ collection: 'conversations' })
+@DynamicApiSchema({ collection: 'conversations' })
 class Conversation extends BaseEntity {
   @Prop({ type: String, required: true }) encryptedContent: string;
   @Prop({ type: String }) wrappedKey: string;

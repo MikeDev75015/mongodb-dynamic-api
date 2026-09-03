@@ -1,15 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Mock } from 'vitest';
 import { DynamicModule, ValidationPipeOptions } from '@nestjs/common';
-import * as Helpers from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
+import * as FormatHelpers from '../../helpers/format.helper';
+import * as SocketConfigHelpers from '../../helpers/socket-config.helper';
+import { DynamicApiControllerOptions, DynamicApiRouteConfig, DynamicApiServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import { DynamicApiBroadcastService } from '../../services';
+import { DynamicApiBroadcastService } from '../../services/dynamic-api-broadcast/dynamic-api-broadcast.service';
 import * as DeleteOneHelpers from './delete-one.helper';
 import { DeleteOneModule } from './delete-one.module';
 
 vi.mock('./delete-one.helper');
-vi.mock('../../helpers');
+vi.mock('../../helpers/format.helper');
+vi.mock('../../helpers/socket-config.helper');
 
 class Entity extends BaseEntity {}
 
@@ -19,12 +21,12 @@ describe('DeleteOneModule', () => {
   let spyCreateDeleteOneGateway: Mock;
 
   const FakeController = vi.fn();
-  const FakeServiceProvider = { provide: 'fakeProvider' } as unknown as DynamicAPIServiceProvider;
+  const FakeServiceProvider = { provide: 'fakeProvider' } as unknown as DynamicApiServiceProvider;
   const FakeGateway = vi.fn();
 
   const databaseModule = { module: 'databaseModule' } as unknown as DynamicModule;
   const controllerOptions: DynamicApiControllerOptions<Entity> = { path: 'fakePath' };
-  const routeConfig: DynamicAPIRouteConfig<Entity> = { type: 'DeleteOne' };
+  const routeConfig: DynamicApiRouteConfig<Entity> = { type: 'DeleteOne' };
   const version = 'fakeVersion';
   const validationPipeOptions: ValidationPipeOptions = { transform: true };
   const fakeDisplayedName = 'FakeDisplayedName';
@@ -34,8 +36,8 @@ describe('DeleteOneModule', () => {
     spyCreateDeleteOneController = vi.spyOn(DeleteOneHelpers, 'createDeleteOneController').mockReturnValue(FakeController);
     spyCreateDeleteOneServiceProvider = vi.spyOn(DeleteOneHelpers, 'createDeleteOneServiceProvider').mockReturnValue(FakeServiceProvider);
     spyCreateDeleteOneGateway = vi.spyOn(DeleteOneHelpers, 'createDeleteOneGateway').mockReturnValue(FakeGateway);
-    vi.spyOn(Helpers, 'getDisplayedName').mockReturnValue(fakeDisplayedName);
-    vi.spyOn(Helpers, 'initializeConfigFromOptions').mockReturnValue(fakeGatewayOptions);
+    vi.spyOn(FormatHelpers, 'getDisplayedName').mockReturnValue(fakeDisplayedName);
+    vi.spyOn(SocketConfigHelpers, 'initializeConfigFromOptions').mockReturnValue(fakeGatewayOptions);
   });
 
   describe('forFeature', () => {
@@ -87,7 +89,7 @@ describe('DeleteOneModule', () => {
     });
 
     it('should return a DynamicModule with broadcast service when broadcast is configured', () => {
-      const broadcastRouteConfig: DynamicAPIRouteConfig<Entity> = {
+      const broadcastRouteConfig: DynamicApiRouteConfig<Entity> = {
         ...routeConfig,
         broadcast: { enabled: true },
       };

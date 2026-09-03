@@ -3,7 +3,8 @@ import { JwtService } from '@nestjs/jwt';
 import { randomUUID } from 'node:crypto';
 import type { StringValue } from 'ms';
 import { BaseEntity } from '../models';
-import { BcryptService, DynamicApiGlobalStateService } from '../services';
+import { BcryptService } from '../services/bcrypt/bcrypt.service';
+import { DynamicApiGlobalStateService } from '../services/dynamic-api-global-state/dynamic-api-global-state.service';
 
 /**
  * Options for {@link mintTokenPair}.

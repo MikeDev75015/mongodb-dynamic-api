@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MockedFunction } from 'vitest';
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { WsException } from '@nestjs/websockets';
-import { AuthAbilityPredicate, ExtendedSocket, PoliciesGuard } from '../../../interfaces';
+import { AuthAbilityPredicate, ExtendedSocket } from '../../../interfaces';
+import { PoliciesGuard } from '../../../interfaces/dynamic-api-policy-handler.interface';
 import { BaseEntity } from '../../../models';
 import { AuthPoliciesGuardMixin, AuthSocketPoliciesGuardMixin } from './auth-policies-guard.mixin';
 
@@ -126,7 +127,7 @@ describe('AuthSocketPoliciesGuardMixin', () => {
 
       it('should throw a ws exception if user does not exists', async () => {
         vi.spyOn<any, any>(guard, 'extractUserFromToken').mockResolvedValueOnce(undefined);
-        vi.spyOn<any, any>(guard, 'getAccessTokenFromSocketQuery').mockReturnValueOnce('token');
+        vi.spyOn<any, any>(guard, 'getAccessTokenFromSocket').mockReturnValueOnce('token');
 
         await expect(guard.canActivate(context)).rejects.toThrow(new WsException('Access denied'));
       });
@@ -135,7 +136,7 @@ describe('AuthSocketPoliciesGuardMixin', () => {
         abilityPredicate.mockReturnValue(false);
         user = new User(false);
         vi.spyOn<any, any>(guard, 'extractUserFromToken').mockResolvedValueOnce(user);
-        vi.spyOn<any, any>(guard, 'getAccessTokenFromSocketQuery').mockReturnValueOnce('token');
+        vi.spyOn<any, any>(guard, 'getAccessTokenFromSocket').mockReturnValueOnce('token');
 
         await expect(guard.canActivate(context)).rejects.toThrow(new WsException('Access denied'));
         expect(abilityPredicate).toHaveBeenCalledWith(user, fakeData);
@@ -145,7 +146,7 @@ describe('AuthSocketPoliciesGuardMixin', () => {
         abilityPredicate.mockReturnValue(true);
         user = new User(true);
         vi.spyOn<any, any>(guard, 'extractUserFromToken').mockResolvedValueOnce(user);
-        vi.spyOn<any, any>(guard, 'getAccessTokenFromSocketQuery').mockReturnValueOnce('token');
+        vi.spyOn<any, any>(guard, 'getAccessTokenFromSocket').mockReturnValueOnce('token');
 
         await expect(guard.canActivate(context)).resolves.toBe(true);
         expect(socket.user).toBe(user);

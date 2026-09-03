@@ -1,6 +1,6 @@
 import { DynamicApiRequest } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import { DynamicApiBroadcastService } from '../../services';
+import { DynamicApiBroadcastService } from '../../services/dynamic-api-broadcast/dynamic-api-broadcast.service';
 import { UpdateManyService } from './update-many-service.interface';
 
 interface UpdateManyController<Entity extends BaseEntity, Body = unknown, Response = unknown> {

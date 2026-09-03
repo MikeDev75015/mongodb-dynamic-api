@@ -1,10 +1,10 @@
 import { CanActivate, ExecutionContext } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
-import { isEmpty } from '../helpers';
+import { isEmpty } from '../helpers/lodash.helper';
 import { Socket } from 'socket.io';
 import { DynamicApiModule } from '../dynamic-api.module';
-import { MongoDBDynamicApiLogger } from '../logger';
+import { MongoDBDynamicApiLogger } from '../logger/mongo-dynamic-api.logger';
 
 /** @internal Not part of the public API — will be removed from the package's public exports in v5. */
 export class JwtSocketGuard implements CanActivate {
@@ -48,19 +48,18 @@ export class JwtSocketGuard implements CanActivate {
   }
 
   protected async getUserFromSocket(socket: Socket): Promise<unknown> {
-    const accessToken = this.getAccessTokenFromSocketQuery(socket);
+    const accessToken = this.getAccessTokenFromSocket(socket);
     return this.extractUserFromToken(accessToken);
   }
 
-  private getAccessTokenFromSocketQuery(socket: Socket): string {
-    const accessToken = socket.handshake.auth?.token
-      ?? socket.handshake.query?.accessToken as string;
-    this.logger.debug('getAccessTokenFromSocketQuery', {
+  private getAccessTokenFromSocket(socket: Socket): string {
+    const accessToken = socket.handshake.auth?.token as string;
+    this.logger.debug('getAccessTokenFromSocket', {
       accessToken: !!accessToken,
     });
 
     if (!accessToken) {
-      this.logger.warn('No access token provided in socket auth or query');
+      this.logger.warn('No access token provided in socket auth');
       throw new WsException('Unauthorized');
     }
 

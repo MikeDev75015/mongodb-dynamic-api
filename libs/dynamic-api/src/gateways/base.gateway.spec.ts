@@ -61,7 +61,7 @@ describe('BaseGateway', () => {
     });
 
     it('should throw an exception and warn if the access token is invalid', () => {
-      socket.handshake.query = { accessToken };
+      socket.handshake.auth = { token: accessToken };
       const isPublic = false;
       vi.spyOn(DynamicApiModule.state, 'get').mockReturnValue(true);
       (jwtService.verify = vi.fn()).mockImplementation(() => {
@@ -80,7 +80,7 @@ describe('BaseGateway', () => {
     });
 
     it('should throw an exception if the user is not valid', () => {
-      socket.handshake.query = { accessToken };
+      socket.handshake.auth = { token: accessToken };
       const isPublic = false;
       vi.spyOn(DynamicApiModule.state, 'get').mockReturnValue(true);
       (jwtService.verify = vi.fn()).mockReturnValue({
@@ -91,24 +91,7 @@ describe('BaseGateway', () => {
       expect(() => gateway['addUserToSocket'](socket, isPublic)).toThrow(new WsException('Unauthorized'));
     });
 
-    it('should set the user to the socket if the user is valid', () => {
-      socket.handshake.query = { accessToken };
-      const isPublic = false;
-      const fakeUser = { id: 'id', name: 'name' };
-      vi.spyOn(DynamicApiModule.state, 'get').mockReturnValue(true);
-      (jwtService.verify = vi.fn()).mockReturnValue({
-        iat: Date.now() / 1000,
-        exp: Date.now() / 1000 + 1000,
-        ...fakeUser,
-      });
-
-      gateway['addUserToSocket'](socket, isPublic);
-
-      expect(socket.user).toEqual(fakeUser);
-    });
-
     it('should set the user to the socket when token is provided via auth.token', () => {
-      socket.handshake.query = {};
       socket.handshake.auth = { token: accessToken };
       const isPublic = false;
       const fakeUser = { id: 'id', name: 'name' };
@@ -124,23 +107,14 @@ describe('BaseGateway', () => {
       expect(socket.user).toEqual(fakeUser);
     });
 
-    it('should prefer auth.token over query.accessToken', () => {
-      const authToken = 'authToken';
+    it('ignores a token passed via the deprecated query.accessToken, v5 only reads auth.token', () => {
       socket.handshake.query = { accessToken };
-      socket.handshake.auth = { token: authToken };
       const isPublic = false;
-      const fakeUser = { id: 'id', name: 'name' };
       vi.spyOn(DynamicApiModule.state, 'get').mockReturnValue(true);
-      const verifySpy = (jwtService.verify = vi.fn()).mockReturnValue({
-        iat: Date.now() / 1000,
-        exp: Date.now() / 1000 + 1000,
-        ...fakeUser,
-      });
+      const verifySpy = (jwtService.verify = vi.fn());
 
-      gateway['addUserToSocket'](socket, isPublic);
-
-      expect(verifySpy).toHaveBeenCalledWith(authToken, expect.any(Object));
-      expect(socket.user).toEqual(fakeUser);
+      expect(() => gateway['addUserToSocket'](socket, isPublic)).toThrow(new WsException('Unauthorized'));
+      expect(verifySpy).not.toHaveBeenCalled();
     });
   });
 

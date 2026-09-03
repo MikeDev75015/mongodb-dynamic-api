@@ -1,12 +1,15 @@
 import { Type, UseFilters, UseGuards, UseInterceptors } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WsException } from '@nestjs/websockets';
-import { ManyEntityQuery } from '../../dtos';
+import { ManyEntityQuery } from '../../dtos/many-entity.query';
 import { DynamicAPIWsExceptionFilter } from '../../filters';
 import { BaseGateway } from '../../gateways';
 import { JwtSocketGuard } from '../../guards';
-import { addVersionSuffix, getMixinData, isEmpty, provideName } from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket, Mappable } from '../../interfaces';
+import { addVersionSuffix } from '../../helpers/versioning-config.helper';
+import { getMixinData } from '../../helpers/mixin-data.helper';
+import { isEmpty } from '../../helpers/lodash.helper';
+import { provideName } from '../../helpers/format.helper';
+import { DynamicApiControllerOptions, DynamicApiRouteConfig, ExtendedSocket, Mappable } from '../../interfaces';
 import { EntityBodyMixin, EntityPresenterMixin, SocketPoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DuplicateManyGateway, DuplicateManyGatewayConstructor } from './duplicate-many-gateway.interface';
@@ -15,7 +18,7 @@ import { DuplicateManyService } from './duplicate-many-service.interface';
 function DuplicateManyGatewayMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicApiRouteConfig<Entity>,
   version?: string,
 ): DuplicateManyGatewayConstructor<Entity> {
   const {

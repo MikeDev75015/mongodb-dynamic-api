@@ -1,18 +1,22 @@
 import { Body, Optional, Param, Request, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
-import { EntityParam } from '../../dtos';
-import { applyFromUser, addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiRequest, Mappable } from '../../interfaces';
+import { EntityParam } from '../../dtos/entity.param';
+import { applyFromUser } from '../../helpers/from-user.helper';
+import { addVersionSuffix } from '../../helpers/versioning-config.helper';
+import { getMixinData } from '../../helpers/mixin-data.helper';
+import { provideName } from '../../helpers/format.helper';
+import { RouteDecoratorsHelper } from '../../helpers/route-decorators.helper';
+import { DynamicApiControllerOptions, DynamicApiRouteConfig, DynamicApiRequest, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin, stripProtectedFields } from '../../mixins';
 import { BaseEntity } from '../../models';
-import { DynamicApiBroadcastService } from '../../services';
+import { DynamicApiBroadcastService } from '../../services/dynamic-api-broadcast/dynamic-api-broadcast.service';
 import { ReplaceOneController, ReplaceOneControllerConstructor } from './replace-one-controller.interface';
 import { ReplaceOneService } from './replace-one-service.interface';
 
 function ReplaceOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], broadcast: broadcastConfig, fromUser, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, fromUser, ...routeConfig }: DynamicApiRouteConfig<Entity>,
   version?: string,
 ): ReplaceOneControllerConstructor<Entity> {
   const {

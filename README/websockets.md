@@ -58,15 +58,6 @@ bootstrap();
 
 > **Note:** `enableDynamicAPIWebSockets(app)` is required whenever you use **any** WebSocket feature — including broadcasting after HTTP calls — even if no route has `webSocket: true`.
 
-> **⚠️ Deprecated:** The numeric overload `enableDynamicAPIWebSockets(app, 50)` is deprecated and will be removed in v5. Use the options-object form instead:
-> ```typescript
-> // ❌ Deprecated
-> enableDynamicAPIWebSockets(app, 50);
->
-> // ✅ Recommended
-> enableDynamicAPIWebSockets(app, { maxListeners: 50 });
-> ```
-
 ### Enable WebSockets Globally
 
 ```typescript
@@ -1287,9 +1278,7 @@ export const authService = {
 
 ### Authenticating WebSocket Connections
 
-To access protected routes via WebSocket, send the JWT token with the connection. Two transport methods are supported:
-
-**✅ Recommended — `auth.token` (Socket.IO handshake `auth` object):**
+To access protected routes via WebSocket, send the JWT token with the connection, via the Socket.IO handshake `auth` object:
 
 ```typescript
 import { io } from 'socket.io-client';
@@ -1298,7 +1287,7 @@ const token = localStorage.getItem('accessToken');
 
 const socket = io('http://localhost:3000', {
   auth: {
-    token: token, // ✅ Recommended: send JWT token via the auth object
+    token: token, // send JWT token via the auth object
   },
 });
 
@@ -1308,22 +1297,7 @@ socket.emit('auth-get-account', {}, (response) => {
 });
 ```
 
-**⚠️ Deprecated — `query.accessToken` (query string):**
-
-```typescript
-import { io } from 'socket.io-client';
-
-const token = localStorage.getItem('accessToken');
-
-// ⚠️ Deprecated — will be removed in v5
-const socket = io('http://localhost:3000', {
-  query: {
-    accessToken: token,
-  },
-});
-```
-
-> **Note:** The server resolves the token as `socket.handshake.auth.token ?? socket.handshake.query.accessToken`. The `query` method is supported for backward compatibility but exposes the token in URLs and server logs. Always prefer the `auth` object.
+> **v5:** the `query.accessToken` (query string) transport is gone — the server only ever reads `socket.handshake.auth.token` now. It exposed the token in URLs and server logs, so this is a security hardening as well as a cleanup; switch any client still using `query: { accessToken }` to the `auth` object above.
 
 ---
 
@@ -2184,8 +2158,6 @@ Configure max listeners for the WebSocket server:
 // In main.ts
 enableDynamicAPIWebSockets(app, { maxListeners: 50 }); // Max 50 listeners per event
 ```
-
-> **⚠️ Deprecated:** `enableDynamicAPIWebSockets(app, 50)` still works but will be removed in v5.
 
 ### Event Throttling
 

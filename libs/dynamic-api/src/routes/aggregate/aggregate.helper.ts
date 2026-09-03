@@ -11,15 +11,15 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
 import { WebSocketGateway } from '@nestjs/websockets';
 import { Model } from 'mongoose';
-import { ValidatorPipe } from '../../decorators';
+import { ValidatorPipe } from '../../decorators/validator-pipe.decorator';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { provideName } from '../../helpers';
+import { provideName } from '../../helpers/format.helper';
+import { AfterSaveCallbackConfig } from '../../interfaces/dynamic-api-service-callback.interface';
 import {
   DynamicApiControllerOptions,
-  DynamicAPIRouteConfig,
+  DynamicApiRouteConfig,
   AbilityPredicate,
-  AfterSaveCallbackConfig,
-  DynamicAPIServiceProvider, GatewayOptions,
+  DynamicApiServiceProvider, GatewayOptions,
   PredicateBehavior,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
@@ -37,7 +37,7 @@ function createAggregateServiceProvider<Entity extends BaseEntity>(
   afterSave: AfterSaveCallbackConfig<Entity> | undefined,
   abilityPredicate?: AbilityPredicate<Entity>,
   predicateBehavior?: PredicateBehavior,
-): DynamicAPIServiceProvider {
+): DynamicApiServiceProvider {
   class AggregateService extends BaseAggregateService<Entity> {
     protected readonly entity = entity;
     protected readonly callback = afterSave?.callback;
@@ -71,7 +71,7 @@ function createAggregateController<Entity extends BaseEntity>(
   entity: Type<Entity>,
   displayedName: string,
   { useInterceptors = [], ...controllerOptions }: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  routeConfig: DynamicApiRouteConfig<Entity>,
   version?: string,
   validationPipeOptions?: ValidationPipeOptions,
 ): AggregateControllerConstructor<Entity> {
@@ -107,7 +107,7 @@ function createAggregateGateway<Entity extends BaseEntity>(
   entity: Type<Entity>,
   displayedName: string,
   { useInterceptors = [], ...controllerOptions }: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  routeConfig: DynamicApiRouteConfig<Entity>,
   version?: string,
   validationPipeOptions?: ValidationPipeOptions,
   gatewayOptions: GatewayOptions = {},

@@ -297,8 +297,8 @@ export const server = {
 
     return new Promise<{ response: Response; outsiderReceivedBroadcast: boolean }>((resolve, reject) => {
       const baseUrl = getAppBaseUrl();
-      const emitter = io(baseUrl, { query: { accessToken: emitOptions.accessToken }, path: emitOptions.namespace });
-      const receiver = io(baseUrl, { query: { accessToken: receiverAccessToken }, path: namespace });
+      const emitter = io(baseUrl, { auth: { token: emitOptions.accessToken }, path: emitOptions.namespace });
+      const receiver = io(baseUrl, { auth: { token: receiverAccessToken }, path: namespace });
       const outsider = io(baseUrl, { path: namespace });
 
       let settled = false;
@@ -383,7 +383,7 @@ export const server = {
 
     return new Promise<{ httpResponse: Response; outsiderReceivedBroadcast: boolean }>((resolve, reject) => {
       const baseUrl = getAppBaseUrl();
-      const receiver = io(baseUrl, { query: { accessToken: receiverAccessToken }, path: namespace });
+      const receiver = io(baseUrl, { auth: { token: receiverAccessToken }, path: namespace });
       const outsider = io(baseUrl, { path: namespace });
 
       let settled = false;
@@ -461,7 +461,7 @@ export const server = {
 
     return new Promise<Response>((resolve, reject) => {
       const baseUrl = getAppBaseUrl();
-      const emitter = io(baseUrl, { query: { accessToken, refreshToken }, path: namespace });
+      const emitter = io(baseUrl, { auth: { token: accessToken }, query: { refreshToken }, path: namespace });
       const receiver = expectBroadcast ? io(baseUrl, { path: namespace }) : undefined;
       const receiverEvent = broadcastEvent || event;
       let settled = false;

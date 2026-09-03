@@ -1,18 +1,22 @@
 import { BadRequestException, Optional, Query, Request, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
-import { ManyEntityQuery, DeletePresenter } from '../../dtos';
-import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiRequest, Mappable } from '../../interfaces';
+import { ManyEntityQuery } from '../../dtos/many-entity.query';
+import { DeletePresenter } from '../../dtos/delete.presenter';
+import { addVersionSuffix } from '../../helpers/versioning-config.helper';
+import { getMixinData } from '../../helpers/mixin-data.helper';
+import { provideName } from '../../helpers/format.helper';
+import { RouteDecoratorsHelper } from '../../helpers/route-decorators.helper';
+import { DynamicApiControllerOptions, DynamicApiRouteConfig, DynamicApiRequest, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
-import { DynamicApiBroadcastService } from '../../services';
+import { DynamicApiBroadcastService } from '../../services/dynamic-api-broadcast/dynamic-api-broadcast.service';
 import { DeleteManyController, DeleteManyControllerConstructor } from './delete-many-controller.interface';
 import { DeleteManyService } from './delete-many-service.interface';
 
 function DeleteManyControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicApiRouteConfig<Entity>,
   version?: string,
 ): DeleteManyControllerConstructor<Entity> {
   const {

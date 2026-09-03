@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Mock, MockedFunction } from 'vitest';
 ﻿import { CanActivate } from '@nestjs/common';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { MongoDBDynamicApiLogger } from '../../logger';
+import { MongoDBDynamicApiLogger } from '../../logger/mongo-dynamic-api.logger';
 import { BaseEntity } from '../../models';
 import { RoutePoliciesGuardMixin } from '../../mixins';
 import {

@@ -1,14 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Mock } from 'vitest';
 import { DynamicModule, ValidationPipeOptions } from '@nestjs/common';
-import * as Helpers from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIServiceProvider, GetManyRouteConfig } from '../../interfaces';
+import * as FormatHelpers from '../../helpers/format.helper';
+import * as SocketConfigHelpers from '../../helpers/socket-config.helper';
+import { DynamicApiControllerOptions, DynamicApiServiceProvider, GetManyRouteConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import * as GetManyHelpers from './get-many.helper';
 import { GetManyModule } from './get-many.module';
 
 vi.mock('./get-many.helper');
-vi.mock('../../helpers');
+vi.mock('../../helpers/format.helper');
+vi.mock('../../helpers/socket-config.helper');
 
 class Entity extends BaseEntity {}
 
@@ -18,7 +20,7 @@ describe('GetManyModule', () => {
   let spyCreateGetManyGateway: Mock;
 
   const FakeController = vi.fn();
-  const FakeServiceProvider = { provide: 'fakeProvider' } as unknown as DynamicAPIServiceProvider;
+  const FakeServiceProvider = { provide: 'fakeProvider' } as unknown as DynamicApiServiceProvider;
   const FakeGateway = vi.fn();
 
   const routeConfigCallback = vi.fn();
@@ -34,8 +36,8 @@ describe('GetManyModule', () => {
     spyCreateGetManyController = vi.spyOn(GetManyHelpers, 'createGetManyController').mockReturnValue(FakeController);
     spyCreateGetManyServiceProvider = vi.spyOn(GetManyHelpers, 'createGetManyServiceProvider').mockReturnValue(FakeServiceProvider);
     spyCreateGetManyGateway = vi.spyOn(GetManyHelpers, 'createGetManyGateway').mockReturnValue(FakeGateway);
-    vi.spyOn(Helpers, 'getDisplayedName').mockReturnValue(fakeDisplayedName);
-    vi.spyOn(Helpers, 'initializeConfigFromOptions').mockReturnValue(fakeGatewayOptions);
+    vi.spyOn(FormatHelpers, 'getDisplayedName').mockReturnValue(fakeDisplayedName);
+    vi.spyOn(SocketConfigHelpers, 'initializeConfigFromOptions').mockReturnValue(fakeGatewayOptions);
   });
 
   describe('forFeature', () => {

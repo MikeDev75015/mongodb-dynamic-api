@@ -1,10 +1,12 @@
 import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
-import { ManyEntityQuery } from '../dtos';
+import { ManyEntityQuery } from '../dtos/many-entity.query';
 import { DynamicApiModule } from '../dynamic-api.module';
-import { isEmpty, resolveBroadcast, DynamicApiWsConfigStore } from '../helpers';
+import { isEmpty } from '../helpers/lodash.helper';
+import { resolveBroadcast } from '../helpers/resolve-broadcast.helper';
+import { DynamicApiWsConfigStore } from '../helpers/ws-config.store';
 import { BroadcastConfig, ExtendedSocket } from '../interfaces';
-import { MongoDBDynamicApiLogger } from '../logger';
+import { MongoDBDynamicApiLogger } from '../logger/mongo-dynamic-api.logger';
 import { BaseEntity } from '../models';
 
 /** @internal Not part of the public API — will be removed from the package's public exports in v5. */
@@ -20,8 +22,7 @@ export abstract class BaseGateway<Entity extends BaseEntity> {
       return;
     }
 
-    const accessToken = (socket.handshake.auth?.token
-      ?? socket.handshake.query?.accessToken) as string;
+    const accessToken = socket.handshake.auth?.token as string;
     let verified: Partial<Entity> & { iat: number; exp: number; };
 
     if (accessToken) {

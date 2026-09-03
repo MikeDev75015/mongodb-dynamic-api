@@ -1,6 +1,6 @@
 import { Type } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
-import { cloneDeep } from '../../helpers';
+import { cloneDeep } from '../../helpers/lodash.helper';
 import { Model } from 'mongoose';
 import {
   BeforeSaveDuplicateManyContext,
@@ -10,7 +10,7 @@ import {
 } from '../../interfaces';
 import { baseEntityKeysToExclude } from '../../mixins';
 import { BaseEntity } from '../../models';
-import { BaseService } from '../../services';
+import { BaseService } from '../../services/base/base.service';
 import { DuplicateManyService } from './duplicate-many-service.interface';
 
 export abstract class BaseDuplicateManyService<Entity extends BaseEntity>

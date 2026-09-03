@@ -12,18 +12,18 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
 import { WebSocketGateway } from '@nestjs/websockets';
 import { Model } from 'mongoose';
-import { ValidatorPipe } from '../../decorators';
+import { ValidatorPipe } from '../../decorators/validator-pipe.decorator';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { provideName } from '../../helpers';
+import { provideName } from '../../helpers/format.helper';
+import { AfterSaveCallbackConfig } from '../../interfaces/dynamic-api-service-callback.interface';
 import {
   DynamicApiControllerOptions,
-  DynamicAPIRouteConfig,
+  DynamicApiRouteConfig,
   BeforeSaveListCallback,
-  AfterSaveCallbackConfig,
-  DynamicAPIServiceProvider, GatewayOptions,
+  DynamicApiServiceProvider, GatewayOptions,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import { DynamicApiBroadcastService } from '../../services';
+import { DynamicApiBroadcastService } from '../../services/dynamic-api-broadcast/dynamic-api-broadcast.service';
 import { BaseCreateManyService } from './base-create-many.service';
 import { CreateManyControllerConstructor } from './create-many-controller.interface';
 import { CreateManyControllerMixin } from './create-many-controller.mixin';
@@ -37,7 +37,7 @@ function createCreateManyServiceProvider<Entity extends BaseEntity>(
   version: string | undefined,
   afterSave: AfterSaveCallbackConfig<Entity> | undefined,
   beforeSaveCallback: BeforeSaveListCallback<Entity> | undefined,
-): DynamicAPIServiceProvider {
+): DynamicApiServiceProvider {
   class CreateManyService extends BaseCreateManyService<Entity> {
     protected readonly entity = entity;
     protected readonly beforeSaveCallback = beforeSaveCallback;
@@ -71,7 +71,7 @@ function createCreateManyController<Entity extends BaseEntity>(
   entity: Type<Entity>,
   displayedName: string,
   { useInterceptors = [], ...controllerOptions }: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  routeConfig: DynamicApiRouteConfig<Entity>,
   version?: string,
   validationPipeOptions?: ValidationPipeOptions,
 ): CreateManyControllerConstructor<Entity> {
@@ -109,7 +109,7 @@ function createCreateManyGateway<Entity extends BaseEntity>(
   entity: Type<Entity>,
   displayedName: string,
   { useInterceptors = [], ...controllerOptions }: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  routeConfig: DynamicApiRouteConfig<Entity>,
   version?: string,
   validationPipeOptions?: ValidationPipeOptions,
   gatewayOptions: GatewayOptions = {},

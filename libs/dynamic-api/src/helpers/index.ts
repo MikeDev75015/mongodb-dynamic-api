@@ -1,25 +1,9 @@
-export * from './controller-ability-predicates.helper';
-export * from './format.helper';
-export * from './from-user.helper';
+// Most of `helpers/**` is internal wiring for the auto-generated routes — not part of the public
+// API. Only the documented bootstrap helpers below are re-exported.
 export * from './index-sync.helper';
-export * from './lodash.helper';
 export * from './mint-token-pair.helper';
-export * from './mixin-data.helper';
-export * from './mongo-transaction.helper';
-export * from './mongoose-cast-error.helper';
 export * from './paging-params.helper';
-export * from './paging-presenter-warning.helper';
-export * from './pipeline-paging.helper';
-export * from './predicate-identifier.helper';
-export * from './repository.helper';
-export * from './resolve-broadcast.helper';
-export * from './resolve-rooms.helper';
-export * from './route-decorators.helper';
-export * from './route-description.helper';
-export * from './schema.helper';
-export * from './socket-config.helper';
-export * from './strip-business-validators.helper';
-export * from './swagger-config.helper';
 export * from './validation-config.helper';
-export * from './versioning-config.helper';
-export * from './ws-config.store';
+export { enableDynamicAPIWebSockets } from './socket-config.helper';
+export * from './swagger-config.helper';
+export { enableDynamicAPIVersioning } from './versioning-config.helper';

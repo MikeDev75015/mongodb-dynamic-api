@@ -3,7 +3,7 @@ import * as jwt from 'jsonwebtoken';
 import { Server, ServerOptions, Socket } from 'socket.io';
 import { DynamicApiWsConfigStore } from '../helpers/ws-config.store';
 import { ExtendedSocket } from '../interfaces';
-import { MongoDBDynamicApiLogger } from '../logger';
+import { MongoDBDynamicApiLogger } from '../logger/mongo-dynamic-api.logger';
 
 export class SocketAdapter extends IoAdapter {
   private readonly logger = new MongoDBDynamicApiLogger('SocketAdapter');
@@ -32,8 +32,7 @@ export class SocketAdapter extends IoAdapter {
     let user: unknown;
 
     if (jwtSecret) {
-      const token = (socket.handshake?.auth?.token
-        ?? socket.handshake?.query?.accessToken) as string | undefined;
+      const token = socket.handshake?.auth?.token as string | undefined;
 
       if (token) {
         try {

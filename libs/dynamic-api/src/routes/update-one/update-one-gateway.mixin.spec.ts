@@ -2,12 +2,12 @@ import { describe, expect, it, test } from 'vitest';
 import { createMock } from '@test-helpers';
 import { JwtService } from '@nestjs/jwt';
 import { BaseGateway } from '../../gateways';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicApiRouteConfig, ExtendedSocket } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { UpdateOneGatewayConstructor } from './update-one-gateway.interface';
 import { UpdateOneGatewayMixin } from './update-one-gateway.mixin';
 import { UpdateOneService } from './update-one-service.interface';
-import { EntityParam } from '../../dtos';
+import { EntityParam } from '../../dtos/entity.param';
 
 describe('UpdateOneGatewayMixin', () => {
   class TestEntity extends BaseEntity {
@@ -25,7 +25,7 @@ describe('UpdateOneGatewayMixin', () => {
   } as DynamicApiControllerOptions<TestEntity>;
   const routeConfig = {
     type: 'UpdateOne',
-  } as DynamicAPIRouteConfig<TestEntity>;
+  } as DynamicApiRouteConfig<TestEntity>;
 
   const fakeEntity = { id: '1', field1: 'test' } as TestEntity;
   const body = { id: '1', field1: 'value' };

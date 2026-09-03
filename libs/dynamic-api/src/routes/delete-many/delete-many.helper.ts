@@ -12,22 +12,22 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
 import { WebSocketGateway } from '@nestjs/websockets';
 import { Model } from 'mongoose';
-import { ValidatorPipe } from '../../decorators';
+import { ValidatorPipe } from '../../decorators/validator-pipe.decorator';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { provideName } from '../../helpers';
+import { provideName } from '../../helpers/format.helper';
+import { AfterSaveCallbackConfig } from '../../interfaces/dynamic-api-service-callback.interface';
 import {
   DynamicApiControllerOptions,
-  DynamicAPIRouteConfig,
+  DynamicApiRouteConfig,
   BeforeSaveDeleteManyCallback,
   BeforeDeleteManyCallback,
   BeforeSaveDeleteManyContext,
-  AfterSaveCallbackConfig,
-  DynamicAPIServiceProvider,
+  DynamicApiServiceProvider,
   GatewayOptions,
   CascadeConfig,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import { DynamicApiBroadcastService } from '../../services';
+import { DynamicApiBroadcastService } from '../../services/dynamic-api-broadcast/dynamic-api-broadcast.service';
 import { DeleteManyGatewayConstructor, DeleteManyGatewayMixin, DeleteManyService } from '../delete-many';
 import { BaseDeleteManyService } from './base-delete-many.service';
 import { DeleteManyControllerConstructor } from './delete-many-controller.interface';
@@ -41,7 +41,7 @@ function createDeleteManyServiceProvider<Entity extends BaseEntity>(
   beforeSaveCallback: BeforeSaveDeleteManyCallback<Entity> | undefined,
   beforeDeleteCallback?: BeforeDeleteManyCallback<Entity, BeforeSaveDeleteManyContext> | undefined,
   cascade?: CascadeConfig[] | undefined,
-): DynamicAPIServiceProvider {
+): DynamicApiServiceProvider {
   class DeleteManyService extends BaseDeleteManyService<Entity> {
     protected readonly entity = entity;
     protected readonly beforeSaveCallback = beforeSaveCallback;
@@ -77,7 +77,7 @@ function createDeleteManyController<Entity extends BaseEntity>(
   entity: Type<Entity>,
   displayedName: string,
   { useInterceptors = [], ...controllerOptions }: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  routeConfig: DynamicApiRouteConfig<Entity>,
   version?: string,
   validationPipeOptions?: ValidationPipeOptions,
 ): DeleteManyControllerConstructor<Entity> {
@@ -115,7 +115,7 @@ function createDeleteManyGateway<Entity extends BaseEntity>(
   entity: Type<Entity>,
   displayedName: string,
   { useInterceptors = [], ...controllerOptions }: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  routeConfig: DynamicApiRouteConfig<Entity>,
   version?: string,
   validationPipeOptions?: ValidationPipeOptions,
   gatewayOptions: GatewayOptions = {},

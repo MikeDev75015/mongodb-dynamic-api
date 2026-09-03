@@ -1,12 +1,15 @@
 import { Type, UseFilters, UseGuards, UseInterceptors } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WsException } from '@nestjs/websockets';
-import { DeletePresenter, ManyEntityQuery } from '../../dtos';
+import { DeletePresenter } from '../../dtos/delete.presenter';
+import { ManyEntityQuery } from '../../dtos/many-entity.query';
 import { DynamicAPIWsExceptionFilter } from '../../filters';
 import { BaseGateway } from '../../gateways';
 import { JwtSocketGuard } from '../../guards';
-import { addVersionSuffix, getMixinData, provideName } from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket, Mappable } from '../../interfaces';
+import { addVersionSuffix } from '../../helpers/versioning-config.helper';
+import { getMixinData } from '../../helpers/mixin-data.helper';
+import { provideName } from '../../helpers/format.helper';
+import { DynamicApiControllerOptions, DynamicApiRouteConfig, ExtendedSocket, Mappable } from '../../interfaces';
 import { SocketPoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DeleteManyGateway, DeleteManyGatewayConstructor } from './delete-many-gateway.interface';
@@ -15,7 +18,7 @@ import { DeleteManyService } from './delete-many-service.interface';
 function DeleteManyGatewayMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicApiRouteConfig<Entity>,
   version?: string,
 ): DeleteManyGatewayConstructor<Entity> {
   const {

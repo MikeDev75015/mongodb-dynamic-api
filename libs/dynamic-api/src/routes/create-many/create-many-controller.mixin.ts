@@ -1,10 +1,15 @@
 import { BadRequestException, Body, Optional, Request, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
-import { applyFromUser, addVersionSuffix, getMixinData, isEmpty, provideName, RouteDecoratorsHelper } from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiRequest, Mappable } from '../../interfaces';
+import { applyFromUser } from '../../helpers/from-user.helper';
+import { addVersionSuffix } from '../../helpers/versioning-config.helper';
+import { getMixinData } from '../../helpers/mixin-data.helper';
+import { isEmpty } from '../../helpers/lodash.helper';
+import { provideName } from '../../helpers/format.helper';
+import { RouteDecoratorsHelper } from '../../helpers/route-decorators.helper';
+import { DynamicApiControllerOptions, DynamicApiRouteConfig, DynamicApiRequest, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin, stripProtectedFields } from '../../mixins';
 import { BaseEntity } from '../../models';
-import { DynamicApiBroadcastService } from '../../services';
+import { DynamicApiBroadcastService } from '../../services/dynamic-api-broadcast/dynamic-api-broadcast.service';
 import { CreateManyBodyMixin } from './create-many-body.mixin';
 import { CreateManyController, CreateManyControllerConstructor } from './create-many-controller.interface';
 import { CreateManyPresenterMixin } from './create-many-presenter.mixin';
@@ -13,7 +18,7 @@ import { CreateManyService } from './create-many-service.interface';
 function CreateManyControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], broadcast: broadcastConfig, fromUser, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, fromUser, ...routeConfig }: DynamicApiRouteConfig<Entity>,
   version?: string,
 ): CreateManyControllerConstructor<Entity> {
   const {

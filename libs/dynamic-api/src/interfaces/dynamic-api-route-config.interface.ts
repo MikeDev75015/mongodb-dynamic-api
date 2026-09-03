@@ -278,11 +278,6 @@ type DynamicApiRouteConfig<Entity extends BaseEntity> =
   | AggregateRouteConfig<Entity>
   | CustomOperationRouteConfig<Entity>;
 
-/**
- * @deprecated Use `DynamicApiRouteConfig` instead. Will be removed in v5.
- */
-type DynamicAPIRouteConfig<Entity extends BaseEntity> = DynamicApiRouteConfig<Entity>;
-
 // ─── Callback helpers — eliminate `as never` casts when using dTOs.body ──────
 
 /**
@@ -399,7 +394,6 @@ export {
   AggregateRouteConfig,
   CustomOperationRouteConfig,
   DynamicApiRouteConfig,
-  DynamicAPIRouteConfig,
   FromUserMap,
   defineCreateCallback,
   defineCreateManyCallback,

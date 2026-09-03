@@ -2,20 +2,25 @@ import { BadRequestException, Body, Optional, Param, Request, Type, UseGuards, U
 import { ApiHideProperty } from '@nestjs/swagger';
 import { IsOptional, IsString } from 'class-validator';
 import { RouteDecoratorsBuilder } from '../../builders';
-import { EntityParam } from '../../dtos';
-import { applyFromUser, addVersionSuffix, getMixinData, isEmpty, provideName, RouteDecoratorsHelper } from '../../helpers';
+import { EntityParam } from '../../dtos/entity.param';
+import { applyFromUser } from '../../helpers/from-user.helper';
+import { addVersionSuffix } from '../../helpers/versioning-config.helper';
+import { getMixinData } from '../../helpers/mixin-data.helper';
+import { isEmpty } from '../../helpers/lodash.helper';
+import { provideName } from '../../helpers/format.helper';
+import { RouteDecoratorsHelper } from '../../helpers/route-decorators.helper';
 import { MergeIdParamInterceptor } from '../../interceptors';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiRequest, Mappable } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicApiRouteConfig, DynamicApiRequest, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin, stripProtectedFields } from '../../mixins';
 import { BaseEntity } from '../../models';
-import { DynamicApiBroadcastService } from '../../services';
+import { DynamicApiBroadcastService } from '../../services/dynamic-api-broadcast/dynamic-api-broadcast.service';
 import { UpdateOneController, UpdateOneControllerConstructor } from './update-one-controller.interface';
 import { UpdateOneService } from './update-one-service.interface';
 
 function UpdateOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], broadcast: broadcastConfig, fromUser, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, fromUser, ...routeConfig }: DynamicApiRouteConfig<Entity>,
   version?: string,
 ): UpdateOneControllerConstructor<Entity> {
   const {

@@ -6,7 +6,7 @@ import { Reflector } from '@nestjs/core';
 import { HttpAdapterHost } from '@nestjs/core/helpers/http-adapter-host';
 import { of } from 'rxjs';
 import { DISABLE_CACHE_KEY } from '../decorators';
-import { DynamicApiGlobalState } from '../interfaces';
+import { DynamicApiGlobalState } from '../interfaces/dynamic-api-global-state.interface';
 import { DynamicApiCacheInterceptor } from './dynamic-api-cache.interceptor';
 
 describe('DynamicApiCacheInterceptor', () => {

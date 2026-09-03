@@ -1,5 +1,6 @@
 import { JwtService } from '@nestjs/jwt';
-import { ExtendedSocket, GatewayResponse } from '../../interfaces';
+import { ExtendedSocket } from '../../interfaces';
+import { GatewayResponse } from '../../interfaces/dynamic-api-web-socket.interface';
 import { BaseEntity } from '../../models';
 import { CreateManyBody } from './create-many-controller.interface';
 import { CreateManyService } from './create-many-service.interface';

@@ -5,15 +5,18 @@ import { plainToInstance } from 'class-transformer';
 import { DynamicAPIWsExceptionFilter } from '../../filters';
 import { BaseGateway } from '../../gateways';
 import { JwtSocketGuard } from '../../guards';
-import { addVersionSuffix, getMixinData, provideName, warnIfPagingResultDropped } from '../../helpers';
+import { addVersionSuffix } from '../../helpers/versioning-config.helper';
+import { getMixinData } from '../../helpers/mixin-data.helper';
+import { provideName } from '../../helpers/format.helper';
+import { warnIfPagingResultDropped } from '../../helpers/paging-presenter-warning.helper';
 import {
   Aggregatable,
   DynamicApiControllerOptions,
-  DynamicAPIRouteConfig,
+  DynamicApiRouteConfig,
   ExtendedSocket,
-  GatewayResponse,
   Mappable,
 } from '../../interfaces';
+import { GatewayResponse } from '../../interfaces/dynamic-api-web-socket.interface';
 import { SocketPoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { AggregateGateway, AggregateGatewayConstructor } from './aggregate-gateway.interface';
@@ -23,7 +26,7 @@ import { AggregateService } from './aggregate-service.interface';
 function AggregateGatewayMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], ...routeConfig }: DynamicApiRouteConfig<Entity>,
   version?: string,
 ): AggregateGatewayConstructor<Entity> {
   const {

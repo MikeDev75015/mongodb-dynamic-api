@@ -2,8 +2,10 @@ import { Delete, Get, Patch, Post, Put, Type } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiExtraModels, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { Public } from '../../decorators';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { lowerCase, lowerFirst, pascalCase, upperFirst } from '../../helpers';
-import { DynamicApiDecoratorBuilder, Mappable, RouteType } from '../../interfaces';
+import { lowerCase, lowerFirst, upperFirst } from '../../helpers/lodash.helper';
+import { pascalCase } from '../../helpers/format.helper';
+import { DynamicApiDecoratorBuilder } from '../../interfaces/dynamic-api-decorator-builder.interface';
+import { Mappable, RouteType } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { buildPaginatedResponseType } from './paginated-response.builder';
 

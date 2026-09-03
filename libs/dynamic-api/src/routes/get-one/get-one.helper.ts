@@ -11,14 +11,14 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
 import { WebSocketGateway } from '@nestjs/websockets';
 import { Model } from 'mongoose';
-import { ValidatorPipe } from '../../decorators';
+import { ValidatorPipe } from '../../decorators/validator-pipe.decorator';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { provideName } from '../../helpers';
+import { provideName } from '../../helpers/format.helper';
+import { AfterSaveCallbackConfig } from '../../interfaces/dynamic-api-service-callback.interface';
 import {
   DynamicApiControllerOptions,
-  DynamicAPIRouteConfig,
-  AfterSaveCallbackConfig,
-  DynamicAPIServiceProvider,
+  DynamicApiRouteConfig,
+  DynamicApiServiceProvider,
   GatewayOptions,
   PopulateConfig,
 } from '../../interfaces';
@@ -36,7 +36,7 @@ function createGetOneServiceProvider<Entity extends BaseEntity>(
   version: string | undefined,
   afterSave: AfterSaveCallbackConfig<Entity> | undefined,
   populate: PopulateConfig | undefined,
-): DynamicAPIServiceProvider {
+): DynamicApiServiceProvider {
   class GetOneService extends BaseGetOneService<Entity> {
     protected readonly entity = entity;
     protected readonly callback = afterSave?.callback;
@@ -69,7 +69,7 @@ function createGetOneController<Entity extends BaseEntity>(
   entity: Type<Entity>,
   displayedName: string,
   { useInterceptors = [], ...controllerOptions }: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  routeConfig: DynamicApiRouteConfig<Entity>,
   version?: string,
   validationPipeOptions?: ValidationPipeOptions,
 ): GetOneControllerConstructor<Entity> {
@@ -105,7 +105,7 @@ function createGetOneGateway<Entity extends BaseEntity>(
   entity: Type<Entity>,
   displayedName: string,
   { useInterceptors = [], ...controllerOptions }: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  routeConfig: DynamicApiRouteConfig<Entity>,
   version?: string,
   validationPipeOptions?: ValidationPipeOptions,
   gatewayOptions: GatewayOptions = {},

@@ -1,7 +1,8 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { DynamicModule, Module } from '@nestjs/common';
 import { Cache } from 'cache-manager';
-import { DYNAMIC_API_GLOBAL_STATE, DynamicApiGlobalState } from '../../interfaces';
+import { DYNAMIC_API_GLOBAL_STATE } from '../../interfaces/dynamic-api-options.interface';
+import { DynamicApiGlobalState } from '../../interfaces/dynamic-api-global-state.interface';
 // Concrete path, not the `../../services` barrel: that barrel also re-exports
 // DynamicApiBroadcastService, which imports the helpers barrel — going through it here risks the
 // same circular-require crash worked around in helpers/mixin-data.helper.ts.

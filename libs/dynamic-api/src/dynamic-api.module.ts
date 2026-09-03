@@ -4,16 +4,24 @@ import { APP_GUARD, APP_INTERCEPTOR, Reflector } from '@nestjs/core';
 import { HttpAdapterHost } from '@nestjs/core/helpers/http-adapter-host';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Cache } from 'cache-manager';
-import { createDynamicApiBroadcastGateway } from './gateways';
-import { DynamicApiJwtAuthGuard } from './guards';
-import { buildSchemaFromEntity, getDefaultRouteDescription, initializeConfigFromOptions, isValidVersion } from './helpers';
+import { createDynamicApiBroadcastGateway } from './gateways/dynamic-api-broadcast.gateway';
+import { DynamicApiJwtAuthGuard } from './guards/dynamic-api-jwt-auth.guard';
+import { buildSchemaFromEntity } from './helpers/schema.helper';
+import { getDefaultRouteDescription } from './helpers/route-description.helper';
+import { initializeConfigFromOptions } from './helpers/socket-config.helper';
+import { isValidVersion } from './helpers/format.helper';
 import { DynamicApiCachePathRegistryStore } from './helpers/cache-path-registry.store';
-import { DynamicApiCacheInterceptor } from './interceptors';
-import { DYNAMIC_API_GLOBAL_STATE, DynamicApiCacheOptions, DynamicApiForFeatureOptions, DynamicApiForRootOptions, DynamicApiGlobalState, DynamicAPIRouteConfig, DynamicApiWebSocketOptions, GatewayOptions, OnAfterSaveErrorHook, RouteModule, RoutesConfig, RouteType } from './interfaces';
+import { DynamicApiCacheInterceptor } from './interceptors/dynamic-api-cache.interceptor';
+import { DynamicApiCacheOptions, DynamicApiForFeatureOptions, DynamicApiForRootOptions, DynamicApiRouteConfig, DynamicApiWebSocketOptions, GatewayOptions, OnAfterSaveErrorHook, RoutesConfig, RouteType } from './interfaces';
+import { DYNAMIC_API_GLOBAL_STATE } from './interfaces/dynamic-api-options.interface';
+import { DynamicApiGlobalState } from './interfaces/dynamic-api-global-state.interface';
+import { RouteModule } from './interfaces/dynamic-api-route-module.type';
 import { BaseEntity } from './models';
 import { AuthModule, DynamicApiAuthOptions, DynamicApiConfigModule } from './modules';
 import { AggregateModule, createCachePurgeController, CreateManyModule, CreateOneModule, DeleteManyModule, DeleteOneModule, DuplicateManyModule, DuplicateOneModule, GetManyModule, GetOneModule, ReplaceOneModule, UpdateManyModule, UpdateOneModule, createCustomRouteController, createCustomRouteGateway } from './routes';
-import { DynamicApiBroadcastService, DynamicApiCacheService, DynamicApiGlobalStateService } from './services';
+import { DynamicApiCacheService } from './services';
+import { DynamicApiBroadcastService } from './services/dynamic-api-broadcast/dynamic-api-broadcast.service';
+import { DynamicApiGlobalStateService } from './services/dynamic-api-global-state/dynamic-api-global-state.service';
 
 /**
  * DynamicApiModule is a module that provides dynamic API functionality.
@@ -366,16 +374,16 @@ export class DynamicApiModule {
 
   /**
    * Sets default routes if none are configured.
-   * @param {DynamicAPIRouteConfig[]} routes - The routes to configure.
+   * @param {DynamicApiRouteConfig[]} routes - The routes to configure.
    * @param stateRoutesConfig - The state route's state configurations.
    * @param controllerRoutesConfig - The controller routes configuration.
-   * @returns {DynamicAPIRouteConfig[]} - The configured routes.
+   * @returns {DynamicApiRouteConfig[]} - The configured routes.
    */
   private static setDefaultRoutes<Entity extends BaseEntity>(
     stateRoutesConfig: RoutesConfig,
     controllerRoutesConfig: Partial<RoutesConfig> = {},
-    routes: DynamicAPIRouteConfig<Entity>[] = [],
-  ): DynamicAPIRouteConfig<Entity>[] {
+    routes: DynamicApiRouteConfig<Entity>[] = [],
+  ): DynamicApiRouteConfig<Entity>[] {
     const defaults = controllerRoutesConfig.defaults ?? stateRoutesConfig.defaults;
     const excluded = controllerRoutesConfig.excluded ?? stateRoutesConfig.excluded;
 

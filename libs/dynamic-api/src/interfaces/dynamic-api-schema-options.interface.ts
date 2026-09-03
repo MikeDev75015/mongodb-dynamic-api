@@ -52,11 +52,12 @@ export const queryByRouteTypeMap: Map<HookEvent, { query: MongoDBQuery, softDele
 ]);
 
 /**
- * Interface representing the options that can be passed to the DynamicAPISchemaOptions decorator.
+ * Interface representing the DynamicAPI-specific options that can be passed to the
+ * `@DynamicApiSchema` decorator (alongside mongoose's own `SchemaOptions`).
  * @property {{ fields: IndexDefinition; options?: IndexOptions }[]} indexes - Optional array of index definitions.
  * @property {SchemaHook[]} hooks - Optional array of schema hooks.
  */
-interface DynamicApiSchemaOptionsInterface {
+interface DynamicApiSchemaOptions {
   indexes?: {
     fields: IndexDefinition;
     options?: IndexOptions;
@@ -65,9 +66,4 @@ interface DynamicApiSchemaOptionsInterface {
   customInit?: (schema: Schema) => void;
 }
 
-/**
- * @deprecated Use `DynamicApiSchemaOptionsInterface` instead. Will be removed in v5.
- */
-type DynamicAPISchemaOptionsInterface = DynamicApiSchemaOptionsInterface;
-
-export type { SchemaHook, DynamicApiSchemaOptionsInterface, DynamicAPISchemaOptionsInterface };
+export type { SchemaHook, DynamicApiSchemaOptions };

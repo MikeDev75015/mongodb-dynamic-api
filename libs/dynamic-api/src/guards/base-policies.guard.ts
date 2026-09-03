@@ -3,9 +3,9 @@ import { WsException } from '@nestjs/websockets';
 import { PipelineStage } from 'mongodb-pipeline-builder';
 import { Model } from 'mongoose';
 import { AbilityPredicate, AuthAbilityPredicate, PredicateBehavior, RouteType } from '../interfaces';
-import { MongoDBDynamicApiLogger } from '../logger';
+import { MongoDBDynamicApiLogger } from '../logger/mongo-dynamic-api.logger';
 import { BaseEntity } from '../models';
-import { BaseService } from '../services';
+import { BaseService } from '../services/base/base.service';
 
 /** @internal Not part of the public API — will be removed from the package's public exports in v5. */
 abstract class BasePoliciesGuard<Entity extends BaseEntity> extends BaseService<Entity> implements CanActivate {

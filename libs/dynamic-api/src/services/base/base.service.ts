@@ -6,7 +6,7 @@ import { DERIVED_FIELD_KEYS_METADATA, DERIVED_FIELD_METADATA, DerivedFieldMeta }
 import { isPagingPipeline } from '../../helpers/pipeline-paging.helper';
 import { isTransactionsUnsupportedError } from '../../helpers/mongo-transaction.helper';
 import { AbilityPredicate, AfterSaveCallback, AuditLogAction, AuthAbilityPredicate, CallbackMethods, CallbackRetryOptions, CascadeConfig, DeleteResult, MongoUpdateOperators, UpdateResult } from '../../interfaces';
-import { MongoDBDynamicApiLogger } from '../../logger';
+import { MongoDBDynamicApiLogger } from '../../logger/mongo-dynamic-api.logger';
 import { BaseEntity, SoftDeletableEntity } from '../../models';
 import { DynamicApiResetPasswordOptions } from '../../modules';
 import { DynamicApiGlobalStateService } from '../dynamic-api-global-state/dynamic-api-global-state.service';

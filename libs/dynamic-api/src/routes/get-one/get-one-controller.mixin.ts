@@ -1,9 +1,12 @@
 import { Param, Request, SetMetadata, Type, UseGuards, UseInterceptors } from '@nestjs/common';
 import { RouteDecoratorsBuilder } from '../../builders';
 import { DISABLE_CACHE_KEY } from '../../decorators';
-import { EntityParam } from '../../dtos';
-import { addVersionSuffix, getMixinData, provideName, RouteDecoratorsHelper } from '../../helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiRequest, Mappable } from '../../interfaces';
+import { EntityParam } from '../../dtos/entity.param';
+import { addVersionSuffix } from '../../helpers/versioning-config.helper';
+import { getMixinData } from '../../helpers/mixin-data.helper';
+import { provideName } from '../../helpers/format.helper';
+import { RouteDecoratorsHelper } from '../../helpers/route-decorators.helper';
+import { DynamicApiControllerOptions, DynamicApiRouteConfig, DynamicApiRequest, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin, EntityPresenterMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { GetOneController, GetOneControllerConstructor } from './get-one-controller.interface';
@@ -12,7 +15,7 @@ import { GetOneService } from './get-one-service.interface';
 function GetOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], ...routeConfig }: DynamicApiRouteConfig<Entity>,
   version?: string,
 ): GetOneControllerConstructor<Entity> {
   const {

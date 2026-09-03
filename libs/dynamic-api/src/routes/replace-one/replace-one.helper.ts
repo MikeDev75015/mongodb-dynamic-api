@@ -12,19 +12,19 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ApiTags } from '@nestjs/swagger';
 import { WebSocketGateway } from '@nestjs/websockets';
 import { Model } from 'mongoose';
-import { ValidatorPipe } from '../../decorators';
+import { ValidatorPipe } from '../../decorators/validator-pipe.decorator';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { provideName } from '../../helpers';
+import { provideName } from '../../helpers/format.helper';
+import { AfterSaveCallbackConfig } from '../../interfaces/dynamic-api-service-callback.interface';
 import {
   DynamicApiControllerOptions,
-  DynamicAPIRouteConfig,
+  DynamicApiRouteConfig,
   BeforeSaveCallback,
-  AfterSaveCallbackConfig,
-  DynamicAPIServiceProvider,
+  DynamicApiServiceProvider,
   GatewayOptions,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import { DynamicApiBroadcastService } from '../../services';
+import { DynamicApiBroadcastService } from '../../services/dynamic-api-broadcast/dynamic-api-broadcast.service';
 import { BaseReplaceOneService } from './base-replace-one.service';
 import { ReplaceOneControllerConstructor } from './replace-one-controller.interface';
 import { ReplaceOneControllerMixin } from './replace-one-controller.mixin';
@@ -38,7 +38,7 @@ function createReplaceOneServiceProvider<Entity extends BaseEntity>(
   version: string | undefined,
   afterSave: AfterSaveCallbackConfig<Entity> | undefined,
   beforeSaveCallback: BeforeSaveCallback<Entity> | undefined,
-): DynamicAPIServiceProvider {
+): DynamicApiServiceProvider {
   class ReplaceOneService extends BaseReplaceOneService<Entity> {
     protected readonly entity = entity;
     protected readonly beforeSaveCallback = beforeSaveCallback;
@@ -72,7 +72,7 @@ function createReplaceOneController<Entity extends BaseEntity>(
   entity: Type<Entity>,
   displayedName: string,
   { useInterceptors = [], ...controllerOptions }: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  routeConfig: DynamicApiRouteConfig<Entity>,
   version?: string,
   validationPipeOptions?: ValidationPipeOptions,
 ): ReplaceOneControllerConstructor<Entity> {
@@ -110,7 +110,7 @@ function createReplaceOneGateway<Entity extends BaseEntity>(
   entity: Type<Entity>,
   displayedName: string,
   { useInterceptors = [], ...controllerOptions }: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  routeConfig: DynamicApiRouteConfig<Entity>,
   version?: string,
   validationPipeOptions?: ValidationPipeOptions,
   gatewayOptions: GatewayOptions = {},
