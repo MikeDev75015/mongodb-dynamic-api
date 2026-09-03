@@ -28,7 +28,7 @@
 > [!WARNING]
 > **v5 — Breaking changes.** The package's public export surface was curated: internal implementation classes, mixins, builders and helpers that were never meant to be imported directly are no longer exported from `mongodb-dynamic-api`. Everything documented in this README and in `README/*.md` is unaffected.
 >
-> 🚚 **`npx mongodb-dynamic-api migrate-v5 <path>`** applies the two mechanical renames below (`DynamicApiGlobalStateService` → `DynamicApiEntityService`, `@Schema`+`@DynamicApiSchemaOptions` → `@DynamicApiSchema`) across your codebase automatically, and flags anything else it can't safely fix. See [migration-v5.md](./README/migration-v5.md).
+> 🚚 **`npx mongodb-dynamic-api migrate-v5 <path>`** applies every mechanical rename below (`DynamicApiGlobalStateService` → `DynamicApiEntityService`, `@Schema`+`@DynamicApiSchemaOptions` → `@DynamicApiSchema`, every verbose/all-caps alias → its short name, `enableDynamicAPIWebSockets`'s numeric overload → the options-object form) across your codebase automatically, and flags anything else it can't safely fix — including a note on the `query.accessToken` client-side change it cannot detect. See [migration-v5.md](./README/migration-v5.md).
 >
 > <details>
 > <summary>📋 Full list of removed public exports (v4 → v5)</summary>
