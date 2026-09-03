@@ -93,6 +93,9 @@
 >
 > **WebSockets:** `enableDynamicAPIWebSockets(app, maxListeners: number)` — the numeric second-argument overload is gone, pass `enableDynamicAPIWebSockets(app, { maxListeners })` instead.
 >
+> ### Removed — `query.accessToken` WebSocket authentication
+> The server only reads `socket.handshake.auth.token` now. The `query.accessToken` (query string) transport — deprecated since it exposes the token in URLs and server logs — is gone. Update any client still connecting with `io(url, { query: { accessToken } })` to `io(url, { auth: { token } })` instead. See [Authenticating WebSocket Connections](./README/websockets.md#authenticating-websocket-connections).
+>
 > ### Unaffected
 > `DynamicApiCacheService`, `DynamicApiEntityService`, `BcryptService`, `DynamicApiBroadcastService`, `DynamicApiModule`, `DynamicApiHealthModule`, `DynamicApiPresenceModule`, all `decorators/`, all `predicates/`, `BaseEntity`/`SoftDeletableEntity`, every documented route-config/callback/auth/websocket/caching/authorization/validation/schema-options interface and type, and everything else shown in this README and `README/*.md` — none of it moved or changed shape. `DynamicApiPresenceModule`'s DI token `DYNAMIC_API_PRESENCE_ADAPTER` and the `PresenceAdapter` interface are also unaffected — only the internal `InMemoryPresenceAdapter`/`RedisPresenceAdapter` concrete classes are gone, since [Presence](./README/presence.md) was always meant to be consumed through the module's `register()` options and the `PresenceAdapter` DI token, never by importing a concrete adapter class directly.
 >
