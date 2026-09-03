@@ -28,6 +28,8 @@
 > [!WARNING]
 > **v5 — Breaking changes.** The package's public export surface was curated: internal implementation classes, mixins, builders and helpers that were never meant to be imported directly are no longer exported from `mongodb-dynamic-api`. Everything documented in this README and in `README/*.md` is unaffected.
 >
+> 🚚 **`npx mongodb-dynamic-api migrate-v5 <path>`** applies the two mechanical renames below (`DynamicApiGlobalStateService` → `DynamicApiEntityService`, `@Schema`+`@DynamicApiSchemaOptions` → `@DynamicApiSchema`) across your codebase automatically, and flags anything else it can't safely fix. See [migration-v5.md](./README/migration-v5.md).
+>
 > <details>
 > <summary>📋 Full list of removed public exports (v4 → v5)</summary>
 >
@@ -329,6 +331,7 @@ Register `UsersModule` in `AppModule`, run `npm run start:dev` — your API is l
 | 🩺 **Health Check** | `GET /health` readiness probe, `DynamicApiHealthModule` ⭐ *New* | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/health-check.md) |
 | 🧪 **Testing** | `createDynamicApiTestingApp`, in-memory MongoDB, zero Docker ⭐ *New* | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/testing.md) |
 | 🏗️ **Schematics** | `nest g -c mongodb-dynamic-api resource <name>` — scaffold entity + module in one command ⭐ *New* | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/schematics.md) |
+| 🚚 **Migrating to v5** | `npx mongodb-dynamic-api migrate-v5 <path>` — codemod for the two mechanical v5 renames ⭐ *New* | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/migration-v5.md) |
 
 > [!NOTE]
 > **Key reminders:**
