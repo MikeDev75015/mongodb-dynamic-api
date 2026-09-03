@@ -140,10 +140,24 @@ describe('enableDynamicAPIIndexSync (e2e)', () => {
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       const model = await getModelFromEntity(InvalidPartialFilterUserEntity);
-      const indexes = await model.collection.indexes();
 
-      // The declared unique index was never actually built — nothing surfaced that.
-      expect(indexes.some((index) => index.unique)).toBe(false);
+      // MongoDB's rejected createIndexes attempt usually still creates the collection as a side
+      // effect (so `.indexes()` returns just the default `_id_` index) — but that side effect
+      // isn't guaranteed to have landed within the timeout above under CI load, in which case the
+      // collection may not exist yet at all. Both outcomes equally confirm the invariant this
+      // test cares about: no unique index was ever built.
+      let hasUniqueIndex: boolean;
+      try {
+        const indexes = await model.collection.indexes();
+        hasUniqueIndex = indexes.some((index) => index.unique);
+      } catch (error) {
+        if ((error as { codeName?: string }).codeName !== 'NamespaceNotFound') {
+          throw error;
+        }
+        hasUniqueIndex = false;
+      }
+
+      expect(hasUniqueIndex).toBe(false);
     });
 
     it('rejects loudly with the real MongoDB error when enableDynamicAPIIndexSync is called', async () => {
