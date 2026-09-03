@@ -23,8 +23,8 @@ describe('resource schematic', () => {
     const tree = await runSchematic({ name: 'user' });
     const entity = tree.readContent('/src/user/user.entity.ts');
 
-    expect(entity).toContain("import { BaseEntity } from 'mongodb-dynamic-api';");
-    expect(entity).toContain("@Schema({ collection: 'user' })");
+    expect(entity).toContain("import { BaseEntity, DynamicApiSchema } from 'mongodb-dynamic-api';");
+    expect(entity).toContain("@DynamicApiSchema({ collection: 'user' })");
     expect(entity).toContain('export class User extends BaseEntity {');
   });
 
@@ -32,7 +32,7 @@ describe('resource schematic', () => {
     const tree = await runSchematic({ name: 'user', softDelete: true });
     const entity = tree.readContent('/src/user/user.entity.ts');
 
-    expect(entity).toContain("import { SoftDeletableEntity } from 'mongodb-dynamic-api';");
+    expect(entity).toContain("import { SoftDeletableEntity, DynamicApiSchema } from 'mongodb-dynamic-api';");
     expect(entity).toContain('export class User extends SoftDeletableEntity {');
   });
 
