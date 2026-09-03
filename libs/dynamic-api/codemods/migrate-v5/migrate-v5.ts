@@ -250,6 +250,111 @@ function migrateSchemaDecorators(sourceFile: SourceFile): FileMigrationResult {
 }
 
 /**
+ * Verbose/all-caps aliases removed in v5 whose replacement is a pure 1:1 rename — no argument
+ * merging or signature change involved, unlike `DynamicApiGlobalStateService` or the schema
+ * decorators above. Each entry renames both the import specifier and every type-position usage.
+ */
+const SIMPLE_RENAMES: { oldName: string; newName: string }[] = [
+  { oldName: 'DynamicAPIRouteConfig', newName: 'DynamicApiRouteConfig' },
+  { oldName: 'DynamicApiServiceBeforeSaveCreateContext', newName: 'BeforeSaveCreateContext' },
+  { oldName: 'DynamicApiServiceBeforeSaveCreateManyContext', newName: 'BeforeSaveCreateManyContext' },
+  { oldName: 'DynamicApiServiceBeforeSaveUpdateContext', newName: 'BeforeSaveUpdateContext' },
+  { oldName: 'DynamicApiServiceBeforeSaveUpdateManyContext', newName: 'BeforeSaveUpdateManyContext' },
+  { oldName: 'DynamicApiServiceBeforeSaveReplaceContext', newName: 'BeforeSaveReplaceContext' },
+  { oldName: 'DynamicApiServiceBeforeSaveDeleteContext', newName: 'BeforeSaveDeleteContext' },
+  { oldName: 'DynamicApiServiceBeforeSaveDeleteManyContext', newName: 'BeforeSaveDeleteManyContext' },
+  { oldName: 'DynamicApiServiceBeforeSaveDuplicateContext', newName: 'BeforeSaveDuplicateContext' },
+  { oldName: 'DynamicApiServiceBeforeSaveDuplicateManyContext', newName: 'BeforeSaveDuplicateManyContext' },
+  { oldName: 'DynamicApiServiceBeforeSaveCallback', newName: 'BeforeSaveCallback' },
+  { oldName: 'DynamicApiServiceBeforeSaveListCallback', newName: 'BeforeSaveListCallback' },
+  { oldName: 'DynamicApiServiceBeforeSaveDeleteCallback', newName: 'BeforeSaveDeleteCallback' },
+  { oldName: 'DynamicApiServiceBeforeSaveDeleteManyCallback', newName: 'BeforeSaveDeleteManyCallback' },
+  { oldName: 'DynamicApiCallbackMethods', newName: 'CallbackMethods' },
+  { oldName: 'DynamicApiServiceCallback', newName: 'AfterSaveCallback' },
+  { oldName: 'DynamicAPIServiceProvider', newName: 'DynamicApiServiceProvider' },
+  { oldName: 'DynamicAPISwaggerExtraConfig', newName: 'DynamicApiSwaggerExtraConfig' },
+  { oldName: 'DynamicAPISwaggerOptions', newName: 'DynamicApiSwaggerOptions' },
+];
+
+/**
+ * Transform 3 — every verbose/all-caps alias in {@link SIMPLE_RENAMES} is a pure 1:1 rename: swap
+ * the import specifier and every type-position usage for the canonical short name.
+ */
+function migrateSimpleRenames(sourceFile: SourceFile): FileMigrationResult {
+  const filePath = sourceFile.getFilePath();
+  const fixes: string[] = [];
+  const warnings: string[] = [];
+
+  for (const { oldName, newName } of SIMPLE_RENAMES) {
+    const importDeclaration = findImport(sourceFile, PACKAGE_NAME);
+    const namedImport = importDeclaration?.getNamedImports().find((specifier) => specifier.getName() === oldName);
+
+    if (!importDeclaration || !namedImport) {
+      continue;
+    }
+
+    if (namedImport.getAliasNode()) {
+      warnings.push(
+        `imports ${oldName} under an alias ('as ...') — not auto-migrated, rename its usages to ${newName} manually.`,
+      );
+      continue;
+    }
+
+    const identifiers = sourceFile
+      .getDescendantsOfKind(SyntaxKind.Identifier)
+      .filter((node) => node.getText() === oldName && !node.getFirstAncestorByKind(SyntaxKind.ImportSpecifier));
+
+    identifiers.forEach((identifier) => identifier.replaceWithText(newName));
+
+    // Add the new import before removing the old one — see the note on the equivalent sequence in
+    // migrateGlobalStateService above.
+    addNamedImport(sourceFile, PACKAGE_NAME, newName);
+    removeNamedImport(sourceFile, PACKAGE_NAME, oldName);
+
+    fixes.push(`renamed ${oldName} to ${newName} (${identifiers.length} usage(s)).`);
+  }
+
+  return { filePath, changed: fixes.length > 0, fixes, warnings };
+}
+
+/**
+ * Transform 4 — `enableDynamicAPIWebSockets(app, 50)` (a bare number as the second argument) is
+ * rewritten to `enableDynamicAPIWebSockets(app, { maxListeners: 50 })`. Only a numeric-literal
+ * argument is rewritten; anything else (a variable, an expression) is reported for manual review.
+ */
+function migrateWebSocketsMaxListenersOverload(sourceFile: SourceFile): FileMigrationResult {
+  const filePath = sourceFile.getFilePath();
+  const fixes: string[] = [];
+  const warnings: string[] = [];
+
+  const calls = sourceFile
+    .getDescendantsOfKind(SyntaxKind.CallExpression)
+    .filter((call) => call.getExpression().getText() === 'enableDynamicAPIWebSockets' && call.getArguments().length === 2);
+
+  for (const call of calls) {
+    const secondArg = call.getArguments()[1];
+
+    if (secondArg.asKind(SyntaxKind.ObjectLiteralExpression)) {
+      continue;
+    }
+
+    if (secondArg.asKind(SyntaxKind.NumericLiteral)) {
+      const line = call.getStartLineNumber();
+      const originalText = secondArg.getText();
+      secondArg.replaceWithText(`{ maxListeners: ${originalText} }`);
+      fixes.push(`line ${line}: rewrote enableDynamicAPIWebSockets(app, ${originalText}) to the options-object form.`);
+      continue;
+    }
+
+    warnings.push(
+      `line ${call.getStartLineNumber()}: enableDynamicAPIWebSockets's second argument is not a plain number literal — the numeric-overload form is gone in v5, pass { maxListeners } manually.`,
+    );
+  }
+
+  return { filePath, changed: fixes.length > 0, fixes, warnings };
+}
+
+/**
  * Report-only scan for symbols removed in v5 that have no direct, mechanical replacement — these
  * can only be flagged for manual review, never auto-fixed.
  */
@@ -282,6 +387,8 @@ function migrateSourceFile(sourceFile: SourceFile): FileMigrationResult {
   const results = [
     migrateGlobalStateService(sourceFile),
     migrateSchemaDecorators(sourceFile),
+    migrateSimpleRenames(sourceFile),
+    migrateWebSocketsMaxListenersOverload(sourceFile),
     scanForRemovedSymbols(sourceFile),
   ];
 
