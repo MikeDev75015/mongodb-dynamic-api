@@ -9,7 +9,7 @@ import { DynamicApiHealthCheckResponse } from '../../interfaces';
  * Builds the `GET /<path>` health-check controller for a given Mongoose connection name.
  * A factory (rather than a static class) because the connection-name injection token is only
  * known once `DynamicApiModule.forRoot()` has run.
- * @internal Not part of the public API — will be removed from the package's public exports in v5.
+ * @internal Not part of the public API.
  */
 function createHealthController(connectionName: string, path: string): Type {
   @ApiTags('Health')

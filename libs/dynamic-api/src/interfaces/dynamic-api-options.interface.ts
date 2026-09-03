@@ -10,7 +10,7 @@ import { DynamicApiRouteConfig } from './dynamic-api-route-config.interface';
 import { OnAfterSaveErrorHook } from './dynamic-api-service-callback.interface';
 import { DynamicApiWebSocketOptions } from './dynamic-api-web-socket.interface';
 
-/** @internal Not part of the public API — will be removed from the package's public exports in v5. */
+/** @internal Not part of the public API. */
 const DYNAMIC_API_GLOBAL_STATE = Symbol('DYNAMIC_API_GLOBAL_STATE');
 
 interface DynamicApiForRootOptions<Entity extends BaseEntity = any, RegisterExtra = Record<never, never>> {

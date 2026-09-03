@@ -22,7 +22,7 @@ interface RoutePoliciesGuardMixinOptions {
   authAbilityPredicate?: AuthAbilityPredicate<unknown>;
 }
 
-/** @internal Not part of the public API — will be removed from the package's public exports in v5. */
+/** @internal Not part of the public API. */
 function RoutePoliciesGuardMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   routeType: RouteType,
@@ -71,7 +71,7 @@ interface SocketPoliciesGuardMixinOptions {
   authAbilityPredicate?: AuthAbilityPredicate<unknown>;
 }
 
-/** @internal Not part of the public API — will be removed from the package's public exports in v5. */
+/** @internal Not part of the public API. */
 function SocketPoliciesGuardMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   routeType: RouteType,

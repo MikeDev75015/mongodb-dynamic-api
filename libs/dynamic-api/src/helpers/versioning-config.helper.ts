@@ -10,7 +10,7 @@ function enableDynamicAPIVersioning(
   });
 }
 
-/** @internal Not part of the public API — will be removed from the package's public exports in v5. */
+/** @internal Not part of the public API. */
 function addVersionSuffix(version?: string) {
   return version ? `V${version}` : '';
 }

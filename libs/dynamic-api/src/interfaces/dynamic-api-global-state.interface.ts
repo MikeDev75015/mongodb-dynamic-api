@@ -3,13 +3,13 @@ import { Schema } from 'mongoose';
 import { OnAfterSaveErrorHook } from './dynamic-api-service-callback.interface';
 import { RouteType } from './dynamic-api-route-type.type';
 
-/** @internal Not part of the public API — will be removed from the package's public exports in v5. */
+/** @internal Not part of the public API. */
 type Credentials = {
   loginField: string;
   passwordField: string;
 };
 
-/** @internal Not part of the public API — will be removed from the package's public exports in v5. */
+/** @internal Not part of the public API. */
 type EntitySchemas<T = any> = {
   [name: string]: Schema<T>;
 }
@@ -19,7 +19,7 @@ type RoutesConfig = {
   defaults: RouteType[];
 }
 
-/** @internal Not part of the public API — will be removed from the package's public exports in v5. */
+/** @internal Not part of the public API. */
 interface DynamicApiGlobalState {
   initialized: boolean;
   uri: string;

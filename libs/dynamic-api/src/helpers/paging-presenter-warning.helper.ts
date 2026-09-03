@@ -16,7 +16,7 @@ const logger = new MongoDBDynamicApiLogger('AggregateRoute');
  * boot) since whether a given request's pipeline actually used `.Paging()` can depend on that
  * request's own query params, not just the route's static config.
  *
- * @internal Not part of the public API — will be removed from the package's public exports in v5.
+ * @internal Not part of the public API.
  */
 function warnIfPagingResultDropped(
   pipeline: PipelineStage[],

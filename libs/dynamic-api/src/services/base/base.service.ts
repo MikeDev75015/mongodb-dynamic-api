@@ -11,7 +11,7 @@ import { BaseEntity, SoftDeletableEntity } from '../../models';
 import { DynamicApiResetPasswordOptions } from '../../modules';
 import { DynamicApiGlobalStateService } from '../dynamic-api-global-state/dynamic-api-global-state.service';
 
-/** @internal Not part of the public API — will be removed from the package's public exports in v5. */
+/** @internal Not part of the public API. */
 export abstract class BaseService<Entity extends BaseEntity> {
   protected user: unknown;
 

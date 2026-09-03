@@ -2,7 +2,7 @@ import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from '@nestjs/co
 import { WsException } from '@nestjs/websockets';
 
 @Catch()
-/** @internal Not part of the public API — will be removed from the package's public exports in v5. */
+/** @internal Not part of the public API. */
 export class DynamicAPIWsExceptionFilter<T> implements ExceptionFilter {
   catch(exception: WsException | HttpException, host: ArgumentsHost) {
     const client = host.switchToWs().getClient();

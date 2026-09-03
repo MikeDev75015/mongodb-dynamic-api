@@ -15,7 +15,7 @@ interface ResolvedBroadcast<T extends object> {
  * Returns `undefined` when the broadcast must be skipped (no config, no data, `enabled: false`,
  * or the `enabled` predicate filtered out every item).
  *
- * @internal Not part of the public API — will be removed from the package's public exports in v5.
+ * @internal Not part of the public API.
  */
 function resolveBroadcast<T extends object, User = unknown>(
   event: string,
