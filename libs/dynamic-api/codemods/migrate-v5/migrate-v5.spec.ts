@@ -123,6 +123,56 @@ describe('migrateSourceFile', () => {
 
       expect(file.getFullText().match(/DynamicApiEntityService/g)).toHaveLength(2);
     });
+
+    it('finds and renames the import when it lives in a second, separate import declaration from the same module (regression)', () => {
+      // Reproduces the real-world case: a `import type { ... }` declaration from the package comes
+      // FIRST in the file, and `DynamicApiGlobalStateService` is only named in a SECOND, separate
+      // `import { ... }` declaration further down. A naive `.find()` over import declarations only
+      // ever inspects the first one and silently returns 0 fixes / 0 warnings here.
+      const file = createFile(
+        `import type { CustomRouteConfig } from 'mongodb-dynamic-api';\n` +
+        `import { DynamicApiGlobalStateService } from 'mongodb-dynamic-api';\n\n` +
+        `async function load() {\n  return DynamicApiGlobalStateService.getEntityModel(Foo);\n}\n`,
+      );
+
+      const result = migrateSourceFile(file);
+
+      expect(result.changed).toBe(true);
+      expect(result.warnings).toEqual([]);
+      expect(result.fixes.some((fix) => fix.includes('renamed DynamicApiGlobalStateService.getEntityModel'))).toBe(true);
+      expect(file.getFullText()).toContain('DynamicApiEntityService.getModel(Foo)');
+      expect(file.getFullText()).not.toContain('DynamicApiGlobalStateService');
+      expect(file.getFullText()).toContain('import type { CustomRouteConfig }');
+    });
+
+    it('creates a fresh value import instead of merging into an existing `import type { ... }` declaration for the same module', () => {
+      const file = createFile(
+        `import type { DynamicApiGlobalStateService } from 'mongodb-dynamic-api';\n\n` +
+        `async function load() {\n  return DynamicApiGlobalStateService.getEntityModel(Foo);\n}\n`,
+      );
+
+      const result = migrateSourceFile(file);
+
+      expect(result.changed).toBe(true);
+      const text = file.getFullText();
+      expect(text).toContain('DynamicApiEntityService.getModel(Foo)');
+      // The new value import must live in its own declaration, not merged into `import type { ... }`.
+      expect(text).not.toMatch(/import type \{[^}]*DynamicApiEntityService/);
+      expect(text).toMatch(/import \{ DynamicApiEntityService \} from ["']mongodb-dynamic-api["'];/);
+    });
+
+    it('removes the now-unused import from its own separate declaration, leaving the other declaration for the same module untouched', () => {
+      const file = createFile(
+        `import type { CustomRouteConfig } from 'mongodb-dynamic-api';\n` +
+        `import { DynamicApiGlobalStateService } from 'mongodb-dynamic-api';\n`,
+      );
+
+      const result = migrateSourceFile(file);
+
+      expect(result.changed).toBe(true);
+      expect(file.getFullText()).toContain('import type { CustomRouteConfig }');
+      expect(file.getFullText()).not.toContain('DynamicApiGlobalStateService');
+    });
   });
 
   describe('@DynamicApiSchemaOptions + @Schema -> @DynamicApiSchema', () => {
@@ -341,6 +391,22 @@ describe('migrateSourceFile', () => {
       ]);
       expect(file.getFullText()).toContain('DynamicAPIRouteConfig as Cfg');
     });
+
+    it('finds and renames the alias when it lives in a second, separate import declaration from the same module (regression)', () => {
+      const file = createFile(
+        `import type { BaseEntity } from 'mongodb-dynamic-api';\n` +
+        `import { DynamicAPIRouteConfig } from 'mongodb-dynamic-api';\n\n` +
+        `const cfg: DynamicAPIRouteConfig<BaseEntity> = {} as any;\n`,
+      );
+
+      const result = migrateSourceFile(file);
+
+      expect(result.fixes.some((fix) => fix.includes('renamed DynamicAPIRouteConfig to DynamicApiRouteConfig'))).toBe(true);
+      const text = file.getFullText();
+      expect(text).toContain('DynamicApiRouteConfig<BaseEntity>');
+      expect(text).not.toContain('DynamicAPIRouteConfig');
+      expect(text).toContain('import type { BaseEntity }');
+    });
   });
 
   describe('enableDynamicAPIWebSockets numeric-overload removal', () => {
@@ -414,6 +480,17 @@ describe('migrateSourceFile', () => {
       const result = migrateSourceFile(file);
 
       expect(result.warnings).toEqual([expect.stringContaining("imports 'AnyBeforeSaveCallback'")]);
+    });
+
+    it('flags a removed symbol imported in a second, separate import declaration from the same module (regression)', () => {
+      const file = createFile(
+        `import type { BaseEntity } from 'mongodb-dynamic-api';\n` +
+        `import { BaseService } from 'mongodb-dynamic-api';\n`,
+      );
+
+      const result = migrateSourceFile(file);
+
+      expect(result.warnings).toEqual([expect.stringContaining("imports 'BaseService'")]);
     });
   });
 });

@@ -24,10 +24,35 @@ interface MigrationReport {
 
 const PACKAGE_NAME = 'mongodb-dynamic-api';
 
-function findImport(sourceFile: SourceFile, moduleSpecifier: string): ImportDeclaration | undefined {
+/**
+ * Returns every `import ... from moduleSpecifier` declaration in the file — a source file can
+ * (and, in practice, does) import from the same module through more than one separate `import`
+ * statement (e.g. a `import type { ... }` alongside a value `import { ... }`). Only checking the
+ * first match (as a plain `.find()` would) silently misses named imports that live in a later
+ * declaration — see `findNamedImport` below, which is why every lookup goes through this.
+ */
+function findImports(sourceFile: SourceFile, moduleSpecifier: string): ImportDeclaration[] {
   return sourceFile
     .getImportDeclarations()
-    .find((declaration) => declaration.getModuleSpecifierValue() === moduleSpecifier);
+    .filter((declaration) => declaration.getModuleSpecifierValue() === moduleSpecifier);
+}
+
+/**
+ * Finds a named import specifier for `name` across ALL of the module's import declarations
+ * (not just the first one) and returns it together with the declaration that carries it.
+ */
+function findNamedImport(
+  sourceFile: SourceFile,
+  moduleSpecifier: string,
+  name: string,
+): { importDeclaration: ImportDeclaration; namedImport: ReturnType<ImportDeclaration['getNamedImports']>[number] } | undefined {
+  for (const importDeclaration of findImports(sourceFile, moduleSpecifier)) {
+    const namedImport = importDeclaration.getNamedImports().find((specifier) => specifier.getName() === name);
+    if (namedImport) {
+      return { importDeclaration, namedImport };
+    }
+  }
+  return undefined;
 }
 
 /**
@@ -36,37 +61,41 @@ function findImport(sourceFile: SourceFile, moduleSpecifier: string): ImportDecl
  * call even right after a `removeNamedImport` call may have deleted the whole declaration.
  */
 function addNamedImport(sourceFile: SourceFile, moduleSpecifier: string, name: string): void {
-  const importDeclaration =
-    findImport(sourceFile, moduleSpecifier) ??
+  const existingDeclarations = findImports(sourceFile, moduleSpecifier);
+
+  const alreadyImported = existingDeclarations.some((declaration) =>
+    declaration.getNamedImports().some((namedImport) => namedImport.getName() === name),
+  );
+
+  if (alreadyImported) {
+    return;
+  }
+
+  // Never add a value import (e.g. DynamicApiEntityService, used at runtime) into a
+  // `import type { ... }` declaration — every named import in a type-only declaration is
+  // type-only too, which would break the very call site this rename is meant to keep working.
+  const targetDeclaration =
+    existingDeclarations.find((declaration) => !declaration.isTypeOnly()) ??
     sourceFile.addImportDeclaration({ moduleSpecifier, namedImports: [] });
 
-  const alreadyImported = importDeclaration
-    .getNamedImports()
-    .some((namedImport) => namedImport.getName() === name);
-
-  if (!alreadyImported) {
-    importDeclaration.addNamedImport(name);
-  }
+  targetDeclaration.addNamedImport(name);
 }
 
 /**
  * Removes a single named import, deleting the whole import declaration if it becomes empty.
- * Re-resolves the declaration by module specifier internally (a no-op if it is not found) rather
- * than taking a node reference, so it is always safe to call — including a second time right
- * after a prior call already removed the declaration.
+ * Searches every import declaration for the module (not just the first) so a name imported in a
+ * separate `import` statement of the same module is found and removed too.
  */
 function removeNamedImport(sourceFile: SourceFile, moduleSpecifier: string, name: string): void {
-  const importDeclaration = findImport(sourceFile, moduleSpecifier);
+  const found = findNamedImport(sourceFile, moduleSpecifier, name);
 
-  if (!importDeclaration) {
+  if (!found) {
     return;
   }
 
-  const namedImport = importDeclaration
-    .getNamedImports()
-    .find((specifier) => specifier.getName() === name);
+  const { importDeclaration, namedImport } = found;
 
-  namedImport?.remove();
+  namedImport.remove();
 
   const hasNoImportsLeft =
     importDeclaration.getNamedImports().length === 0 &&
@@ -89,14 +118,13 @@ function migrateGlobalStateService(sourceFile: SourceFile): FileMigrationResult 
   const fixes: string[] = [];
   const warnings: string[] = [];
 
-  const importDeclaration = findImport(sourceFile, PACKAGE_NAME);
-  const namedImport = importDeclaration
-    ?.getNamedImports()
-    .find((specifier) => specifier.getName() === 'DynamicApiGlobalStateService');
+  const found = findNamedImport(sourceFile, PACKAGE_NAME, 'DynamicApiGlobalStateService');
 
-  if (!importDeclaration || !namedImport) {
+  if (!found) {
     return { filePath, changed: false, fixes, warnings };
   }
+
+  const { namedImport } = found;
 
   if (namedImport.getAliasNode()) {
     warnings.push(
@@ -286,12 +314,13 @@ function migrateSimpleRenames(sourceFile: SourceFile): FileMigrationResult {
   const warnings: string[] = [];
 
   for (const { oldName, newName } of SIMPLE_RENAMES) {
-    const importDeclaration = findImport(sourceFile, PACKAGE_NAME);
-    const namedImport = importDeclaration?.getNamedImports().find((specifier) => specifier.getName() === oldName);
+    const found = findNamedImport(sourceFile, PACKAGE_NAME, oldName);
 
-    if (!importDeclaration || !namedImport) {
+    if (!found) {
       continue;
     }
+
+    const { namedImport } = found;
 
     if (namedImport.getAliasNode()) {
       warnings.push(
@@ -362,12 +391,14 @@ function scanForRemovedSymbols(sourceFile: SourceFile): FileMigrationResult {
   const filePath = sourceFile.getFilePath();
   const warnings: string[] = [];
 
-  const importDeclaration = findImport(sourceFile, PACKAGE_NAME);
-  if (!importDeclaration) {
+  const importDeclarations = findImports(sourceFile, PACKAGE_NAME);
+  if (importDeclarations.length === 0) {
     return { filePath, changed: false, fixes: [], warnings };
   }
 
-  const importedNames = new Set(importDeclaration.getNamedImports().map((specifier) => specifier.getName()));
+  const importedNames = new Set(
+    importDeclarations.flatMap((declaration) => declaration.getNamedImports().map((specifier) => specifier.getName())),
+  );
 
   for (const removed of REMOVED_SYMBOLS) {
     if (importedNames.has(removed.name)) {

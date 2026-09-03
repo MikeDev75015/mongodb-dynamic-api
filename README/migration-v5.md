@@ -113,3 +113,11 @@ review (handy in CI as a "did I catch everything" gate).
   imports yourself if you use aliases.
 - Formatting is preserved on a best-effort basis (via TypeScript's own formatter) — review the
   diff before committing, same as with any codemod.
+
+A `mongodb-dynamic-api` import split across **more than one** separate `import` statement in the
+same file (e.g. a `import type { CustomRouteConfig } from 'mongodb-dynamic-api';` followed later by
+`import { DynamicApiGlobalStateService } from 'mongodb-dynamic-api';`) is handled correctly — every
+transform searches all matching import declarations, not just the first one in the file. A newly
+added value import (e.g. `DynamicApiEntityService`) is never merged into an existing
+`import type { ... }` declaration for the module, even when one is already present; it gets its own
+declaration instead, so the added name stays usable as a value at runtime.
