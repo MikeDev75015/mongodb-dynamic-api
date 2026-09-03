@@ -6,6 +6,9 @@
   "main": "index.js",
   "types": "index.d.ts",
   "schematics": "./schematics/collection.json",
+  "bin": {
+    "mongodb-dynamic-api": "./codemods/migrate-v5/cli.js"
+  },
   "scripts": {
     "prepare": "npm run build",
     "build": "tsc && tsc -p tsconfig.schematics.json && node scripts/copy-schematics-assets.cjs",
@@ -68,7 +71,8 @@
     "passport-local": "^1.0.0",
     "reflect-metadata": "^0.2.1",
     "rxjs": "^7.8.1",
-    "socket.io-client": "^4.7.5"
+    "socket.io-client": "^4.7.5",
+    "ts-morph": "^28.0.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^12.0.0",
