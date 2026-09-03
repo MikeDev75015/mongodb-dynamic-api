@@ -259,16 +259,16 @@ export class Product extends BaseEntity {
 ### 4. Define Proper Indexes
 
 ```typescript
-import { DynamicAPISchemaOptions } from 'mongodb-dynamic-api';
+import { DynamicApiSchema } from 'mongodb-dynamic-api';
 
-@DynamicAPISchemaOptions({
+@DynamicApiSchema({
+  collection: 'users',
   indexes: [
     { fields: { email: 1 }, options: { unique: true } },
     { fields: { name: 1 } },
     { fields: { createdAt: -1 } },
   ],
 })
-@Schema({ collection: 'users' })
 export class User extends BaseEntity {
   @Prop({ type: String, required: true })
   name: string;
@@ -312,19 +312,19 @@ export class User extends BaseEntity {
 
 ```typescript
 // src/products/product.entity.ts
-import { Prop, Schema } from '@nestjs/mongoose';
-import { SoftDeletableEntity, DynamicAPISchemaOptions } from 'mongodb-dynamic-api';
+import { Prop } from '@nestjs/mongoose';
+import { SoftDeletableEntity, DynamicApiSchema } from 'mongodb-dynamic-api';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsNotEmpty, IsNumber, IsString, IsOptional, Min, Max, Length } from 'class-validator';
 
-@DynamicAPISchemaOptions({
+@DynamicApiSchema({
+  collection: 'products',
   indexes: [
     { fields: { name: 1 } },
     { fields: { category: 1, price: 1 } },
     { fields: { createdAt: -1 } },
   ],
 })
-@Schema({ collection: 'products' })
 export class Product extends SoftDeletableEntity {
   @ApiProperty({ 
     description: 'Product name',

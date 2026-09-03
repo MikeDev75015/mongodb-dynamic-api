@@ -4,7 +4,7 @@
 
 # Schema Options
 
-Configure advanced Mongoose schema features using the `@DynamicAPISchemaOptions` decorator. This allows you to add indexes, lifecycle hooks, and custom schema initialization.
+Configure advanced Mongoose schema features using the `@DynamicApiSchema` decorator. This allows you to add indexes, lifecycle hooks, and custom schema initialization, alongside mongoose's own schema options (e.g. `collection`, `timestamps`), in a single call.
 
 ## 📋 Table of Contents
 
@@ -24,14 +24,14 @@ Define indexes to optimize query performance and enforce data constraints.
 ### Basic Index
 
 ```typescript
-import { DynamicAPISchemaOptions } from 'mongodb-dynamic-api';
+import { DynamicApiSchema } from 'mongodb-dynamic-api';
 
-@DynamicAPISchemaOptions({
+@DynamicApiSchema({
+  collection: 'users',
   indexes: [
     { fields: { email: 1 }, options: { unique: true } },
   ],
 })
-@Schema({ collection: 'users' })
 export class User extends BaseEntity {
   @Prop({ type: String, required: true })
   email: string;
@@ -41,7 +41,8 @@ export class User extends BaseEntity {
 ### Multiple Indexes
 
 ```typescript
-@DynamicAPISchemaOptions({
+@DynamicApiSchema({
+  collection: 'products',
   indexes: [
     // Unique index
     { fields: { email: 1 }, options: { unique: true } },
@@ -55,7 +56,6 @@ export class User extends BaseEntity {
     { fields: { title: 'text', description: 'text' } },
   ],
 })
-@Schema({ collection: 'products' })
 export class Product extends BaseEntity {
   @Prop({ type: String, required: true })
   name: string;
@@ -80,7 +80,8 @@ export class Product extends BaseEntity {
 ### Index Options
 
 ```typescript
-@DynamicAPISchemaOptions({
+@DynamicApiSchema({
+  collection: 'sessions',
   indexes: [
     {
       fields: { email: 1 },
@@ -99,7 +100,6 @@ export class Product extends BaseEntity {
     },
   ],
 })
-@Schema({ collection: 'sessions' })
 export class Session extends BaseEntity {
   @Prop({ type: String, required: true })
   email: string;
@@ -198,7 +198,8 @@ Add pre/post hooks for lifecycle events to run custom logic before or after data
 Execute logic before an operation:
 
 ```typescript
-@DynamicAPISchemaOptions({
+@DynamicApiSchema({
+  collection: 'users',
   hooks: [
     {
       type: 'CreateOne',
@@ -213,7 +214,6 @@ Execute logic before an operation:
     },
   ],
 })
-@Schema({ collection: 'users' })
 export class User extends BaseEntity {
   @Prop({ type: String, required: true })
   email: string;
@@ -228,7 +228,8 @@ export class User extends BaseEntity {
 Execute logic after an operation:
 
 ```typescript
-@DynamicAPISchemaOptions({
+@DynamicApiSchema({
+  collection: 'users',
   hooks: [
     {
       type: 'CreateOne',
@@ -241,7 +242,6 @@ Execute logic after an operation:
     },
   ],
 })
-@Schema({ collection: 'users' })
 export class User extends BaseEntity {
   @Prop({ type: String, required: true })
   email: string;
@@ -251,7 +251,8 @@ export class User extends BaseEntity {
 ### Multiple Hooks
 
 ```typescript
-@DynamicAPISchemaOptions({
+@DynamicApiSchema({
+  collection: 'posts',
   hooks: [
     {
       type: 'CreateOne',
@@ -286,7 +287,6 @@ export class User extends BaseEntity {
     },
   ],
 })
-@Schema({ collection: 'posts' })
 export class Post extends BaseEntity {
   @Prop({ type: String, required: true })
   title: string;
@@ -304,7 +304,8 @@ export class Post extends BaseEntity {
 Control when hooks are triggered with `document` and `query` options:
 
 ```typescript
-@DynamicAPISchemaOptions({
+@DynamicApiSchema({
+  collection: 'documents',
   hooks: [
     {
       type: 'UpdateOne',
@@ -331,7 +332,6 @@ Control when hooks are triggered with `document` and `query` options:
     },
   ],
 })
-@Schema({ collection: 'documents' })
 export class Document extends BaseEntity {
   @Prop({ type: String, required: true })
   title: string;
@@ -349,7 +349,8 @@ Use `customInit` for advanced schema customization such as virtuals, methods, st
 ### Virtual Properties
 
 ```typescript
-@DynamicAPISchemaOptions({
+@DynamicApiSchema({
+  collection: 'users',
   customInit: (schema) => {
     // Add virtual property
     schema.virtual('fullName').get(function(this: any) {
@@ -368,7 +369,6 @@ Use `customInit` for advanced schema customization such as virtuals, methods, st
     schema.set('toObject', { virtuals: true });
   },
 })
-@Schema({ collection: 'users' })
 export class User extends BaseEntity {
   @Prop({ type: String, required: true })
   firstName: string;
@@ -381,7 +381,8 @@ export class User extends BaseEntity {
 ### Instance Methods
 
 ```typescript
-@DynamicAPISchemaOptions({
+@DynamicApiSchema({
+  collection: 'users',
   customInit: (schema) => {
     // Add instance method
     schema.methods.getFullProfile = function() {
@@ -400,7 +401,6 @@ export class User extends BaseEntity {
     };
   },
 })
-@Schema({ collection: 'users' })
 export class User extends BaseEntity {
   @Prop({ type: String, required: true })
   name: string;
@@ -416,7 +416,8 @@ export class User extends BaseEntity {
 ### Static Methods
 
 ```typescript
-@DynamicAPISchemaOptions({
+@DynamicApiSchema({
+  collection: 'users',
   customInit: (schema) => {
     // Add static method
     schema.statics.findByEmail = function(email: string) {
@@ -429,7 +430,6 @@ export class User extends BaseEntity {
     };
   },
 })
-@Schema({ collection: 'users' })
 export class User extends BaseEntity {
   @Prop({ type: String, required: true })
   email: string;
@@ -452,7 +452,8 @@ You can add third-party Mongoose plugins for additional functionality.
 import * as mongoosePaginate from 'mongoose-paginate-v2';
 import * as mongooseSlugPlugin from 'mongoose-slug-plugin';
 
-@DynamicAPISchemaOptions({
+@DynamicApiSchema({
+  collection: 'posts',
   customInit: (schema) => {
     // Add pagination plugin
     schema.plugin(mongoosePaginate);
@@ -461,7 +462,6 @@ import * as mongooseSlugPlugin from 'mongoose-slug-plugin';
     schema.plugin(mongooseSlugPlugin, { tmpl: '<%=title%>' });
   },
 })
-@Schema({ collection: 'posts' })
 export class Post extends BaseEntity {
   @Prop({ type: String, required: true })
   title: string;
@@ -479,7 +479,8 @@ export class Post extends BaseEntity {
 
 ```typescript
 // ✅ Good - Strategic indexes
-@DynamicAPISchemaOptions({
+@DynamicApiSchema({
+  collection: 'users',
   indexes: [
     { fields: { email: 1 }, options: { unique: true } },       // Unique lookup
     { fields: { createdAt: -1 } },                            // Sorting
@@ -489,7 +490,8 @@ export class Post extends BaseEntity {
 })
 
 // ❌ Avoid - Too many indexes
-@DynamicAPISchemaOptions({
+@DynamicApiSchema({
+  collection: 'users',
   indexes: [
     { fields: { field1: 1 } },
     { fields: { field2: 1 } },
@@ -504,7 +506,8 @@ export class Post extends BaseEntity {
 
 ```typescript
 // ✅ Good - Efficient hooks
-@DynamicAPISchemaOptions({
+@DynamicApiSchema({
+  collection: 'posts',
   hooks: [
     {
       type: 'CreateOne',
@@ -518,7 +521,8 @@ export class Post extends BaseEntity {
 })
 
 // ⚠️ Be careful - Async operations in hooks
-@DynamicAPISchemaOptions({
+@DynamicApiSchema({
+  collection: 'posts',
   hooks: [
     {
       type: 'CreateOne',
@@ -536,7 +540,8 @@ export class Post extends BaseEntity {
 
 ```typescript
 // ✅ Good - Computed properties
-@DynamicAPISchemaOptions({
+@DynamicApiSchema({
+  collection: 'users',
   customInit: (schema) => {
     schema.virtual('age').get(function(this: any) {
       return Math.floor((Date.now() - this.birthDate) / (365.25 * 24 * 60 * 60 * 1000));
@@ -554,12 +559,15 @@ export class Post extends BaseEntity {
 ### Complete Schema Configuration
 
 ```typescript
-import { Prop, Schema } from '@nestjs/mongoose';
-import { BaseEntity, DynamicAPISchemaOptions } from 'mongodb-dynamic-api';
+import { Prop } from '@nestjs/mongoose';
+import { BaseEntity, DynamicApiSchema } from 'mongodb-dynamic-api';
 import { ApiProperty } from '@nestjs/swagger';
 import * as bcrypt from 'bcrypt';
 
-@DynamicAPISchemaOptions({
+@DynamicApiSchema({
+  collection: 'users',
+  timestamps: true,
+
   // Indexes for performance
   indexes: [
     { fields: { email: 1 }, options: { unique: true } },
@@ -619,7 +627,6 @@ import * as bcrypt from 'bcrypt';
     schema.set('toObject', { virtuals: true });
   },
 })
-@Schema({ collection: 'users', timestamps: true })
 export class User extends BaseEntity {
   @ApiProperty({ example: 'John' })
   @Prop({ type: String, required: true })
@@ -667,6 +674,5 @@ export class User extends BaseEntity {
 ---
 
 [Back to README](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README.md)
-
 
 

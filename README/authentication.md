@@ -2110,7 +2110,8 @@ Passwords are automatically hashed using bcrypt with a salt rounds of 10. You ca
 import * as bcrypt from 'bcrypt';
 
 // In your user entity pre-save hook
-@DynamicAPISchemaOptions({
+@DynamicApiSchema({
+  collection: 'users',
   hooks: [
     {
       type: 'CreateOne',
@@ -2123,7 +2124,6 @@ import * as bcrypt from 'bcrypt';
     },
   ],
 })
-@Schema({ collection: 'users' })
 export class User extends BaseEntity {
   // ...
 }
@@ -2235,18 +2235,18 @@ Each `rateLimit`/`*RateLimit` option is independent and optional — set only th
 
 ```typescript
 // src/users/user.entity.ts
-import { Prop, Schema } from '@nestjs/mongoose';
-import { BaseEntity, DynamicAPISchemaOptions } from 'mongodb-dynamic-api';
+import { Prop } from '@nestjs/mongoose';
+import { BaseEntity, DynamicApiSchema } from 'mongodb-dynamic-api';
 import { IsEmail, IsNotEmpty, MinLength, Matches } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Exclude } from 'class-transformer';
 
-@DynamicAPISchemaOptions({
+@DynamicApiSchema({
+  collection: 'users',
   indexes: [
     { fields: { email: 1 }, options: { unique: true } },
   ],
 })
-@Schema({ collection: 'users' })
 export class User extends BaseEntity {
   @ApiProperty({ 
     description: 'User email address',
