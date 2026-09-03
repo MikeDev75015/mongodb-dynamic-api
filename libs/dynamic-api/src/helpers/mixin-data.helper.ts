@@ -31,7 +31,7 @@ const FILTER_MODE_ROUTE_TYPES: ReadonlySet<RouteType> = new Set(['GetMany', 'Agg
 
 const logger = new MongoDBDynamicApiLogger('DynamicApiModule');
 
-/** @internal Not part of the public API — will be removed from the package's public exports in v5. */
+/** @internal Not part of the public API. */
 function getMixinData<Entity extends BaseEntity>(
   entity: Type<Entity>,
   {

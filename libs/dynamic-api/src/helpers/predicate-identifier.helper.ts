@@ -5,7 +5,7 @@
  * on context (e.g. `id` on an HTTP request's user, `sub` on a raw JWT payload, `_id` on a Mongoose
  * document), instead of only ever reading one flat field.
  *
- * @internal Not part of the public API — will be removed from the package's public exports in v5.
+ * @internal Not part of the public API.
  */
 function resolveIdentifierField<T>(source: T, fields: keyof T | (keyof T)[]): unknown {
   const fieldList = Array.isArray(fields) ? fields : [fields];
@@ -47,7 +47,7 @@ function isStringifiable(value: unknown): value is string | number | boolean | b
  * string form on the user side (`user.familyId`), which are never `===`-equal despite representing
  * the same id.
  *
- * @internal Not part of the public API — will be removed from the package's public exports in v5.
+ * @internal Not part of the public API.
  */
 function identifiersMatch(entityValue: unknown, userValue: unknown): boolean {
   if (entityValue === userValue) {

@@ -9,7 +9,7 @@ import { Mappable, RouteType } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { buildPaginatedResponseType } from './paginated-response.builder';
 
-/** @internal Not part of the public API — will be removed from the package's public exports in v5. */
+/** @internal Not part of the public API. */
 class RouteDecoratorsBuilder<Entity extends BaseEntity> implements DynamicApiDecoratorBuilder<Entity> {
   private readonly responseRouteTypeIsArray: RouteType[] = [
     'GetMany',

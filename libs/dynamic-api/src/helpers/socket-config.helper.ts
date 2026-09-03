@@ -68,7 +68,7 @@ function enableDynamicAPIWebSockets(app: INestApplication, options?: DynamicApiW
   app.useWebSocketAdapter(new SocketAdapter(app));
 }
 
-/** @internal Not part of the public API — will be removed from the package's public exports in v5. */
+/** @internal Not part of the public API. */
 function initializeConfigFromOptions(options?: DynamicApiWebSocketOptions): GatewayOptions | undefined {
   if (!options) {
     return;

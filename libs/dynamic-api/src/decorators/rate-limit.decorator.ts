@@ -9,7 +9,7 @@ import { RateLimitConfig } from '../interfaces';
  * Requires `ThrottlerModule` to still be imported in your own `AppModule` — this decorator only
  * wires the per-route guard/limits, it doesn't configure global throttler storage/options.
  *
- * @internal Not part of the public API — will be removed from the package's public exports in v5.
+ * @internal Not part of the public API.
  */
 function RateLimit(config: RateLimitConfig | undefined): MethodDecorator {
   if (!config) {

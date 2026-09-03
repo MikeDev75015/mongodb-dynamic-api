@@ -8,7 +8,7 @@ import { ExtendedSocket, GatewayOptions } from '../interfaces';
 import { MongoDBDynamicApiLogger } from '../logger/mongo-dynamic-api.logger';
 import { DynamicApiBroadcastService } from '../services/dynamic-api-broadcast/dynamic-api-broadcast.service';
 
-/** @internal Not part of the public API — will be removed from the package's public exports in v5. */
+/** @internal Not part of the public API. */
 function createDynamicApiBroadcastGateway(options: GatewayOptions = {}) {
   @WebSocketGateway(options)
   class DynamicApiBroadcastGateway implements OnGatewayInit {

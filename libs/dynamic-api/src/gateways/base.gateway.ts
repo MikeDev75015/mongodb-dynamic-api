@@ -9,7 +9,7 @@ import { BroadcastConfig, ExtendedSocket } from '../interfaces';
 import { MongoDBDynamicApiLogger } from '../logger/mongo-dynamic-api.logger';
 import { BaseEntity } from '../models';
 
-/** @internal Not part of the public API — will be removed from the package's public exports in v5. */
+/** @internal Not part of the public API. */
 export abstract class BaseGateway<Entity extends BaseEntity> {
   private readonly logger = new MongoDBDynamicApiLogger(BaseGateway.name);
 
