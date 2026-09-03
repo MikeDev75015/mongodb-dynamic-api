@@ -1,6 +1,6 @@
 import { Model } from 'mongoose';
 import { BaseEntity } from '../../models';
-import { BaseService } from '../../services';
+import { BaseService } from '../../services/base/base.service';
 
 /**
  * Minimal concrete `BaseService` subclass instantiated purely to reach its (otherwise

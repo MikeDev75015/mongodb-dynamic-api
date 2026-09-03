@@ -1,4 +1,4 @@
-import { MongoDBDynamicApiLogger } from '../logger';
+import { MongoDBDynamicApiLogger } from '../logger/mongo-dynamic-api.logger';
 import { RouteType } from '../interfaces';
 
 type BroadcastChannel = 'http' | 'ws';

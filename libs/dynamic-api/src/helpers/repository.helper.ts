@@ -8,7 +8,7 @@ import {
 } from 'mongodb-pipeline-builder';
 import { FilterQuery, Model, QueryOptions } from 'mongoose';
 import { BaseEntity } from '../models';
-import { DynamicApiGlobalStateService } from '../services';
+import { DynamicApiGlobalStateService } from '../services/dynamic-api-global-state/dynamic-api-global-state.service';
 
 type DynamicApiRepository<Entity extends BaseEntity> = {
   aggregate(pipeline: PipelineStage[]): Promise<GetResultResponse<Entity>>

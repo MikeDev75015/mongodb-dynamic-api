@@ -4,7 +4,7 @@ import { Model } from 'mongoose';
 import { isPagingPipeline } from '../../helpers/pipeline-paging.helper';
 import { AbilityPredicate, AfterSaveCallback, CallbackRetryOptions, PredicateBehavior } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import { BaseService } from '../../services';
+import { BaseService } from '../../services/base/base.service';
 import { AggregateService } from './aggregate-service.interface';
 
 export abstract class BaseAggregateService<Entity extends BaseEntity>

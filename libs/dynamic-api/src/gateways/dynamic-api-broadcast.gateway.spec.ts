@@ -6,7 +6,7 @@ import { DynamicAPIWsExceptionFilter } from '../filters';
 import { JwtSocketGuard } from '../guards';
 import { DynamicApiWsConfigStore } from '../helpers/ws-config.store';
 import { ExtendedSocket } from '../interfaces';
-import { DynamicApiBroadcastService } from '../services';
+import { DynamicApiBroadcastService } from '../services/dynamic-api-broadcast/dynamic-api-broadcast.service';
 import { createDynamicApiBroadcastGateway } from './dynamic-api-broadcast.gateway';
 
 describe('createDynamicApiBroadcastGateway', () => {

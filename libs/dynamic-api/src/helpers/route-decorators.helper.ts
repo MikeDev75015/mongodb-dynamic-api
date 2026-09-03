@@ -1,5 +1,5 @@
 import { applyDecorators } from '@nestjs/common';
-import { DynamicApiDecoratorBuilder } from '../interfaces';
+import { DynamicApiDecoratorBuilder } from '../interfaces/dynamic-api-decorator-builder.interface';
 import { BaseEntity } from '../models';
 
 /** @internal Not part of the public API — will be removed from the package's public exports in v5. */

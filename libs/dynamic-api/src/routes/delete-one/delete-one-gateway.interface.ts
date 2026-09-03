@@ -1,6 +1,7 @@
 import { JwtService } from '@nestjs/jwt';
-import { EntityParam } from '../../dtos';
-import { DeleteResult, ExtendedSocket, GatewayResponse } from '../../interfaces';
+import { EntityParam } from '../../dtos/entity.param';
+import { DeleteResult, ExtendedSocket } from '../../interfaces';
+import { GatewayResponse } from '../../interfaces/dynamic-api-web-socket.interface';
 import { BaseEntity } from '../../models';
 import { DeleteOneService } from './delete-one-service.interface';
 

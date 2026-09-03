@@ -7,7 +7,7 @@ import { BaseEntity } from '../../models';
 import { DeleteManyGatewayConstructor } from './delete-many-gateway.interface';
 import { DeleteManyGatewayMixin } from './delete-many-gateway.mixin';
 import { DeleteManyService } from './delete-many-service.interface';
-import { ManyEntityQuery } from '../../dtos';
+import { ManyEntityQuery } from '../../dtos/many-entity.query';
 
 describe('DeleteManyGatewayMixin', () => {
   class TestEntity extends BaseEntity {

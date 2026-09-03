@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { INestApplication } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import mongoose, { Connection } from 'mongoose';
-import { BcryptService, DynamicApiModule } from '../../src';
+import { DynamicApiModule } from '../../src';
+import { BcryptService } from '../../src/services/bcrypt/bcrypt.service';
 import { SocketAdapter } from '../../src/adapters/socket-adapter';
 import {
   closeTestingApp,

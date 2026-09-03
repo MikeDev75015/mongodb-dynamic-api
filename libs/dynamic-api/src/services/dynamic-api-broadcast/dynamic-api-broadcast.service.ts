@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Server } from 'socket.io';
-import { resolveBroadcast } from '../../helpers';
+import { resolveBroadcast } from '../../helpers/resolve-broadcast.helper';
 import { BroadcastConfig } from '../../interfaces';
-import { MongoDBDynamicApiLogger } from '../../logger';
+import { MongoDBDynamicApiLogger } from '../../logger/mongo-dynamic-api.logger';
 
 @Injectable()
 /** @internal Not part of the public API — will be removed from the package's public exports in v5. */

@@ -1,6 +1,6 @@
 import { Type } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
-import { cloneDeep } from '../../helpers';
+import { cloneDeep } from '../../helpers/lodash.helper';
 import { Model } from 'mongoose';
 import {
   BeforeSaveCreateManyContext,
@@ -9,7 +9,7 @@ import {
   CallbackRetryOptions,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import { BaseService } from '../../services';
+import { BaseService } from '../../services/base/base.service';
 import { CreateManyService } from './create-many-service.interface';
 
 export abstract class BaseCreateManyService<Entity extends BaseEntity>

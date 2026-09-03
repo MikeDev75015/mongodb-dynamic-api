@@ -1,7 +1,7 @@
 import { Inject } from '@nestjs/common';
 import { OnGatewayInit, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { DynamicApiWsConfigStore } from '../../helpers';
+import { DynamicApiWsConfigStore } from '../../helpers/ws-config.store';
 import {
   DYNAMIC_API_PRESENCE_ADAPTER,
   ExtendedSocket,
@@ -9,7 +9,7 @@ import {
   PresenceAdapter,
   PresenceEventPayload,
 } from '../../interfaces';
-import { MongoDBDynamicApiLogger } from '../../logger';
+import { MongoDBDynamicApiLogger } from '../../logger/mongo-dynamic-api.logger';
 
 /**
  * Factory that creates a `PresenceGateway` bound to the provided WebSocket options.

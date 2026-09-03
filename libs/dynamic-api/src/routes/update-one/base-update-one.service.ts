@@ -1,8 +1,8 @@
-import { cloneDeep } from '../../helpers';
+import { cloneDeep } from '../../helpers/lodash.helper';
 import { Model } from 'mongoose';
 import { BeforeSaveCallback, BeforeSaveUpdateContext, AfterSaveCallback, CallbackRetryOptions } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import { BaseService } from '../../services';
+import { BaseService } from '../../services/base/base.service';
 import { UpdateOneService } from './update-one-service.interface';
 
 export abstract class BaseUpdateOneService<Entity extends BaseEntity>

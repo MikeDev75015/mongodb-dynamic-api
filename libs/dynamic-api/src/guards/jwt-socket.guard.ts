@@ -1,10 +1,10 @@
 import { CanActivate, ExecutionContext } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
-import { isEmpty } from '../helpers';
+import { isEmpty } from '../helpers/lodash.helper';
 import { Socket } from 'socket.io';
 import { DynamicApiModule } from '../dynamic-api.module';
-import { MongoDBDynamicApiLogger } from '../logger';
+import { MongoDBDynamicApiLogger } from '../logger/mongo-dynamic-api.logger';
 
 /** @internal Not part of the public API — will be removed from the package's public exports in v5. */
 export class JwtSocketGuard implements CanActivate {

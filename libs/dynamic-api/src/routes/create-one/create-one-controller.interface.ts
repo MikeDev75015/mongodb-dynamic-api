@@ -1,6 +1,6 @@
 import { DynamicApiRequest } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import { DynamicApiBroadcastService } from '../../services';
+import { DynamicApiBroadcastService } from '../../services/dynamic-api-broadcast/dynamic-api-broadcast.service';
 import { CreateOneService } from './create-one-service.interface';
 
 interface CreateOneController<Entity extends BaseEntity, Response = unknown> {

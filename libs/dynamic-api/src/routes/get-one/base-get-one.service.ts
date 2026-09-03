@@ -1,7 +1,7 @@
 import { Model, PopulateOptions } from 'mongoose';
 import { AfterSaveCallback, CallbackRetryOptions, PopulateConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import { BaseService } from '../../services';
+import { BaseService } from '../../services/base/base.service';
 import { GetOneService } from './get-one-service.interface';
 
 export abstract class BaseGetOneService<Entity extends BaseEntity>

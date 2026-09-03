@@ -1,4 +1,4 @@
-import { cloneDeep } from '../../helpers';
+import { cloneDeep } from '../../helpers/lodash.helper';
 import { Model } from 'mongoose';
 import {
   BeforeSaveListCallback,
@@ -7,7 +7,7 @@ import {
   CallbackRetryOptions,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
-import { BaseService } from '../../services';
+import { BaseService } from '../../services/base/base.service';
 import { UpdateManyService } from './update-many-service.interface';
 
 export abstract class BaseUpdateManyService<Entity extends BaseEntity>

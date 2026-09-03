@@ -1,6 +1,6 @@
 import { Type } from '@nestjs/common';
 import { createConnection, Model } from 'mongoose';
-import { buildSchemaFromEntity } from '../src';
+import { buildSchemaFromEntity } from '../src/helpers/schema.helper';
 
 export const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 

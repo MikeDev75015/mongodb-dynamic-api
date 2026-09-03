@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import type { Mock } from 'vitest';
 import { PipelineStage } from 'mongodb-pipeline-builder';
-import { MongoDBDynamicApiLogger } from '../logger';
+import { MongoDBDynamicApiLogger } from '../logger/mongo-dynamic-api.logger';
 import { warnIfPagingResultDropped } from './paging-presenter-warning.helper';
 
 describe('warnIfPagingResultDropped', () => {

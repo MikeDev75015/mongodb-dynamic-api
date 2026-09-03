@@ -3,7 +3,7 @@ import * as jwt from 'jsonwebtoken';
 import { Server, ServerOptions, Socket } from 'socket.io';
 import { DynamicApiWsConfigStore } from '../helpers/ws-config.store';
 import { ExtendedSocket } from '../interfaces';
-import { MongoDBDynamicApiLogger } from '../logger';
+import { MongoDBDynamicApiLogger } from '../logger/mongo-dynamic-api.logger';
 
 export class SocketAdapter extends IoAdapter {
   private readonly logger = new MongoDBDynamicApiLogger('SocketAdapter');

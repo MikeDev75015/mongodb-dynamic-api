@@ -2,7 +2,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Type } from '@nestjs/common';
 import { Cache } from 'cache-manager';
 import { DynamicApiCachePathRegistryStore } from '../../helpers/cache-path-registry.store';
-import { MongoDBDynamicApiLogger } from '../../logger';
+import { MongoDBDynamicApiLogger } from '../../logger/mongo-dynamic-api.logger';
 
 /**
  * Injectable service for invalidating `DynamicApiCacheInterceptor`'s response cache — scoped to a

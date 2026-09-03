@@ -9,8 +9,14 @@ import { Schema } from 'mongoose';
 import { of } from 'rxjs';
 import { buildDynamicApiModuleOptionsMock } from '../__mocks__/dynamic-api.module.mock';
 import { DynamicApiModule } from './dynamic-api.module';
-import * as helpers from './helpers';
-import { DynamicApiGlobalState, DynamicAPIRouteConfig, RoutesConfig, RouteType } from './interfaces';
+import * as SchemaHelpers from './helpers/schema.helper';
+import * as RouteDescriptionHelpers from './helpers/route-description.helper';
+import * as FormatHelpers from './helpers/format.helper';
+import * as VersioningConfigHelpers from './helpers/versioning-config.helper';
+import * as RouteDecoratorsHelpers from './helpers/route-decorators.helper';
+import * as MixinDataHelpers from './helpers/mixin-data.helper';
+import { DynamicAPIRouteConfig, RoutesConfig, RouteType } from './interfaces';
+import { DynamicApiGlobalState } from './interfaces/dynamic-api-global-state.interface';
 import { BaseEntity } from './models';
 import { AuthModule, DynamicApiAuthOptions } from './modules';
 import {
@@ -27,12 +33,19 @@ import {
   UpdateOneModule,
   AggregateModule,
 } from './routes';
-import { DynamicApiCacheService, DynamicApiGlobalStateService } from './services';
-import { DynamicApiCacheInterceptor } from './interceptors';
+import { DynamicApiCacheService } from './services';
+import { DynamicApiGlobalStateService } from './services/dynamic-api-global-state/dynamic-api-global-state.service';
+import { DynamicApiCacheInterceptor } from './interceptors/dynamic-api-cache.interceptor';
 import { DynamicApiCachePathRegistryStore } from './helpers/cache-path-registry.store';
-import { DynamicApiJwtAuthGuard } from './guards';
+import { DynamicApiJwtAuthGuard } from './guards/dynamic-api-jwt-auth.guard';
 
-vi.mock('./helpers');
+vi.mock('./helpers/schema.helper');
+vi.mock('./helpers/route-description.helper');
+vi.mock('./helpers/format.helper');
+vi.mock('./helpers/versioning-config.helper');
+vi.mock('./helpers/route-decorators.helper');
+vi.mock('./helpers/mixin-data.helper');
+vi.mock('./helpers/socket-config.helper');
 
 describe('DynamicApiModule', () => {
   beforeEach(() => {
@@ -229,14 +242,14 @@ describe('DynamicApiModule', () => {
 
     beforeEach(() => {
       defaultOptions = buildDynamicApiModuleOptionsMock();
-      vi.spyOn(helpers, 'buildSchemaFromEntity').mockReturnValue(fakeSchema as unknown as Schema);
-      vi.spyOn(helpers, 'getDefaultRouteDescription').mockReturnValue('fake-description');
-      vi.spyOn(helpers, 'isValidVersion').mockReturnValue(true);
-      vi.spyOn(helpers, 'addVersionSuffix').mockReturnValue('fake-version');
-      vi.spyOn(helpers, 'getDisplayedName').mockReturnValue('fake-formatted-api-tag');
-      vi.spyOn(helpers, 'RouteDecoratorsHelper').mockReturnValue((_: any) => undefined);
-      vi.spyOn(helpers, 'provideName').mockReturnValue('fake-provided-name');
-      vi.spyOn(helpers, 'getMixinData').mockReturnValue({
+      vi.spyOn(SchemaHelpers, 'buildSchemaFromEntity').mockReturnValue(fakeSchema as unknown as Schema);
+      vi.spyOn(RouteDescriptionHelpers, 'getDefaultRouteDescription').mockReturnValue('fake-description');
+      vi.spyOn(FormatHelpers, 'isValidVersion').mockReturnValue(true);
+      vi.spyOn(VersioningConfigHelpers, 'addVersionSuffix').mockReturnValue('fake-version');
+      vi.spyOn(FormatHelpers, 'getDisplayedName').mockReturnValue('fake-formatted-api-tag');
+      vi.spyOn(RouteDecoratorsHelpers, 'RouteDecoratorsHelper').mockReturnValue((_: any) => undefined);
+      vi.spyOn(FormatHelpers, 'provideName').mockReturnValue('fake-provided-name');
+      vi.spyOn(MixinDataHelpers, 'getMixinData').mockReturnValue({
         routeType: 'fake-route-type' as RouteType,
         description: 'fake-description',
         isPublic: false,
@@ -260,7 +273,7 @@ describe('DynamicApiModule', () => {
         routes,
       });
 
-      expect(helpers.buildSchemaFromEntity).toHaveBeenCalledWith(entity);
+      expect(SchemaHelpers.buildSchemaFromEntity).toHaveBeenCalledWith(entity);
     });
 
     it('should call MongooseModule.forFeature with DynamicApiModule.connectionName', () => {
@@ -364,7 +377,7 @@ describe('DynamicApiModule', () => {
         const options = buildDynamicApiModuleOptionsMock({
           controllerOptions: { path: '/version', version: 'v1' },
         });
-        vi.spyOn(helpers, 'isValidVersion').mockReturnValue(false);
+        vi.spyOn(FormatHelpers, 'isValidVersion').mockReturnValue(false);
 
         setTimeout(() => {
           DynamicApiModule.state.set(['initialized', true]);

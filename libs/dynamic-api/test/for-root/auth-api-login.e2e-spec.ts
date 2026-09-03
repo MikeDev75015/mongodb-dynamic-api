@@ -3,7 +3,8 @@ import { ForbiddenException, Inject, Injectable, UnauthorizedException } from '@
 import { PassportStrategy } from '@nestjs/passport';
 import mongoose, { Connection } from 'mongoose';
 import { Strategy } from 'passport-local';
-import { BcryptService, DynamicApiModule } from '../../src';
+import { DynamicApiModule } from '../../src';
+import { BcryptService } from '../../src/services/bcrypt/bcrypt.service';
 import { closeTestingApp, server } from '../e2e.setup';
 import 'dotenv/config';
 import { getModelFromEntity } from '../utils';
