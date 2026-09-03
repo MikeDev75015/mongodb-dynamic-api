@@ -7,7 +7,7 @@ import { BaseEntity } from '../../models';
 import { UpdateOneGatewayConstructor } from './update-one-gateway.interface';
 import { UpdateOneGatewayMixin } from './update-one-gateway.mixin';
 import { UpdateOneService } from './update-one-service.interface';
-import { EntityParam } from '../../dtos';
+import { EntityParam } from '../../dtos/entity.param';
 
 describe('UpdateOneGatewayMixin', () => {
   class TestEntity extends BaseEntity {

@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MockedFunction } from 'vitest';
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { WsException } from '@nestjs/websockets';
-import { AuthAbilityPredicate, ExtendedSocket, PoliciesGuard } from '../../../interfaces';
+import { AuthAbilityPredicate, ExtendedSocket } from '../../../interfaces';
+import { PoliciesGuard } from '../../../interfaces/dynamic-api-policy-handler.interface';
 import { BaseEntity } from '../../../models';
 import { AuthPoliciesGuardMixin, AuthSocketPoliciesGuardMixin } from './auth-policies-guard.mixin';
 

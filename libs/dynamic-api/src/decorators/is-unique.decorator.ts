@@ -3,7 +3,7 @@ import { registerDecorator, ValidationArguments, ValidationOptions } from 'class
 import { FilterQuery } from 'mongoose';
 import { isMongooseCastError } from '../helpers/mongoose-cast-error.helper';
 import { BaseEntity } from '../models';
-import { DynamicApiGlobalStateService } from '../services';
+import { DynamicApiGlobalStateService } from '../services/dynamic-api-global-state/dynamic-api-global-state.service';
 
 /**
  * Options for the `IsUnique` decorator.

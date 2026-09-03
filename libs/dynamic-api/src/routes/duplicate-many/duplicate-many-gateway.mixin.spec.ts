@@ -7,7 +7,7 @@ import { BaseEntity } from '../../models';
 import { DuplicateManyGatewayConstructor } from './duplicate-many-gateway.interface';
 import { DuplicateManyGatewayMixin } from './duplicate-many-gateway.mixin';
 import { DuplicateManyService } from './duplicate-many-service.interface';
-import { ManyEntityQuery } from '../../dtos';
+import { ManyEntityQuery } from '../../dtos/many-entity.query';
 
 describe('DuplicateManyGatewayMixin', () => {
   class TestEntity extends BaseEntity {

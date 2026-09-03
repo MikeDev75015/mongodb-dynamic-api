@@ -1,6 +1,7 @@
 import { ExecutionContext, ForbiddenException, Injectable, Type } from '@nestjs/common';
 import { WsException } from '@nestjs/websockets';
-import { AuthAbilityPredicate, AuthPoliciesGuardConstructor } from '../../../interfaces';
+import { AuthAbilityPredicate } from '../../../interfaces';
+import { AuthPoliciesGuardConstructor } from '../../../interfaces/dynamic-api-policy-handler.interface';
 import { BaseEntity } from '../../../models';
 import { JwtSocketAuthGuard } from '../guards';
 

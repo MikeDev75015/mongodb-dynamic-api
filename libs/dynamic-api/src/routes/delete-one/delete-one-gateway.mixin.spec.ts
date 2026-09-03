@@ -7,7 +7,7 @@ import { BaseEntity } from '../../models';
 import { DeleteOneGatewayConstructor } from './delete-one-gateway.interface';
 import { DeleteOneGatewayMixin } from './delete-one-gateway.mixin';
 import { DeleteOneService } from './delete-one-service.interface';
-import { EntityParam } from '../../dtos';
+import { EntityParam } from '../../dtos/entity.param';
 
 describe('DeleteOneGatewayMixin', () => {
   class TestEntity extends BaseEntity {

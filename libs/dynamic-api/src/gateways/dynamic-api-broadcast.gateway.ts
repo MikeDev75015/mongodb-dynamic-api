@@ -5,8 +5,8 @@ import { DynamicAPIWsExceptionFilter } from '../filters';
 import { JwtSocketGuard } from '../guards';
 import { DynamicApiWsConfigStore } from '../helpers/ws-config.store';
 import { ExtendedSocket, GatewayOptions } from '../interfaces';
-import { MongoDBDynamicApiLogger } from '../logger';
-import { DynamicApiBroadcastService } from '../services';
+import { MongoDBDynamicApiLogger } from '../logger/mongo-dynamic-api.logger';
+import { DynamicApiBroadcastService } from '../services/dynamic-api-broadcast/dynamic-api-broadcast.service';
 
 /** @internal Not part of the public API — will be removed from the package's public exports in v5. */
 function createDynamicApiBroadcastGateway(options: GatewayOptions = {}) {

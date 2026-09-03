@@ -1,10 +1,10 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
-import { isEmpty } from '../../../../helpers';
+import { isEmpty } from '../../../../helpers/lodash.helper';
 import { DynamicApiModule } from '../../../../dynamic-api.module';
 import { ExtendedSocket } from '../../../../interfaces';
-import { MongoDBDynamicApiLogger } from '../../../../logger';
+import { MongoDBDynamicApiLogger } from '../../../../logger/mongo-dynamic-api.logger';
 
 @Injectable()
 export class JwtSocketRefreshGuard implements CanActivate {

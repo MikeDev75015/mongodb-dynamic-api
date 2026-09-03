@@ -5,7 +5,7 @@ import { HttpAdapterHost } from '@nestjs/core/helpers/http-adapter-host';
 import { Cache } from 'cache-manager';
 import { Observable, tap } from 'rxjs';
 import { DISABLE_CACHE_KEY } from '../decorators';
-import { DynamicApiGlobalState } from '../interfaces';
+import { DynamicApiGlobalState } from '../interfaces/dynamic-api-global-state.interface';
 // Concrete path, not the `../services` barrel: see the same note in
 // helpers/mixin-data.helper.ts — that barrel re-exports DynamicApiBroadcastService, which
 // imports the helpers barrel this file's own import graph can reach.

@@ -1,7 +1,7 @@
 import { Type } from '@nestjs/common';
 import { Connection, createConnection, Model, Schema } from 'mongoose';
 import { BehaviorSubject } from 'rxjs';
-import { DynamicApiGlobalState, EntitySchemas } from '../../interfaces';
+import { DynamicApiGlobalState, EntitySchemas } from '../../interfaces/dynamic-api-global-state.interface';
 
 /** @internal Not part of the public API — will be removed from the package's public exports in v5. */
 export class DynamicApiGlobalStateService {

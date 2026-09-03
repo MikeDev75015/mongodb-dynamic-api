@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { DynamicApiModule } from '../../../dynamic-api.module';
-import { Credentials } from '../../../interfaces';
+import { Credentials } from '../../../interfaces/dynamic-api-global-state.interface';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {

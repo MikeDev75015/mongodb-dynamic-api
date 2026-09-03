@@ -1,9 +1,9 @@
 import { ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
-import { IS_PUBLIC_KEY } from '../decorators';
-import { DynamicApiGlobalState } from '../interfaces';
-import { MongoDBDynamicApiLogger } from '../logger';
+import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import { DynamicApiGlobalState } from '../interfaces/dynamic-api-global-state.interface';
+import { MongoDBDynamicApiLogger } from '../logger/mongo-dynamic-api.logger';
 
 @Injectable()
 export class DynamicApiJwtAuthGuard extends AuthGuard('jwt') {

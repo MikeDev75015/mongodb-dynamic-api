@@ -7,7 +7,7 @@ import { BaseEntity } from '../../models';
 import { ReplaceOneGatewayConstructor } from './replace-one-gateway.interface';
 import { ReplaceOneGatewayMixin } from './replace-one-gateway.mixin';
 import { ReplaceOneService } from './replace-one-service.interface';
-import { EntityParam } from '../../dtos';
+import { EntityParam } from '../../dtos/entity.param';
 
 describe('ReplaceOneGatewayMixin', () => {
   class TestEntity extends BaseEntity {

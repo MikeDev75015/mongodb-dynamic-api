@@ -18,19 +18,21 @@ import {
   WebSocketGateway,
 } from '@nestjs/websockets';
 import { Model } from 'mongoose';
-import { ValidatorPipe } from '../../decorators';
+import { ValidatorPipe } from '../../decorators/validator-pipe.decorator';
 import { DynamicAPIWsExceptionFilter } from '../../filters';
 import { BaseGateway } from '../../gateways';
 import { JwtSocketGuard } from '../../guards';
-import { addVersionSuffix, getDisplayedName, kebabCase, pascalCase } from '../../helpers';
+import { addVersionSuffix } from '../../helpers/versioning-config.helper';
+import { getDisplayedName, pascalCase } from '../../helpers/format.helper';
+import { kebabCase } from '../../helpers/lodash.helper';
 import {
   CustomRouteConfig,
   DynamicApiControllerOptions,
   ExtendedSocket,
   GatewayOptions,
-  GatewayResponse,
   Mappable,
 } from '../../interfaces';
+import { GatewayResponse } from '../../interfaces/dynamic-api-web-socket.interface';
 import { SocketPoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DynamicApiModule } from '../../dynamic-api.module';

@@ -29,14 +29,11 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Model } from 'mongoose';
-import { Public, ValidatorPipe } from '../../decorators';
+import { Public } from '../../decorators';
+import { ValidatorPipe } from '../../decorators/validator-pipe.decorator';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import {
-  addVersionSuffix,
-  getDisplayedName,
-  pascalCase,
-  provideName,
-} from '../../helpers';
+import { addVersionSuffix } from '../../helpers/versioning-config.helper';
+import { getDisplayedName, pascalCase, provideName } from '../../helpers/format.helper';
 import {
   DynamicApiControllerOptions,
   CustomRouteConfig,
@@ -44,7 +41,7 @@ import {
   HttpMethod,
   Mappable,
 } from '../../interfaces';
-import { MongoDBDynamicApiLogger } from '../../logger';
+import { MongoDBDynamicApiLogger } from '../../logger/mongo-dynamic-api.logger';
 import { RoutePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { CustomRouteCallbackService } from './custom-route-callback.service';

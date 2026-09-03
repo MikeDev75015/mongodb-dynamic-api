@@ -1,5 +1,5 @@
 import { PipelineStage } from 'mongodb-pipeline-builder';
-import { MongoDBDynamicApiLogger } from '../logger';
+import { MongoDBDynamicApiLogger } from '../logger/mongo-dynamic-api.logger';
 import { isPagingPipeline } from './pipeline-paging.helper';
 
 const logger = new MongoDBDynamicApiLogger('AggregateRoute');

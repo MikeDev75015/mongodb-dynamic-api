@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { DynamicModule } from '@nestjs/common';
-import { DYNAMIC_API_GLOBAL_STATE, DynamicApiGlobalState } from '../../interfaces';
+import { DYNAMIC_API_GLOBAL_STATE } from '../../interfaces/dynamic-api-options.interface';
+import { DynamicApiGlobalState } from '../../interfaces/dynamic-api-global-state.interface';
 import { DynamicApiCacheService } from '../../services/dynamic-api-cache/dynamic-api-cache.service';
 import { DynamicApiConfigModule } from './dynamic-api-config.module';
 

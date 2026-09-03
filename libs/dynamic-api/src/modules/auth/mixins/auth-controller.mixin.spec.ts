@@ -4,7 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Response } from 'express';
 import { DynamicApiEventRegistryStore } from '../../../helpers/event-registry.store';
 import { BaseEntity } from '../../../models';
-import { DynamicApiBroadcastService } from '../../../services';
+import { DynamicApiBroadcastService } from '../../../services/dynamic-api-broadcast/dynamic-api-broadcast.service';
 import { authOperationStorage, getAuthOperationContext } from '../auth-operation-context';
 import { AuthService } from '../interfaces';
 import { AuthControllerMixin } from './auth-controller.mixin';
