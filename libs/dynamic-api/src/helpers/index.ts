@@ -2,6 +2,7 @@
 // API. Only the documented bootstrap helpers below are re-exported.
 export * from './index-sync.helper';
 export * from './mint-token-pair.helper';
+export { isTransactionsUnsupportedError } from './mongo-transaction.helper';
 export * from './paging-params.helper';
 export * from './validation-config.helper';
 export { enableDynamicAPIWebSockets } from './socket-config.helper';

@@ -41,6 +41,14 @@ interface PresenceRegisterOptions {
    * @default false
    */
   enableController?: boolean;
+  /**
+   * Register the bundled `PresenceGateway` (the socket listeners tracking connect/disconnect
+   * against the adapter). Set to `false` when your app already runs its own WebSocket gateway
+   * and only needs the `DYNAMIC_API_PRESENCE_ADAPTER` provider — registering both would
+   * double-track presence off the same connection/disconnection events.
+   * @default true
+   */
+  enableGateway?: boolean;
 }
 
 /** Shape of the payload emitted on `user:online` / `user:offline` events. */

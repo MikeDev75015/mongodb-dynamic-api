@@ -92,6 +92,16 @@ interface PresenceRegisterOptions {
    * @default false
    */
   enableController?: boolean;
+
+  /**
+   * Register the bundled `PresenceGateway` (the socket listeners that track
+   * connect/disconnect against the adapter).
+   * Set to `false` when your app already runs its own WebSocket gateway and only needs the
+   * `DYNAMIC_API_PRESENCE_ADAPTER` provider — registering both would double-track presence off
+   * the same connection/disconnection events.
+   * @default true
+   */
+  enableGateway?: boolean;
 }
 ```
 
@@ -105,6 +115,26 @@ DynamicApiPresenceModule.register({
   enableController: true,
 })
 ```
+
+### Example — adapter only, no bundled gateway
+
+For an app that already runs its own WebSocket gateway (custom rooms, its own connect/disconnect
+handling) and only wants the presence *storage*, not a second gateway double-tracking the same
+connections:
+
+```typescript
+imports: [
+  DynamicApiPresenceModule.register({
+    adapter: 'redis',
+    redisUrl: process.env.REDIS_URL,
+    enableGateway: false, // no PresenceGateway registered — bring your own
+  }),
+]
+```
+
+Inject `DYNAMIC_API_PRESENCE_ADAPTER` into your own gateway the same way as any other consumer —
+see [Dependency injection](#dependency-injection) below — and call `setOnline`/`setOffline` from
+your own connection handlers.
 
 ---
 
@@ -170,7 +200,7 @@ The `PresenceGateway` shares the same socket.io namespace as the other DynamicAp
 import { io } from 'socket.io-client';
 
 const socket = io('http://localhost:3000', {
-  query: { accessToken: '<your-jwt>' },
+  auth: { token: '<your-jwt>' },
 });
 
 socket.on('user:online',  ({ userId }) => console.log(`${userId} is online`));

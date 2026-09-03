@@ -7,9 +7,11 @@ import mongoose from 'mongoose';
 import 'dotenv/config';
 import {
   BaseEntity,
+  DYNAMIC_API_PRESENCE_ADAPTER,
   DynamicApiModule,
   DynamicApiPresenceModule,
   enableDynamicAPIWebSockets,
+  PresenceAdapter,
 } from '../../src';
 import { closeTestingApp, createTestingApp, server } from '../e2e.setup';
 
@@ -102,7 +104,10 @@ describe('DynamicApiPresenceModule (e2e)', () => {
 
   // ── Shared app init ────────────────────────────────────────────────────
 
-  async function initPresenceApp(enableController = false): Promise<INestApplication> {
+  async function initPresenceApp(
+    enableController = false,
+    enableGateway = true,
+  ): Promise<INestApplication> {
     const uri = process.env.MONGO_DB_URL!;
 
     const moduleRef = await Test.createTestingModule({
@@ -118,6 +123,7 @@ describe('DynamicApiPresenceModule (e2e)', () => {
         DynamicApiPresenceModule.register({
           adapter: 'memory',
           enableController,
+          enableGateway,
         }),
       ],
     }).compile();
@@ -263,5 +269,34 @@ describe('DynamicApiPresenceModule (e2e)', () => {
     ).body?.onlineUserIds ?? [];
 
     expect(onlineIds).toEqual([]);
+  });
+
+  describe('enableGateway: false', () => {
+    it('should NOT emit user:online on socket connect — the bundled gateway is not registered', async () => {
+      await initPresenceApp(false, false);
+      accessToken = await registerAndLogin();
+
+      const observer = await connectSocket(global.appBaseUrl!);
+
+      let onlineReceived = false;
+      observer.on('user:online', () => { onlineReceived = true; });
+
+      const authenticated = await connectSocket(global.appBaseUrl!, accessToken);
+      await delay(300);
+
+      expect(onlineReceived).toBe(false);
+
+      authenticated.disconnect();
+      observer.disconnect();
+    });
+
+    it('should still export a working DYNAMIC_API_PRESENCE_ADAPTER provider for the host app\'s own gateway to use', async () => {
+      const app = await initPresenceApp(false, false);
+      const adapter = app.get<PresenceAdapter>(DYNAMIC_API_PRESENCE_ADAPTER);
+
+      await adapter.setOnline('user-1', 'socket-1');
+
+      expect(await adapter.isOnline('user-1')).toBe(true);
+    });
   });
 });

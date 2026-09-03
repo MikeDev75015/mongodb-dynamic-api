@@ -38,6 +38,7 @@ export class DynamicApiPresenceModule {
       redisUrl,
       redisTtlSeconds,
       enableController = false,
+      enableGateway = true,
     } = options;
 
     if (adapter === 'redis' && !redisUrl) {
@@ -56,19 +57,23 @@ export class DynamicApiPresenceModule {
       useValue: adapterInstance,
     };
 
-    const gatewayOptions =
-      DynamicApiModule.state.get('gatewayOptions') ??
-      DynamicApiModule.state.get('broadcastGatewayOptions') ??
-      {};
+    // enableGateway: false skips registering the bundled PresenceGateway entirely — an app that
+    // already runs its own gateway only wants the adapter provider, not a second set of socket
+    // connect/disconnect listeners silently double-tracking presence on the same connections.
+    let gatewayProviders: DynamicModule['providers'] = [];
 
-    const GatewayClass = createPresenceGateway(gatewayOptions);
+    if (enableGateway) {
+      const gatewayOptions =
+        DynamicApiModule.state.get('gatewayOptions') ??
+        DynamicApiModule.state.get('broadcastGatewayOptions') ??
+        {};
+      const GatewayClass = createPresenceGateway(gatewayOptions);
+      gatewayProviders = [{ provide: GatewayClass, useClass: GatewayClass }];
+    }
 
     return {
       module: DynamicApiPresenceModule,
-      providers: [
-        adapterProvider,
-        { provide: GatewayClass, useClass: GatewayClass },
-      ],
+      providers: [adapterProvider, ...gatewayProviders],
       controllers: enableController ? [PresenceController] : [],
       exports: [DYNAMIC_API_PRESENCE_ADAPTER],
     };

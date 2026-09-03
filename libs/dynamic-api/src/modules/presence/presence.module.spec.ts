@@ -63,6 +63,27 @@ describe('DynamicApiPresenceModule', () => {
         expect(result.exports).toHaveLength(1);
         expect(typeof result.exports![0]).toBe('symbol');
       });
+
+      it('should register the bundled PresenceGateway when enableGateway is true (default)', () => {
+        const result = DynamicApiPresenceModule.register({ adapter: 'memory' });
+
+        expect(createPresenceGateway).toHaveBeenCalledTimes(1);
+        expect(result.providers).toHaveLength(2);
+      });
+
+      it('should NOT register the bundled PresenceGateway when enableGateway is false', () => {
+        const result = DynamicApiPresenceModule.register({ adapter: 'memory', enableGateway: false });
+
+        expect(createPresenceGateway).not.toHaveBeenCalled();
+        expect(result.providers).toHaveLength(1);
+      });
+
+      it('should still export DYNAMIC_API_PRESENCE_ADAPTER when enableGateway is false', () => {
+        const result = DynamicApiPresenceModule.register({ adapter: 'memory', enableGateway: false });
+
+        expect(result.exports).toHaveLength(1);
+        expect(typeof result.exports![0]).toBe('symbol');
+      });
     });
 
     describe('adapter: redis', () => {

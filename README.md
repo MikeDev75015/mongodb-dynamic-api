@@ -58,7 +58,7 @@
 > `DynamicApiDecoratorBuilder`, `PoliciesGuard`, `PoliciesGuardConstructor`, `AuthPoliciesGuardConstructor`, `RouteModule`, `DYNAMIC_API_GLOBAL_STATE`, `Credentials`, `EntitySchemas`, `DynamicApiGlobalState`, `AfterSaveCallbackConfig`, `GatewayResponse`.
 >
 > ### Removed — internal modules & helpers
-> `AuthModule`, `DynamicApiConfigModule`, and every internal auth controller/gateway/policies-guard mixin, `BaseAuthService`, `JwtStrategy`, `JwtRefreshStrategy`; `HealthController`/`createHealthController`; `PresenceController`, `InMemoryPresenceAdapter`, `RedisPresenceAdapter`, `createPresenceGateway`. Most of `helpers/**` (internal wiring only — the documented `enableDynamicAPI*` functions, `mintTokenPair` and `parsePagingParams` are unaffected).
+> `AuthModule`, `DynamicApiConfigModule`, and every internal auth controller/gateway/policies-guard mixin, `BaseAuthService`, `JwtStrategy`, `JwtRefreshStrategy`; `HealthController`/`createHealthController`; `PresenceController`, `InMemoryPresenceAdapter`, `RedisPresenceAdapter`, `createPresenceGateway`. Most of `helpers/**` (internal wiring only — the documented `enableDynamicAPI*` functions, `mintTokenPair`, `parsePagingParams` and `isTransactionsUnsupportedError` are unaffected).
 >
 > ### Removed — `DeepPartial` typo alias
 > `utils/deep-patial.ts` (a typo'd duplicate of `deep-partial.ts`, already marked "will be removed in v5") is deleted. `DeepPartial` itself is still exported — import it as before, from the main package.
