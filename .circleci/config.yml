@@ -154,7 +154,7 @@ commands:
           description: Gets latest release version of Github CLI
 
   create-release-pr-command:
-    description: "Rebase develop onto main on a dedicated release branch, run release-it there, push, create + auto-merge the PR to main"
+    description: "Run release-it directly on develop (no rebase onto main), branch release/vX.Y.Z off the result, create + auto-merge the PR to main"
     steps:
       - run:
           name: Checkout to develop
@@ -166,22 +166,44 @@ commands:
           name: Fetch main
           command: git fetch https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git main
       - run:
-          name: Create the release-prep branch from develop
-          command: git checkout -b release-prep
+          # A rebase-onto-main step used to sit here. It replayed EVERY develop commit since the
+          # last time main and develop shared real ancestry — including ones whose conflicts were
+          # already resolved once inside a --merge commit on develop (a linear rebase can't see
+          # content that exists only inside a merge commit's own resolution, so it hits the exact
+          # same conflict again). Every completed release also made it worse: `gh pr merge --rebase`
+          # lands NEW, rebase-rewritten commit hashes on main that develop never receives, so main
+          # was never actually an ancestor of develop again after the very first release — meaning
+          # this replay-and-reconflict happened on every single subsequent release, not just once.
+          # Fix: never rebase. main only ever advances by fast-forwarding to a commit develop
+          # already has, so this check just fails loudly instead of silently re-diverging if
+          # something outside this pipeline ever pushes to main directly.
+          name: Verify main is an ancestor of develop (the release pipeline only ever fast-forwards)
+          command: |
+            if ! git merge-base --is-ancestor FETCH_HEAD HEAD; then
+              echo "main is NOT an ancestor of develop — this pipeline can only fast-forward main to a commit develop already contains."
+              echo "This means something pushed to main outside this pipeline (or an old rebase-based release rewrote main's history)."
+              echo "Fix the divergence by hand once (e.g. reconcile main to a real ancestor of develop), then retry."
+              exit 1
+            fi
       - run:
-          name: Rebase release-prep onto main (linear history, main always sees its own tags)
-          command: git rebase FETCH_HEAD
-      - run:
-          name: Run release-it to prepare release commit (local only, no push — see .release-it.json)
+          name: Run release-it to prepare the release commit on develop itself (local only, no push/tag — see .release-it.json)
           command: npm run auto-release
       - run:
-          name: Rename release-prep to release/vX.Y.Z and push it
+          name: Push the release commit to develop
+          command: git push https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git HEAD:develop
+      - run:
+          name: Branch release/vX.Y.Z off develop's new tip and push it
           command: |
             VERSION_NUMBER=v$(jq -r '.version' package.json)
             echo ${VERSION_NUMBER}
-            git branch -m "release/${VERSION_NUMBER}"
+            git checkout -b "release/${VERSION_NUMBER}"
             git push https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git "release/${VERSION_NUMBER}"
       - run:
+          # release/vX.Y.Z is a plain descendant of develop, which is itself a descendant of main
+          # (checked above) — so this "rebase and merge" always finds zero commits to replay and
+          # degrades to a pure fast-forward. main's tip becomes byte-identical to develop's tip,
+          # which is exactly what keeps main an ancestor of develop for the *next* release too —
+          # no separate "sync main back into develop" step needed.
           name: Create the PR from release/vX.Y.Z to main and enable auto-merge
           command: |
             VERSION_NUMBER=v$(jq -r '.version' package.json)
