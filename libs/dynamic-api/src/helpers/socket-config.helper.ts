@@ -18,30 +18,11 @@ function initEventsListeners(maxListeners = 10) {
  * @param {INestApplication} app The Nest application instance.
  * @param {DynamicApiWebSocketSetupOptions} options Setup options (maxListeners, onConnection, debug).
  */
-function enableDynamicAPIWebSockets(app: INestApplication, options?: DynamicApiWebSocketSetupOptions): void;
-/**
- * Enables WebSocket support for the Nest application.
- * @param {INestApplication} app The Nest application instance.
- * @param maxListeners The maximum number of listeners that can be added to an event.
- * @deprecated Pass an options object instead — `enableDynamicAPIWebSockets(app, { maxListeners })`. Will be removed in v5.
- */
-function enableDynamicAPIWebSockets(app: INestApplication, maxListeners?: number): void;
-function enableDynamicAPIWebSockets(
-  app: INestApplication,
-  optionsOrMaxListeners?: DynamicApiWebSocketSetupOptions | number,
-): void {
+function enableDynamicAPIWebSockets(app: INestApplication, options?: DynamicApiWebSocketSetupOptions): void {
   let resolvedOptions: DynamicApiWebSocketSetupOptions = {};
 
-  if (typeof optionsOrMaxListeners === 'number') {
-    console.warn(
-      '[DynamicAPI] Passing a number to enableDynamicAPIWebSockets is deprecated. '
-      + 'Use an options object instead: enableDynamicAPIWebSockets(app, { maxListeners: '
-      + optionsOrMaxListeners
-      + ' }). Will be removed in v5.',
-    );
-    resolvedOptions = { maxListeners: optionsOrMaxListeners };
-  } else if (optionsOrMaxListeners) {
-    resolvedOptions = optionsOrMaxListeners;
+  if (options) {
+    resolvedOptions = options;
   }
 
   if (resolvedOptions.failOnEventCollision) {

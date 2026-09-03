@@ -58,15 +58,6 @@ bootstrap();
 
 > **Note:** `enableDynamicAPIWebSockets(app)` is required whenever you use **any** WebSocket feature — including broadcasting after HTTP calls — even if no route has `webSocket: true`.
 
-> **⚠️ Deprecated:** The numeric overload `enableDynamicAPIWebSockets(app, 50)` is deprecated and will be removed in v5. Use the options-object form instead:
-> ```typescript
-> // ❌ Deprecated
-> enableDynamicAPIWebSockets(app, 50);
->
-> // ✅ Recommended
-> enableDynamicAPIWebSockets(app, { maxListeners: 50 });
-> ```
-
 ### Enable WebSockets Globally
 
 ```typescript
@@ -2184,8 +2175,6 @@ Configure max listeners for the WebSocket server:
 // In main.ts
 enableDynamicAPIWebSockets(app, { maxListeners: 50 }); // Max 50 listeners per event
 ```
-
-> **⚠️ Deprecated:** `enableDynamicAPIWebSockets(app, 50)` still works but will be removed in v5.
 
 ### Event Throttling
 
