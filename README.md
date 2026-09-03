@@ -1,7 +1,7 @@
 <p align="center">
   <h1 align="center">mongodb-dynamic-api</h1>
   <p align="center">
-    A production-ready <strong>NestJS 11</strong> module that instantly generates fully typed REST APIs + WebSockets<br/>
+    A production-ready <strong>NestJS 12</strong> module that instantly generates fully typed REST APIs + WebSockets<br/>
     for any MongoDB collection — zero boilerplate, enterprise features included.
   </p>
 </p>
