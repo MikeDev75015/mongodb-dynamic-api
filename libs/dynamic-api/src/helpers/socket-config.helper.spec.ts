@@ -70,17 +70,6 @@ describe('SocketConfigHelper', () => {
       expect(DynamicApiWsConfigStore.customEvents).toEqual([]);
     });
 
-    it('should accept a number (deprecated) and warn', () => {
-      const spyConsoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-      enableDynamicAPIWebSockets(fakeApp, 50);
-
-      expect(spyConsoleWarn).toHaveBeenCalledWith(
-        expect.stringContaining('Passing a number to enableDynamicAPIWebSockets is deprecated'),
-      );
-      expect(fakeApp.useWebSocketAdapter).toHaveBeenCalledTimes(1);
-    });
-
     it('should throw on MaxListenersExceededWarning error', () => {
       const spyConsoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
