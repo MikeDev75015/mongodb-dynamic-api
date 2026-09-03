@@ -12,7 +12,7 @@ import { warnIfPagingResultDropped } from '../../helpers/paging-presenter-warnin
 import {
   Aggregatable,
   DynamicApiControllerOptions,
-  DynamicAPIRouteConfig,
+  DynamicApiRouteConfig,
   ExtendedSocket,
   Mappable,
 } from '../../interfaces';
@@ -26,7 +26,7 @@ import { AggregateService } from './aggregate-service.interface';
 function AggregateGatewayMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], ...routeConfig }: DynamicApiRouteConfig<Entity>,
   version?: string,
 ): AggregateGatewayConstructor<Entity> {
   const {

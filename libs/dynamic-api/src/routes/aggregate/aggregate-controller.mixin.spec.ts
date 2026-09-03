@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, test } from 'vitest';
 import { createMock } from '@test-helpers';
 import { BadRequestException } from '@nestjs/common';
 import { PipelineStage } from 'mongodb-pipeline-builder';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicApiRouteConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { AggregateController } from './aggregate-controller.interface';
 import { AggregateControllerMixin } from './aggregate-controller.mixin';
@@ -16,7 +16,7 @@ describe('AggregateControllerMixin', () => {
   let controller: AggregateController<Entity>;
 
   const controllerOptions: DynamicApiControllerOptions<Entity> = { path: 'test' };
-  const routeConfig: DynamicAPIRouteConfig<Entity> = { type: 'Aggregate' };
+  const routeConfig: DynamicApiRouteConfig<Entity> = { type: 'Aggregate' };
   const version = '1';
   const service = createMock<AggregateService<Entity>>();
   const fakeEntities = [{ id: '1', name: 'test' }, { id: '2', name: 'unit' }] as Entity[];

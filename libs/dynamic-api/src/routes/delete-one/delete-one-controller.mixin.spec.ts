@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, test } from 'vitest';
 import { createMock } from '@test-helpers';
-import { DeleteResult, DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { DeleteResult, DynamicApiControllerOptions, DynamicApiRouteConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { DeleteOneController } from './delete-one-controller.interface';
 import { DeleteOneControllerMixin } from './delete-one-controller.mixin';
@@ -12,12 +12,12 @@ describe('DeleteOneControllerMixin', () => {
   let controller: DeleteOneController<Entity>;
 
   const controllerOptions: DynamicApiControllerOptions<Entity> = { path: 'test' };
-  const routeConfig: DynamicAPIRouteConfig<Entity> = { type: 'DeleteOne' };
+  const routeConfig: DynamicApiRouteConfig<Entity> = { type: 'DeleteOne' };
   const version = '1';
   const service = createMock<DeleteOneService<Entity>>();
   const fakeDeleteResult = { deletedCount: 1 } as DeleteResult;
 
-  const initController = (_routeConfig: DynamicAPIRouteConfig<Entity> = routeConfig) => {
+  const initController = (_routeConfig: DynamicApiRouteConfig<Entity> = routeConfig) => {
     class Controller extends DeleteOneControllerMixin(
       Entity,
       controllerOptions,

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, test } from 'vitest';
 import { createMock } from '@test-helpers';
 import { BadRequestException } from '@nestjs/common';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicApiRouteConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { CreateManyController } from './create-many-controller.interface';
 import { CreateManyControllerMixin } from './create-many-controller.mixin';
@@ -16,7 +16,7 @@ describe('CreateManyControllerMixin', () => {
   let controller: CreateManyController<Entity>;
 
   const controllerOptions: DynamicApiControllerOptions<Entity> = { path: 'test' };
-  const routeConfig: DynamicAPIRouteConfig<Entity> = { type: 'CreateMany' };
+  const routeConfig: DynamicApiRouteConfig<Entity> = { type: 'CreateMany' };
   const version = '1';
   const service = createMock<CreateManyService<Entity>>();
   const fakeEntities = [{ id: '1', name: 'test' }, { id: '2', name: 'unit' }] as Entity[];

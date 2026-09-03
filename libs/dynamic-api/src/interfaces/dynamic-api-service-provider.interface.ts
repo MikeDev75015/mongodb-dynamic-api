@@ -5,9 +5,4 @@ interface DynamicApiServiceProvider {
   useClass: Type;
 }
 
-/**
- * @deprecated Use `DynamicApiServiceProvider` instead. Will be removed in v5.
- */
-type DynamicAPIServiceProvider = DynamicApiServiceProvider;
-
-export type { DynamicApiServiceProvider, DynamicAPIServiceProvider };
+export type { DynamicApiServiceProvider };

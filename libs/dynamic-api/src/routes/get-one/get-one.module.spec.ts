@@ -3,7 +3,7 @@ import type { Mock } from 'vitest';
 import { DynamicModule, ValidationPipeOptions } from '@nestjs/common';
 import * as FormatHelpers from '../../helpers/format.helper';
 import * as SocketConfigHelpers from '../../helpers/socket-config.helper';
-import { DynamicApiControllerOptions, DynamicAPIServiceProvider, GetOneRouteConfig } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicApiServiceProvider, GetOneRouteConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import * as GetOneHelpers from './get-one.helper';
 import { GetOneModule } from './get-one.module';
@@ -20,7 +20,7 @@ describe('GetOneModule', () => {
   let spyCreateGetOneGateway: Mock;
 
   const FakeController = vi.fn();
-  const FakeServiceProvider = { provide: 'fakeProvider' } as unknown as DynamicAPIServiceProvider;
+  const FakeServiceProvider = { provide: 'fakeProvider' } as unknown as DynamicApiServiceProvider;
   const FakeGateway = vi.fn();
 
   const routeConfigCallback = vi.fn();

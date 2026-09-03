@@ -9,7 +9,7 @@
 
 # Route Configuration
 
-Each route in `DynamicApiModule.forFeature` can be finely configured through the `DynamicAPIRouteConfig` interface. This page documents every available option, with a focus on **DTOs** and advanced customizations.
+Each route in `DynamicApiModule.forFeature` can be finely configured through the `DynamicApiRouteConfig` interface. This page documents every available option, with a focus on **DTOs** and advanced customizations.
 
 ## 📋 Table of Contents
 
@@ -79,7 +79,7 @@ The `type` field is **required** and must be one of the following values:
 ## Complete Configuration Reference
 
 ```typescript
-interface DynamicAPIRouteConfig<Entity extends BaseEntity> {
+interface DynamicApiRouteConfig<Entity extends BaseEntity> {
   // Required
   type: RouteType;
 
@@ -108,7 +108,7 @@ interface DynamicAPIRouteConfig<Entity extends BaseEntity> {
   predicateBehavior?: 'filter' | 'throw'; // Only for GetMany and Aggregate
 
   // Callbacks
-  beforeSaveCallback?: AnyBeforeSaveCallback<Entity>;
+  beforeSaveCallback?: BeforeSaveCallback<Entity, Context>; // exact signature narrowed per route type — see below
   /**
    * Pre-delete hook for DeleteOne / DeleteMany routes only.
    * Runs BEFORE the MongoDB delete and OUTSIDE the internal error-catch block:

@@ -3,7 +3,7 @@ import type { Mock } from 'vitest';
 import { INestApplication } from '@nestjs/common';
 import { OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
 import { closeApp, initApp } from '../../__mocks__/app.mock';
-import { DynamicAPISwaggerExtraConfig } from '../interfaces';
+import { DynamicApiSwaggerExtraConfig } from '../interfaces';
 import { enableDynamicAPISwagger } from './swagger-config.helper';
 import * as fs from 'node:fs';
 
@@ -85,7 +85,7 @@ describe('SwaggerConfigHelper', () => {
           cookieAuth: true,
           oAuth2: { options: { type: 'apiKey', name: 'api', in: 'header' } },
           fakeKey: 'fakeValue',
-        } as DynamicAPISwaggerExtraConfig,
+        } as DynamicApiSwaggerExtraConfig,
         swaggerDocumentOptions: { deepScanRoutes: true },
       });
 

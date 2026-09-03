@@ -18,11 +18,11 @@ import { provideName } from '../../helpers/format.helper';
 import { AfterSaveCallbackConfig } from '../../interfaces/dynamic-api-service-callback.interface';
 import {
   DynamicApiControllerOptions,
-  DynamicAPIRouteConfig,
+  DynamicApiRouteConfig,
   BeforeSaveDeleteManyCallback,
   BeforeDeleteManyCallback,
   BeforeSaveDeleteManyContext,
-  DynamicAPIServiceProvider,
+  DynamicApiServiceProvider,
   GatewayOptions,
   CascadeConfig,
 } from '../../interfaces';
@@ -41,7 +41,7 @@ function createDeleteManyServiceProvider<Entity extends BaseEntity>(
   beforeSaveCallback: BeforeSaveDeleteManyCallback<Entity> | undefined,
   beforeDeleteCallback?: BeforeDeleteManyCallback<Entity, BeforeSaveDeleteManyContext> | undefined,
   cascade?: CascadeConfig[] | undefined,
-): DynamicAPIServiceProvider {
+): DynamicApiServiceProvider {
   class DeleteManyService extends BaseDeleteManyService<Entity> {
     protected readonly entity = entity;
     protected readonly beforeSaveCallback = beforeSaveCallback;
@@ -77,7 +77,7 @@ function createDeleteManyController<Entity extends BaseEntity>(
   entity: Type<Entity>,
   displayedName: string,
   { useInterceptors = [], ...controllerOptions }: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  routeConfig: DynamicApiRouteConfig<Entity>,
   version?: string,
   validationPipeOptions?: ValidationPipeOptions,
 ): DeleteManyControllerConstructor<Entity> {
@@ -115,7 +115,7 @@ function createDeleteManyGateway<Entity extends BaseEntity>(
   entity: Type<Entity>,
   displayedName: string,
   { useInterceptors = [], ...controllerOptions }: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  routeConfig: DynamicApiRouteConfig<Entity>,
   version?: string,
   validationPipeOptions?: ValidationPipeOptions,
   gatewayOptions: GatewayOptions = {},

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, test } from 'vitest';
 import { createMock } from '@test-helpers';
 import { BadRequestException } from '@nestjs/common';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicApiRouteConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { DuplicateManyController } from './duplicate-many-controller.interface';
 import { DuplicateManyControllerMixin } from './duplicate-many-controller.mixin';
@@ -15,12 +15,12 @@ describe('DuplicateManyControllerMixin', () => {
   let controller: DuplicateManyController<Entity>;
 
   const controllerOptions: DynamicApiControllerOptions<Entity> = { path: 'test' };
-  const routeConfig: DynamicAPIRouteConfig<Entity> = { type: 'DuplicateMany' };
+  const routeConfig: DynamicApiRouteConfig<Entity> = { type: 'DuplicateMany' };
   const version = '1';
   const service = createMock<DuplicateManyService<Entity>>();
   const fakeEntities = [{ id: '1', name: 'test' }, { id: '2', name: 'test' }] as Entity[];
 
-  const initController = (_routeConfig: DynamicAPIRouteConfig<Entity> = routeConfig) => {
+  const initController = (_routeConfig: DynamicApiRouteConfig<Entity> = routeConfig) => {
     class Controller extends DuplicateManyControllerMixin(
       Entity,
       controllerOptions,

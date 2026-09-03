@@ -143,19 +143,6 @@ type BeforeSaveDeleteManyCallback<Entity extends BaseEntity, Context = Record<st
 ) => Promise<void>;
 
 /**
- * @deprecated
- * `AnyBeforeSaveCallback` is no longer needed when using `DynamicApiRouteConfig` (discriminated union).
- * Each per-route config type (`CreateOneRouteConfig`, `UpdateOneRouteConfig`, …) already carries a
- * precisely-typed `beforeSaveCallback` — no cast or wide union type is required in application code.
- * This type is kept for backwards compatibility with generic helpers and will be removed in v5.
- */
-type AnyBeforeSaveCallback<Entity extends BaseEntity, User = unknown> =
-  | BeforeSaveCallback<Entity, unknown, User>
-  | BeforeSaveListCallback<Entity, unknown, User>
-  | BeforeSaveDeleteCallback<Entity, unknown, User>
-  | BeforeSaveDeleteManyCallback<Entity, unknown, User>;
-
-/**
  * Pre-delete hook for `DeleteOne` routes.
  * Runs **before** the MongoDB delete and **outside** the error-catch block,
  * so any exception thrown (e.g. `ForbiddenException`, `BadRequestException`)
@@ -185,39 +172,10 @@ type AnyBeforeDeleteCallback<Entity extends BaseEntity, User = unknown> =
   | BeforeDeleteCallback<Entity, BeforeSaveDeleteContext, User>
   | BeforeDeleteManyCallback<Entity, BeforeSaveDeleteManyContext, User>;
 
-// --- Deprecated aliases ---
-/** @deprecated Use `BeforeSaveCreateContext` instead. Will be removed in v5. */
-type DynamicApiServiceBeforeSaveCreateContext<Entity extends BaseEntity, BodyDTO = Entity> = BeforeSaveCreateContext<Entity, BodyDTO>;
-/** @deprecated Use `BeforeSaveCreateManyContext` instead. Will be removed in v5. */
-type DynamicApiServiceBeforeSaveCreateManyContext<Entity extends BaseEntity, BodyDTO = Entity> = BeforeSaveCreateManyContext<Entity, BodyDTO>;
-/** @deprecated Use `BeforeSaveUpdateContext` instead. Will be removed in v5. */
-type DynamicApiServiceBeforeSaveUpdateContext<Entity extends BaseEntity, BodyDTO = Entity> = BeforeSaveUpdateContext<Entity, BodyDTO>;
-/** @deprecated Use `BeforeSaveUpdateManyContext` instead. Will be removed in v5. */
-type DynamicApiServiceBeforeSaveUpdateManyContext<Entity extends BaseEntity, BodyDTO = Entity> = BeforeSaveUpdateManyContext<Entity, BodyDTO>;
-/** @deprecated Use `BeforeSaveReplaceContext` instead. Will be removed in v5. */
-type DynamicApiServiceBeforeSaveReplaceContext<Entity extends BaseEntity, BodyDTO = Entity> = BeforeSaveReplaceContext<Entity, BodyDTO>;
-/** @deprecated Use `BeforeSaveDeleteContext` instead. Will be removed in v5. */
-type DynamicApiServiceBeforeSaveDeleteContext = BeforeSaveDeleteContext;
-/** @deprecated Use `BeforeSaveDeleteManyContext` instead. Will be removed in v5. */
-type DynamicApiServiceBeforeSaveDeleteManyContext = BeforeSaveDeleteManyContext;
-/** @deprecated Use `BeforeSaveDuplicateContext` instead. Will be removed in v5. */
-type DynamicApiServiceBeforeSaveDuplicateContext<Entity extends BaseEntity, BodyDTO = Entity> = BeforeSaveDuplicateContext<Entity, BodyDTO>;
-/** @deprecated Use `BeforeSaveDuplicateManyContext` instead. Will be removed in v5. */
-type DynamicApiServiceBeforeSaveDuplicateManyContext<Entity extends BaseEntity, BodyDTO = Entity> = BeforeSaveDuplicateManyContext<Entity, BodyDTO>;
-/** @deprecated Use `BeforeSaveCallback` instead. Will be removed in v5. */
-type DynamicApiServiceBeforeSaveCallback<Entity extends BaseEntity, Context = Record<string, unknown>, User = unknown> = BeforeSaveCallback<Entity, Context, User>;
-/** @deprecated Use `BeforeSaveListCallback` instead. Will be removed in v5. */
-type DynamicApiServiceBeforeSaveListCallback<Entity extends BaseEntity, Context = Record<string, unknown>, User = unknown> = BeforeSaveListCallback<Entity, Context, User>;
-/** @deprecated Use `BeforeSaveDeleteCallback` instead. Will be removed in v5. */
-type DynamicApiServiceBeforeSaveDeleteCallback<Entity extends BaseEntity, Context = Record<string, unknown>, User = unknown> = BeforeSaveDeleteCallback<Entity, Context, User>;
-/** @deprecated Use `BeforeSaveDeleteManyCallback` instead. Will be removed in v5. */
-type DynamicApiServiceBeforeSaveDeleteManyCallback<Entity extends BaseEntity, Context = Record<string, unknown>, User = unknown> = BeforeSaveDeleteManyCallback<Entity, Context, User>;
-
 export type {
   AnyBeforeDeleteCallback,
   BeforeDeleteCallback,
   BeforeDeleteManyCallback,
-  AnyBeforeSaveCallback,
   BeforeSaveCallback,
   BeforeSaveListCallback,
   BeforeSaveDeleteCallback,
@@ -232,17 +190,4 @@ export type {
   BeforeSaveDuplicateContext,
   BeforeSaveDuplicateManyContext,
   BeforeRegisterContext,
-  DynamicApiServiceBeforeSaveCallback,
-  DynamicApiServiceBeforeSaveListCallback,
-  DynamicApiServiceBeforeSaveDeleteCallback,
-  DynamicApiServiceBeforeSaveDeleteManyCallback,
-  DynamicApiServiceBeforeSaveCreateContext,
-  DynamicApiServiceBeforeSaveCreateManyContext,
-  DynamicApiServiceBeforeSaveUpdateContext,
-  DynamicApiServiceBeforeSaveUpdateManyContext,
-  DynamicApiServiceBeforeSaveReplaceContext,
-  DynamicApiServiceBeforeSaveDeleteContext,
-  DynamicApiServiceBeforeSaveDeleteManyContext,
-  DynamicApiServiceBeforeSaveDuplicateContext,
-  DynamicApiServiceBeforeSaveDuplicateManyContext,
 };
