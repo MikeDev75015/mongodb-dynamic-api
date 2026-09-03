@@ -1,2 +1,1 @@
-export * from './health.controller';
-export * from './health.module';
+export { DynamicApiHealthModule } from './health.module';
