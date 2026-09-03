@@ -8,7 +8,7 @@ import { JwtSocketGuard } from '../../guards';
 import { addVersionSuffix } from '../../helpers/versioning-config.helper';
 import { getMixinData } from '../../helpers/mixin-data.helper';
 import { provideName } from '../../helpers/format.helper';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket, Mappable } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicApiRouteConfig, ExtendedSocket, Mappable } from '../../interfaces';
 import { EntityPresenterMixin, SocketPoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { GetManyGateway, GetManyGatewayConstructor } from './get-many-gateway.interface';
@@ -17,7 +17,7 @@ import { GetManyService } from './get-many-service.interface';
 function GetManyGatewayMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], ...routeConfig }: DynamicApiRouteConfig<Entity>,
   version?: string,
 ): GetManyGatewayConstructor<Entity> {
   const {

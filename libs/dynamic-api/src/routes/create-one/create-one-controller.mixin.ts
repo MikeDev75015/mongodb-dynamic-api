@@ -5,7 +5,7 @@ import { addVersionSuffix } from '../../helpers/versioning-config.helper';
 import { getMixinData } from '../../helpers/mixin-data.helper';
 import { provideName } from '../../helpers/format.helper';
 import { RouteDecoratorsHelper } from '../../helpers/route-decorators.helper';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiRequest, Mappable } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicApiRouteConfig, DynamicApiRequest, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin, stripProtectedFields } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DynamicApiBroadcastService } from '../../services/dynamic-api-broadcast/dynamic-api-broadcast.service';
@@ -15,7 +15,7 @@ import { CreateOneService } from './create-one-service.interface';
 function CreateOneControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], broadcast: broadcastConfig, fromUser, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, fromUser, ...routeConfig }: DynamicApiRouteConfig<Entity>,
   version?: string,
 ): CreateOneControllerConstructor<Entity> {
   const {

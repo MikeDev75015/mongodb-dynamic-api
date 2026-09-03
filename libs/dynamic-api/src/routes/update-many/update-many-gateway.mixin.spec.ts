@@ -3,7 +3,7 @@ import { createMock } from '@test-helpers';
 import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
 import { BaseGateway } from '../../gateways';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicApiRouteConfig, ExtendedSocket } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { UpdateManyGatewayConstructor } from './update-many-gateway.interface';
 import { UpdateManyGatewayMixin } from './update-many-gateway.mixin';
@@ -26,7 +26,7 @@ describe('UpdateManyGatewayMixin', () => {
   } as DynamicApiControllerOptions<TestEntity>;
   const routeConfig = {
     type: 'UpdateMany',
-  } as DynamicAPIRouteConfig<TestEntity>;
+  } as DynamicApiRouteConfig<TestEntity>;
 
   const fakeEntity = { field1: 'test' } as TestEntity;
   const body = {

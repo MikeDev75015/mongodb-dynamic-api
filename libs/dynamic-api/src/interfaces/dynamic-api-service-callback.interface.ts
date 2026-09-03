@@ -83,17 +83,11 @@ type CallbackMethods = {
   recomputeDerivedFields<T>(entity: Type<T>, id: string): Promise<void>;
 };
 
-/** @deprecated Use `CallbackMethods` instead. Will be removed in v5. */
-type DynamicApiCallbackMethods = CallbackMethods;
-
 type AfterSaveCallback<Entity extends BaseEntity, User = unknown> = (
   entity: Entity,
   methods: CallbackMethods,
   user?: User,
 ) => Promise<void>;
-
-/** @deprecated Use `AfterSaveCallback` instead. Will be removed in v5. */
-type DynamicApiServiceCallback<Entity extends BaseEntity, User = unknown> = AfterSaveCallback<Entity, User>;
 
 /**
  * Retry options for `callback` (the after-save hook).
@@ -157,9 +151,7 @@ type DynamicApiResetPasswordCallback<Entity extends BaseEntity> = (
 
 export type {
   AfterSaveCallback,
-  DynamicApiServiceCallback,
   DynamicApiResetPasswordCallback,
-  DynamicApiCallbackMethods,
   DynamicApiResetPasswordCallbackMethods,
   CallbackMethods,
   CallbackRetryOptions,

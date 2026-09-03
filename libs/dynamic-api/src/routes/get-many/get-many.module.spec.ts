@@ -3,7 +3,7 @@ import type { Mock } from 'vitest';
 import { DynamicModule, ValidationPipeOptions } from '@nestjs/common';
 import * as FormatHelpers from '../../helpers/format.helper';
 import * as SocketConfigHelpers from '../../helpers/socket-config.helper';
-import { DynamicApiControllerOptions, DynamicAPIServiceProvider, GetManyRouteConfig } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicApiServiceProvider, GetManyRouteConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import * as GetManyHelpers from './get-many.helper';
 import { GetManyModule } from './get-many.module';
@@ -20,7 +20,7 @@ describe('GetManyModule', () => {
   let spyCreateGetManyGateway: Mock;
 
   const FakeController = vi.fn();
-  const FakeServiceProvider = { provide: 'fakeProvider' } as unknown as DynamicAPIServiceProvider;
+  const FakeServiceProvider = { provide: 'fakeProvider' } as unknown as DynamicApiServiceProvider;
   const FakeGateway = vi.fn();
 
   const routeConfigCallback = vi.fn();

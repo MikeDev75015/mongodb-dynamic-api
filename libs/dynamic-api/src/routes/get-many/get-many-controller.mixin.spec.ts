@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, test } from 'vitest';
 import { createMock } from '@test-helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicApiRouteConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { GetManyController } from './get-many-controller.interface';
 import { GetManyControllerMixin } from './get-many-controller.mixin';
@@ -14,7 +14,7 @@ describe('GetManyControllerMixin', () => {
   let controller: GetManyController<Entity>;
 
   const controllerOptions: DynamicApiControllerOptions<Entity> = { path: 'test' };
-  const routeConfig: DynamicAPIRouteConfig<Entity> = { type: 'GetMany' };
+  const routeConfig: DynamicApiRouteConfig<Entity> = { type: 'GetMany' };
   const version = '1';
   const service = createMock<GetManyService<Entity>>();
   const fakeEntities = [{ id: '1', name: 'test' }, { id: '2', name: 'unit' }] as Entity[];

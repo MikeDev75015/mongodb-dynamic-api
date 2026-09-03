@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, test } from 'vitest';
 import { createMock } from '@test-helpers';
 import { BadRequestException } from '@nestjs/common';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicApiRouteConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { UpdateOneController } from './update-one-controller.interface';
 import { UpdateOneControllerMixin } from './update-one-controller.mixin';
@@ -15,7 +15,7 @@ describe('UpdateOneControllerMixin', () => {
   let controller: UpdateOneController<Entity>;
 
   const controllerOptions: DynamicApiControllerOptions<Entity> = { path: 'test' };
-  const routeConfig: DynamicAPIRouteConfig<Entity> = { type: 'UpdateOne' };
+  const routeConfig: DynamicApiRouteConfig<Entity> = { type: 'UpdateOne' };
   const version = '1';
   const service = createMock<UpdateOneService<Entity>>();
   const fakeEntity = { id: '1', name: 'test' } as Entity;

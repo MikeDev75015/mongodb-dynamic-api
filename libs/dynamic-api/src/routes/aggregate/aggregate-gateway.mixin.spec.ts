@@ -4,7 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
 import { PipelineStage } from 'mongodb-pipeline-builder';
 import { BaseGateway } from '../../gateways';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicApiRouteConfig, ExtendedSocket } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { AggregateGatewayConstructor } from './aggregate-gateway.interface';
 import { AggregateGatewayMixin } from './aggregate-gateway.mixin';
@@ -26,7 +26,7 @@ describe('AggregateGatewayMixin', () => {
   } as DynamicApiControllerOptions<TestEntity>;
   const routeConfig = {
     type: 'Aggregate',
-  } as DynamicAPIRouteConfig<TestEntity>;
+  } as DynamicApiRouteConfig<TestEntity>;
 
   const fakeEntity = { field1: 'test' } as TestEntity;
 

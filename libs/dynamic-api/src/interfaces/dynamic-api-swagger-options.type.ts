@@ -63,14 +63,4 @@ type DynamicApiSwaggerOptions = {
   swaggerDocumentOptions?: SwaggerDocumentOptions;
 }
 
-/**
- * @deprecated Use `DynamicApiSwaggerExtraConfig` instead. Will be removed in v5.
- */
-type DynamicAPISwaggerExtraConfig = DynamicApiSwaggerExtraConfig;
-
-/**
- * @deprecated Use `DynamicApiSwaggerOptions` instead. Will be removed in v5.
- */
-type DynamicAPISwaggerOptions = DynamicApiSwaggerOptions;
-
-export { DynamicApiSwaggerOptions, DynamicApiSwaggerExtraConfig, DynamicAPISwaggerOptions, DynamicAPISwaggerExtraConfig };
+export { DynamicApiSwaggerOptions, DynamicApiSwaggerExtraConfig };

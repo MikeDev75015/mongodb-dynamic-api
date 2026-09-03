@@ -17,8 +17,8 @@ import { provideName } from '../../helpers/format.helper';
 import { AfterSaveCallbackConfig } from '../../interfaces/dynamic-api-service-callback.interface';
 import {
   DynamicApiControllerOptions,
-  DynamicAPIRouteConfig,
-  DynamicAPIServiceProvider,
+  DynamicApiRouteConfig,
+  DynamicApiServiceProvider,
   GatewayOptions,
   PopulateConfig,
 } from '../../interfaces';
@@ -36,7 +36,7 @@ function createGetOneServiceProvider<Entity extends BaseEntity>(
   version: string | undefined,
   afterSave: AfterSaveCallbackConfig<Entity> | undefined,
   populate: PopulateConfig | undefined,
-): DynamicAPIServiceProvider {
+): DynamicApiServiceProvider {
   class GetOneService extends BaseGetOneService<Entity> {
     protected readonly entity = entity;
     protected readonly callback = afterSave?.callback;
@@ -69,7 +69,7 @@ function createGetOneController<Entity extends BaseEntity>(
   entity: Type<Entity>,
   displayedName: string,
   { useInterceptors = [], ...controllerOptions }: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  routeConfig: DynamicApiRouteConfig<Entity>,
   version?: string,
   validationPipeOptions?: ValidationPipeOptions,
 ): GetOneControllerConstructor<Entity> {
@@ -105,7 +105,7 @@ function createGetOneGateway<Entity extends BaseEntity>(
   entity: Type<Entity>,
   displayedName: string,
   { useInterceptors = [], ...controllerOptions }: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  routeConfig: DynamicApiRouteConfig<Entity>,
   version?: string,
   validationPipeOptions?: ValidationPipeOptions,
   gatewayOptions: GatewayOptions = {},

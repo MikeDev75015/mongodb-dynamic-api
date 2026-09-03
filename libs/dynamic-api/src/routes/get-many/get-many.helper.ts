@@ -17,9 +17,9 @@ import { provideName } from '../../helpers/format.helper';
 import { AfterSaveCallbackConfig } from '../../interfaces/dynamic-api-service-callback.interface';
 import {
   DynamicApiControllerOptions,
-  DynamicAPIRouteConfig,
+  DynamicApiRouteConfig,
   AbilityPredicate,
-  DynamicAPIServiceProvider,
+  DynamicApiServiceProvider,
   GatewayOptions,
   PopulateConfig,
   PredicateBehavior,
@@ -40,7 +40,7 @@ function createGetManyServiceProvider<Entity extends BaseEntity>(
   abilityPredicate?: AbilityPredicate<Entity>,
   predicateBehavior?: PredicateBehavior,
   populate?: PopulateConfig,
-): DynamicAPIServiceProvider {
+): DynamicApiServiceProvider {
   class GetManyService extends BaseGetManyService<Entity> {
     protected readonly entity = entity;
     protected readonly callback = afterSave?.callback;
@@ -75,7 +75,7 @@ function createGetManyController<Entity extends BaseEntity>(
   entity: Type<Entity>,
   displayedName: string,
   { useInterceptors = [], ...controllerOptions }: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  routeConfig: DynamicApiRouteConfig<Entity>,
   version?: string,
   validationPipeOptions?: ValidationPipeOptions,
 ): GetManyControllerConstructor<Entity> {
@@ -111,7 +111,7 @@ function createGetManyGateway<Entity extends BaseEntity>(
   entity: Type<Entity>,
   displayedName: string,
   { useInterceptors = [], ...controllerOptions }: DynamicApiControllerOptions<Entity>,
-  routeConfig: DynamicAPIRouteConfig<Entity>,
+  routeConfig: DynamicApiRouteConfig<Entity>,
   version?: string,
   validationPipeOptions?: ValidationPipeOptions,
   gatewayOptions: GatewayOptions = {},

@@ -6,7 +6,7 @@ import { DynamicApiControllerOptions } from './dynamic-api-controller-options.in
 import { DynamicApiCacheOptions } from './dynamic-api-cache-options.interface';
 import { CustomRouteConfig } from './dynamic-api-custom-route.interface';
 import { RoutesConfig } from './dynamic-api-global-state.interface';
-import { DynamicAPIRouteConfig } from './dynamic-api-route-config.interface';
+import { DynamicApiRouteConfig } from './dynamic-api-route-config.interface';
 import { OnAfterSaveErrorHook } from './dynamic-api-service-callback.interface';
 import { DynamicApiWebSocketOptions } from './dynamic-api-web-socket.interface';
 
@@ -30,7 +30,7 @@ interface DynamicApiForRootOptions<Entity extends BaseEntity = any, RegisterExtr
 interface DynamicApiForFeatureOptions<Entity extends BaseEntity> {
   entity: Type<Entity>;
   controllerOptions: DynamicApiControllerOptions<Entity>;
-  routes?: DynamicAPIRouteConfig<Entity>[];
+  routes?: DynamicApiRouteConfig<Entity>[];
   webSocket?: DynamicApiWebSocketOptions;
   extraImports?: ModuleMetadata['imports'],
   extraProviders?: ModuleMetadata['providers'],

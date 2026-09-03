@@ -10,7 +10,7 @@ import { isEmpty } from '../../helpers/lodash.helper';
 import { provideName } from '../../helpers/format.helper';
 import {
   DynamicApiControllerOptions,
-  DynamicAPIRouteConfig,
+  DynamicApiRouteConfig,
   ExtendedSocket,
   Mappable,
 } from '../../interfaces';
@@ -25,7 +25,7 @@ import { CreateManyService } from './create-many-service.interface';
 function CreateManyGatewayMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicApiRouteConfig<Entity>,
   version?: string,
 ): CreateManyGatewayConstructor<Entity> {
   const {

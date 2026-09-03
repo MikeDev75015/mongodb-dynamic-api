@@ -54,7 +54,6 @@ Both `beforeSaveCallback` and `callback` (after save) **receive the authenticate
   - [Hash password before save](#hash-password-before-save)
   - [Prevent deletion with side-effect check](#prevent-deletion-with-side-effect-check)
 - [Auth route callbacks](#auth-route-callbacks)
-- [Deprecated aliases](#deprecated-aliases)
 
 ---
 
@@ -535,8 +534,6 @@ DynamicApiModule.forFeature({
 
 > **⚠️ Breaking change:** `beforeDeleteCallback` and `cascade` are now exclusive to `DeleteOneRouteConfig` and `DeleteManyRouteConfig`. Placing them on any other route type is a compile-time error.
 
-> **`AnyBeforeSaveCallback`** is `@deprecated` — it is no longer needed in application code when using the discriminated union. It remains exported for backward compatibility with generic third-party helpers and will be removed in v5.
-
 ---
 
 ## beforeDelete Callback (`beforeDeleteCallback`)
@@ -917,7 +914,7 @@ The `user` parameter is forwarded in **both HTTP and WebSocket** flows. When a W
 
 ```typescript
 // Works identically for HTTP and WebSocket routes
-const routes: DynamicAPIRouteConfig<ItemEntity>[] = [
+const routes: DynamicApiRouteConfig<ItemEntity>[] = [
   {
     type: 'CreateOne',
     webSocket: true,  // Also exposed via WebSocket
@@ -954,7 +951,7 @@ const afterCreate: AfterSaveCallback<ItemEntity, UserEntity> =
     });
   };
 
-const routes2: DynamicAPIRouteConfig<ItemEntity>[] = [
+const routes2: DynamicApiRouteConfig<ItemEntity>[] = [
   {
     type: 'CreateOne',
     webSocket: true,
@@ -983,7 +980,7 @@ import {
   BeforeSaveReplaceContext,
   BeforeSaveDuplicateContext,
   BeforeSaveDuplicateManyContext,
-  DynamicAPIRouteConfig,
+  DynamicApiRouteConfig,
 } from 'mongodb-dynamic-api';
 
 @Schema({ collection: 'items' })
@@ -1001,7 +998,7 @@ class Item extends BaseEntity {
 // With the User generic, no cast needed
 const stampCreator = (user: UserEntity | undefined) => user?.email ?? 'anonymous';
 
-const routes: DynamicAPIRouteConfig<Item>[] = [
+const routes: DynamicApiRouteConfig<Item>[] = [
   {
     type: 'CreateOne',
     beforeSaveCallback: (async (_e, ctx, _m, user) => ({
@@ -1071,7 +1068,7 @@ DynamicApiModule.forFeature({
 Create an audit log for every operation (including reads) using `callback`:
 
 ```typescript
-import { AfterSaveCallback, DynamicAPIRouteConfig } from 'mongodb-dynamic-api';
+import { AfterSaveCallback, DynamicApiRouteConfig } from 'mongodb-dynamic-api';
 
 @Schema({ collection: 'audit-logs' })
 class AuditLog extends BaseEntity {
@@ -1095,7 +1092,7 @@ const auditCallback = (action: string): AfterSaveCallback<Item, UserEntity> =>
     });
   };
 
-const routes: DynamicAPIRouteConfig<Item>[] = [
+const routes: DynamicApiRouteConfig<Item>[] = [
   { type: 'CreateOne',     callback: auditCallback('CreateOne') },
   { type: 'CreateMany',    callback: auditCallback('CreateMany') },
   { type: 'UpdateOne',     callback: auditCallback('UpdateOne') },
@@ -1134,7 +1131,7 @@ const hashIfPassword = async <T extends { password?: string }>(
   return data;
 };
 
-const routes: DynamicAPIRouteConfig<User>[] = [
+const routes: DynamicApiRouteConfig<User>[] = [
   {
     type: 'CreateOne',
     beforeSaveCallback: async (_e, ctx, _m) =>
@@ -1193,7 +1190,7 @@ const beforeDeleteMany: BeforeSaveDeleteManyCallback<Item, BeforeSaveDeleteManyC
     }
   };
 
-const routes: DynamicAPIRouteConfig<Item>[] = [
+const routes: DynamicApiRouteConfig<Item>[] = [
   { type: 'DeleteOne', beforeSaveCallback: beforeDeleteOne },
   { type: 'DeleteMany', beforeSaveCallback: beforeDeleteMany },
 ];
@@ -1253,30 +1250,6 @@ DynamicApiModule.forRoot(uri, {
   },
 });
 ```
-
----
-
-## Deprecated aliases
-
-The following verbose names are still exported for backward compatibility but are **deprecated** and will be removed in v5:
-
-| Deprecated name | Use instead |
-|---|---|
-| `DynamicApiServiceCallback` | `AfterSaveCallback` |
-| `DynamicApiCallbackMethods` | `CallbackMethods` |
-| `DynamicApiServiceBeforeSaveCallback` | `BeforeSaveCallback` |
-| `DynamicApiServiceBeforeSaveListCallback` | `BeforeSaveListCallback` |
-| `DynamicApiServiceBeforeSaveDeleteCallback` | `BeforeSaveDeleteCallback` |
-| `DynamicApiServiceBeforeSaveDeleteManyCallback` | `BeforeSaveDeleteManyCallback` |
-| `DynamicApiServiceBeforeSaveCreateContext` | `BeforeSaveCreateContext` |
-| `DynamicApiServiceBeforeSaveCreateManyContext` | `BeforeSaveCreateManyContext` |
-| `DynamicApiServiceBeforeSaveUpdateContext` | `BeforeSaveUpdateContext` |
-| `DynamicApiServiceBeforeSaveUpdateManyContext` | `BeforeSaveUpdateManyContext` |
-| `DynamicApiServiceBeforeSaveReplaceContext` | `BeforeSaveReplaceContext` |
-| `DynamicApiServiceBeforeSaveDeleteContext` | `BeforeSaveDeleteContext` |
-| `DynamicApiServiceBeforeSaveDeleteManyContext` | `BeforeSaveDeleteManyContext` |
-| `DynamicApiServiceBeforeSaveDuplicateContext` | `BeforeSaveDuplicateContext` |
-| `DynamicApiServiceBeforeSaveDuplicateManyContext` | `BeforeSaveDuplicateManyContext` |
 
 ---
 

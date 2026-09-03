@@ -21,7 +21,7 @@ import {
   BeforeSaveDeleteContext,
   BeforeSaveDeleteManyCallback,
   BeforeSaveDeleteManyContext,
-  DynamicAPIRouteConfig,
+  DynamicApiRouteConfig,
 } from '../../src';
 import { closeTestingApp, createTestingApp, server, TestSocketAdapter } from '../e2e.setup';
 import 'dotenv/config';
@@ -283,7 +283,7 @@ type Callbacks = ReturnType<typeof buildCallbacks>;
 function buildRoutes(
   cb: Callbacks,
   opts?: { webSocket?: boolean },
-): DynamicAPIRouteConfig<any>[] {
+): DynamicApiRouteConfig<any>[] {
   const ws = opts?.webSocket ? { webSocket: true as const } : {};
   return [
     { type: 'CreateOne', ...ws, callback: cb.createOneAfterSave, beforeSaveCallback: cb.createOneBeforeSave },
