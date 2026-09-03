@@ -107,7 +107,7 @@ type CallbackRetryOptions = {
  * `createXServiceProvider` factory so they stay together instead of traveling as separate
  * positional parameters.
  *
- * @internal Not part of the public API — will be removed from the package's public exports in v5.
+ * @internal Not part of the public API.
  */
 type AfterSaveCallbackConfig<Entity extends BaseEntity, User = unknown> = {
   callback: AfterSaveCallback<Entity, User> | undefined;

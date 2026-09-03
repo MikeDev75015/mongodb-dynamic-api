@@ -14,7 +14,7 @@ import { Observable } from 'rxjs';
  * Always overwrites any client-supplied `id` in the body: the current entity's id is derived
  * from the URL, never client-controlled.
  *
- * @internal Not part of the public API — will be removed from the package's public exports in v5.
+ * @internal Not part of the public API.
  */
 @Injectable()
 class MergeIdParamInterceptor implements NestInterceptor {

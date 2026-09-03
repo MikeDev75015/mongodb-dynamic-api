@@ -7,7 +7,7 @@ import { MongoDBDynamicApiLogger } from '../logger/mongo-dynamic-api.logger';
 import { BaseEntity } from '../models';
 import { BaseService } from '../services/base/base.service';
 
-/** @internal Not part of the public API — will be removed from the package's public exports in v5. */
+/** @internal Not part of the public API. */
 abstract class BasePoliciesGuard<Entity extends BaseEntity> extends BaseService<Entity> implements CanActivate {
   protected routeType: RouteType;
   protected entity: Type<Entity>;
@@ -63,7 +63,7 @@ abstract class BasePoliciesGuard<Entity extends BaseEntity> extends BaseService<
   }
 }
 
-/** @internal Not part of the public API — will be removed from the package's public exports in v5. */
+/** @internal Not part of the public API. */
 abstract class BaseSocketPoliciesGuard<Entity extends BaseEntity> extends BaseService<Entity> implements CanActivate {
   protected routeType: RouteType;
   protected abilityPredicate: AbilityPredicate<Entity> | undefined;

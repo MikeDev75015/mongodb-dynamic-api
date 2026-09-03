@@ -12,7 +12,7 @@ import {
   createDuplicateOneServiceProvider,
 } from './duplicate-one.helper';
 
-/** @internal Not part of the public API — will be removed from the package's public exports in v5. */
+/** @internal Not part of the public API. */
 @Module({})
 export class DuplicateOneModule {
   static forFeature<Entity extends BaseEntity>(

@@ -12,7 +12,7 @@ import { DynamicApiGlobalState } from '../interfaces/dynamic-api-global-state.in
 import { DynamicApiCacheService } from '../services/dynamic-api-cache/dynamic-api-cache.service';
 
 @Injectable()
-/** @internal Not part of the public API — will be removed from the package's public exports in v5. */
+/** @internal Not part of the public API. */
 export class DynamicApiCacheInterceptor extends CacheInterceptor {
   private readonly excludePaths = [
     '/',

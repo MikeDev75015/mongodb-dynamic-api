@@ -12,7 +12,7 @@ import { ApiProperty } from '@nestjs/swagger';
  * paginated `Aggregate` route received a wrong response type. This wrapper exists purely for that
  * Swagger documentation; it is never instantiated or returned at runtime.
  *
- * @internal Not part of the public API — will be removed from the package's public exports in v5.
+ * @internal Not part of the public API.
  */
 function buildPaginatedResponseType(presenter: Type): Type {
   class PaginatedResponse {

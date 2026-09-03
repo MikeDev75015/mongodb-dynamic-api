@@ -18,7 +18,7 @@ const BUSINESS_VALIDATOR_NAMES = ['isUnique', 'entityExists'];
  * class registered against that storage (including the source entity the DTO was picked from) is
  * left untouched.
  *
- * @internal Not part of the public API — will be removed from the package's public exports in v5.
+ * @internal Not part of the public API.
  */
 function stripBusinessValidators(
   target: Type<object>,
