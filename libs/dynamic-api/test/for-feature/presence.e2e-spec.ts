@@ -39,7 +39,7 @@ async function connectSocket(
 ): Promise<Socket> {
   return new Promise((resolve, reject) => {
     const socket = io(baseUrl, {
-      query: accessToken ? { accessToken } : {},
+      auth: accessToken ? { token: accessToken } : {},
       reconnection: false,
     });
 

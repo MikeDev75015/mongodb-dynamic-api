@@ -48,19 +48,18 @@ export class JwtSocketGuard implements CanActivate {
   }
 
   protected async getUserFromSocket(socket: Socket): Promise<unknown> {
-    const accessToken = this.getAccessTokenFromSocketQuery(socket);
+    const accessToken = this.getAccessTokenFromSocket(socket);
     return this.extractUserFromToken(accessToken);
   }
 
-  private getAccessTokenFromSocketQuery(socket: Socket): string {
-    const accessToken = socket.handshake.auth?.token
-      ?? socket.handshake.query?.accessToken as string;
-    this.logger.debug('getAccessTokenFromSocketQuery', {
+  private getAccessTokenFromSocket(socket: Socket): string {
+    const accessToken = socket.handshake.auth?.token as string;
+    this.logger.debug('getAccessTokenFromSocket', {
       accessToken: !!accessToken,
     });
 
     if (!accessToken) {
-      this.logger.warn('No access token provided in socket auth or query');
+      this.logger.warn('No access token provided in socket auth');
       throw new WsException('Unauthorized');
     }
 

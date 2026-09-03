@@ -1278,9 +1278,7 @@ export const authService = {
 
 ### Authenticating WebSocket Connections
 
-To access protected routes via WebSocket, send the JWT token with the connection. Two transport methods are supported:
-
-**✅ Recommended — `auth.token` (Socket.IO handshake `auth` object):**
+To access protected routes via WebSocket, send the JWT token with the connection, via the Socket.IO handshake `auth` object:
 
 ```typescript
 import { io } from 'socket.io-client';
@@ -1289,7 +1287,7 @@ const token = localStorage.getItem('accessToken');
 
 const socket = io('http://localhost:3000', {
   auth: {
-    token: token, // ✅ Recommended: send JWT token via the auth object
+    token: token, // send JWT token via the auth object
   },
 });
 
@@ -1299,22 +1297,7 @@ socket.emit('auth-get-account', {}, (response) => {
 });
 ```
 
-**⚠️ Deprecated — `query.accessToken` (query string):**
-
-```typescript
-import { io } from 'socket.io-client';
-
-const token = localStorage.getItem('accessToken');
-
-// ⚠️ Deprecated — will be removed in v5
-const socket = io('http://localhost:3000', {
-  query: {
-    accessToken: token,
-  },
-});
-```
-
-> **Note:** The server resolves the token as `socket.handshake.auth.token ?? socket.handshake.query.accessToken`. The `query` method is supported for backward compatibility but exposes the token in URLs and server logs. Always prefer the `auth` object.
+> **v5:** the `query.accessToken` (query string) transport is gone — the server only ever reads `socket.handshake.auth.token` now. It exposed the token in URLs and server logs, so this is a security hardening as well as a cleanup; switch any client still using `query: { accessToken }` to the `auth` object above.
 
 ---
 

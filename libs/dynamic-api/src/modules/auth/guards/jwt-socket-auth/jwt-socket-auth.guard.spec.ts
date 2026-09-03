@@ -39,7 +39,7 @@ describe('JwtSocketAuthGuard', () => {
 
     it('should throw UnauthorizedException if jwtService.verifyAsync throws', async () => {
       context.getArgs.mockReturnValue([socket]);
-      socket.handshake.query = { accessToken: 'accessToken' };
+      socket.handshake.auth = { token: 'accessToken' };
       verifyAsyncSpy.mockRejectedValue(new Error('error'));
 
       await expect(guard.canActivate(context)).rejects.toThrow(new WsException('Unauthorized'));
@@ -47,27 +47,15 @@ describe('JwtSocketAuthGuard', () => {
 
     it('should throw UnauthorizedException if no user data', async () => {
       context.getArgs.mockReturnValue([socket]);
-      socket.handshake.query = { accessToken: 'accessToken' };
+      socket.handshake.auth = { token: 'accessToken' };
       verifyAsyncSpy.mockResolvedValue({});
 
       await expect(guard.canActivate(context)).rejects.toThrow(new WsException('Unauthorized'));
     });
 
-    it('should set user to socket', async () => {
-      const fakeUser = { id: 'id' };
-      context.getArgs.mockReturnValue([socket]);
-      socket.handshake.query = { accessToken: 'accessToken' };
-      verifyAsyncSpy.mockResolvedValue({ ...fakeUser, iat: 1, exp: 2 });
-
-      await guard.canActivate(context);
-
-      expect(socket.user).toStrictEqual(fakeUser);
-    });
-
     it('should set user to socket when token is provided via auth.token', async () => {
       const fakeUser = { id: 'id' };
       context.getArgs.mockReturnValue([socket]);
-      socket.handshake.query = {};
       socket.handshake.auth = { token: 'authToken' };
       verifyAsyncSpy.mockResolvedValue({ ...fakeUser, iat: 1, exp: 2 });
 
@@ -77,17 +65,12 @@ describe('JwtSocketAuthGuard', () => {
       expect(verifyAsyncSpy).toHaveBeenCalledWith('authToken', expect.any(Object));
     });
 
-    it('should prefer auth.token over query.accessToken', async () => {
-      const fakeUser = { id: 'id' };
+    it('ignores a token passed via the deprecated query.accessToken, v5 only reads auth.token', async () => {
       context.getArgs.mockReturnValue([socket]);
       socket.handshake.query = { accessToken: 'queryToken' };
-      socket.handshake.auth = { token: 'authToken' };
-      verifyAsyncSpy.mockResolvedValue({ ...fakeUser, iat: 1, exp: 2 });
 
-      await guard.canActivate(context);
-
-      expect(socket.user).toStrictEqual(fakeUser);
-      expect(verifyAsyncSpy).toHaveBeenCalledWith('authToken', expect.any(Object));
+      await expect(guard.canActivate(context)).rejects.toThrow(new WsException('Unauthorized'));
+      expect(verifyAsyncSpy).not.toHaveBeenCalled();
     });
   });
 });
