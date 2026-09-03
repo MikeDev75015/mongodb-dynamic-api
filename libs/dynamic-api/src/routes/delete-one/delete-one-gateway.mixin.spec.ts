@@ -2,7 +2,7 @@ import { describe, expect, it, test } from 'vitest';
 import { createMock } from '@test-helpers';
 import { JwtService } from '@nestjs/jwt';
 import { BaseGateway } from '../../gateways';
-import { DeleteResult, DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket } from '../../interfaces';
+import { DeleteResult, DynamicApiControllerOptions, DynamicApiRouteConfig, ExtendedSocket } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { DeleteOneGatewayConstructor } from './delete-one-gateway.interface';
 import { DeleteOneGatewayMixin } from './delete-one-gateway.mixin';
@@ -25,7 +25,7 @@ describe('DeleteOneGatewayMixin', () => {
   } as DynamicApiControllerOptions<TestEntity>;
   const routeConfig = {
     type: 'DeleteOne',
-  } as DynamicAPIRouteConfig<TestEntity>;
+  } as DynamicApiRouteConfig<TestEntity>;
 
   const fakeDeleteResult = { deletedCount: 1 };
   const body = { id: '1' };

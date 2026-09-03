@@ -9,7 +9,7 @@ import { JwtSocketGuard } from '../../guards';
 import { addVersionSuffix } from '../../helpers/versioning-config.helper';
 import { getMixinData } from '../../helpers/mixin-data.helper';
 import { provideName } from '../../helpers/format.helper';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket, Mappable } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicApiRouteConfig, ExtendedSocket, Mappable } from '../../interfaces';
 import { SocketPoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { DeleteOneGateway, DeleteOneGatewayConstructor } from './delete-one-gateway.interface';
@@ -18,7 +18,7 @@ import { DeleteOneService } from './delete-one-service.interface';
 function DeleteOneGatewayMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicApiRouteConfig<Entity>,
   version?: string,
 ): DeleteOneGatewayConstructor<Entity> {
   const {

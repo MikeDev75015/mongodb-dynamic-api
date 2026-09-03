@@ -2,7 +2,7 @@ import { describe, expect, it, test, vi } from 'vitest';
 import { createMock } from '@test-helpers';
 import { JwtService } from '@nestjs/jwt';
 import { BaseGateway } from '../../gateways';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicApiRouteConfig, ExtendedSocket } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { CreateManyGatewayConstructor } from './create-many-gateway.interface';
 import { CreateManyGatewayMixin } from './create-many-gateway.mixin';
@@ -25,7 +25,7 @@ describe('CreateManyGatewayMixin', () => {
   } as DynamicApiControllerOptions<TestEntity>;
   const routeConfig = {
     type: 'CreateMany',
-  } as DynamicAPIRouteConfig<TestEntity>;
+  } as DynamicApiRouteConfig<TestEntity>;
 
   const fakeEntity = { field1: 'test' } as TestEntity;
   const body = { list: [{ field1: 'test' }] };

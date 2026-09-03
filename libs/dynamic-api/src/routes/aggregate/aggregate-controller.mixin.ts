@@ -7,7 +7,7 @@ import { getMixinData } from '../../helpers/mixin-data.helper';
 import { provideName } from '../../helpers/format.helper';
 import { RouteDecoratorsHelper } from '../../helpers/route-decorators.helper';
 import { warnIfPagingResultDropped } from '../../helpers/paging-presenter-warning.helper';
-import { Aggregatable, DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicApiRequest, Mappable } from '../../interfaces';
+import { Aggregatable, DynamicApiControllerOptions, DynamicApiRouteConfig, DynamicApiRequest, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { AggregateController, AggregateControllerConstructor } from './aggregate-controller.interface';
@@ -17,7 +17,7 @@ import { AggregateService } from './aggregate-service.interface';
 function AggregateControllerMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], isArrayResponse, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], isArrayResponse, ...routeConfig }: DynamicApiRouteConfig<Entity>,
   version?: string,
 ): AggregateControllerConstructor<Entity> {
   const {

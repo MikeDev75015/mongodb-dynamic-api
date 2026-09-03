@@ -27,9 +27,7 @@ export * from './dynamic-api-service-before-save-callback.interface';
 // part of the public API.
 export {
   AfterSaveCallback,
-  DynamicApiServiceCallback,
   DynamicApiResetPasswordCallback,
-  DynamicApiCallbackMethods,
   DynamicApiResetPasswordCallbackMethods,
   CallbackMethods,
   CallbackRetryOptions,

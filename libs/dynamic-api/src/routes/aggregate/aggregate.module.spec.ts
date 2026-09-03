@@ -3,7 +3,7 @@ import type { Mock } from 'vitest';
 import { DynamicModule, ValidationPipeOptions } from '@nestjs/common';
 import * as FormatHelpers from '../../helpers/format.helper';
 import * as SocketConfigHelpers from '../../helpers/socket-config.helper';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicApiRouteConfig, DynamicApiServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import * as AggregateHelpers from './aggregate.helper';
 import { AggregateModule } from './aggregate.module';
@@ -20,13 +20,13 @@ describe('AggregateModule', () => {
   let spyCreateAggregateGateway: Mock;
 
   const FakeController = vi.fn();
-  const FakeServiceProvider = { provide: 'fakeProvider' } as unknown as DynamicAPIServiceProvider;
+  const FakeServiceProvider = { provide: 'fakeProvider' } as unknown as DynamicApiServiceProvider;
   const FakeGateway = vi.fn();
 
   const routeConfigCallback = vi.fn();
   const databaseModule = { module: 'databaseModule' } as unknown as DynamicModule;
   const controllerOptions: DynamicApiControllerOptions<Entity> = { path: 'fakePath' };
-  const routeConfig: DynamicAPIRouteConfig<Entity> = { type: 'Aggregate', callback: routeConfigCallback };
+  const routeConfig: DynamicApiRouteConfig<Entity> = { type: 'Aggregate', callback: routeConfigCallback };
   const version = 'fakeVersion';
   const validationPipeOptions: ValidationPipeOptions = { transform: true };
   const fakeDisplayedName = 'FakeDisplayedName';

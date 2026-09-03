@@ -8,7 +8,7 @@ import { JwtSocketGuard } from '../../guards';
 import { addVersionSuffix } from '../../helpers/versioning-config.helper';
 import { getMixinData } from '../../helpers/mixin-data.helper';
 import { provideName } from '../../helpers/format.helper';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, ExtendedSocket, Mappable } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicApiRouteConfig, ExtendedSocket, Mappable } from '../../interfaces';
 import { EntityBodyMixin, EntityPresenterMixin, SocketPoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { UpdateOneGateway, UpdateOneGatewayConstructor } from './update-one-gateway.interface';
@@ -17,7 +17,7 @@ import { UpdateOneService } from './update-one-service.interface';
 function UpdateOneGatewayMixin<Entity extends BaseEntity>(
   entity: Type<Entity>,
   controllerOptions: DynamicApiControllerOptions<Entity>,
-  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicAPIRouteConfig<Entity>,
+  { dTOs, useInterceptors = [], broadcast: broadcastConfig, ...routeConfig }: DynamicApiRouteConfig<Entity>,
   version?: string,
 ): UpdateOneGatewayConstructor<Entity> {
   const {

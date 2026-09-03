@@ -49,7 +49,7 @@
 interface DynamicApiForFeatureOptions<Entity extends BaseEntity> {
   entity: Type<Entity>;                                          // Required
   controllerOptions: DynamicApiControllerOptions<Entity>;        // Required
-  routes?: DynamicAPIRouteConfig<Entity>[];                      // Optional — see route-config.md
+  routes?: DynamicApiRouteConfig<Entity>[];                      // Optional — see route-config.md
   webSocket?: GatewayMetadata | boolean;                         // Optional — feature-level WS
   extraImports?: ModuleMetadata['imports'];                      // Optional — extra NestJS imports
   extraProviders?: ModuleMetadata['providers'];                  // Optional — extra NestJS providers

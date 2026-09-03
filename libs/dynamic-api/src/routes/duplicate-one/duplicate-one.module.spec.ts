@@ -3,7 +3,7 @@ import type { Mock } from 'vitest';
 import { DynamicModule, ValidationPipeOptions } from '@nestjs/common';
 import * as FormatHelpers from '../../helpers/format.helper';
 import * as SocketConfigHelpers from '../../helpers/socket-config.helper';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig, DynamicAPIServiceProvider } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicApiRouteConfig, DynamicApiServiceProvider } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { DynamicApiBroadcastService } from '../../services/dynamic-api-broadcast/dynamic-api-broadcast.service';
 import * as DuplicateOneHelpers from './duplicate-one.helper';
@@ -21,13 +21,13 @@ describe('DuplicateOneModule', () => {
   let spyCreateDuplicateOneGateway: Mock;
 
   const FakeController = vi.fn();
-  const FakeServiceProvider = { provide: 'fakeProvider' } as unknown as DynamicAPIServiceProvider;
+  const FakeServiceProvider = { provide: 'fakeProvider' } as unknown as DynamicApiServiceProvider;
   const FakeGateway = vi.fn();
 
   const routeConfigCallback = vi.fn();
   const databaseModule = { module: 'databaseModule' } as unknown as DynamicModule;
   const controllerOptions: DynamicApiControllerOptions<Entity> = { path: 'fakePath' };
-  const routeConfig: DynamicAPIRouteConfig<Entity> = { type: 'DuplicateOne', callback: routeConfigCallback };
+  const routeConfig: DynamicApiRouteConfig<Entity> = { type: 'DuplicateOne', callback: routeConfigCallback };
   const version = 'fakeVersion';
   const validationPipeOptions: ValidationPipeOptions = { transform: true };
   const fakeDisplayedName = 'FakeDisplayedName';
@@ -93,7 +93,7 @@ describe('DuplicateOneModule', () => {
     });
 
     it('should return a DynamicModule with broadcast service when broadcast is configured', () => {
-      const broadcastRouteConfig: DynamicAPIRouteConfig<Entity> = {
+      const broadcastRouteConfig: DynamicApiRouteConfig<Entity> = {
         ...routeConfig,
         broadcast: { enabled: true },
       };

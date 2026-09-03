@@ -10,7 +10,7 @@ import {
   AbilityPredicate,
   BroadcastConfig,
   DynamicApiControllerOptions,
-  DynamicAPIRouteConfig,
+  DynamicApiRouteConfig,
   PredicateBehavior,
   RouteType,
 } from '../interfaces';
@@ -49,7 +49,7 @@ function getMixinData<Entity extends BaseEntity>(
     abilityPredicate: routeAbilityPredicate,
     predicateBehavior,
     eventName,
-  }: DynamicAPIRouteConfig<Entity>,
+  }: DynamicApiRouteConfig<Entity>,
   isGateway = false,
   broadcastConfig?: BroadcastConfig<Entity>,
 ): {

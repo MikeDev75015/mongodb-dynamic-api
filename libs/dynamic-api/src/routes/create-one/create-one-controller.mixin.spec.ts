@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, test } from 'vitest';
 import { createMock } from '@test-helpers';
-import { DynamicApiControllerOptions, DynamicAPIRouteConfig } from '../../interfaces';
+import { DynamicApiControllerOptions, DynamicApiRouteConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { CreateOneController } from './create-one-controller.interface';
 import { CreateOneControllerMixin } from './create-one-controller.mixin';
@@ -14,7 +14,7 @@ describe('CreateOneControllerMixin', () => {
   let controller: CreateOneController<Entity>;
 
   const controllerOptions: DynamicApiControllerOptions<Entity> = { path: 'test' };
-  const routeConfig: DynamicAPIRouteConfig<Entity> = { type: 'CreateOne' };
+  const routeConfig: DynamicApiRouteConfig<Entity> = { type: 'CreateOne' };
   const version = '1';
   const service = createMock<CreateOneService<Entity>>();
   const fakeEntity = { id: '1', name: 'test' } as Entity;

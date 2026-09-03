@@ -1,7 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as fs from 'node:fs';
-import { DynamicAPISwaggerExtraConfig, DynamicAPISwaggerOptions } from '../interfaces';
+import { DynamicApiSwaggerExtraConfig, DynamicApiSwaggerOptions } from '../interfaces';
 import jsonFile from '../version.json';
 
 type ExtraConfigHandler = (config: DocumentBuilder, value: any) => void;
@@ -43,7 +43,7 @@ const extraConfigHandlers: Record<string, ExtraConfigHandler> = {
 
 function buildExtraConfig(
   config: DocumentBuilder,
-  swaggerConfig: DynamicAPISwaggerExtraConfig,
+  swaggerConfig: DynamicApiSwaggerExtraConfig,
 ): void {
   Object.keys(swaggerConfig).forEach((key) => {
     extraConfigHandlers[key]?.(config, swaggerConfig[key]);
@@ -52,7 +52,7 @@ function buildExtraConfig(
 
 function enableDynamicAPISwagger(
   app: INestApplication,
-  options?: DynamicAPISwaggerOptions,
+  options?: DynamicApiSwaggerOptions,
 ) {
   const versionFile = require('../version.json');
   const {

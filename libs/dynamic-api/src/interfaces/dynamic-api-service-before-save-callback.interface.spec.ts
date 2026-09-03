@@ -15,13 +15,6 @@ import {
   BeforeSaveReplaceContext,
   BeforeSaveUpdateContext,
   BeforeSaveUpdateManyContext,
-  DynamicApiServiceBeforeSaveCreateContext,
-  DynamicApiServiceBeforeSaveCreateManyContext,
-  DynamicApiServiceBeforeSaveUpdateContext,
-  DynamicApiServiceBeforeSaveUpdateManyContext,
-  DynamicApiServiceBeforeSaveReplaceContext,
-  DynamicApiServiceBeforeSaveDuplicateContext,
-  DynamicApiServiceBeforeSaveDuplicateManyContext,
 } from './dynamic-api-service-before-save-callback.interface';
 
 // ---------------------------------------------------------------------------
@@ -377,66 +370,6 @@ describe('BeforeSaveCallback with BodyDTO context', () => {
       {} as Parameters<typeof cb>[2],
       undefined,
     );
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Deprecated aliases — BodyDTO propagation
-// ---------------------------------------------------------------------------
-
-describe('deprecated aliases — BodyDTO propagation', () => {
-  it('DynamicApiServiceBeforeSaveCreateContext should propagate BodyDTO', () => {
-    const ctx: DynamicApiServiceBeforeSaveCreateContext<MessageEntity, CreateMessageDto> = {
-      toCreate: { text: 'msg', emojiPack: 'twemoji' },
-    };
-    expect(ctx.toCreate.emojiPack).toBe('twemoji');
-  });
-
-  it('DynamicApiServiceBeforeSaveCreateManyContext should propagate BodyDTO', () => {
-    const ctx: DynamicApiServiceBeforeSaveCreateManyContext<MessageEntity, CreateMessageDto> = {
-      toCreate: [{ emojiPack: 'noto' }],
-    };
-    expect(ctx.toCreate[0].emojiPack).toBe('noto');
-  });
-
-  it('DynamicApiServiceBeforeSaveUpdateContext should propagate BodyDTO', () => {
-    const ctx: DynamicApiServiceBeforeSaveUpdateContext<MessageEntity, UpdateMessageDto> = {
-      id: 'x',
-      update: { pinned: true },
-    };
-    expect(ctx.update.pinned).toBe(true);
-  });
-
-  it('DynamicApiServiceBeforeSaveUpdateManyContext should propagate BodyDTO', () => {
-    const ctx: DynamicApiServiceBeforeSaveUpdateManyContext<MessageEntity, UpdateMessageDto> = {
-      ids: ['a'],
-      update: { pinned: false },
-    };
-    expect(ctx.update.pinned).toBe(false);
-  });
-
-  it('DynamicApiServiceBeforeSaveReplaceContext should propagate BodyDTO', () => {
-    const ctx: DynamicApiServiceBeforeSaveReplaceContext<MessageEntity, ReplaceMessageDto> = {
-      id: 'x',
-      replacement: { text: 'r', authorId: 'u', featured: true },
-    };
-    expect(ctx.replacement.featured).toBe(true);
-  });
-
-  it('DynamicApiServiceBeforeSaveDuplicateContext should propagate BodyDTO', () => {
-    const ctx: DynamicApiServiceBeforeSaveDuplicateContext<MessageEntity, DuplicateOverrideDto> = {
-      id: 'x',
-      override: { tag: 'promo' },
-    };
-    expect(ctx.override?.tag).toBe('promo');
-  });
-
-  it('DynamicApiServiceBeforeSaveDuplicateManyContext should propagate BodyDTO', () => {
-    const ctx: DynamicApiServiceBeforeSaveDuplicateManyContext<MessageEntity, DuplicateOverrideDto> = {
-      ids: ['a', 'b'],
-      override: { tag: 'sale' },
-    };
-    expect(ctx.override?.tag).toBe('sale');
   });
 });
 

@@ -9,7 +9,7 @@ import { Strategy } from 'passport-local';
 import { ValidatorPipe } from '../../decorators/validator-pipe.decorator';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { DynamicAPIWsExceptionFilter } from '../../filters/ws-exception/dynamic-api-ws-exception.filter';
-import { AuthAbilityPredicate, AfterSaveCallback, DynamicAPIServiceProvider, GatewayOptions } from '../../interfaces';
+import { AuthAbilityPredicate, AfterSaveCallback, DynamicApiServiceProvider, GatewayOptions } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BcryptService } from '../../services/bcrypt/bcrypt.service';
 import { DynamicApiBroadcastService } from '../../services/dynamic-api-broadcast/dynamic-api-broadcast.service';
@@ -28,7 +28,7 @@ function createLocalStrategyProvider<Entity extends BaseEntity>(
   abilityPredicate: AuthAbilityPredicate | undefined,
   customValidate?: (req: any) => Promise<Entity | null>,
   useStrategy?: Type<any>,
-): DynamicAPIServiceProvider {
+): DynamicApiServiceProvider {
   if (useStrategy) {
     return {
       provide: localStrategyProviderName,
@@ -122,7 +122,7 @@ function createAuthServiceProvider<Entity extends BaseEntity>(
     refreshToken,
     passwordlessOptions,
   }: AuthServiceProviderOptions<Entity>,
-): DynamicAPIServiceProvider {
+): DynamicApiServiceProvider {
   class AuthService extends BaseAuthService<Entity> {
     protected entity = userEntity;
     protected additionalRequestFields = additionalFields;
