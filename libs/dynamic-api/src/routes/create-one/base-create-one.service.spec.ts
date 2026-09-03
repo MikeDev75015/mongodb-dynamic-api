@@ -164,7 +164,7 @@ describe('BaseCreateOneService', () => {
 
     it('should call applyDerivedFields with "save" trigger after beforeSaveCallback', async () => {
       service = initService(created);
-      const applyDerivedFieldsSpy = jest
+      const applyDerivedFieldsSpy = vi
         .spyOn(service as unknown as { applyDerivedFields: Mock }, 'applyDerivedFields')
         .mockImplementation((p) => p);
 
@@ -176,7 +176,7 @@ describe('BaseCreateOneService', () => {
     it('should apply applyDerivedFields result to the entity persisted', async () => {
       service = initService(created);
       const withDerived = { ...toCreate, slug: 'test-slug' };
-      jest
+      vi
         .spyOn(service as unknown as { applyDerivedFields: Mock }, 'applyDerivedFields')
         .mockReturnValue(withDerived);
 
@@ -188,7 +188,7 @@ describe('BaseCreateOneService', () => {
     it('should call writeAuditLog with the created document when auditLog is enabled', async () => {
       service = initService(created);
       internal(service).auditLog = true;
-      const writeAuditLogSpy = jest
+      const writeAuditLogSpy = vi
         .spyOn(service as unknown as { writeAuditLog: Mock }, 'writeAuditLog')
         .mockResolvedValue(undefined);
       const fakeUser = { id: 'user-1' };
@@ -201,7 +201,7 @@ describe('BaseCreateOneService', () => {
 
     it('should not call writeAuditLog when auditLog is not enabled', async () => {
       service = initService(created);
-      const writeAuditLogSpy = jest
+      const writeAuditLogSpy = vi
         .spyOn(service as unknown as { writeAuditLog: Mock }, 'writeAuditLog')
         .mockResolvedValue(undefined);
 

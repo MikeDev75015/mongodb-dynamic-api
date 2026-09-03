@@ -10,10 +10,6 @@ import { mintTokenPair } from './mint-token-pair.helper';
 
 const mockStateGet = vi.fn();
 
-vi.mock('../dynamic-api.module', () => ({
-  DynamicApiModule: { state: { get: (key?: string) => mockStateGet(key) } },
-}));
-
 class TestUser extends BaseEntity {
   email: string;
   username?: string;
@@ -43,6 +39,7 @@ describe('mintTokenPair', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(DynamicApiGlobalStateService, 'getValue').mockImplementation((key?: string) => mockStateGet(key));
     mockStateGet.mockImplementation((key: string) => defaultState[key]);
     hashPasswordSpy = vi.spyOn(BcryptService.prototype, 'hashPassword').mockResolvedValue('hashed-jti');
     updateOneExec = vi.fn();

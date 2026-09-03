@@ -12,10 +12,6 @@ vi.mock('../adapters/socket-adapter', () => ({
   SocketAdapter: vi.fn(),
 }));
 
-vi.mock('../dynamic-api.module', () => ({
-  DynamicApiModule: { state: { get: vi.fn().mockReturnValue('test-jwt-secret') } },
-}));
-
 describe('SocketConfigHelper', () => {
   let spySocketAdapter: Mock;
 
@@ -28,6 +24,7 @@ describe('SocketConfigHelper', () => {
     DynamicApiWsConfigStore.reset();
     DynamicApiEventRegistryStore.reset();
     vi.clearAllMocks();
+    vi.spyOn(DynamicApiGlobalStateService, 'getValue').mockReturnValue('test-jwt-secret');
   });
 
   describe('enableDynamicAPIWebSockets', () => {
