@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { Prop, Schema } from '@nestjs/mongoose';
+import { Prop } from '@nestjs/mongoose';
 import mongoose, { Connection } from 'mongoose';
 import {
   DynamicApiModule,
-  DynamicAPISchemaOptions,
+  DynamicApiSchema,
   SoftDeletableEntity,
 } from '../../src';
 import { closeTestingApp, server } from '../e2e.setup';
@@ -20,10 +20,10 @@ describe('DynamicApiModule forFeature - Entity extends SoftDeletableEntity (e2e)
     await closeTestingApp(mongoose.connections);
   });
 
-  @DynamicAPISchemaOptions({
+  @DynamicApiSchema({
+    collection: 'test-entities',
     indexes: [{ fields: { name: 1 }, options: { unique: true, partialFilterExpression: { deletedAt: { $eq: null } } } }],
   })
-  @Schema({ collection: 'test-entities' })
   class TestDeletableEntity extends SoftDeletableEntity {
     @Prop({ type: String, required: true })
     name: string;
