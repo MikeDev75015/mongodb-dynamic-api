@@ -34,10 +34,10 @@ This requires `@nestjs/cli` (`nest`) — already a prerequisite of any Nest proj
 
 ```typescript
 // src/user/user.entity.ts
-import { Prop, Schema } from '@nestjs/mongoose';
-import { BaseEntity } from 'mongodb-dynamic-api';
+import { Prop } from '@nestjs/mongoose';
+import { BaseEntity, DynamicApiSchema } from 'mongodb-dynamic-api';
 
-@Schema({ collection: 'user' })
+@DynamicApiSchema({ collection: 'user' })
 export class User extends BaseEntity {
   // TODO: declare your entity's fields here, e.g.:
   // @Prop({ type: String, required: true })
