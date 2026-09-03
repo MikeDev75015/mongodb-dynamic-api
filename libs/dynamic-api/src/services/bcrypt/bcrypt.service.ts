@@ -1,8 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
+/**
+ * Small, self-contained password hashing utility (bcrypt), usable standalone via DI —
+ * consumers rely on this directly for their own password handling outside the built-in
+ * `useAuth` flow (e.g. linking a social account to a password-based one).
+ */
 @Injectable()
-/** @internal Not part of the public API — will be removed from the package's public exports in v5. */
 export class BcryptService {
   private readonly saltOrRounds = 10;
 

@@ -38,8 +38,10 @@
 > Every `Base*Service`, controller/gateway/presenter/body mixin, controller/gateway/service interface, route `*Module` class and route `*.helper.ts` factory function for all 12 route types (`Aggregate`, `CreateOne`/`CreateMany`, `UpdateOne`/`UpdateMany`, `ReplaceOne`, `DuplicateOne`/`DuplicateMany`, `DeleteOne`/`DeleteMany`, `GetOne`/`GetMany`), plus `createCustomRouteController`/`createCustomRouteGateway` and `createCachePurgeController`.
 >
 > ### Removed — base services
-> `BaseService`, `BcryptService`, `DynamicApiBroadcastService`, `DynamicApiGlobalStateService`.
-> `DynamicApiGlobalStateService.getEntityModel()` — the one capability consumers actually relied on (resolving a registered entity's Mongoose model outside the HTTP cycle) — is now exposed through a new, narrow **`DynamicApiEntityService.getModel(Entity)`**. See [caching.md](./README/caching.md) for the updated example.
+> `BaseService`, `DynamicApiGlobalStateService`.
+> `DynamicApiGlobalStateService.getEntityModel()` — the one capability consumers actually relied on (resolving a registered entity's Mongoose model outside the HTTP cycle) — is now exposed through a new, narrow **`DynamicApiEntityService.getModel(Entity)`**, a `static` method (no DI required — callable from a bootstrap function, a cron job, or any plain utility) . See [caching.md](./README/caching.md) for the updated example.
+>
+> `BcryptService` and `DynamicApiBroadcastService` were briefly removed in an earlier draft of this cleanup and are **kept public** — both are small, self-contained utilities real consumers reach for directly (password hashing outside `useAuth`; broadcasting from a custom route with the same room-resolution and error-isolation guarantees as the auto-generated routes). See the [Unaffected](#unaffected) list below.
 >
 > ### Removed — mixins & builders
 > `RoutePoliciesGuardMixin`, `SocketPoliciesGuardMixin`, `EntityBodyMixin`, `EntityPresenterMixin`, `AuthDecoratorsBuilder`, `RouteDecoratorsBuilder`.
@@ -60,7 +62,7 @@
 > `utils/deep-patial.ts` (a typo'd duplicate of `deep-partial.ts`, already marked "will be removed in v5") is deleted. `DeepPartial` itself is still exported — import it as before, from the main package.
 >
 > ### Unaffected
-> `DynamicApiCacheService`, `DynamicApiEntityService`, `DynamicApiModule`, `DynamicApiHealthModule`, `DynamicApiPresenceModule`, all `decorators/`, all `predicates/`, `BaseEntity`/`SoftDeletableEntity`, every documented route-config/callback/auth/websocket/caching/authorization/validation/schema-options interface and type, and everything else shown in this README and `README/*.md` — none of it moved or changed shape.
+> `DynamicApiCacheService`, `DynamicApiEntityService`, `BcryptService`, `DynamicApiBroadcastService`, `DynamicApiModule`, `DynamicApiHealthModule`, `DynamicApiPresenceModule`, all `decorators/`, all `predicates/`, `BaseEntity`/`SoftDeletableEntity`, every documented route-config/callback/auth/websocket/caching/authorization/validation/schema-options interface and type, and everything else shown in this README and `README/*.md` — none of it moved or changed shape. `DynamicApiPresenceModule`'s DI token `DYNAMIC_API_PRESENCE_ADAPTER` and the `PresenceAdapter` interface are also unaffected — only the internal `InMemoryPresenceAdapter`/`RedisPresenceAdapter` concrete classes are gone, since [Presence](./README/presence.md) was always meant to be consumed through the module's `register()` options and the `PresenceAdapter` DI token, never by importing a concrete adapter class directly.
 >
 > </details>
 
