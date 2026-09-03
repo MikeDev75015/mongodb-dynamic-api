@@ -50,7 +50,6 @@ function buildExtraConfig(
   });
 }
 
-/** @internal Not part of the public API — will be removed from the package's public exports in v5. */
 function enableDynamicAPISwagger(
   app: INestApplication,
   options?: DynamicAPISwaggerOptions,
