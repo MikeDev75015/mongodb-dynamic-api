@@ -33,7 +33,20 @@ describe('DynamicApiJwtAuthGuard', () => {
 
     guard = moduleRef.get<DynamicApiJwtAuthGuard>(DynamicApiJwtAuthGuard);
     reflector = moduleRef.get<Reflector>(Reflector);
-    context = { getHandler: vi.fn(), getClass: vi.fn() } as unknown as ExecutionContext;
+    context = {
+      getHandler: vi.fn(),
+      getClass: vi.fn(),
+      getType: vi.fn(() => 'http'),
+    } as unknown as ExecutionContext;
+  });
+
+  it('should allow access without checking anything for a non-http context (e.g. websocket gateway '
+    + 'handlers, which are protected by their own dedicated socket guards instead)', () => {
+    vi.spyOn(context, 'getType').mockReturnValue('ws');
+    const reflectorSpy = vi.spyOn(reflector, 'getAllAndOverride');
+
+    expect(guard.canActivate(context)).toBe(true);
+    expect(reflectorSpy).not.toHaveBeenCalled();
   });
 
   it('should allow access if route is public', () => {

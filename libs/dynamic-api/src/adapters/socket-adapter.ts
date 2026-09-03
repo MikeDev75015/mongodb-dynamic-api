@@ -17,7 +17,7 @@ export class SocketAdapter extends IoAdapter {
     },
   ): Server {
     if (!this.ioServer) {
-      this.ioServer = super.createIOServer(port, { ...options, cors: true }) as Server;
+      this.ioServer = super.createIOServer(port, { ...options, cors: { origin: '*' } }) as Server;
 
       this.ioServer.on('connection', (socket: Socket) => {
         this.handleConnection(socket as ExtendedSocket);
