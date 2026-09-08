@@ -1,5 +1,11 @@
 Changelog
 
+## [5.2.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v5.1.0...v5.2.0) (2026-09-08)
+
+### guards
+
+* **guards:** extend authAbilityPredicate to standard routes ([37ec9f4](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/37ec9f444fec81c0b5ffb84c69b35eb5deffad85))
+
 ## [5.1.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v5.0.0...v5.1.0) (2026-09-03)
 
 ### ci
