@@ -44,6 +44,7 @@ Each route in `DynamicApiModule.forFeature` can be finely configured through the
   - [validationPipeOptions](#validationpipeoptions)
   - [populate](#populate) ⭐ *New*
   - [abilityPredicate](#abilitypredicate)
+  - [authAbilityPredicate](#authabilitypredicate)
   - [predicateBehavior](#predicatebehavior)
   - [isArrayResponse](#isarrayresponse)
   - [useInterceptors](#useinterceptors)
@@ -105,6 +106,7 @@ interface DynamicApiRouteConfig<Entity extends BaseEntity> {
 
   // Authorization
   abilityPredicate?: (entity: Entity, user: any) => boolean;
+  authAbilityPredicate?: (user: any, body?: unknown) => boolean;
   predicateBehavior?: 'filter' | 'throw'; // Only for GetMany and Aggregate
 
   // Callbacks
@@ -1097,6 +1099,59 @@ routes: [
 ```
 
 > Also configurable at the controller level via `controllerOptions.abilityPredicates`. The route-level predicate takes precedence.
+
+---
+
+### authAbilityPredicate
+
+`abilityPredicate` is checked by loading the document(s) it should evaluate against. On a route
+with no `:id` in its path (`GetMany`, `CreateOne`/`CreateMany`) — or any other route type whenever
+its underlying query happens to match zero documents — the Guard falls back to scanning every
+document in `entity`'s own collection matching the query string. On an empty or not-yet-populated
+collection (a brand-new entity right after `forFeature()`, before any row exists), that scan finds
+nothing to check. Nothing errors: the Guard just returns `true`, silently granting access to **any
+authenticated user**, not just the ones the predicate would actually allow.
+
+```typescript
+// ❌ Fails open on the very first write, before the collection has any row to scan
+routes: [
+  {
+    type: 'CreateOne',
+    // Never gets to run: there's no document yet for the predicate to check against
+    abilityPredicate: (_whatsNewEntry, user) => user.role === 'admin',
+  },
+]
+```
+
+**Signature:** `(user: any, body?: unknown) => boolean`
+
+`authAbilityPredicate` evaluates directly against `(user, body)` — no document read, so no
+collection to be empty. It's checked unconditionally when set, independently of
+`abilityPredicate`/`predicateBehavior`; a missing/falsy `user` or a predicate returning `false`
+always denies with `403 Forbidden` — there's no vacuous-pass case:
+
+```typescript
+// ✅ Checked directly against the user — never scans a collection, never fails open
+routes: [
+  {
+    type: 'CreateOne',
+    authAbilityPredicate: (user) => user.role === 'admin',
+  },
+  {
+    type: 'GetMany',
+    authAbilityPredicate: (user) => user.role === 'admin',
+  },
+]
+```
+
+Use `abilityPredicate` for a per-document check (owner, tenant, visibility flag…) and
+`authAbilityPredicate` for a blanket, non-per-document check ("this whole route is admin-only")
+that must stay safe regardless of how many documents the route's query happens to match.
+
+> Also configurable at the controller level via `controllerOptions.abilityPredicates[].authAbilityPredicate`.
+> The route-level predicate takes precedence. Identical mechanism to
+> [`customRoutes[].authAbilityPredicate`](./controller-config.md#authabilitypredicate), extended to
+> every standard route type.
 
 ---
 

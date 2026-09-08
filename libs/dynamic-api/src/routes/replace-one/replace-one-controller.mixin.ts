@@ -25,6 +25,7 @@ function ReplaceOneControllerMixin<Entity extends BaseEntity>(
     description,
     isPublic,
     abilityPredicate,
+    authAbilityPredicate,
     event,
   } = getMixinData(
     entity,
@@ -74,6 +75,7 @@ function ReplaceOneControllerMixin<Entity extends BaseEntity>(
     displayedName,
     version,
     abilityPredicate,
+    { authAbilityPredicate },
   ) {}
 
   class BaseReplaceOneController implements ReplaceOneController<Entity> {

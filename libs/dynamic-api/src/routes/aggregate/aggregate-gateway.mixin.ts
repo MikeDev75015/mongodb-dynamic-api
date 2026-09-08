@@ -35,6 +35,7 @@ function AggregateGatewayMixin<Entity extends BaseEntity>(
     isPublic,
     event,
     abilityPredicate,
+    authAbilityPredicate,
     predicateBehavior,
   } = getMixinData(
     entity,
@@ -68,7 +69,7 @@ function AggregateGatewayMixin<Entity extends BaseEntity>(
     routeType,
     event,
     version,
-    { abilityPredicate, isPublic, predicateBehavior },
+    { abilityPredicate, isPublic, predicateBehavior, authAbilityPredicate },
   ) {}
 
   class BaseAggregateGateway extends BaseGateway<Entity> implements AggregateGateway<

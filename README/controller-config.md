@@ -721,6 +721,7 @@ Common options:
 type ControllerAbilityPredicate<Entity> = {
   targets: RouteType[];              // Which route types this rule applies to
   predicate: (entity: Entity, user: any) => boolean; // Authorization check
+  authAbilityPredicate?: (user: any, body?: unknown) => boolean; // Optional, see below
 };
 ```
 
@@ -752,6 +753,32 @@ controllerOptions: {
 - The predicate receives the **fetched entity** and the **authenticated user** from the JWT token.
 - Return `true` to allow access, `false` to throw a `403 Forbidden`.
 - A route-level `abilityPredicate` overrides the controller-level predicate for that specific route.
+
+**Fail-open on an empty/near-empty collection:** `predicate` is only ever checked against a
+document the Guard has fetched. `CreateOne`/`CreateMany` have nothing to fetch, and any other
+route type whose query happens to match zero documents (`GetMany` on a brand-new collection, say)
+falls back to scanning `entity`'s own collection — an empty scan finds nothing to check, and the
+Guard silently returns `true` instead of denying. Set `authAbilityPredicate` alongside `predicate`
+for a blanket check ("this whole route is admin-only") that stays safe regardless of how many
+documents match — it's evaluated directly against `(user, body)`, no document read, no vacuous-pass
+case:
+
+```typescript
+controllerOptions: {
+  path: 'admin-only-resource',
+  abilityPredicates: [
+    {
+      targets: ['GetMany', 'CreateOne', 'UpdateOne', 'DeleteOne'],
+      predicate: () => true, // no per-document rule needed here
+      authAbilityPredicate: (user) => user.role === 'admin',
+    },
+  ],
+}
+```
+
+Same mechanism as route-level [`authAbilityPredicate`](./route-config.md#authabilitypredicate) and
+`customRoutes[].authAbilityPredicate` (below) — just declared once for every route type listed in
+`targets` instead of per route.
 
 > 📚 See [Authorization guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/authorization.md) for full details.
 

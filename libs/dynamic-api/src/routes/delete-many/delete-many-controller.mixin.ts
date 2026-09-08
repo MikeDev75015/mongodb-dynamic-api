@@ -25,6 +25,7 @@ function DeleteManyControllerMixin<Entity extends BaseEntity>(
     description,
     isPublic,
     abilityPredicate,
+    authAbilityPredicate,
     event,
   } = getMixinData(
     entity,
@@ -61,6 +62,7 @@ function DeleteManyControllerMixin<Entity extends BaseEntity>(
     displayedName,
     version,
     abilityPredicate,
+    { authAbilityPredicate },
   ) {}
 
   class BaseDeleteManyController implements DeleteManyController<Entity> {

@@ -1,7 +1,7 @@
 import { NestInterceptor, Type, ValidationPipeOptions } from '@nestjs/common';
 import { PopulateOptions } from 'mongoose';
 import { BaseEntity } from '../models';
-import { AbilityPredicate, PredicateBehavior } from './dynamic-api-ability.interface';
+import { AbilityPredicate, AuthAbilityPredicate, PredicateBehavior } from './dynamic-api-ability.interface';
 import { BroadcastConfig } from './dynamic-api-broadcast-config.interface';
 import { CascadeConfig } from './dynamic-api-cascade-config.interface';
 import { DTOsBundle } from './dynamic-api-route-dtos-bundle.type';
@@ -52,6 +52,37 @@ interface BaseRouteConfig<Entity extends BaseEntity> {
   dTOs?: DTOsBundle;
   validationPipeOptions?: ValidationPipeOptions;
   abilityPredicate?: AbilityPredicate<Entity>;
+  /**
+   * User-level ability predicate for this route — checked directly against `(user, body)`, no
+   * document read, no collection scan. Identical mechanism to
+   * `CustomRouteConfig.authAbilityPredicate`, extended to standard `CreateOne`/`CreateMany`/
+   * `UpdateOne`/`UpdateMany`/`ReplaceOne`/`DuplicateOne`/`DuplicateMany`/`DeleteOne`/`DeleteMany`/
+   * `GetOne`/`GetMany`/`Aggregate` routes.
+   *
+   * `abilityPredicate` is checked by loading the document(s) it should evaluate against — on a
+   * route with no `:id` in its path (`GetMany`, or any of the others when their underlying query
+   * matches zero documents), the Guard falls back to scanning every document of `entity`'s own
+   * collection matching the query. On an empty or not-yet-populated collection (e.g. a brand-new
+   * entity right after `forFeature()`, before any row exists) that scan finds nothing to check —
+   * the Guard silently returns `true` instead of denying, opening the route to **any
+   * authenticated user**, not just the ones the predicate would actually allow.
+   *
+   * `authAbilityPredicate` evaluates directly against `(user, body)` — no document read, no
+   * collection to be empty — and is checked unconditionally when set, independently of
+   * `abilityPredicate`/`predicateBehavior`. Missing/falsy `user` or a predicate that returns
+   * `false` always denies with `403 Forbidden`; there is no vacuous-pass case. Use it for a
+   * blanket, non-per-document check (e.g. "this whole route is admin-only") instead of relying
+   * on `abilityPredicate` alone.
+   *
+   * @example
+   * ```typescript
+   * {
+   *   type: 'CreateOne',
+   *   authAbilityPredicate: (user) => isAdmin(user),
+   * }
+   * ```
+   */
+  authAbilityPredicate?: AuthAbilityPredicate<unknown>;
   predicateBehavior?: PredicateBehavior;
   callback?: AfterSaveCallback<Entity>;
   /**

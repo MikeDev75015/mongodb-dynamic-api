@@ -27,6 +27,7 @@ function UpdateManyGatewayMixin<Entity extends BaseEntity>(
     isPublic,
     event,
     abilityPredicate,
+    authAbilityPredicate,
   } = getMixinData(
     entity,
     controllerOptions,
@@ -60,7 +61,7 @@ function UpdateManyGatewayMixin<Entity extends BaseEntity>(
     routeType,
     event,
     version,
-    { abilityPredicate, isPublic },
+    { abilityPredicate, isPublic, authAbilityPredicate },
   ) {}
 
   class BaseUpdateManyGateway extends BaseGateway<Entity> implements UpdateManyGateway<Entity> {

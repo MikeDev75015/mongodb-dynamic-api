@@ -25,6 +25,7 @@ function UpdateManyControllerMixin<Entity extends BaseEntity>(
     description,
     isPublic,
     abilityPredicate,
+    authAbilityPredicate,
     event,
   } = getMixinData(
     entity,
@@ -73,6 +74,7 @@ function UpdateManyControllerMixin<Entity extends BaseEntity>(
     displayedName,
     version,
     abilityPredicate,
+    { authAbilityPredicate },
   ) {}
 
   class BaseUpdateManyController implements UpdateManyController<Entity> {

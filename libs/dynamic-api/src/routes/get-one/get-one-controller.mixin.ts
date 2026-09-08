@@ -25,6 +25,7 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
     isPublic,
     disableCache,
     abilityPredicate,
+    authAbilityPredicate,
   } = getMixinData(
     entity,
     controllerOptions,
@@ -61,6 +62,7 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
     displayedName,
     version,
     abilityPredicate,
+    { authAbilityPredicate },
   ) {}
 
   class BaseGetOneController implements GetOneController<Entity> {
