@@ -34,6 +34,7 @@ function CreateManyGatewayMixin<Entity extends BaseEntity>(
     isPublic,
     event,
     abilityPredicate,
+    authAbilityPredicate,
   } = getMixinData(
     entity,
     controllerOptions,
@@ -63,7 +64,7 @@ function CreateManyGatewayMixin<Entity extends BaseEntity>(
     routeType,
     event,
     version,
-    { abilityPredicate, isPublic },
+    { abilityPredicate, isPublic, authAbilityPredicate },
   ) {}
 
   class BaseCreateManyGateway extends BaseGateway<Entity> implements CreateManyGateway<Entity> {

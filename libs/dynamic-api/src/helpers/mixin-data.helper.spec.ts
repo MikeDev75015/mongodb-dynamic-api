@@ -150,6 +150,57 @@ describe('getMixinData', () => {
     expect(result.abilityPredicate).toBeDefined();
   });
 
+  describe('authAbilityPredicate resolution', () => {
+    const authAbilityPredicate = (_user: unknown) => true;
+
+    it('should return undefined when neither route nor controller define one', () => {
+      const result = getMixinData(
+        TestEntity,
+        controllerOptions,
+        { type: 'GetMany', ...routeConfig },
+      );
+
+      expect(result.authAbilityPredicate).toBeUndefined();
+    });
+
+    it('should return the route-level authAbilityPredicate when set', () => {
+      const result = getMixinData(
+        TestEntity,
+        controllerOptions,
+        { type: 'GetMany', ...routeConfig, authAbilityPredicate },
+      );
+
+      expect(result.authAbilityPredicate).toBe(authAbilityPredicate);
+    });
+
+    it('should fall back to the controller-level authAbilityPredicate for the matching route type', () => {
+      const result = getMixinData(
+        TestEntity,
+        {
+          ...controllerOptions,
+          abilityPredicates: [{ targets: ['GetMany'], predicate: () => true, authAbilityPredicate }],
+        },
+        { type: 'GetMany', ...routeConfig },
+      );
+
+      expect(result.authAbilityPredicate).toBe(authAbilityPredicate);
+    });
+
+    it('should let the route-level authAbilityPredicate take precedence over the controller-level one', () => {
+      const routeLevel = (_user: unknown) => false;
+      const result = getMixinData(
+        TestEntity,
+        {
+          ...controllerOptions,
+          abilityPredicates: [{ targets: ['GetMany'], predicate: () => true, authAbilityPredicate }],
+        },
+        { type: 'GetMany', ...routeConfig, authAbilityPredicate: routeLevel },
+      );
+
+      expect(result.authAbilityPredicate).toBe(routeLevel);
+    });
+  });
+
   it('should use route-level disableCache when it is a boolean', () => {
     const result = getMixinData(
       TestEntity,

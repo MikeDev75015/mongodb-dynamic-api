@@ -25,6 +25,7 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
     isPublic,
     disableCache,
     abilityPredicate,
+    authAbilityPredicate,
     predicateBehavior,
   } = getMixinData(
     entity,
@@ -68,7 +69,7 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
     displayedName,
     version,
     abilityPredicate,
-    { predicateBehavior },
+    { predicateBehavior, authAbilityPredicate },
   ) {}
 
   Object.defineProperty(GetManyPoliciesGuard, 'name', {

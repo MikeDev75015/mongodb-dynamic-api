@@ -26,6 +26,7 @@ function DuplicateOneControllerMixin<Entity extends BaseEntity>(
     description,
     isPublic,
     abilityPredicate,
+    authAbilityPredicate,
     event,
   } = getMixinData(
     entity,
@@ -75,6 +76,7 @@ function DuplicateOneControllerMixin<Entity extends BaseEntity>(
     displayedName,
     version,
     abilityPredicate,
+    { authAbilityPredicate },
   ) {}
 
   class BaseDuplicateOneController implements DuplicateOneController<Entity> {

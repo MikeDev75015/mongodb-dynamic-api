@@ -26,6 +26,7 @@ function ReplaceOneGatewayMixin<Entity extends BaseEntity>(
     isPublic,
     event,
     abilityPredicate,
+    authAbilityPredicate,
   } = getMixinData(
     entity,
     controllerOptions,
@@ -59,7 +60,7 @@ function ReplaceOneGatewayMixin<Entity extends BaseEntity>(
     routeType,
     event,
     version,
-    { abilityPredicate, isPublic },
+    { abilityPredicate, isPublic, authAbilityPredicate },
   ) {}
 
   class BaseReplaceOneGateway extends BaseGateway<Entity> implements ReplaceOneGateway<Entity> {

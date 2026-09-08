@@ -27,6 +27,7 @@ function DeleteManyGatewayMixin<Entity extends BaseEntity>(
     isPublic,
     event,
     abilityPredicate,
+    authAbilityPredicate,
   } = getMixinData(
     entity,
     controllerOptions,
@@ -49,7 +50,7 @@ function DeleteManyGatewayMixin<Entity extends BaseEntity>(
     routeType,
     event,
     version,
-    { abilityPredicate, isPublic },
+    { abilityPredicate, isPublic, authAbilityPredicate },
   ) {}
 
   class BaseDeleteManyGateway extends BaseGateway<Entity> implements DeleteManyGateway<Entity> {

@@ -14,6 +14,15 @@ type BroadcastRooms<T extends object, User = unknown> = string | string[] | ((da
 type ControllerAbilityPredicate<Entity extends BaseEntity> = {
   targets: RouteType[];
   predicate: AbilityPredicate<Entity>;
+  /**
+   * User-level predicate applied the same way as `BaseRouteConfig.authAbilityPredicate` for
+   * every route type listed in `targets` — checked against `(user, body)` alone, no document
+   * read, no collection scan, so it can never fail open on an empty/near-empty collection the
+   * way `predicate` can (see `BaseRouteConfig.authAbilityPredicate`'s doc comment). Optional:
+   * `predicate` remains the per-document check; set this alongside it for a blanket guard (e.g.
+   * "this whole route is admin-only") that stays safe regardless of how many documents match.
+   */
+  authAbilityPredicate?: AuthAbilityPredicate<unknown>;
 };
 
 export {

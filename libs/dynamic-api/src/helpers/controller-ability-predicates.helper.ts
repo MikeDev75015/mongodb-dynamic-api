@@ -1,4 +1,5 @@
 import {
+  AuthAbilityPredicate,
   ControllerAbilityPredicate,
   AbilityPredicate,
   RouteType,
@@ -27,4 +28,26 @@ function getPredicateFromControllerAbilityPredicates<Entity extends BaseEntity>(
   return routePredicate;
 }
 
-export { getPredicateFromControllerAbilityPredicates };
+/** @internal Not part of the public API. @see ControllerAbilityPredicate.authAbilityPredicate */
+function getAuthPredicateFromControllerAbilityPredicates<Entity extends BaseEntity>(
+  controllerAbilityPredicates: ControllerAbilityPredicate<Entity>[],
+  route: RouteType): AuthAbilityPredicate<unknown> {
+  let routeAuthPredicate: AuthAbilityPredicate<unknown>;
+
+  if (!controllerAbilityPredicates?.length) {
+    return;
+  }
+
+  for (const controllerAbilityPredicate of controllerAbilityPredicates) {
+    const { targets, authAbilityPredicate } = controllerAbilityPredicate;
+
+    if (targets.includes(route)) {
+      routeAuthPredicate = authAbilityPredicate;
+      break;
+    }
+  }
+
+  return routeAuthPredicate;
+}
+
+export { getPredicateFromControllerAbilityPredicates, getAuthPredicateFromControllerAbilityPredicates };

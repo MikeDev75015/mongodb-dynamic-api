@@ -24,6 +24,7 @@ function CreateOneControllerMixin<Entity extends BaseEntity>(
     description,
     isPublic,
     abilityPredicate,
+    authAbilityPredicate,
     event,
   } = getMixinData(
     entity,
@@ -68,6 +69,7 @@ function CreateOneControllerMixin<Entity extends BaseEntity>(
     displayedName,
     version,
     abilityPredicate,
+    { authAbilityPredicate },
   ) {}
 
   class BaseCreateOneController implements CreateOneController<Entity> {

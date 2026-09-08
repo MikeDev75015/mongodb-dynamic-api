@@ -29,6 +29,7 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
     description,
     isPublic,
     abilityPredicate,
+    authAbilityPredicate,
     event,
   } = getMixinData(
     entity,
@@ -87,6 +88,7 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
     displayedName,
     version,
     abilityPredicate,
+    { authAbilityPredicate },
   ) {}
 
   class BaseUpdateOneController implements UpdateOneController<Entity> {

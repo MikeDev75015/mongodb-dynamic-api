@@ -8,6 +8,7 @@ import { MongoDBDynamicApiLogger } from '../logger/mongo-dynamic-api.logger';
 import { DynamicApiGlobalStateService } from '../services/dynamic-api-global-state/dynamic-api-global-state.service';
 import {
   AbilityPredicate,
+  AuthAbilityPredicate,
   BroadcastConfig,
   DynamicApiControllerOptions,
   DynamicApiRouteConfig,
@@ -15,7 +16,10 @@ import {
   RouteType,
 } from '../interfaces';
 import { BaseEntity } from '../models';
-import { getPredicateFromControllerAbilityPredicates } from './controller-ability-predicates.helper';
+import {
+  getAuthPredicateFromControllerAbilityPredicates,
+  getPredicateFromControllerAbilityPredicates,
+} from './controller-ability-predicates.helper';
 import { getDisplayedName } from './format.helper';
 
 /**
@@ -47,6 +51,7 @@ function getMixinData<Entity extends BaseEntity>(
     isPublic: isPublicRoute,
     disableCache: disableCacheRoute,
     abilityPredicate: routeAbilityPredicate,
+    authAbilityPredicate: routeAuthAbilityPredicate,
     predicateBehavior,
     eventName,
   }: DynamicApiRouteConfig<Entity>,
@@ -59,6 +64,7 @@ function getMixinData<Entity extends BaseEntity>(
   isPublic: boolean;
   disableCache: boolean;
   abilityPredicate: AbilityPredicate<Entity>;
+  authAbilityPredicate: AuthAbilityPredicate<unknown>;
   predicateBehavior: PredicateBehavior | undefined;
   event: string;
 } {
@@ -83,6 +89,11 @@ function getMixinData<Entity extends BaseEntity>(
   }
 
   const abilityPredicate = routeAbilityPredicate ?? getPredicateFromControllerAbilityPredicates(
+    controllerAbilityPredicates,
+    routeType,
+  );
+
+  const authAbilityPredicate = routeAuthAbilityPredicate ?? getAuthPredicateFromControllerAbilityPredicates(
     controllerAbilityPredicates,
     routeType,
   );
@@ -129,6 +140,7 @@ function getMixinData<Entity extends BaseEntity>(
     isPublic,
     disableCache,
     abilityPredicate,
+    authAbilityPredicate,
     predicateBehavior,
     event,
   };
