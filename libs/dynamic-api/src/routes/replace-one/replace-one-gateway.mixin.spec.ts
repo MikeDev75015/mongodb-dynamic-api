@@ -1,4 +1,4 @@
-import { describe, expect, it, test } from 'vitest';
+import { describe, expect, it, test, vi } from 'vitest';
 import { createMock } from '@test-helpers';
 import { JwtService } from '@nestjs/jwt';
 import { BaseGateway } from '../../gateways';
@@ -184,5 +184,31 @@ describe('ReplaceOneGatewayMixin', () => {
     });
     expect(service.replaceOne).toHaveBeenCalledTimes(1);
     expect(service.replaceOne).toHaveBeenCalledWith(body.id, { field1: body.field1 }, undefined);
+  });
+
+  it('should pass the socket user to the presenter fromEntity method', async () => {
+    const fromEntity = vi.fn((_: TestEntity) => ({ ref: _.id, fullName: _.field1 }));
+
+    class ReplaceOneResponse {
+      ref: string;
+      fullName: string;
+
+      static fromEntity = fromEntity;
+    }
+
+    ReplaceOneGateway = ReplaceOneGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      { ...routeConfig, dTOs: { presenter: ReplaceOneResponse } },
+    );
+
+    const replaceOneGateway = new ReplaceOneGateway(service, jwtService);
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+    const socketWithUser = { user: fakeUser } as unknown as ExtendedSocket<TestEntity>;
+    service.replaceOne.mockResolvedValueOnce(fakeEntity);
+
+    await replaceOneGateway.replaceOne(socketWithUser, body);
+
+    expect(fromEntity).toHaveBeenCalledWith(fakeEntity, fakeUser);
   });
 });

@@ -1,4 +1,4 @@
-import { describe, expect, it, test } from 'vitest';
+import { describe, expect, it, test, vi } from 'vitest';
 import { createMock } from '@test-helpers';
 import { JwtService } from '@nestjs/jwt';
 import { BaseGateway } from '../../gateways';
@@ -155,5 +155,30 @@ describe('GetOneGatewayMixin', () => {
     });
     expect(service.getOne).toHaveBeenCalledTimes(1);
     expect(service.getOne).toHaveBeenCalledWith(body.id, undefined);
+  });
+
+  it('should pass the socket user to the presenter fromEntity method', async () => {
+    const fromEntity = vi.fn((_: TestEntity) => ({ fullName: _.field1 }));
+
+    class GetOneResponse {
+      fullName: string;
+
+      static fromEntity = fromEntity;
+    }
+
+    GetOneGateway = GetOneGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      { ...routeConfig, dTOs: { presenter: GetOneResponse } },
+    );
+
+    const getOneGateway = new GetOneGateway(service, jwtService);
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+    const socketWithUser = { user: fakeUser } as unknown as ExtendedSocket<TestEntity>;
+    service.getOne.mockResolvedValueOnce(fakeEntity);
+
+    await getOneGateway.getOne(socketWithUser, body);
+
+    expect(fromEntity).toHaveBeenCalledWith(fakeEntity, fakeUser);
   });
 });

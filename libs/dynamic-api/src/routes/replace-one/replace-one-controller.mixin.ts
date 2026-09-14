@@ -103,7 +103,7 @@ function ReplaceOneControllerMixin<Entity extends BaseEntity>(
         ReplaceOnePresenter as Mappable<Entity>
       ).fromEntity;
 
-      const responseData = fromEntity ? fromEntity<ReplaceOnePresenter>(entity) : entity;
+      const responseData = fromEntity ? fromEntity<ReplaceOnePresenter>(entity, req?.user) : entity;
 
       this.broadcastService?.broadcastFromHttp(event, [responseData as object], broadcastConfig);
 

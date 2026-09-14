@@ -102,7 +102,7 @@ function UpdateManyGatewayMixin<Entity extends BaseEntity>(
         UpdateManyResponse as Mappable<Entity>
       ).fromEntities;
 
-      const responseData = fromEntities ? fromEntities<UpdateManyResponse>(list) : list;
+      const responseData = fromEntities ? fromEntities<UpdateManyResponse>(list, socket?.user) : list;
 
       this.broadcastIfNeeded(socket, event, responseData, broadcastConfig);
 

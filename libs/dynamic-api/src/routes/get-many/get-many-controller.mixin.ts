@@ -94,7 +94,7 @@ function GetManyControllerMixin<Entity extends BaseEntity>(
         GetManyPresenter as Mappable<Entity>
       ).fromEntities;
 
-      return fromEntities ? fromEntities<GetManyPresenter>(list) : list;
+      return fromEntities ? fromEntities<GetManyPresenter>(list, req?.user) : list;
     }
   }
 

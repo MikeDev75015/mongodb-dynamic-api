@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, test } from 'vitest';
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { createMock } from '@test-helpers';
 import { DynamicApiControllerOptions, DynamicApiRouteConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
@@ -79,5 +79,23 @@ describe('GetOneControllerMixin', () => {
     await expect(controller.getOne(id)).resolves.toEqual(expectedResponse);
     expect(service.getOne).toHaveBeenCalledTimes(1);
     expect(service.getOne).toHaveBeenCalledWith(id, undefined);
+  });
+
+  it('should pass the request user to the presenter fromEntity method', async () => {
+    const fromEntity = vi.fn((_: Entity) => ({ fullName: _.name }));
+
+    class GetOnePresenter {
+      fullName: string;
+
+      static fromEntity = fromEntity;
+    }
+
+    controller = initController({ ...routeConfig, dTOs: { presenter: GetOnePresenter } });
+    const id = 'fakeId';
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+
+    await controller.getOne(id, { user: fakeUser });
+
+    expect(fromEntity).toHaveBeenCalledWith(fakeEntity, fakeUser);
   });
 });

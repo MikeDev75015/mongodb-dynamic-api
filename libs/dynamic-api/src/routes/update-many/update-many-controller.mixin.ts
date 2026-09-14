@@ -110,7 +110,7 @@ function UpdateManyControllerMixin<Entity extends BaseEntity>(
         UpdateManyPresenter as Mappable<Entity>
       ).fromEntities;
 
-      const responseData = fromEntities ? fromEntities<UpdateManyPresenter>(list) : list;
+      const responseData = fromEntities ? fromEntities<UpdateManyPresenter>(list, req?.user) : list;
 
       this.broadcastService?.broadcastFromHttp(event, responseData as object[], broadcastConfig);
 

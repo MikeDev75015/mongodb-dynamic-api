@@ -97,7 +97,7 @@ function ReplaceOneGatewayMixin<Entity extends BaseEntity>(
         ReplaceOneResponse as Mappable<Entity>
       ).fromEntity;
 
-      const responseData = fromEntity ? fromEntity<ReplaceOneResponse>(entity) : entity;
+      const responseData = fromEntity ? fromEntity<ReplaceOneResponse>(entity, socket?.user) : entity;
 
       this.broadcastIfNeeded(socket, event, [responseData], broadcastConfig);
 

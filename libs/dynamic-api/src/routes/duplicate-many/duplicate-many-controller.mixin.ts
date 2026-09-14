@@ -110,7 +110,7 @@ function DuplicateManyControllerMixin<Entity extends BaseEntity>(
         DuplicateManyPresenter as Mappable<Entity>
       ).fromEntities;
 
-      const responseData = fromEntities ? fromEntities<DuplicateManyPresenter>(list) : list;
+      const responseData = fromEntities ? fromEntities<DuplicateManyPresenter>(list, req?.user) : list;
 
       this.broadcastService?.broadcastFromHttp(event, responseData as object[], broadcastConfig);
 

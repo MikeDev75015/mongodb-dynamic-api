@@ -83,7 +83,7 @@ function GetOneGatewayMixin<Entity extends BaseEntity>(
 
       return {
         event,
-        data: fromEntity ? fromEntity<GetOneResponse>(entity) : entity,
+        data: fromEntity ? fromEntity<GetOneResponse>(entity, _socket?.user) : entity,
       };
     }
   }

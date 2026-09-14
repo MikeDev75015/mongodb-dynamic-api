@@ -108,7 +108,7 @@ function DuplicateOneControllerMixin<Entity extends BaseEntity>(
         DuplicateOnePresenter as Mappable<Entity>
       ).fromEntity;
 
-      const responseData = fromEntity ? fromEntity(entity) : entity;
+      const responseData = fromEntity ? fromEntity(entity, req?.user) : entity;
 
       this.broadcastService?.broadcastFromHttp(event, [responseData as object], broadcastConfig);
 

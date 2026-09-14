@@ -97,7 +97,7 @@ function CreateOneControllerMixin<Entity extends BaseEntity>(
         CreateOnePresenter as Mappable<Entity>
       ).fromEntity;
 
-      const responseData = fromEntity ? fromEntity(entity) : entity;
+      const responseData = fromEntity ? fromEntity(entity, req?.user) : entity;
 
       this.broadcastService?.broadcastFromHttp(event, [responseData], broadcastConfig);
 

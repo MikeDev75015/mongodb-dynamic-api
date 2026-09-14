@@ -1,4 +1,4 @@
-import { describe, expect, it, test } from 'vitest';
+import { describe, expect, it, test, vi } from 'vitest';
 import { createMock } from '@test-helpers';
 import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
@@ -186,5 +186,30 @@ describe('UpdateManyGatewayMixin', () => {
       event: 'update-many-test-entity',
       data: [{ fullName: 'test' }],
     });
+  });
+
+  it('should pass the socket user to the presenter fromEntities method', async () => {
+    const fromEntities = vi.fn((_: TestEntity[]) => _.map(({ field1 }) => ({ fullName: field1 })));
+
+    class UpdateManyPresenter {
+      fullName: string;
+
+      static fromEntities = fromEntities;
+    }
+
+    UpdateManyGateway = UpdateManyGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      { ...routeConfig, dTOs: { presenter: UpdateManyPresenter } },
+    );
+
+    const updateManyGateway = new UpdateManyGateway(service, jwtService);
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+    const socketWithUser = { user: fakeUser } as unknown as ExtendedSocket<TestEntity>;
+    service.updateMany.mockResolvedValueOnce([fakeEntity]);
+
+    await updateManyGateway.updateMany(socketWithUser, body);
+
+    expect(fromEntities).toHaveBeenCalledWith([fakeEntity], fakeUser);
   });
 });

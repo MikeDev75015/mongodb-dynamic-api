@@ -112,7 +112,7 @@ function CreateManyControllerMixin<Entity extends BaseEntity>(
         CreateManyPresenter as Mappable<Entity>
       ).fromEntities;
 
-      const responseData = fromEntities ? fromEntities<CreateManyPresenter>(list) : list;
+      const responseData = fromEntities ? fromEntities<CreateManyPresenter>(list, req?.user) : list;
 
       this.broadcastService?.broadcastFromHttp(event, responseData as object[], broadcastConfig);
 
