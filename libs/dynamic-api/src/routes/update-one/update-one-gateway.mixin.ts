@@ -97,7 +97,7 @@ function UpdateOneGatewayMixin<Entity extends BaseEntity>(
         UpdateOneResponse as Mappable<Entity>
       ).fromEntity;
 
-      const responseData = fromEntity ? fromEntity<UpdateOneResponse>(entity) : entity;
+      const responseData = fromEntity ? fromEntity<UpdateOneResponse>(entity, socket?.user) : entity;
 
       this.broadcastIfNeeded(socket, event, [responseData], broadcastConfig);
 

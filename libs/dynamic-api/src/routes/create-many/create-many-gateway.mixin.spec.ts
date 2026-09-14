@@ -206,4 +206,29 @@ describe('CreateManyGatewayMixin', () => {
     });
     expect(service.createMany).toHaveBeenCalledWith(body.list, undefined);
   });
+
+  it('should pass the socket user to the presenter fromEntities method', async () => {
+    const fromEntities = vi.fn((_: TestEntity[]) => _.map(e => ({ fullName: e.field1 })));
+
+    class RoutePresenter {
+      static fromEntities = fromEntities;
+    }
+
+    CreateManyGateway = CreateManyGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      { ...routeConfig, dTOs: { presenter: RoutePresenter } },
+    );
+
+    const createManyGateway = new CreateManyGateway(service, jwtService);
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+    const socketWithUser = { user: fakeUser } as unknown as ExtendedSocket<TestEntity>;
+    const fakeResponse = [{ id: '1', field1: 'test' }] as TestEntity[];
+
+    service.createMany.mockResolvedValueOnce(fakeResponse);
+
+    await createManyGateway.createMany(socketWithUser, body);
+
+    expect(fromEntities).toHaveBeenCalledWith(fakeResponse, fakeUser);
+  });
 });

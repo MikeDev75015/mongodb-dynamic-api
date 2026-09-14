@@ -1,4 +1,4 @@
-import { describe, expect, it, test } from 'vitest';
+import { describe, expect, it, test, vi } from 'vitest';
 import { createMock } from '@test-helpers';
 import { JwtService } from '@nestjs/jwt';
 import { BaseGateway } from '../../gateways';
@@ -137,5 +137,30 @@ describe('GetManyGatewayMixin', () => {
       event: 'get-many-test-entity',
       data: [{ fullName: 'test' }],
     });
+  });
+
+  it('should pass the socket user to the presenter fromEntities method', async () => {
+    const fromEntities = vi.fn((_: TestEntity[]) => _.map(({ field1 }) => ({ fullName: field1 })));
+
+    class GetManyPresenter {
+      fullName: string;
+
+      static fromEntities = fromEntities;
+    }
+
+    GetManyGateway = GetManyGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      { ...routeConfig, dTOs: { presenter: GetManyPresenter } },
+    );
+
+    const getManyGateway = new GetManyGateway(service, jwtService);
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+    const socketWithUser = { user: fakeUser } as unknown as ExtendedSocket<TestEntity>;
+    service.getMany.mockResolvedValueOnce([fakeEntity]);
+
+    await getManyGateway.getMany(socketWithUser, body);
+
+    expect(fromEntities).toHaveBeenCalledWith([fakeEntity], fakeUser);
   });
 });

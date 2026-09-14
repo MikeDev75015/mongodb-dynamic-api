@@ -1,4 +1,4 @@
-import { describe, expect, it, test } from 'vitest';
+import { describe, expect, it, test, vi } from 'vitest';
 import { createMock } from '@test-helpers';
 import { JwtService } from '@nestjs/jwt';
 import { BaseGateway } from '../../gateways';
@@ -181,5 +181,31 @@ describe('DuplicateOneGatewayMixin', () => {
     });
     expect(service.duplicateOne).toHaveBeenCalledTimes(1);
     expect(service.duplicateOne).toHaveBeenCalledWith(body.id, {}, undefined);
+  });
+
+  it('should pass the socket user to the presenter fromEntity method', async () => {
+    const fromEntity = vi.fn((_: TestEntity) => ({ ref: _.id, fullName: _.field1 }));
+
+    class DuplicateOneResponse {
+      ref: string;
+      fullName: string;
+
+      static fromEntity = fromEntity;
+    }
+
+    DuplicateOneGateway = DuplicateOneGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      { ...routeConfig, dTOs: { presenter: DuplicateOneResponse } },
+    );
+
+    const duplicateOneGateway = new DuplicateOneGateway(service, jwtService);
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+    const socketWithUser = { user: fakeUser } as unknown as ExtendedSocket<TestEntity>;
+    service.duplicateOne.mockResolvedValueOnce(fakeEntity);
+
+    await duplicateOneGateway.duplicateOne(socketWithUser, body);
+
+    expect(fromEntity).toHaveBeenCalledWith(fakeEntity, fakeUser);
   });
 });

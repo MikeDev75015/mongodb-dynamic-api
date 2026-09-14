@@ -313,10 +313,12 @@ interface Mappable<Entity> {
   fromDeleteResult?: <Presenter = any>(result: DeleteResult) => Presenter;
 
   // Map a single entity to a custom presenter (used by presenter DTOs)
-  fromEntity?: <Presenter = any>(entity: Entity) => Presenter;
+  // `user` is the authenticated request/socket user (undefined on public routes), the same
+  // value already passed to `abilityPredicate` — use it to vary the response per viewer.
+  fromEntity?: <Presenter = any, User = any>(entity: Entity, user?: User) => Presenter;
 
   // Map multiple entities to custom presenters (used by presenter DTOs for array responses)
-  fromEntities?: <Presenter = any>(entities: Entity[]) => Presenter[];
+  fromEntities?: <Presenter = any, User = any>(entities: Entity[], user?: User) => Presenter[];
 
   // Map aggregate results to a custom presenter (used by presenter of Aggregate route)
   fromAggregate?: <Presenter = any>(
@@ -381,6 +383,35 @@ DynamicApiModule.forFeature({
     },
   ],
 })
+```
+
+**Example — Per-viewer response (using the `user` parameter):**
+
+`fromEntity`/`fromEntities` receive the authenticated user as a second argument, so a presenter
+can redact or vary fields based on who is asking — for example, hiding one player's ship
+placement from their opponent while both still see the shots already played.
+
+```typescript
+class GameSessionPresenter implements Mappable<GameSession> {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  shots: Shot[];
+
+  @ApiPropertyOptional()
+  ownFleet?: Fleet; // Only present for the fleet's own owner
+
+  static fromEntity(session: GameSession, user?: { id: string }): GameSessionPresenter {
+    const isOwner = user?.id === session.fleetOwnerId;
+
+    return {
+      id: session.id,
+      shots: session.shots,
+      ownFleet: isOwner ? session.fleet : undefined,
+    };
+  }
+}
 ```
 
 ---

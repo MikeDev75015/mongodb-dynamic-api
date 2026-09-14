@@ -124,7 +124,7 @@ function UpdateOneControllerMixin<Entity extends BaseEntity>(
         UpdateOnePresenter as Mappable<Entity>
       ).fromEntity;
 
-      const responseData = fromEntity ? fromEntity<UpdateOnePresenter>(entity) : entity;
+      const responseData = fromEntity ? fromEntity<UpdateOnePresenter>(entity, req?.user) : entity;
 
       this.broadcastService?.broadcastFromHttp(event, [responseData as object], broadcastConfig);
 

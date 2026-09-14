@@ -1,4 +1,4 @@
-import { describe, expect, it, test } from 'vitest';
+import { describe, expect, it, test, vi } from 'vitest';
 import { createMock } from '@test-helpers';
 import { JwtService } from '@nestjs/jwt';
 import { BaseGateway } from '../../gateways';
@@ -192,5 +192,29 @@ describe('DuplicateManyGatewayMixin', () => {
     });
     expect(service.duplicateMany).toHaveBeenCalledTimes(1);
     expect(service.duplicateMany).toHaveBeenCalledWith(body.ids, { field1: 'test' }, undefined);
+  });
+
+  it('should pass the socket user to the presenter fromEntities method', async () => {
+    const fromEntities = vi.fn((_: TestEntity[]) => _.map((entity) => ({ id: entity.id, fullName: entity.field1 })));
+
+    class DuplicateManyResponse {
+      static fromEntities = fromEntities;
+    }
+
+    DuplicateManyGateway = DuplicateManyGatewayMixin(
+      TestEntity,
+      controllerOptions,
+      { ...routeConfig, dTOs: { presenter: DuplicateManyResponse } },
+    );
+
+    const duplicateManyGateway = new DuplicateManyGateway(service, jwtService);
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+    const socketWithUser = { user: fakeUser } as unknown as ExtendedSocket<TestEntity>;
+    const fakeServiceResponse = [{ id: '1', field1: 'test' }];
+    service.duplicateMany.mockResolvedValueOnce(fakeServiceResponse);
+
+    await duplicateManyGateway.duplicateMany(socketWithUser, body);
+
+    expect(fromEntities).toHaveBeenCalledWith(fakeServiceResponse, fakeUser);
   });
 });

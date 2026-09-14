@@ -102,7 +102,7 @@ function DuplicateManyGatewayMixin<Entity extends BaseEntity>(
         DuplicateManyResponse as Mappable<Entity>
       ).fromEntities;
 
-      const responseData = fromEntities ? fromEntities<DuplicateManyResponse>(list) : list;
+      const responseData = fromEntities ? fromEntities<DuplicateManyResponse>(list, socket?.user) : list;
 
       this.broadcastIfNeeded(socket, event, responseData, broadcastConfig);
 

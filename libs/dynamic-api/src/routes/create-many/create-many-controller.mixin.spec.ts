@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, test } from 'vitest';
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { createMock } from '@test-helpers';
 import { BadRequestException } from '@nestjs/common';
 import { DynamicApiControllerOptions, DynamicApiRouteConfig } from '../../interfaces';
@@ -167,6 +167,22 @@ describe('CreateManyControllerMixin', () => {
     await expect(controller.createMany(body, { user: fakeUser })).resolves.toEqual(presenter);
     expect(service.createMany).toHaveBeenCalledTimes(1);
     expect(service.createMany).toHaveBeenCalledWith(body.list, fakeUser);
+  });
+
+  it('should pass the request user to the presenter fromEntities method itself', async () => {
+    const fromEntities = vi.fn((_: Entity[]) => _.map(e => ({ fullName: e.name })));
+
+    class RoutePresenter {
+      static fromEntities = fromEntities;
+    }
+
+    controller = initController({ ...routeConfig, dTOs: { presenter: RoutePresenter } });
+    const body = { list: [{ name: 'test' }, { name: 'unit' }] };
+    const fakeUser = { id: 'user-1', email: 'test@test.com' };
+
+    await controller.createMany(body, { user: fakeUser });
+
+    expect(fromEntities).toHaveBeenCalledWith(fakeEntities, fakeUser);
   });
 });
 

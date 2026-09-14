@@ -82,7 +82,7 @@ function GetOneControllerMixin<Entity extends BaseEntity>(
         GetOnePresenter as Mappable<Entity>
       ).fromEntity;
 
-      return fromEntity ? fromEntity<GetOnePresenter>(entity) : entity;
+      return fromEntity ? fromEntity<GetOnePresenter>(entity, req?.user) : entity;
     }
   }
 

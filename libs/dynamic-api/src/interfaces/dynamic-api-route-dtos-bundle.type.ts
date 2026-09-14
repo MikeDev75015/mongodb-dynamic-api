@@ -7,8 +7,8 @@ interface Mappable<Entity> {
   toEntity?: <DTO = any>(body: DTO) => Partial<Entity>;
   toEntities?: <DTO = any>(body: DTO) => Partial<Entity>[];
   fromDeleteResult?: <Presenter = any>(result: DeleteResult) => Presenter;
-  fromEntity?: <Presenter = any>(entity: Entity) => Presenter;
-  fromEntities?: <Presenter = any>(entities: Entity[]) => Presenter[];
+  fromEntity?: <Presenter = any, User = any>(entity: Entity, user?: User) => Presenter;
+  fromEntities?: <Presenter = any, User = any>(entities: Entity[], user?: User) => Presenter[];
   fromAggregate?: <Presenter = any>(entities: Entity[], count: number, totalPage: number) => Presenter;
 }
 

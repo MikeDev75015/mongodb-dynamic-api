@@ -86,7 +86,7 @@ function GetManyGatewayMixin<Entity extends BaseEntity>(
 
       return {
         event,
-        data: fromEntities ? fromEntities<GetManyResponse>(list) : list,
+        data: fromEntities ? fromEntities<GetManyResponse>(list, _socket?.user) : list,
       };
     }
   }
