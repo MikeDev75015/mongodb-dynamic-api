@@ -1,5 +1,15 @@
 Changelog
 
+## [5.3.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v5.1.0...v5.3.0) (2026-09-14)
+
+### presenters
+
+* **presenters:** pass the authenticated user to fromEntity/fromEntities ([ec7fa4b](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/ec7fa4bacc9206b9b1c890f3eab937de20807f1a))
+
+### guards
+
+* **guards:** extend authAbilityPredicate to standard routes ([37ec9f4](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/37ec9f444fec81c0b5ffb84c69b35eb5deffad85))
+
 ## [5.2.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v5.1.0...v5.2.0) (2026-09-08)
 
 ### guards
