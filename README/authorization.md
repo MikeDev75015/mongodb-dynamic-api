@@ -11,6 +11,7 @@ Authorization provides fine-grained access control for your API routes based on 
 - [Quick Start](#quick-start)
 - [Configuration Levels](#configuration-levels)
 - [Fail-Open on Document-less/Empty-Collection Routes](#fail-open-on-document-lessempty-collection-routes)
+- [Which Documents the Guard Checks](#which-documents-the-guard-checks)
 - [Filter Mode vs Throw Mode](#filter-mode-vs-throw-mode)
 - [Advanced Predicates](#advanced-predicates)
 - [Standard Predicates](#standard-predicates)
@@ -293,6 +294,49 @@ and on `customRoutes[].authAbilityPredicate` — same mechanism everywhere. See
 [route-config.md → authAbilityPredicate](./route-config.md#authabilitypredicate) and
 [controller-config.md → abilityPredicates](./controller-config.md#abilitypredicates) for the full
 reference.
+
+---
+
+## Which Documents the Guard Checks
+
+The Guard loads the documents an `abilityPredicate` is checked against from the request itself. Since v5.4.2 the parts of the request a client controls can no longer widen or dodge that check:
+
+| Route | Documents checked |
+|---|---|
+| Routes with an `:id` param (`GetOne`, `UpdateOne`, `ReplaceOne`, `DuplicateOne`, `DeleteOne`) | The document with that `_id`. A `?_id=` in the query string can no longer replace it. |
+| `DeleteMany`, `UpdateMany`, `DuplicateMany` | Every document listed in `ids` (`{ _id: { $in: ids } }`). Previously the Guard filtered on a non-existent `ids` field, found nothing and let the request through. |
+| Other routes (`GetMany`, `CreateOne`, …) | The documents matching the query string (WebSocket: the payload). |
+
+A query-string or WebSocket-payload key starting with `$` (a MongoDB operator such as `$ne` or `$where`) is rejected with `400 Bad Request` (`WsException` over WebSocket), on guarded routes and on `GetMany`. Filter on plain field values only.
+
+```typescript
+import { Prop, Schema } from '@nestjs/mongoose';
+import { BaseEntity, DynamicApiModule } from 'mongodb-dynamic-api';
+
+@Schema({ collection: 'notes' })
+class Note extends BaseEntity {
+  @Prop({ type: String, required: true })
+  title: string;
+
+  @Prop({ type: String, required: true })
+  ownerId: string;
+}
+
+DynamicApiModule.forFeature({
+  entity: Note,
+  controllerOptions: { path: 'notes' },
+  routes: [
+    { type: 'GetMany' },
+    // GET /notes/:id?_id=<my-note> → the `:id` document is still the one checked
+    { type: 'GetOne', abilityPredicate: (note, user: { id: string }) => note.ownerId === user.id },
+    // DELETE /notes?ids=a&ids=b → 403 as soon as one of a/b belongs to someone else
+    { type: 'DeleteMany', abilityPredicate: (note, user: { id: string }) => note.ownerId === user.id },
+  ],
+});
+
+// GET /notes?title=Groceries    → 200
+// GET /notes?$where=true        → 400 Bad Request
+```
 
 ---
 

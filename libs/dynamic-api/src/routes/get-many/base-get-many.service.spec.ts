@@ -1,5 +1,6 @@
 import { describe, expect, it, test, vi } from 'vitest';
 import type { Mock } from 'vitest';
+import { BadRequestException } from '@nestjs/common';
 import { Model } from 'mongoose';
 import { CallbackMethods, AfterSaveCallback, CallbackRetryOptions, PopulateConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
@@ -57,6 +58,14 @@ describe('BaseGetManyService', () => {
         { ...documentWithoutIdAndVersion, id: response[0]._id },
       ]);
       expect(modelMock.find).toHaveBeenCalledWith({});
+    });
+
+    it('should reject a query carrying a MongoDB operator key without querying the database', async () => {
+      service = initService();
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+
+      await expect(service.getMany({ owner: { $ne: null } })).rejects.toThrow(BadRequestException);
+      expect(modelMock.find).not.toHaveBeenCalled();
     });
 
     it('should call model.find with soft deletable query', async () => {
