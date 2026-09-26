@@ -92,21 +92,18 @@ describe('AuthControllerMixin', () => {
   });
 
   describe('getAccount', () => {
-    it('should decode JWT from authorization header and call service getAccount with decoded user', async () => {
+    it('should call service getAccount with the verified req.user and never decode the raw header', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
         { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' } },
       );
-      const decodedUser = { id: 'decoded-id', loginField: 'decoded-login', iat: 1, exp: 9999 };
-      jwtService.decode.mockReturnValueOnce(decodedUser);
       const controller = new AuthController(service, undefined, jwtService);
+      const user = new TestEntity();
 
-      await controller.getAccount({ user: new TestEntity(), headers: { authorization: 'Bearer fake-token' } });
+      await controller.getAccount({ user, headers: { authorization: 'Bearer forged-token' } });
 
-      expect(jwtService.decode).toHaveBeenCalledWith('fake-token');
-      expect(service.getAccount).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'decoded-id', loginField: 'decoded-login' }),
-      );
+      expect(jwtService.decode).not.toHaveBeenCalled();
+      expect(service.getAccount).toHaveBeenCalledWith(user);
     });
 
     it('should fall back to req.user when jwtService is not available', async () => {
@@ -135,52 +132,21 @@ describe('AuthControllerMixin', () => {
       expect(service.getAccount).toHaveBeenCalledWith(user);
     });
 
-    it('should fall back to req.user when jwtService.decode returns null', async () => {
-      const AuthController = AuthControllerMixin(
-        TestEntity,
-        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' } },
-      );
-      jwtService.decode.mockReturnValueOnce(null);
-      const controller = new AuthController(service, undefined, jwtService);
-      const user = new TestEntity();
-
-      await controller.getAccount({ user, headers: { authorization: 'Bearer bad-token' } });
-
-      expect(service.getAccount).toHaveBeenCalledWith(user);
-    });
-
-    it('should fall back to req.user when jwtService.decode throws', async () => {
-      const AuthController = AuthControllerMixin(
-        TestEntity,
-        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' } },
-      );
-      jwtService.decode.mockImplementationOnce(() => { throw new Error('decode error'); });
-      const controller = new AuthController(service, undefined, jwtService);
-      const user = new TestEntity();
-
-      await controller.getAccount({ user, headers: { authorization: 'Bearer bad-token' } });
-
-      expect(service.getAccount).toHaveBeenCalledWith(user);
-    });
   });
 
   describe('updateAccount', () => {
-    it('should decode JWT from authorization header and call service updateAccount with decoded user', async () => {
+    it('should call service updateAccount with the verified req.user and never decode the raw header', async () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
         { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' } },
       );
-      const decodedUser = { id: 'decoded-id', loginField: 'decoded-login', iat: 1, exp: 9999 };
-      jwtService.decode.mockReturnValueOnce(decodedUser);
       const controller = new AuthController(service, undefined, jwtService);
+      const user = new TestEntity();
 
-      await controller.updateAccount({ user: new TestEntity(), headers: { authorization: 'Bearer fake-token' } }, {}, { cookie: vi.fn() } as unknown as Response);
+      await controller.updateAccount({ user, headers: { authorization: 'Bearer forged-token' } }, {}, { cookie: vi.fn() } as unknown as Response);
 
-      expect(jwtService.decode).toHaveBeenCalledWith('fake-token');
-      expect(service.updateAccount).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'decoded-id', loginField: 'decoded-login' }),
-        {},
-      );
+      expect(jwtService.decode).not.toHaveBeenCalled();
+      expect(service.updateAccount).toHaveBeenCalledWith(user, {});
     });
 
     it('should fall back to req.user when jwtService is not available', async () => {
@@ -512,7 +478,7 @@ describe('AuthControllerMixin', () => {
       service.register.mockResolvedValue({ accessToken: fakeAccessToken, refreshToken: 'fake-rt' });
       service.getAccount.mockResolvedValue(fakeAccount);
       service.updateAccount.mockResolvedValue(fakeAccount);
-      jwtService.decode.mockReturnValue({ id: 'user-id', loginField: 'test@test.co', iat: 1, exp: 9999 });
+      jwtService.decode.mockReturnValue({ id: 'user-id', loginField: 'test@test.co', iat: 1, exp: 9999, typ: 'access' });
     });
 
     afterEach(() => {

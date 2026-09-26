@@ -1,8 +1,9 @@
 import { BadRequestException, ForbiddenException, Type, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { randomInt, randomUUID } from 'node:crypto';
+import { createHash, randomInt, randomUUID } from 'node:crypto';
 import { FilterQuery, Model, UpdateQuery, UpdateWithAggregationPipeline } from 'mongoose';
 import { DynamicApiResetPasswordCallbackMethods, BeforeSaveCallback, AfterSaveCallback } from '../../../interfaces';
+import { isTokenOfType } from '../../../helpers/auth-token.helper';
 import { MongoDBDynamicApiLogger } from '../../../logger/mongo-dynamic-api.logger';
 import { BaseEntity } from '../../../models';
 import { BaseService } from '../../../services/base/base.service';
@@ -24,6 +25,14 @@ interface RefreshTokenRecord {
     accessToken: string;
     refreshToken: string;
   };
+}
+
+/** Claims of a reset-password token. */
+interface ResetPasswordTokenPayload {
+  email?: string;
+  typ?: unknown;
+  /** Fingerprint of the password hash the token was issued for — see `passwordFingerprint`. */
+  pwd?: string;
 }
 
 export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseService<Entity> {
@@ -108,7 +117,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
 
     const payload: object = { ...this.buildUserFields(user, fieldsToBuild) };
 
-    const accessToken = this.jwtService.sign(payload);
+    const accessToken = this.jwtService.sign({ ...payload, typ: 'access' });
     const refreshToken = this.buildRefreshToken(payload);
 
     if (this.refreshTokenField && (user._id || user.id)) {
@@ -250,10 +259,12 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
       },
     };
 
-    const { resetPasswordCallback, expirationInMinutes } = this.resetPasswordOptions;
+    const { resetPasswordCallback, expirationInMinutes, emailField } = this.resetPasswordOptions;
+    // @ts-ignore
+    const user = await this.model.findOne({ [emailField]: email }).lean<Entity>().exec();
 
     const resetPasswordToken = this.jwtService.sign(
-      { email },
+      { email, typ: 'reset', pwd: this.passwordFingerprint(user) },
       { expiresIn: expirationInMinutes * 60 },
     );
 
@@ -264,35 +275,34 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     this.logger.debug('Changing password', { resetPasswordToken: !!resetPasswordToken, newPassword: !!newPassword });
     this.verifyArguments(resetPasswordToken, newPassword);
 
-    let email: string;
-    let exp: number;
+    const invalidTokenMessage = 'Invalid reset password token. Please redo the reset password process.';
+    let payload: ResetPasswordTokenPayload;
 
     try {
-      const decoded = this.jwtService.decode(resetPasswordToken);
-      email = decoded.email;
-      exp = decoded.exp;
-    } catch {
+      // verify, not decode: the signature and expiry must be checked, or anyone could forge a
+      // token for any email.
+      payload = await this.jwtService.verifyAsync<ResetPasswordTokenPayload & object>(resetPasswordToken);
+    } catch (error) {
+      if ((error as Error)?.name === 'TokenExpiredError') {
+        throw new UnauthorizedException('Time to reset password has expired. Please redo the reset password process.');
+      }
+
       this.logger.warn('Invalid reset password token');
+      throw new BadRequestException(invalidTokenMessage);
     }
 
-    if (!email || !exp) {
-      throw new BadRequestException('Invalid reset password token. Please redo the reset password process.');
+    if (!payload?.email || !isTokenOfType(payload, 'reset')) {
+      throw new BadRequestException(invalidTokenMessage);
     }
 
-    const now = Math.round(Date.now() / 1000);
-    if (exp <= now) {
-      throw new UnauthorizedException('Time to reset password has expired. Please redo the reset password process.');
-    }
-
-    let userId: string;
+    let document: Entity | undefined;
     try {
-      const { _id } = await this.findOneDocumentWithAbilityPredicate(
+      document = await this.findOneDocumentWithAbilityPredicate(
         undefined,
         // @ts-ignore
-        { [this.resetPasswordOptions.emailField]: email },
+        { [this.resetPasswordOptions.emailField]: payload.email },
         this.resetPasswordOptions?.changePasswordAbilityPredicate,
       );
-      userId = _id.toString();
     } catch (error) {
       if (error.status === 403) {
         throw new ForbiddenException('You are not allowed to change your password.');
@@ -300,9 +310,17 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
       this.logger.warn('Invalid email, user not found');
     }
 
-    if (!userId) {
+    if (!document) {
       return;
     }
+
+    // Single use: the token is bound to the password hash it was issued for, so it stops working
+    // as soon as the password changes (including through this very token).
+    if (payload.pwd !== this.passwordFingerprint(document)) {
+      throw new BadRequestException(invalidTokenMessage);
+    }
+
+    const userId = document._id.toString();
 
     const hashedPassword = await this.bcryptService.hashPassword(newPassword);
 
@@ -543,13 +561,27 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     return this.login(userWithId, true);
   }
 
+  /**
+   * Short, non-reversible fingerprint of `user`'s current password hash, embedded in reset-password
+   * tokens so a token can only be used while that password is still in place.
+   */
+  private passwordFingerprint(user: Entity | undefined): string | undefined {
+    const hash = user?.[this.passwordField];
+
+    if (!hash) {
+      return undefined;
+    }
+
+    return createHash('sha256').update(String(hash)).digest('base64url').slice(0, 22);
+  }
+
   private buildRefreshToken(payload: object): string {
     const refreshSecret = DynamicApiModule.state.get<string | undefined>('jwtRefreshSecret');
     const refreshTokenExpiresIn = DynamicApiModule.state.get<string | number | undefined>('jwtRefreshTokenExpiresIn');
 
     // @ts-ignore
     return this.jwtService.sign(
-      { ...payload, jti: randomUUID() },
+      { ...payload, typ: 'refresh', jti: randomUUID() },
       {
         ...(refreshSecret ? { secret: refreshSecret } : {}),
         // @ts-ignore
@@ -570,7 +602,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
       ...this.additionalRequestFields,
     ];
     const payload: object = { ...this.buildUserFields(user, fieldsToBuild) };
-    const accessToken = this.jwtService.sign(payload);
+    const accessToken = this.jwtService.sign({ ...payload, typ: 'access' });
     const refreshToken = this.buildRefreshToken(payload);
     return { accessToken, refreshToken };
   }

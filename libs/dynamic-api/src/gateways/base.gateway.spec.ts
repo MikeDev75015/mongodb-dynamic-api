@@ -91,6 +91,37 @@ describe('BaseGateway', () => {
       expect(() => gateway['addUserToSocket'](socket, isPublic)).toThrow(new WsException('Unauthorized'));
     });
 
+    it('should throw and warn for a refresh token used as access token', () => {
+      socket.handshake.auth = { token: accessToken };
+      vi.spyOn(DynamicApiModule.state, 'get').mockReturnValue(true);
+      (jwtService.verify = vi.fn()).mockReturnValue({
+        iat: Date.now() / 1000,
+        exp: Date.now() / 1000 + 1000,
+        typ: 'refresh',
+        id: 'id',
+      });
+      const spyLoggerWarn = vi.spyOn(gateway['logger'], 'warn');
+
+      expect(() => gateway['addUserToSocket'](socket, false)).toThrow(new WsException('Unauthorized'));
+      expect(spyLoggerWarn).toHaveBeenCalledWith('Invalid access token type');
+      expect(socket.user).toBeUndefined();
+    });
+
+    it('should set the user to the socket without the typ claim for an access token', () => {
+      socket.handshake.auth = { token: accessToken };
+      vi.spyOn(DynamicApiModule.state, 'get').mockReturnValue(true);
+      (jwtService.verify = vi.fn()).mockReturnValue({
+        iat: Date.now() / 1000,
+        exp: Date.now() / 1000 + 1000,
+        typ: 'access',
+        id: 'id',
+      });
+
+      gateway['addUserToSocket'](socket, false);
+
+      expect(socket.user).toEqual({ id: 'id' });
+    });
+
     it('should set the user to the socket when token is provided via auth.token', () => {
       socket.handshake.auth = { token: accessToken };
       const isPublic = false;

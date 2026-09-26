@@ -105,12 +105,12 @@ async function mintTokenPair<Entity extends BaseEntity>(
     {} as object,
   );
 
-  const accessToken = jwtService.sign(payload);
+  const accessToken = jwtService.sign({ ...payload, typ: 'access' });
 
   const refreshSecret = DynamicApiGlobalStateService.getValue('jwtRefreshSecret');
   const refreshTokenExpiresIn = DynamicApiGlobalStateService.getValue('jwtRefreshTokenExpiresIn');
   const refreshToken = jwtService.sign(
-    { ...payload, jti: randomUUID() },
+    { ...payload, typ: 'refresh', jti: randomUUID() },
     {
       ...(refreshSecret ? { secret: refreshSecret } : {}),
       ...(refreshTokenExpiresIn ? { expiresIn: refreshTokenExpiresIn as StringValue | number } : {}),

@@ -84,6 +84,20 @@ describe('JwtSocketGuard', () => {
       await expect(guard.canActivate(context)).rejects.toThrow(WsException);
     });
 
+    it('should deny access with a refresh token used as access token', async () => {
+      auth['token'] = 'refresh.jwt.token';
+      vi.spyOn(JwtService.prototype, 'verifyAsync').mockResolvedValueOnce({ id: 'u1', typ: 'refresh' });
+
+      await expect(guard.canActivate(context)).rejects.toThrow(WsException);
+    });
+
+    it('should deny access when verification rejects with a non-Error value', async () => {
+      auth['token'] = 'valid.jwt.token';
+      vi.spyOn(JwtService.prototype, 'verifyAsync').mockRejectedValueOnce('not-an-error');
+
+      await expect(guard.canActivate(context)).rejects.toThrow(WsException);
+    });
+
     it('should deny access with invalid JWT', async () => {
       auth['token'] = 'valid.jwt.token';
       vi.spyOn(JwtService.prototype, 'verifyAsync').mockRejectedValueOnce(

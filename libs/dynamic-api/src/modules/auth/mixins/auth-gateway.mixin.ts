@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ApiProperty, IntersectionType, PartialType, PickType } from '@nestjs/swagger';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WsException } from '@nestjs/websockets';
 import { BaseGateway } from '../../../gateways';
+import { stripTokenClaims } from '../../../helpers/auth-token.helper';
 import { isEmpty } from '../../../helpers/lodash.helper';
 import { isNotEmptyObject } from '../../../helpers/format.helper';
 import { stripBusinessValidators } from '../../../helpers/strip-business-validators.helper';
@@ -284,7 +285,7 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
 
       if (registerBroadcastConfig) {
         const decoded = this.jwtService.decode(result.accessToken);
-        const { iat, exp, ...userPayload } = (decoded && typeof decoded !== 'string' ? decoded : {}) as Record<string, unknown>;
+        const userPayload = stripTokenClaims((decoded && typeof decoded !== 'string' ? decoded : {}) as Record<string, unknown>);
         const broadcastData = buildAuthBroadcastData(userPayload as Partial<Entity>, registerBroadcastConfig.fields);
         this.broadcastIfNeeded(
           socket,

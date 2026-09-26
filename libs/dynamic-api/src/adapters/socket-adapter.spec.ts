@@ -72,6 +72,27 @@ describe('SocketAdapter', () => {
       expect(socket['user']).toEqual({ id: 'user-1', name: 'Test' });
     });
 
+    it('should treat a refresh token as an invalid handshake token', () => {
+      (jwt.verify as Mock).mockReturnValue({ iat: 1, exp: 2, typ: 'refresh', id: 'user-1' });
+      DynamicApiWsConfigStore.jwtSecret = 'secret';
+      const socket = { id: 'sock-r', handshake: { auth: { token: 'refresh-tok' }, query: {} }, emit: vi.fn() };
+
+      connectionHandler(socket);
+
+      expect(socket['user']).toBeUndefined();
+      expect(socket.emit).toHaveBeenCalledWith('unauthorized', { reason: 'invalid-token', message: 'invalid token type' });
+    });
+
+    it('should strip the typ claim from the socket user', () => {
+      (jwt.verify as Mock).mockReturnValue({ iat: 1, exp: 2, typ: 'access', id: 'user-1' });
+      DynamicApiWsConfigStore.jwtSecret = 'secret';
+      const socket = { id: 'sock-a', handshake: { auth: { token: 'tok' }, query: {} } };
+
+      connectionHandler(socket);
+
+      expect(socket['user']).toEqual({ id: 'user-1' });
+    });
+
     it('should not set user when no jwtSecret', () => {
       const socket = {
         id: 'sock-2',

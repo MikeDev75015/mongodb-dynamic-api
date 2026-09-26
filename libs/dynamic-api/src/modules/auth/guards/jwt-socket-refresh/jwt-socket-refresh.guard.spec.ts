@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, test } from 'vitest';
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { ExecutionContext } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
@@ -51,6 +51,24 @@ describe('JwtSocketRefreshGuard', () => {
       } as unknown as ExecutionContext;
 
       await expect(guard.canActivate(context)).rejects.toThrow(WsException);
+    });
+
+    it('should throw WsException for an access token used as refresh token', async () => {
+      const jwtService = new JwtService({ secret: 'refresh-secret' });
+      const accessToken = jwtService.sign({ id: 'user-id', typ: 'access' });
+      const socket = { handshake: { query: { refreshToken: accessToken } }, user: undefined };
+      const context = { getArgs: () => [socket] } as unknown as ExecutionContext;
+
+      await expect(guard.canActivate(context)).rejects.toThrow(WsException);
+    });
+
+    it('should throw WsException when verification rejects with a non-Error value', async () => {
+      const spy = vi.spyOn(JwtService.prototype, 'verifyAsync').mockRejectedValueOnce('not-an-error');
+      const socket = { handshake: { query: { refreshToken: 'token' } }, user: undefined };
+      const context = { getArgs: () => [socket] } as unknown as ExecutionContext;
+
+      await expect(guard.canActivate(context)).rejects.toThrow(WsException);
+      spy.mockRestore();
     });
 
     it('should set socket.user and return true for a valid JWT token with user data', async () => {

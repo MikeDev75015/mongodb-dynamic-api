@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, test } from 'vitest';
+import { UnauthorizedException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { DynamicApiModule } from '../../../dynamic-api.module';
 import { JwtRefreshStrategy } from './jwt-refresh.strategy';
@@ -89,6 +90,16 @@ describe('JwtRefreshStrategy', () => {
       const result = await strategy.validate(payload);
 
       expect(result).toEqual({ id: 'user-id', email: 'test@test.co' });
+    });
+
+    it('should accept a refresh token and strip its typ and jti claims', async () => {
+      const result = await strategy.validate({ iat: 1, exp: 2, typ: 'refresh', jti: 'j', id: 'user-id' });
+
+      expect(result).toEqual({ id: 'user-id' });
+    });
+
+    it.each(['access', 'reset'])('should reject a %s token used as refresh token', async (typ) => {
+      await expect(strategy.validate({ iat: 1, exp: 2, typ, id: 'user-id' })).rejects.toThrow(UnauthorizedException);
     });
 
     it('should return empty object if payload only contains iat and exp', async () => {

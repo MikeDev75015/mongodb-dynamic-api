@@ -1,6 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
+import { isTokenOfType, stripTokenClaims } from '../../../../helpers/auth-token.helper';
 import { isEmpty } from '../../../../helpers/lodash.helper';
 import { DynamicApiModule } from '../../../../dynamic-api.module';
 import { ExtendedSocket } from '../../../../interfaces';
@@ -45,12 +46,16 @@ export class JwtSocketAuthGuard implements CanActivate {
     });
 
     try {
-      const { iat, exp, ...user } = await jwtService.verifyAsync(accessToken, {
+      const payload = await jwtService.verifyAsync(accessToken, {
         secret: DynamicApiModule.state.get('jwtSecret'),
         ignoreExpiration: false,
       });
 
-      return user;
+      if (!isTokenOfType(payload, 'access')) {
+        throw new Error('Unexpected token type');
+      }
+
+      return stripTokenClaims(payload);
     } catch (e: unknown) {
       this.logger.warn('extractUserFromToken jwtService.verify error');
       this.logger.warn(e instanceof Error ? e.message : JSON.stringify(e));

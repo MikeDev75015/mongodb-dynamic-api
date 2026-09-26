@@ -21,6 +21,7 @@ JWT authentication is built-in and provides secure, **dual-token** (access + ref
   - [Custom Passport Strategy (`useStrategy`)](#custom-passport-strategy-usestrategy)
   - [Minting Tokens Outside `/auth/login` (`mintTokenPair`)](#minting-tokens-outside-authlogin-minttokenpair) ⭐ *New*
   - [JWT Payload Customization](#jwt-payload-customization)
+  - [Token Types and JWT Secrets](#token-types-and-jwt-secrets)
   - [Update Account Configuration](#update-account-configuration)
   - [Automatic Token Refresh on Update (`refreshTokenOnUpdate`)](#automatic-token-refresh-on-update-refreshtokenonupdate) ⭐ *New*
   - [Auth Operation Context (`getAuthOperationContext`)](#auth-operation-context-getauthoperationcontext) ⭐ *New*
@@ -936,9 +937,46 @@ Now your JWT payload will include these fields:
   "role": "admin",
   "isActive": true,
   "organizationId": "507f1f77bcf86cd799439012",
+  "typ": "access",
   "iat": 1709294400,
   "exp": 1709899200
 }
+```
+
+The `typ` claim is removed from `req.user` / `socket.user`, like `iat` and `exp`.
+
+### Token Types and JWT Secrets
+
+Since v5.4.2 every token MDA signs carries a `typ` claim, and each one is only accepted where its type is expected:
+
+| `typ` | Signed by | Accepted by |
+|---|---|---|
+| `access` | `/auth/login`, `/auth/refresh-token`, `mintTokenPair` | `Authorization: Bearer` on protected routes, WebSocket handshake `auth.token` |
+| `refresh` | same | `POST /auth/refresh-token`, `auth-refresh-token` event |
+| `reset` | `POST /auth/reset-password` | `PATCH /auth/change-password` |
+
+A refresh token sent as an access token (or the reverse) is rejected with `401`. Access and refresh tokens signed before v5.4.2 carry no `typ` and stay accepted until they expire, so upgrading logs nobody out.
+
+Reset-password tokens are verified (signature and expiry) and are **single use**: each token is bound to the password hash it was issued for, so it stops working once the password changes, including through that same token. A reset token without `typ: 'reset'`, forged with another secret, or reused is rejected with `400`.
+
+MDA logs a warning at startup when a secret is missing:
+
+- `useAuth.jwt.secret` not set: tokens are signed with the public default secret, so anyone can forge a valid JWT;
+- `useAuth.jwt.refreshSecret` not set: refresh tokens are signed with the access token secret.
+
+```typescript
+import { DynamicApiModule } from 'mongodb-dynamic-api';
+import { User } from './users/user.entity';
+
+DynamicApiModule.forRoot(process.env.MONGODB_URI, {
+  useAuth: {
+    userEntity: User,
+    jwt: {
+      secret: process.env.JWT_SECRET,                // long random value, never the default
+      refreshSecret: process.env.JWT_REFRESH_SECRET, // distinct from JWT_SECRET
+    },
+  },
+});
 ```
 
 ### Update Account Configuration
@@ -1093,10 +1131,11 @@ DynamicApiModule.forRoot('mongodb-uri', {
 
 **Reset Password Flow:**
 1. User calls `POST /auth/reset-password` with their email
-2. System generates a JWT reset token
+2. System generates a JWT reset token (`typ: 'reset'`, bound to the current password hash)
 3. Your `resetPasswordCallback` is called to send the token (email, SMS, etc.)
 4. User receives the token and calls `PATCH /auth/change-password` with token + new password
-5. Password is updated
+5. The token's signature, expiry and type are verified, then the password is updated
+6. The token can't be used again: see [Token Types and JWT Secrets](#token-types-and-jwt-secrets)
 
 **Note:** If `resetPassword` is not configured or `emailField` is missing, both reset endpoints are hidden.
 
