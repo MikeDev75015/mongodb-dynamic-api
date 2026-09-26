@@ -44,6 +44,7 @@ export {
   DynamicApiWebSocketSetupOptions,
   ExtendedSocket,
   GatewayOptions,
+  SocketUnauthorizedPayload,
 } from './dynamic-api-web-socket.interface';
 export * from './dynamic-api-presence.interface';
 export * from './dynamic-api-health-check.interface';
