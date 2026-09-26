@@ -716,7 +716,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
    */
   protected addDocumentId<T extends BaseEntity>(document: T): T {
     const plain = isHydratedDocument<T>(document) ? document.toObject() : document;
-    return { ...plain, id: plain._id.toString() };
+    return { ...plain, id: (plain._id as { toString(): string }).toString() };
   }
 
   private isModelSoftDeletable<T>(model: Model<T>): boolean {

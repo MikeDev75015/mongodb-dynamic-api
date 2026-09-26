@@ -10,7 +10,15 @@ export class DynamicApiWsConfigStore {
   static customEvents: CustomSocketEventConfig[] = [];
   static debug = false;
   static jwtSecret: string | undefined;
-  static rejectInvalidToken = false;
+  private static rejectInvalidTokenValue = false;
+
+  static get rejectInvalidToken(): boolean {
+    return this.rejectInvalidTokenValue;
+  }
+
+  static set rejectInvalidToken(value: boolean) {
+    this.rejectInvalidTokenValue = value;
+  }
 
   /** Reset all values — useful for testing. */
   static reset(): void {
