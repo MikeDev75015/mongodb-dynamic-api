@@ -1,5 +1,27 @@
 Changelog
 
+## [5.4.2](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v5.4.1...v5.4.2) (2026-09-26)
+
+### quality
+
+* **quality:** avoid implicit stringification in the reset-password flow (S6551) ([70647e0](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/70647e0a28b1a1e9a55e4ea35572533273fe6497))
+
+### deps
+
+* **deps:** bump bcrypt to 6 and @nestjs/platform-express to 12.1 ([7d3d057](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/7d3d057b2238ff968a302443ba485e6e30068f11))
+
+### websockets
+
+* **websockets:** serialize broadcast payloads and honor the cors option ([ca7425b](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/ca7425b92770dd81b963ec61603cb5969c15f80b))
+
+### auth
+
+* **auth:** verify reset tokens and type every signed token ([ef39643](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/ef39643a63995dbe0ac554a0d3a98221b3bdcb85))
+
+### guards
+
+* **guards:** check the documents a request actually targets ([d317d35](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/d317d357fd55d168aef0e1781dc6b745239ea54e))
+
 ## [5.4.1](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v5.4.0...v5.4.1) (2026-09-26)
 
 ## [5.4.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v5.3.0...v5.4.0) (2026-09-26)
