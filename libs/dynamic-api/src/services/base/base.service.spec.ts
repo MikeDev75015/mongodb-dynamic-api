@@ -176,10 +176,12 @@ describe('BaseService', () => {
       service['entity'] = TestEntity;
       service['abilityPredicate'] = vi.fn().mockReturnValue(true);
 
-      const result = await service['aggregateDocumentsWithAbilityPredicate']([]);
+      const user = { id: 'u1' };
+      const result = await service['aggregateDocumentsWithAbilityPredicate']([], user);
 
       expect(result).toEqual(expectedDocuments);
       expect(service['abilityPredicate']).toHaveBeenCalledTimes(documents.length);
+      expect(service['abilityPredicate']).toHaveBeenCalledWith(expect.anything(), user);
     });
 
     it('should throw a ForbiddenException if the abilityPredicate returns false', async () => {
@@ -220,10 +222,12 @@ describe('BaseService', () => {
       service['entity'] = TestEntity;
       service['abilityPredicate'] = vi.fn().mockReturnValue(true);
 
-      const result = await service['findManyDocumentsWithAbilityPredicate']();
+      const user = { id: 'u1' };
+      const result = await service['findManyDocumentsWithAbilityPredicate'](undefined, user);
 
       expect(result).toEqual(expectedDocuments);
       expect(service['abilityPredicate']).toHaveBeenCalledTimes(documents.length);
+      expect(service['abilityPredicate']).toHaveBeenCalledWith(expect.anything(), user);
     });
 
     it('should throw a ForbiddenException if the abilityPredicate returns false', async () => {
@@ -264,10 +268,22 @@ describe('BaseService', () => {
       service['entity'] = TestEntity;
       service['abilityPredicate'] = vi.fn().mockReturnValue(true);
 
-      const result = await service['findOneDocumentWithAbilityPredicate']('id');
+      const user = { id: 'u1' };
+      const result = await service['findOneDocumentWithAbilityPredicate']('id', undefined, undefined, user);
 
       expect(result).toEqual(expectedDocument);
       expect(service['abilityPredicate']).toHaveBeenCalledTimes(1);
+      expect(service['abilityPredicate']).toHaveBeenCalledWith(expect.anything(), user);
+    });
+
+    it('should never let the conditions override the targeted _id', async () => {
+      const service = new TestService(model);
+      // @ts-ignore
+      service['entity'] = TestEntity;
+
+      await service['findOneDocumentWithAbilityPredicate']('target-id', { _id: 'other-id', test: 'unit' });
+
+      expect(model.findOne).toHaveBeenCalledWith({ _id: 'target-id', test: 'unit' });
     });
 
     it('should call handleAbilityPredicate with auth ability predicate', async () => {

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, test, vi } from 'vitest';
-import { ExecutionContext, ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { WsException } from '@nestjs/websockets';
 import { Model } from 'mongoose';
 import { BaseEntity } from '../models';
@@ -93,7 +93,35 @@ describe('BasePoliciesGuard', () => {
     context.switchToHttp().getRequest().user = {};
     context.switchToHttp().getRequest().query = { some: 'query' };
     await guard.canActivate(context);
-    expect(spy).toHaveBeenCalledWith('user-123', { some: 'query' });
+    expect(spy).toHaveBeenCalledWith('user-123', { some: 'query' }, undefined, {});
+  });
+
+  it('should pass the request user to the ability predicate lookups instead of storing it on the guard', async () => {
+    const findOneSpy = vi.spyOn<any, any>(guard, 'findOneDocumentWithAbilityPredicate').mockImplementationOnce(vi.fn());
+    const user = { id: 'u1' };
+    guard['abilityPredicate'] = vi.fn();
+    context.switchToHttp().getRequest().params = { id: 'doc-1' };
+    context.switchToHttp().getRequest().user = user;
+    await guard.canActivate(context);
+    expect(findOneSpy).toHaveBeenCalledWith('doc-1', {}, undefined, user);
+    expect(guard).not.toHaveProperty('user');
+  });
+
+  it('should check the documents targeted by the ids query (DeleteMany / UpdateMany / DuplicateMany)', async () => {
+    const spy = vi.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockImplementationOnce(vi.fn());
+    const user = { id: 'u1' };
+    guard['abilityPredicate'] = vi.fn();
+    context.switchToHttp().getRequest().user = user;
+    context.switchToHttp().getRequest().query = { ids: ['a', 'b'] };
+    await guard.canActivate(context);
+    expect(spy).toHaveBeenCalledWith({ _id: { $in: ['a', 'b'] } }, user);
+  });
+
+  it('should reject a query carrying a MongoDB operator key', async () => {
+    guard['abilityPredicate'] = vi.fn();
+    context.switchToHttp().getRequest().user = {};
+    context.switchToHttp().getRequest().query = { owner: { $ne: null } };
+    await expect(guard.canActivate(context)).rejects.toThrow(BadRequestException);
   });
 
   it('should call aggregateDocuments if routeType is Aggregate and queryToPipeline is defined', async () => {
@@ -245,6 +273,34 @@ describe('BaseSocketPoliciesGuard', () => {
     context.getArgs()[0].user = {};
     await guard.canActivate(context);
     expect(spy).toHaveBeenCalled();
+  });
+
+  it('should pass the socket user to findOneDocumentWithAbilityPredicate', async () => {
+    const spy = vi.spyOn<any, any>(guard, 'findOneDocumentWithAbilityPredicate').mockImplementationOnce(vi.fn());
+    const user = { id: 'u1' };
+    guard['abilityPredicate'] = vi.fn();
+    context.getArgs()[0].user = user;
+    context.getArgs()[1] = { id: 'doc-1' };
+    await guard.canActivate(context);
+    expect(spy).toHaveBeenCalledWith('doc-1', undefined, undefined, user);
+    expect(guard).not.toHaveProperty('user');
+  });
+
+  it('should check the documents targeted by the ids payload and ignore the update fields', async () => {
+    const spy = vi.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockImplementationOnce(vi.fn());
+    const user = { id: 'u1' };
+    guard['abilityPredicate'] = vi.fn();
+    context.getArgs()[0].user = user;
+    context.getArgs()[1] = { ids: ['a'], name: 'renamed' };
+    await guard.canActivate(context);
+    expect(spy).toHaveBeenCalledWith({ _id: { $in: ['a'] } }, user);
+  });
+
+  it('should reject a payload carrying a MongoDB operator key', async () => {
+    guard['abilityPredicate'] = vi.fn();
+    context.getArgs()[0].user = {};
+    context.getArgs()[1] = { owner: { $ne: null } };
+    await expect(guard.canActivate(context)).rejects.toThrow(WsException);
   });
 
   it('should call aggregateDocumentsWithAbilityPredicate if routeType is Aggregate and queryToPipeline is defined', async () => {

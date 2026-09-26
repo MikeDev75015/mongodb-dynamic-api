@@ -1,4 +1,5 @@
 import { Model, PopulateOptions } from 'mongoose';
+import { assertNoMongoOperators } from '../../helpers/request-filter.helper';
 import {
   AbilityPredicate,
   AfterSaveCallback,
@@ -24,6 +25,9 @@ export abstract class BaseGetManyService<Entity extends BaseEntity>
   }
 
   async getMany(query?: object, user?: unknown): Promise<Entity[]> {
+    // `query` is the client's HTTP query string or WebSocket payload, used as a MongoDB filter.
+    assertNoMongoOperators(query);
+
     const findQuery = this.model.find({
       ...(
         this.isSoftDeletable ? { isDeleted: false } : {}

@@ -13,7 +13,6 @@ import { DynamicApiGlobalStateService } from '../dynamic-api-global-state/dynami
 
 /** @internal Not part of the public API. */
 export abstract class BaseService<Entity extends BaseEntity> {
-  protected user: unknown;
 
   protected readonly entity: Type<Entity>;
 
@@ -68,7 +67,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
     }
   }
 
-  protected async aggregateDocumentsWithAbilityPredicate(pipeline: PipelineStage[]) {
+  protected async aggregateDocumentsWithAbilityPredicate(pipeline: PipelineStage[], user?: unknown) {
     this.baseServiceLogger.debug('aggregateDocumentsWithAbilityPredicate', {
       pipeline: JSON.stringify(pipeline),
       entityName: this.entity.name,
@@ -77,13 +76,13 @@ export abstract class BaseService<Entity extends BaseEntity> {
     const documents = await this.aggregateDocuments(this.entity, pipeline);
 
     if (this.abilityPredicate) {
-      documents.forEach((d) => this.handleAbilityPredicate(d));
+      documents.forEach((d) => this.handleAbilityPredicate(d, undefined, user));
     }
 
     return documents;
   }
 
-  protected async findManyDocumentsWithAbilityPredicate(conditions: FilterQuery<Entity> = {}) {
+  protected async findManyDocumentsWithAbilityPredicate(conditions: FilterQuery<Entity> = {}, user?: unknown) {
     this.baseServiceLogger.debug('findManyDocumentsWithAbilityPredicate', {
       conditions: JSON.stringify(conditions),
       entityName: this.entity.name,
@@ -92,7 +91,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
     const documents = await this.findManyDocuments(this.entity, conditions);
 
     if (this.abilityPredicate) {
-      documents.forEach((d) => this.handleAbilityPredicate(d));
+      documents.forEach((d) => this.handleAbilityPredicate(d, undefined, user));
     }
 
     return documents;
@@ -102,6 +101,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
     _id: string | Schema.Types.ObjectId | undefined,
     conditions: FilterQuery<Entity> = {},
     authAbilityPredicate?: AuthAbilityPredicate<Entity>,
+    user?: unknown,
   ) {
     this.baseServiceLogger.debug('findOneDocumentWithAbilityPredicate', {
       _id,
@@ -110,11 +110,13 @@ export abstract class BaseService<Entity extends BaseEntity> {
       authAbilityPredicate: !!authAbilityPredicate,
     });
 
+    // `_id` is spread last: `conditions` can come from the request (e.g. the query string), and
+    // must never be able to swap the targeted document for another one via its own `_id` key.
     let document = await this.findOneDocument(this.entity, {
+      ...conditions,
       ...(
         _id ? { _id } : {}
       ),
-      ...conditions,
     });
 
     if (!document) {
@@ -122,7 +124,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
     }
 
     if (authAbilityPredicate || this.abilityPredicate) {
-      this.handleAbilityPredicate(document, authAbilityPredicate);
+      this.handleAbilityPredicate(document, authAbilityPredicate, user);
     }
 
     return document;
@@ -599,7 +601,15 @@ export abstract class BaseService<Entity extends BaseEntity> {
     }
   }
 
-  protected handleAbilityPredicate(document: Entity, authAbilityPredicate?: AuthAbilityPredicate<Entity>) {
+  /**
+   * `user` is passed per call rather than stored on the instance: guards are singletons shared by
+   * concurrent requests, so a stored user could be overwritten by another request mid-check.
+   */
+  protected handleAbilityPredicate(
+    document: Entity,
+    authAbilityPredicate?: AuthAbilityPredicate<Entity>,
+    user?: unknown,
+  ) {
     this.baseServiceLogger.debug('handleAbilityPredicate', {
       documentId: document?._id?.toString(),
       entityName: this.entity.name,
@@ -609,7 +619,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
 
     const isAllowed = authAbilityPredicate
       ? authAbilityPredicate(this.buildInstance(document))
-      : this.abilityPredicate(document, this.user);
+      : this.abilityPredicate(document, user);
 
     if (!isAllowed) {
       throw new ForbiddenException('Forbidden resource');

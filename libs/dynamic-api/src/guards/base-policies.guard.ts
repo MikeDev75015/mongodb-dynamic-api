@@ -3,6 +3,7 @@ import { WsException } from '@nestjs/websockets';
 import { PipelineStage } from 'mongodb-pipeline-builder';
 import { Model } from 'mongoose';
 import { AbilityPredicate, AuthAbilityPredicate, PredicateBehavior, RouteType } from '../interfaces';
+import { buildAbilityPredicateFilter } from '../helpers/request-filter.helper';
 import { MongoDBDynamicApiLogger } from '../logger/mongo-dynamic-api.logger';
 import { BaseEntity } from '../models';
 import { BaseService } from '../services/base/base.service';
@@ -37,8 +38,6 @@ abstract class BasePoliciesGuard<Entity extends BaseEntity> extends BaseService<
       if (!user || !this.authAbilityPredicate(user, body)) {
         throw new ForbiddenException('Access Denied');
       }
-
-      this.user = user;
     }
 
     if (this.abilityPredicate && this.predicateBehavior !== 'filter') {
@@ -46,16 +45,16 @@ abstract class BasePoliciesGuard<Entity extends BaseEntity> extends BaseService<
         throw new ForbiddenException('Access Denied');
       }
 
-      this.user = user;
-
       const targetId = params?.[this.targetParam ?? 'id'];
 
       if (targetId) {
-        await this.findOneDocumentWithAbilityPredicate(targetId, query);
+        await this.findOneDocumentWithAbilityPredicate(
+          targetId, buildAbilityPredicateFilter(query), undefined, user,
+        );
       } else if (this.routeType === 'Aggregate' && query && this.queryToPipeline) {
-        await this.aggregateDocumentsWithAbilityPredicate(this.queryToPipeline(query));
+        await this.aggregateDocumentsWithAbilityPredicate(this.queryToPipeline(query), user);
       } else {
-        await this.findManyDocumentsWithAbilityPredicate(query);
+        await this.findManyDocumentsWithAbilityPredicate(buildAbilityPredicateFilter(query), user);
       }
     }
 
@@ -112,19 +111,17 @@ abstract class BaseSocketPoliciesGuard<Entity extends BaseEntity> extends BaseSe
 
       if (this.abilityPredicate && this.predicateBehavior !== 'filter') {
         try {
-          this.user = socket.user;
-
           const { id } = data || {};
 
           if (id) {
             this.logger.debug(`Finding one document with id: ${id} and ability predicate`);
-            await this.findOneDocumentWithAbilityPredicate(id);
+            await this.findOneDocumentWithAbilityPredicate(id, undefined, undefined, socket.user);
           } else if (this.routeType === 'Aggregate' && data && this.queryToPipeline) {
             this.logger.debug('Aggregating documents with ability predicate');
-            await this.aggregateDocumentsWithAbilityPredicate(this.queryToPipeline(data));
+            await this.aggregateDocumentsWithAbilityPredicate(this.queryToPipeline(data), socket.user);
           } else {
             this.logger.debug('Finding many documents with ability predicate');
-            await this.findManyDocumentsWithAbilityPredicate(data);
+            await this.findManyDocumentsWithAbilityPredicate(buildAbilityPredicateFilter(data), socket.user);
           }
         } catch (error) {
           this.logger.error('Error in canActivate', error);
