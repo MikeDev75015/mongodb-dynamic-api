@@ -1279,7 +1279,7 @@ When WebSocket is enabled, all authentication routes are accessible via Socket.I
 
 ## Broadcasting Auth Events
 
-After any authentication action, the server can automatically broadcast a WebSocket event to all connected clients. This is useful for real-time use cases such as showing online presence, notifying administrators of new registrations, or keeping user lists synchronized.
+After any authentication action, the server can automatically broadcast a WebSocket event to connected clients (authenticated sockets only since v6, unless `public: true` — see [Authenticated-Only Broadcasts](./websockets.md#authenticated-only-broadcasts)). This is useful for real-time use cases such as showing online presence, notifying administrators of new registrations, or keeping user lists synchronized.
 
 ### How It Works
 
@@ -1289,8 +1289,8 @@ After any authentication action, the server can automatically broadcast a WebSoc
 
 Broadcasting is supported for four actions: **login**, **register**, **getAccount**, and **updateAccount**.
 
-- **Triggered via HTTP REST** (`POST /auth/login`, etc.) → the server broadcasts to **all** connected WebSocket clients via `wsServer.emit()`
-- **Triggered via WebSocket** (`auth-login`, etc., requires `useAuth.webSocket: true`) → the server broadcasts to **all other** connected clients via `socket.broadcast.emit()` (the sender does not receive the broadcast)
+- **Triggered via HTTP REST** (`POST /auth/login`, etc.) → the server broadcasts to the authenticated WebSocket clients (every client with `public: true`)
+- **Triggered via WebSocket** (`auth-login`, etc., requires `useAuth.webSocket: true`) → the server broadcasts to the other authenticated clients (every other client with `public: true`) — the sender does not receive the broadcast
 
 Both transports trigger the same broadcast — the behavior is transparent to the listening clients.
 
@@ -1353,7 +1353,8 @@ type AuthBroadcastConfig<Entity> = {
 | `enabled` | `boolean \| (data, user?) => boolean` | ✅ Yes | `true` = always broadcast · `false` = never broadcast · function = conditional broadcast evaluated with the data about to be broadcast |
 | `eventName` | `string` | ❌ No | Custom broadcast event name. Defaults to the standard name (see table below) |
 | `fields` | `(keyof Entity)[]` | ❌ No | List of fields to include in the broadcast payload. If omitted or empty, **all available fields** from the data source are broadcast |
-| `rooms` | `string \| string[] \| (data) => string \| string[]` | ❌ No | Target specific Socket.IO rooms. If set, only clients that joined the specified room(s) receive the broadcast. If omitted, all connected clients receive it. See [Room-Targeted Broadcasting](./websockets.md#room-targeted-broadcasting) |
+| `rooms` | `string \| string[] \| (data) => string \| string[]` | ❌ No | Target specific Socket.IO rooms. If set, only clients that joined the specified room(s) receive the broadcast. If omitted, authenticated clients receive it (every client with `public: true`). See [Room-Targeted Broadcasting](./websockets.md#room-targeted-broadcasting) |
+| `public` | `boolean` | ❌ No | v6 — `true` sends a broadcast without `rooms` to every connected client, anonymous ones included. See [Authenticated-Only Broadcasts](./websockets.md#authenticated-only-broadcasts) |
 
 ### Default Broadcast Event Names
 

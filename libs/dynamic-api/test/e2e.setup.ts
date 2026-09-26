@@ -159,6 +159,22 @@ export const handleSocketResponse = vi.fn();
 export const handleSocketBroadcast = vi.fn();
 
 export const server = {
+  /** Opens a socket and reports whether the handshake was accepted or refused (and why). */
+  handshake: async (accessToken?: string): Promise<{ connected: boolean; error?: string }> => {
+    verifyApp();
+
+    return new Promise((resolve) => {
+      const socket = io(getAppBaseUrl(), { auth: accessToken ? { token: accessToken } : {}, reconnection: false });
+      const done = (result: { connected: boolean; error?: string }) => {
+        socket.removeAllListeners();
+        socket.close();
+        resolve(result);
+      };
+
+      socket.once('connect', () => done({ connected: true }));
+      socket.once('connect_error', (error) => done({ connected: false, error: error.message }));
+    });
+  },
   get: async <Query extends object = any, Response = any>(path: string, { authToken, query, headers = {} }: RequestOptions<Query> = {}): Promise<Response> => {
     return verifyApp()
     .get(path)

@@ -278,29 +278,22 @@ describe('DynamicApiModule forRoot - Websockets Authentication Basic (e2e)', () 
         });
       });
 
-      it('should throw a ws exception if access token is expired', async () => {
-        handleSocketResponse.mockReset();
+      it('should refuse the handshake if access token is expired', async () => {
         await wait(4000);
 
-        await server.emit('auth-get-account', undefined, { accessToken });
-
-        expect(handleSocketException).toHaveBeenCalledTimes(1);
-        expect(handleSocketException).toHaveBeenCalledWith({
-          message: 'Unauthorized',
+        expect(await server.handshake(accessToken)).toStrictEqual({
+          connected: false,
+          error: 'Unauthorized: jwt expired',
         });
-        expect(handleSocketResponse).not.toHaveBeenCalled();
       });
 
-      it('should throw a ws exception if secret is invalid', async () => {
-        handleSocketResponse.mockReset();
+      it('should refuse the handshake if secret is invalid', async () => {
         const invalidToken = jwtService.sign({ email: 'u', password: 'p' }, { secret: 'invalid-secret' });
-        await server.emit('auth-get-account', undefined, { accessToken: invalidToken });
 
-        expect(handleSocketException).toHaveBeenCalledTimes(1);
-        expect(handleSocketException).toHaveBeenCalledWith({
-          message: 'Unauthorized',
+        expect(await server.handshake(invalidToken)).toStrictEqual({
+          connected: false,
+          error: 'Unauthorized: invalid signature',
         });
-        expect(handleSocketResponse).not.toHaveBeenCalled();
       });
     });
 

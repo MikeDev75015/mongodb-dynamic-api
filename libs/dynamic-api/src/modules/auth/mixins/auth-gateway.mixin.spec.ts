@@ -9,6 +9,7 @@ import { ExtendedSocket } from '../../../interfaces';
 import { BaseEntity } from '../../../models';
 import { AuthGateway, AuthService, LoginResponse } from '../interfaces';
 import { AuthGatewayMixin } from './auth-gateway.mixin';
+import { DYNAMIC_API_AUTHENTICATED_ROOM } from '../../../helpers/authenticated-room.constant';
 
 describe('AuthGatewayMixin', () => {
   class TestEntity extends BaseEntity {
@@ -113,7 +114,7 @@ describe('AuthGatewayMixin', () => {
 
       gateway = new AuthGateway(service, jwtService);
       service.getAccount.mockResolvedValue(fakeAccount);
-      socket = {} as ExtendedSocket<TestEntity>;
+      socket = { join: vi.fn() } as unknown as ExtendedSocket<TestEntity>;
     });
 
     it('should set account in data if user is logged', async () => {
@@ -153,7 +154,7 @@ describe('AuthGatewayMixin', () => {
 
       gateway = new AuthGateway(service, jwtService);
       service.updateAccount.mockResolvedValue(fakeAccount);
-      socket = {} as ExtendedSocket<TestEntity>;
+      socket = { join: vi.fn() } as unknown as ExtendedSocket<TestEntity>;
     });
 
     it('should update account if user is logged', async () => {
@@ -187,7 +188,7 @@ describe('AuthGatewayMixin', () => {
 
     beforeEach(() => {
       service.login.mockResolvedValue(fakeLoginResponse);
-      socket = {} as ExtendedSocket<TestEntity>;
+      socket = { join: vi.fn() } as unknown as ExtendedSocket<TestEntity>;
     });
 
     it('should validate and login user if credentials are valid', async () => {
@@ -207,6 +208,7 @@ describe('AuthGatewayMixin', () => {
       expect(service.validateUser).toHaveBeenCalledTimes(1);
       expect(service.validateUser).toHaveBeenCalledWith(loginDto.loginField, loginDto.passwordField);
       expect(socket.user).toEqual(fakeUser);
+      expect(socket.join).toHaveBeenCalledWith(DYNAMIC_API_AUTHENTICATED_ROOM);
       expect(service.login).toHaveBeenCalledTimes(1);
       expect(service.login).toHaveBeenCalledWith(fakeUser);
     });
@@ -249,7 +251,7 @@ describe('AuthGatewayMixin', () => {
 
     beforeEach(() => {
       service.register.mockResolvedValue(fakeLoginResponse);
-      socket = {} as ExtendedSocket<TestEntity>;
+      socket = { join: vi.fn() } as unknown as ExtendedSocket<TestEntity>;
     });
 
     it('should register user if credentials are valid', async () => {
@@ -278,7 +280,7 @@ describe('AuthGatewayMixin', () => {
 
     beforeEach(() => {
       service.resetPassword.mockResolvedValue();
-      socket = {} as ExtendedSocket<TestEntity>;
+      socket = { join: vi.fn() } as unknown as ExtendedSocket<TestEntity>;
     });
 
     it('should reset password if options are set', async () => {
@@ -324,7 +326,7 @@ describe('AuthGatewayMixin', () => {
 
     beforeEach(() => {
       service.changePassword.mockResolvedValue();
-      socket = {} as ExtendedSocket<TestEntity>;
+      socket = { join: vi.fn() } as unknown as ExtendedSocket<TestEntity>;
     });
 
     it('should change password if options are set', async () => {
@@ -369,7 +371,7 @@ describe('AuthGatewayMixin', () => {
 
     beforeEach(() => {
       service.logout = vi.fn().mockResolvedValue(undefined);
-      socket = {} as ExtendedSocket<TestEntity>;
+      socket = { join: vi.fn() } as unknown as ExtendedSocket<TestEntity>;
     });
 
     it('should call service logout and return event when socket.user is set', async () => {
@@ -436,6 +438,7 @@ describe('AuthGatewayMixin', () => {
         user: fakeUser,
         broadcast: { emit: vi.fn() },
         handshake: { query: {} },
+        join: vi.fn(),
       } as unknown as ExtendedSocket<TestEntity>;
 
       service.getAccount.mockResolvedValue(fakeAccount);

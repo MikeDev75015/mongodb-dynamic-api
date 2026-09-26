@@ -49,7 +49,7 @@ function enableDynamicAPIWebSockets(app: INestApplication, options?: DynamicApiW
   DynamicApiWsConfigStore.onConnection = resolvedOptions.onConnection;
   DynamicApiWsConfigStore.customEvents = resolvedOptions.customEvents ?? [];
   DynamicApiWsConfigStore.debug = resolvedOptions.debug ?? false;
-  DynamicApiWsConfigStore.rejectInvalidToken = resolvedOptions.rejectInvalidToken ?? false;
+  DynamicApiWsConfigStore.rejectInvalidToken = resolvedOptions.rejectInvalidToken ?? true;
 
   // Read jwtSecret from global state (may be undefined when auth is not configured)
   DynamicApiWsConfigStore.jwtSecret = DynamicApiGlobalStateService.getValue('jwtSecret');

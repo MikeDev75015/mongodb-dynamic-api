@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Server } from 'socket.io';
+import { DYNAMIC_API_AUTHENTICATED_ROOM } from '../../helpers/authenticated-room.constant';
 import { resolveBroadcast } from '../../helpers/resolve-broadcast.helper';
 import { BroadcastConfig } from '../../interfaces';
 import { MongoDBDynamicApiLogger } from '../../logger/mongo-dynamic-api.logger';
@@ -37,10 +38,12 @@ export class DynamicApiBroadcastService {
         return;
       }
 
-      const { event: broadcastEvent, rooms, data: broadcastData } = resolved;
+      const { event: broadcastEvent, rooms, data: broadcastData, authenticatedOnly } = resolved;
 
       if (rooms) {
         DynamicApiBroadcastService.wsServer.to(rooms).emit(broadcastEvent, broadcastData);
+      } else if (authenticatedOnly) {
+        DynamicApiBroadcastService.wsServer.to(DYNAMIC_API_AUTHENTICATED_ROOM).emit(broadcastEvent, broadcastData);
       } else {
         DynamicApiBroadcastService.wsServer.emit(broadcastEvent, broadcastData);
       }

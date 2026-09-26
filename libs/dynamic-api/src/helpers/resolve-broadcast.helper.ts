@@ -1,4 +1,5 @@
 import { instanceToPlain } from 'class-transformer';
+import { DynamicApiGlobalStateService } from '../services/dynamic-api-global-state/dynamic-api-global-state.service';
 import { resolveRooms } from './resolve-rooms.helper';
 import { BroadcastAbilityPredicate, BroadcastConfig } from '../interfaces';
 
@@ -6,6 +7,8 @@ interface ResolvedBroadcast<T extends object> {
   event: string;
   rooms?: string[];
   data: T[];
+  /** No `rooms`: only authenticated sockets must receive it (auth enabled and not `public`). */
+  authenticatedOnly: boolean;
 }
 
 /**
@@ -46,10 +49,15 @@ function resolveBroadcast<T extends object, User = unknown>(
     return undefined;
   }
 
+  const resolvedRooms = resolveRooms(rooms, broadcastData, user);
+
   return {
     event: eventName || event,
-    rooms: resolveRooms(rooms, broadcastData, user),
+    rooms: resolvedRooms,
     data: broadcastData.map((item) => instanceToPlain(item) as T),
+    authenticatedOnly: !resolvedRooms
+      && !broadcastConfig.public
+      && !!DynamicApiGlobalStateService.getValue('isAuthEnabled'),
   };
 }
 

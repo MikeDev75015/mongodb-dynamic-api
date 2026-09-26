@@ -17,6 +17,7 @@ type DynamicApiJWTOptions = {
   secret: string;
   expiresIn?: string | number;
   refreshTokenExpiresIn?: string | number;
+  /** Required at startup since v6 (checked by `forRoot`), and must differ from `secret`. */
   refreshSecret?: string;
 };
 
@@ -25,6 +26,8 @@ type DynamicApiAuthBroadcastConfig<Entity extends BaseEntity = any> = {
   eventName?: string;
   fields?: (keyof Entity)[];
   rooms?: BroadcastRooms<Partial<Entity>>;
+  /** Since v6 — see `BroadcastConfig.public`: `true` sends a room-less broadcast to every socket. */
+  public?: boolean;
 };
 
 type DynamicApiLoginOptions<Entity extends BaseEntity = any> = {

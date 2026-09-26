@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { Exclude } from 'class-transformer';
+import { DynamicApiGlobalStateService } from '../services/dynamic-api-global-state/dynamic-api-global-state.service';
 import { resolveBroadcast } from './resolve-broadcast.helper';
 import { BroadcastConfig } from '../interfaces';
 
@@ -52,6 +53,7 @@ describe('resolveBroadcast', () => {
       event: 'event',
       rooms: undefined,
       data,
+      authenticatedOnly: false,
     });
   });
 
@@ -62,6 +64,25 @@ describe('resolveBroadcast', () => {
       event: 'event',
       rooms: undefined,
       data: [{ id: '1' }],
+      authenticatedOnly: false,
+    });
+  });
+
+  describe('authenticatedOnly', () => {
+    const mockAuthEnabled = (isAuthEnabled: boolean) => {
+      vi.spyOn(DynamicApiGlobalStateService, 'getValue').mockReturnValue(isAuthEnabled as never);
+    };
+
+    it.each<[string, boolean, BroadcastConfig<Item>, boolean]>([
+      ['auth enabled, no rooms', true, { enabled: true }, true],
+      ['auth enabled, public', true, { enabled: true, public: true }, false],
+      ['auth enabled, rooms set', true, { enabled: true, rooms: 'room-1' }, false],
+      ['auth disabled', false, { enabled: true }, false],
+    ])('should be %s → %s', (_, isAuthEnabled, config, expected) => {
+      mockAuthEnabled(isAuthEnabled);
+
+      expect(resolveBroadcast('event', data, config)?.authenticatedOnly).toBe(expected);
+      vi.restoreAllMocks();
     });
   });
 

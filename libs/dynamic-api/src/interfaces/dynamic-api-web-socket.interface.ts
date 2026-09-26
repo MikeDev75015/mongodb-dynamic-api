@@ -122,7 +122,7 @@ interface DynamicApiWebSocketSetupOptions {
    * verification (expired, bad signature, malformed…) is **refused** by a Socket.IO middleware:
    * the client receives a `connect_error` whose `message` starts with `Unauthorized:`, so its
    * refresh-then-reconnect logic can run. Sockets connecting without any token are still
-   * accepted as anonymous. Defaults to `false`.
+   * accepted as anonymous. Defaults to `true` since v6 (`false` before).
    *
    * When `false`, the socket is accepted as anonymous (`user` is `undefined`), but an
    * `unauthorized` event (`{ reason: 'invalid-token', message }`) is emitted to it before
@@ -130,7 +130,8 @@ interface DynamicApiWebSocketSetupOptions {
    *
    * @example
    * ```typescript
-   * enableDynamicAPIWebSockets(app, { rejectInvalidToken: true });
+   * // v5 behavior: accept the socket as anonymous and emit `unauthorized`
+   * enableDynamicAPIWebSockets(app, { rejectInvalidToken: false });
    * ```
    */
   rejectInvalidToken?: boolean;

@@ -4,9 +4,11 @@ import { createMock } from '@test-helpers';
 import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
 import { DynamicApiModule } from '../dynamic-api.module';
+import { DYNAMIC_API_AUTHENTICATED_ROOM } from '../helpers/authenticated-room.constant';
 import { DynamicApiWsConfigStore } from '../helpers/ws-config.store';
 import { ExtendedSocket } from '../interfaces';
 import { BaseEntity } from '../models';
+import { DynamicApiGlobalStateService } from '../services/dynamic-api-global-state/dynamic-api-global-state.service';
 import { BaseGateway } from './base.gateway';
 
 class Entity extends BaseEntity {
@@ -224,6 +226,20 @@ describe('BaseGateway', () => {
       expect(mockSocket.broadcast.emit).toHaveBeenCalledTimes(1);
       expect(mockSocket.broadcast.emit).toHaveBeenCalledWith(event, data);
       expect(mockSocket.nsp['to']).not.toHaveBeenCalled();
+    });
+
+    it('should broadcast to the authenticated room only when auth is enabled (sender excluded)', () => {
+      vi.spyOn(DynamicApiGlobalStateService, 'getValue').mockReturnValue(true as never);
+      const authenticatedEmit = vi.fn();
+      mockSocket.broadcast['to'] = vi.fn().mockReturnValue({ emit: authenticatedEmit });
+      const data = [{ id: '1', name: 'Entity 1' } as Entity];
+
+      gateway['broadcastIfNeeded'](mockSocket, event, data, { enabled: true });
+
+      expect(mockSocket.broadcast['to']).toHaveBeenCalledWith(DYNAMIC_API_AUTHENTICATED_ROOM);
+      expect(authenticatedEmit).toHaveBeenCalledWith(event, data);
+      expect(mockSocket.broadcast.emit).not.toHaveBeenCalled();
+      vi.restoreAllMocks();
     });
 
     it('should broadcast with custom eventName if provided', () => {

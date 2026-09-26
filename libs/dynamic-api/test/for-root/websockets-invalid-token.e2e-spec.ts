@@ -16,8 +16,8 @@ import { closeTestingApp, createTestingApp } from '../e2e.setup';
 
 /**
  * E2E — a socket whose handshake token fails JWT verification must never be silently accepted
- * as anonymous: either an `unauthorized` event is emitted (default) or the handshake is refused
- * with a `connect_error` (`rejectInvalidToken: true`).
+ * as anonymous: the handshake is refused with a `connect_error` (default since v6), or, with
+ * `rejectInvalidToken: false`, the socket is accepted and an `unauthorized` event is emitted.
  */
 
 const JWT_SECRET = 'ws-invalid-token-e2e-secret';
@@ -99,13 +99,13 @@ describe('WebSockets — invalid handshake token (e2e)', () => {
   const expiredToken = () => jwt.sign({ id: 'u1', exp: Math.floor(Date.now() / 1000) - 60 }, JWT_SECRET);
   const validToken = () => jwt.sign({ id: 'u1', email: 'ws@test.co', typ: 'access' }, JWT_SECRET, { expiresIn: '1h' });
 
-  describe('default (rejectInvalidToken not set)', () => {
+  describe('rejectInvalidToken: false (v5 behavior)', () => {
     it.each([
       ['a malformed token', () => 'not-a-jwt', 'jwt malformed'],
       ['an expired token', expiredToken, 'jwt expired'],
       ['a token signed with another secret', () => jwt.sign({ id: 'u1' }, 'other-secret'), 'invalid signature'],
     ])('should accept %s as anonymous and emit unauthorized', async (_, token, message) => {
-      await initApp();
+      await initApp(false);
 
       const result = await connect(token());
 
@@ -118,7 +118,7 @@ describe('WebSockets — invalid handshake token (e2e)', () => {
     });
 
     it('should not emit unauthorized for a valid token', async () => {
-      await initApp();
+      await initApp(false);
 
       const result = await connect(validToken());
 
@@ -131,12 +131,12 @@ describe('WebSockets — invalid handshake token (e2e)', () => {
     });
   });
 
-  describe('rejectInvalidToken: true', () => {
+  describe('default since v6 (rejectInvalidToken: true)', () => {
     it.each([
       ['a malformed token', () => 'not-a-jwt', 'Unauthorized: jwt malformed'],
       ['an expired token', expiredToken, 'Unauthorized: jwt expired'],
     ])('should refuse %s with a connect_error', async (_, token, message) => {
-      await initApp(true);
+      await initApp();
 
       const result = await connect(token());
 
@@ -148,7 +148,7 @@ describe('WebSockets — invalid handshake token (e2e)', () => {
     });
 
     it('should accept a valid token with its user', async () => {
-      await initApp(true);
+      await initApp();
 
       const result = await connect(validToken());
 
@@ -161,7 +161,7 @@ describe('WebSockets — invalid handshake token (e2e)', () => {
     });
 
     it('should still accept a socket without any token as anonymous', async () => {
-      await initApp(true);
+      await initApp();
 
       const result = await connect();
 

@@ -62,7 +62,7 @@ describe('SocketConfigHelper', () => {
     });
 
     it.each([
-      [undefined, false],
+      [undefined, true],
       [false, false],
       [true, true],
     ])('should store rejectInvalidToken=%s as %s in the config store', (rejectInvalidToken, expected) => {

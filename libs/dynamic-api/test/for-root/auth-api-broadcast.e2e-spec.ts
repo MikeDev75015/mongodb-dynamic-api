@@ -25,16 +25,16 @@ describe('DynamicApiModule forRoot - useAuth with broadcast options (e2e)', () =
         login: {
           loginField: 'email',
           passwordField: 'password',
-          broadcast: { enabled: true },
+          broadcast: { public: true, enabled: true },
         },
         register: {
-          broadcast: { enabled: true, fields: ['id', 'email'] },
+          broadcast: { public: true, enabled: true, fields: ['id', 'email'] },
         },
         getAccount: {
-          broadcast: { enabled: true, fields: ['id', 'email'] },
+          broadcast: { public: true, enabled: true, fields: ['id', 'email'] },
         },
         updateAccount: {
-          broadcast: { enabled: true, fields: ['id', 'email'] },
+          broadcast: { public: true, enabled: true, fields: ['id', 'email'] },
         },
       },
     },

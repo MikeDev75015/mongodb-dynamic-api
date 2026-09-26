@@ -3,7 +3,9 @@ import type { Mock } from 'vitest';
 import { SocketAdapter } from './socket-adapter';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import * as jwt from 'jsonwebtoken';
+import { DYNAMIC_API_AUTHENTICATED_ROOM } from '../helpers/authenticated-room.constant';
 import { DynamicApiWsConfigStore } from '../helpers/ws-config.store';
+import { DynamicApiGlobalStateService } from '../services/dynamic-api-global-state/dynamic-api-global-state.service';
 
 vi.mock('jsonwebtoken', () => ({
   verify: vi.fn(),
@@ -75,12 +77,14 @@ describe('SocketAdapter', () => {
       const socket = {
         id: 'sock-1',
         handshake: { auth: { token: 'tok' }, query: {} },
+        join: vi.fn(),
       };
 
       connectionHandler(socket);
 
       expect(jwt.verify).toHaveBeenCalledWith('tok', 'secret');
       expect(socket['user']).toEqual({ id: 'user-1', name: 'Test' });
+      expect(socket.join).toHaveBeenCalledWith(DYNAMIC_API_AUTHENTICATED_ROOM);
     });
 
     it('should treat a refresh token as an invalid handshake token', () => {
@@ -97,7 +101,7 @@ describe('SocketAdapter', () => {
     it('should strip the typ claim from the socket user', () => {
       (jwt.verify as Mock).mockReturnValue({ iat: 1, exp: 2, typ: 'access', id: 'user-1' });
       DynamicApiWsConfigStore.jwtSecret = 'secret';
-      const socket = { id: 'sock-a', handshake: { auth: { token: 'tok' }, query: {} } };
+      const socket = { id: 'sock-a', handshake: { auth: { token: 'tok' }, query: {} }, join: vi.fn() };
 
       connectionHandler(socket);
 
@@ -132,7 +136,7 @@ describe('SocketAdapter', () => {
       const onConnection = vi.fn();
       DynamicApiWsConfigStore.onConnection = onConnection;
 
-      const socket = { id: 'sock-4', handshake: { auth: { token: 'tok' }, query: {} } };
+      const socket = { id: 'sock-4', handshake: { auth: { token: 'tok' }, query: {} }, join: vi.fn() };
       connectionHandler(socket);
 
       expect(onConnection).toHaveBeenCalledWith(socket, { id: 'u1' });
@@ -382,6 +386,56 @@ describe('SocketAdapter', () => {
     });
   });
 
+  describe('bindClientConnect', () => {
+    it('should join authenticated sockets to the authenticated room before calling the gateway callback', () => {
+      (jwt.verify as Mock).mockReturnValue({ typ: 'access', id: 'u1' });
+      DynamicApiWsConfigStore.jwtSecret = 'secret';
+      let handler: (socket: unknown) => void = () => undefined;
+      const namespaceServer = { on: vi.fn((_: string, cb: typeof handler) => { handler = cb; }) };
+      const callback = vi.fn();
+      const socket = { id: 'ns-1', handshake: { auth: { token: 'tok' } }, join: vi.fn() };
+
+      adapter.bindClientConnect(namespaceServer as never, callback);
+      handler(socket);
+
+      expect(socket.join).toHaveBeenCalledWith(DYNAMIC_API_AUTHENTICATED_ROOM);
+      expect(socket['user']).toEqual({ id: 'u1' });
+      expect(callback).toHaveBeenCalledWith(socket);
+    });
+
+    it('should not join anonymous sockets', () => {
+      DynamicApiWsConfigStore.jwtSecret = 'secret';
+      let handler: (socket: unknown) => void = () => undefined;
+      const namespaceServer = { on: vi.fn((_: string, cb: typeof handler) => { handler = cb; }) };
+      const callback = vi.fn();
+      const socket = { id: 'ns-2', handshake: { auth: {} }, join: vi.fn() };
+
+      adapter.bindClientConnect(namespaceServer as never, callback);
+      handler(socket);
+
+      expect(socket.join).not.toHaveBeenCalled();
+      expect(callback).toHaveBeenCalledWith(socket);
+    });
+  });
+
+  describe('JWT secret fallback', () => {
+    it('should verify with the auth secret when enableDynamicAPIWebSockets did not fill the store', () => {
+      (jwt.verify as Mock).mockReturnValue({ typ: 'access', id: 'u1' });
+      const getValue = vi.spyOn(DynamicApiGlobalStateService, 'getValue').mockReturnValue('auth-secret' as never);
+      let handler: (socket: unknown) => void = () => undefined;
+      const namespaceServer = { on: vi.fn((_: string, cb: typeof handler) => { handler = cb; }) };
+      const socket = { id: 'ns-3', handshake: { auth: { token: 'tok' } }, join: vi.fn() };
+
+      adapter.bindClientConnect(namespaceServer as never, vi.fn());
+      handler(socket);
+
+      expect(getValue).toHaveBeenCalledWith('jwtSecret');
+      expect(jwt.verify).toHaveBeenCalledWith('tok', 'auth-secret');
+      expect(socket.join).toHaveBeenCalledWith(DYNAMIC_API_AUTHENTICATED_ROOM);
+      getValue.mockRestore();
+    });
+  });
+
   describe('rejectInvalidToken middleware', () => {
     beforeEach(() => {
       adapter.createIOServer(5000);
@@ -389,6 +443,7 @@ describe('SocketAdapter', () => {
     });
 
     it('should let every socket through when rejectInvalidToken is false', () => {
+      DynamicApiWsConfigStore.rejectInvalidToken = false;
       const next = vi.fn();
 
       middleware({ id: 'mw-1', handshake: { auth: { token: 'bad' } } }, next);
