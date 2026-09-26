@@ -174,7 +174,17 @@ commands:
           # (it would point at a pre-rewrite commit that never lands on main): create-version-tags-job
           # tags main's own HEAD once the PR has merged.
           name: Enable rebase auto-merge of the PR into main
-          command: gh pr merge "${CIRCLE_BRANCH}" -R ${GH_OWNER}/${GH_REPO} --auto --rebase --delete-branch
+          # GitHub recomputes mergeability right after the push above, and rejects the call with
+          # "Pull Request is not mergeable" until it's done: retry for up to ~2 minutes.
+          command: |
+            for attempt in $(seq 1 12); do
+              if gh pr merge "${CIRCLE_BRANCH}" -R ${GH_OWNER}/${GH_REPO} --auto --rebase --delete-branch; then
+                exit 0
+              fi
+              echo "Auto-merge not accepted yet (attempt ${attempt}/12), retrying in 10s..."
+              sleep 10
+            done
+            exit 1
 
   create-version-tags-command:
     description: "Tag main with the package.json version, unless that tag already exists"
