@@ -117,6 +117,33 @@ interface DynamicApiWebSocketSetupOptions {
    * ```
    */
   failOnEventCollision?: boolean;
+  /**
+   * When `true`, a socket whose handshake carries a token (`auth.token`) that fails JWT
+   * verification (expired, bad signature, malformed…) is **refused** by a Socket.IO middleware:
+   * the client receives a `connect_error` whose `message` starts with `Unauthorized:`, so its
+   * refresh-then-reconnect logic can run. Sockets connecting without any token are still
+   * accepted as anonymous. Defaults to `false`.
+   *
+   * When `false`, the socket is accepted as anonymous (`user` is `undefined`), but an
+   * `unauthorized` event (`{ reason: 'invalid-token', message }`) is emitted to it before
+   * `onConnection` runs, so the client is never silently left out of its rooms.
+   *
+   * @example
+   * ```typescript
+   * enableDynamicAPIWebSockets(app, { rejectInvalidToken: true });
+   * ```
+   */
+  rejectInvalidToken?: boolean;
+}
+
+/**
+ * Payload of the `unauthorized` event emitted to a socket whose handshake token failed JWT
+ * verification, when `rejectInvalidToken` is not enabled.
+ */
+interface SocketUnauthorizedPayload {
+  reason: 'invalid-token';
+  /** The JWT verification error message (e.g. `jwt expired`). */
+  message: string;
 }
 
 export type {
@@ -126,4 +153,5 @@ export type {
   ExtendedSocket,
   GatewayOptions,
   GatewayResponse,
+  SocketUnauthorizedPayload,
 };

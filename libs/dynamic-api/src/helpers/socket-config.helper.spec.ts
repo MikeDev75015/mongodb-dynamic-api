@@ -61,10 +61,31 @@ describe('SocketConfigHelper', () => {
       expect(DynamicApiWsConfigStore.customEvents).toBe(customEvents);
     });
 
+    it.each([
+      [undefined, false],
+      [false, false],
+      [true, true],
+    ])('should store rejectInvalidToken=%s as %s in the config store', (rejectInvalidToken, expected) => {
+      enableDynamicAPIWebSockets(fakeApp, { rejectInvalidToken });
+
+      expect(DynamicApiWsConfigStore.rejectInvalidToken).toBe(expected);
+    });
+
     it('should default customEvents to empty array when not provided', () => {
       enableDynamicAPIWebSockets(fakeApp);
 
       expect(DynamicApiWsConfigStore.customEvents).toEqual([]);
+    });
+
+    it('should ignore process warnings other than MaxListenersExceededWarning', () => {
+      const spyConsoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      spySocketAdapter.mockImplementationOnce(function () {
+        process.emit('warning', { name: 'DeprecationWarning' } as unknown as Error);
+      });
+
+      expect(() => enableDynamicAPIWebSockets(fakeApp)).not.toThrow();
+      expect(spyConsoleWarn).not.toHaveBeenCalled();
     });
 
     it('should throw on MaxListenersExceededWarning error', () => {

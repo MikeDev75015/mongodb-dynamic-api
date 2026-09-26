@@ -12,12 +12,16 @@ vi.mock('jsonwebtoken', () => ({
 describe('SocketAdapter', () => {
   let adapter: SocketAdapter;
   let connectionHandler: (socket: any) => void;
+  let middleware: (socket: any, next: (err?: Error) => void) => void;
 
   const fakeServer = {
     on: vi.fn((event: string, handler: any) => {
       if (event === 'connection') {
         connectionHandler = handler;
       }
+    }),
+    use: vi.fn((fn: any) => {
+      middleware = fn;
     }),
   };
 
@@ -37,6 +41,7 @@ describe('SocketAdapter', () => {
       const server = adapter.createIOServer(5000);
       expect(server).toStrictEqual(fakeServer);
       expect(fakeServer.on).toHaveBeenCalledWith('connection', expect.any(Function));
+      expect(fakeServer.use).toHaveBeenCalledWith(expect.any(Function));
     });
 
     it('should reuse the same server on subsequent calls', () => {
@@ -119,12 +124,42 @@ describe('SocketAdapter', () => {
       DynamicApiWsConfigStore.debug = true;
       const spyWarn = vi.spyOn(adapter['logger'], 'warn').mockImplementation(() => {});
 
-      const socket = { id: 'sock-6', handshake: { auth: { token: 'bad' }, query: {} } };
+      const socket = { id: 'sock-6', handshake: { auth: { token: 'bad' }, query: {} }, emit: vi.fn() };
       connectionHandler(socket);
 
       expect(spyWarn).toHaveBeenCalledWith(
         expect.stringContaining('JWT verification failed'),
       );
+    });
+
+    it.each([
+      ['an Error', new Error('jwt expired'), 'jwt expired'],
+      ['a non-Error value', 'malformed', 'malformed'],
+    ])('should emit unauthorized and connect anonymously when verification throws %s', (_, thrown, message) => {
+      (jwt.verify as Mock).mockImplementation(() => { throw thrown; });
+      DynamicApiWsConfigStore.jwtSecret = 'secret';
+      const spyWarn = vi.spyOn(adapter['logger'], 'warn').mockImplementation(() => {});
+      const onConnection = vi.fn();
+      DynamicApiWsConfigStore.onConnection = onConnection;
+
+      const socket = { id: 'sock-6b', handshake: { auth: { token: 'expired' }, query: {} }, emit: vi.fn() };
+      connectionHandler(socket);
+
+      expect(socket.emit).toHaveBeenCalledWith('unauthorized', { reason: 'invalid-token', message });
+      expect(socket.emit.mock.invocationCallOrder[0]).toBeLessThan(onConnection.mock.invocationCallOrder[0]);
+      expect(onConnection).toHaveBeenCalledWith(socket, undefined);
+      expect(socket['user']).toBeUndefined();
+      expect(spyWarn).not.toHaveBeenCalled();
+    });
+
+    it('should not emit unauthorized when no token is provided', () => {
+      DynamicApiWsConfigStore.jwtSecret = 'secret';
+      const socket = { id: 'sock-6c', handshake: { auth: {}, query: {} }, emit: vi.fn() };
+
+      connectionHandler(socket);
+
+      expect(jwt.verify).not.toHaveBeenCalled();
+      expect(socket.emit).not.toHaveBeenCalled();
     });
 
     it('should catch async onConnection errors', async () => {
@@ -142,6 +177,16 @@ describe('SocketAdapter', () => {
         expect.stringContaining('onConnection hook error'),
         expect.any(String),
       );
+    });
+
+    it('should log non-Error onConnection rejections without a stack', async () => {
+      DynamicApiWsConfigStore.onConnection = vi.fn().mockRejectedValue('plain failure');
+      const spyError = vi.spyOn(adapter['logger'], 'error').mockImplementation(() => {});
+
+      connectionHandler({ id: 'sock-7b', handshake: { auth: {}, query: {} } });
+      await new Promise((r) => setTimeout(r, 10));
+
+      expect(spyError).toHaveBeenCalledWith('onConnection hook error for socket sock-7b: plain failure', undefined);
     });
 
     describe('customEvents', () => {
@@ -255,6 +300,31 @@ describe('SocketAdapter', () => {
         );
       });
 
+      it('logs non-Error custom event handler rejections without a stack', async () => {
+        const handler = vi.fn().mockRejectedValue('plain failure');
+        const spyError = vi.spyOn(adapter['logger'], 'error').mockImplementation(() => {});
+        let capturedListener: ((payload: unknown) => void) | undefined;
+
+        const eventSocket = {
+          id: 'sock-err2',
+          handshake: { auth: {}, query: {} },
+          on: vi.fn((_name: string, listener: (payload: unknown) => void) => {
+            capturedListener = listener;
+          }),
+        };
+
+        DynamicApiWsConfigStore.customEvents = [{ name: 'failing-event', handler }];
+
+        connectionHandler(eventSocket);
+        capturedListener!({});
+        await new Promise((r) => setTimeout(r, 10));
+
+        expect(spyError).toHaveBeenCalledWith(
+          "customEvent 'failing-event' handler error for socket sock-err2: plain failure",
+          undefined,
+        );
+      });
+
       it('logs debug warning when predicate blocks event and debug is true', () => {
         DynamicApiWsConfigStore.debug = true;
         const spyWarn = vi.spyOn(adapter['logger'], 'warn').mockImplementation(() => {});
@@ -277,6 +347,59 @@ describe('SocketAdapter', () => {
 
         expect(spyWarn).toHaveBeenCalledWith(expect.stringContaining('blocked by predicate'));
       });
+    });
+  });
+
+  describe('rejectInvalidToken middleware', () => {
+    beforeEach(() => {
+      adapter.createIOServer(5000);
+      DynamicApiWsConfigStore.jwtSecret = 'secret';
+    });
+
+    it('should let every socket through when rejectInvalidToken is false', () => {
+      const next = vi.fn();
+
+      middleware({ id: 'mw-1', handshake: { auth: { token: 'bad' } } }, next);
+
+      expect(jwt.verify).not.toHaveBeenCalled();
+      expect(next).toHaveBeenCalledWith();
+    });
+
+    it.each([
+      ['no token is provided', { auth: {} }, undefined],
+      ['the token is valid', { auth: { token: 'tok' } }, { iat: 1, exp: 2, id: 'u1' }],
+    ])('should accept the socket when %s', (_, handshake, decoded) => {
+      DynamicApiWsConfigStore.rejectInvalidToken = true;
+      (jwt.verify as Mock).mockReturnValue(decoded);
+      const next = vi.fn();
+
+      middleware({ id: 'mw-2', handshake }, next);
+
+      expect(next).toHaveBeenCalledWith();
+    });
+
+    it('should accept the socket when no jwtSecret is configured', () => {
+      DynamicApiWsConfigStore.rejectInvalidToken = true;
+      DynamicApiWsConfigStore.jwtSecret = undefined;
+      const next = vi.fn();
+
+      middleware({ id: 'mw-3', handshake: { auth: { token: 'tok' } } }, next);
+
+      expect(jwt.verify).not.toHaveBeenCalled();
+      expect(next).toHaveBeenCalledWith();
+    });
+
+    it.each([false, true])('should refuse the socket with an Unauthorized error when the token is invalid (debug=%s)', (debug) => {
+      DynamicApiWsConfigStore.rejectInvalidToken = true;
+      DynamicApiWsConfigStore.debug = debug;
+      (jwt.verify as Mock).mockImplementation(() => { throw new Error('jwt expired'); });
+      const spyWarn = vi.spyOn(adapter['logger'], 'warn').mockImplementation(() => {});
+      const next = vi.fn();
+
+      middleware({ id: 'mw-4', handshake: { auth: { token: 'expired' } } }, next);
+
+      expect(next).toHaveBeenCalledWith(new Error('Unauthorized: jwt expired'));
+      expect(spyWarn).toHaveBeenCalledTimes(debug ? 1 : 0);
     });
   });
 });
