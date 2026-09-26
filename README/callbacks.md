@@ -42,6 +42,7 @@ Both `beforeSaveCallback` and `callback` (after save) **receive the authenticate
   - [Signatures](#beforedelete-signatures)
   - [Example — Block deletion based on business rule](#example--block-deletion-based-on-business-rule)
 - [CallbackMethods](#callbackmethods)
+  - [Returned documents](#returned-documents)
 - [rawUpdateOneDocument & rawUpdateManyDocuments](#rawupdateonedocument--rawupdatemanydocuments)
 - [Accessing the authenticated user](#accessing-the-authenticated-user)
   - [Typing the user parameter](#typing-the-user-parameter)
@@ -663,6 +664,42 @@ type CallbackMethods = {
 > **💡 Tip:** The entity class you pass to `methods` methods does **not** need to be the same entity as the route. You can interact with any registered entity — this is how you create audit logs, send notifications to other collections, etc.
 
 > **💡 `@DerivedField` fields:** `updateOneDocument`/`rawUpdateOneDocument` already recompute and persist any `on: 'save'`/`'both'` [`@DerivedField`](./entities.md#derivedfieldcomputefn-options) declared on the entity you pass them, automatically — no action needed. `updateManyDocuments`/`rawUpdateManyDocuments` don't (recomputing derived fields on every touched document unconditionally isn't free) — call `recomputeDerivedFields(entity, id)` yourself, once per document, after one of those. See [`@DerivedField` → Staying in sync on writes outside CreateOne/UpdateOne](./entities.md#staying-in-sync-on-writes-outside-createoneupdateone).
+
+### Returned documents
+
+`findOneDocument`, `findManyDocuments`, `createOneDocument` and `createManyDocuments` all return **plain objects** carrying every schema field, `_id`, and a string `id` — never a hydrated Mongoose document. The result of a create can be used (or broadcast) as-is, without re-reading it:
+
+```typescript
+import { Prop, Schema } from '@nestjs/mongoose';
+import { AfterSaveCallback, BaseEntity } from 'mongodb-dynamic-api';
+
+@Schema({ collection: 'orders' })
+class Order extends BaseEntity {
+  @Prop({ type: String, required: true })
+  customerId: string;
+}
+
+@Schema({ collection: 'shipments' })
+class Shipment extends BaseEntity {
+  @Prop({ type: String, required: true })
+  orderId: string;
+
+  @Prop({ type: String, required: true })
+  customerId: string;
+}
+
+const onOrderCreated: AfterSaveCallback<Order> = async (order, methods) => {
+  const shipment = await methods.createOneDocument(Shipment, {
+    orderId: order.id,
+    customerId: order.customerId,
+  });
+
+  // Every field is populated: shipment.id, shipment.orderId, shipment.customerId
+  console.log(`Shipment ${shipment.id} created for customer ${shipment.customerId}`);
+};
+```
+
+> **v5.4:** before this version, `createOneDocument`/`createManyDocuments` spread the hydrated document returned by `model.create()`, which only copied Mongoose internals (`$__`, `_doc`) — every schema field except `id` came back `undefined`. If you worked around it by re-reading the document with `findOneDocument` right after creating it, that extra read can be removed.
 
 ---
 
