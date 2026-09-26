@@ -10,6 +10,7 @@ describe('DynamicApiWsConfigStore', () => {
     expect(DynamicApiWsConfigStore.debug).toBe(false);
     expect(DynamicApiWsConfigStore.onConnection).toBeUndefined();
     expect(DynamicApiWsConfigStore.jwtSecret).toBeUndefined();
+    expect(DynamicApiWsConfigStore.rejectInvalidToken).toBe(false);
   });
 
   it('should store and retrieve onConnection', () => {
@@ -35,12 +36,14 @@ describe('DynamicApiWsConfigStore', () => {
     DynamicApiWsConfigStore.debug = true;
     DynamicApiWsConfigStore.jwtSecret = 'secret';
     DynamicApiWsConfigStore.onConnection = vi.fn();
+    DynamicApiWsConfigStore.rejectInvalidToken = true;
 
     DynamicApiWsConfigStore.reset();
 
     expect(DynamicApiWsConfigStore.debug).toBe(false);
     expect(DynamicApiWsConfigStore.onConnection).toBeUndefined();
     expect(DynamicApiWsConfigStore.jwtSecret).toBeUndefined();
+    expect(DynamicApiWsConfigStore.rejectInvalidToken).toBe(false);
   });
 });
 

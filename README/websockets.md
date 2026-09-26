@@ -22,6 +22,7 @@ Add WebSocket support to your API to make your routes accessible via Socket.IO i
   - [Event Name Collisions](#event-name-collisions)
   - [Authentication Events](#authentication-events-1)
 - [Authentication with WebSockets](#authentication-with-websockets)
+  - [Invalid or Expired Handshake Tokens](#invalid-or-expired-handshake-tokens)
 - [Server-Side Room Assignment (onConnection)](#server-side-room-assignment-onconnection)
 - [Debug Mode](#debug-mode)
 - [Client Integration](#client-integration)
@@ -1298,6 +1299,90 @@ socket.emit('auth-get-account', {}, (response) => {
 ```
 
 > **v5:** the `query.accessToken` (query string) transport is gone — the server only ever reads `socket.handshake.auth.token` now. It exposed the token in URLs and server logs, so this is a security hardening as well as a cleanup; switch any client still using `query: { accessToken }` to the `auth` object above.
+
+### Invalid or Expired Handshake Tokens
+
+A socket that connects **without** a token is accepted as anonymous. A socket that connects **with** a token that fails JWT verification (expired, bad signature, malformed) is never accepted silently — typically a tab that reconnects in the background with an access token that expired in the meantime. Two behaviors are available through `enableDynamicAPIWebSockets`:
+
+**Signature:**
+
+```typescript
+interface DynamicApiWebSocketSetupOptions {
+  // ...
+  rejectInvalidToken?: boolean; // default: false
+}
+
+interface SocketUnauthorizedPayload {
+  reason: 'invalid-token';
+  message: string; // JWT verification error, e.g. 'jwt expired'
+}
+```
+
+| `rejectInvalidToken` | Invalid token → | Client sees |
+|---|---|---|
+| `false` (default) | socket accepted as anonymous (`user` is `undefined` in `onConnection`) | an `unauthorized` event (`SocketUnauthorizedPayload`), emitted before `onConnection` runs |
+| `true` | handshake refused by a Socket.IO middleware — `onConnection` never runs | a `connect_error` whose `message` is `Unauthorized: <reason>` |
+
+**Server:**
+
+```typescript
+// src/main.ts
+import { NestFactory } from '@nestjs/core';
+import { enableDynamicAPIWebSockets } from 'mongodb-dynamic-api';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+
+  enableDynamicAPIWebSockets(app, {
+    rejectInvalidToken: true,
+    onConnection: (socket, user) => {
+      // Only reached with a valid token or no token at all
+    },
+  });
+
+  await app.listen(3000);
+}
+bootstrap();
+```
+
+**Client — refresh then reconnect (`rejectInvalidToken: true`):**
+
+```typescript
+import { io } from 'socket.io-client';
+import { refreshAccessToken } from './auth-api'; // your own refresh call (e.g. POST /auth/refresh-token)
+
+const socket = io('http://localhost:3000', {
+  // A function is re-evaluated on every (re)connection attempt
+  auth: (cb) => cb({ token: localStorage.getItem('accessToken') }),
+});
+
+socket.on('connect_error', async (error) => {
+  if (error.message.startsWith('Unauthorized:')) {
+    const accessToken = await refreshAccessToken();
+    localStorage.setItem('accessToken', accessToken);
+    socket.connect(); // a middleware refusal disables auto-reconnect: reconnect manually
+  }
+});
+```
+
+**Client — default mode:**
+
+```typescript
+import { io } from 'socket.io-client';
+import type { SocketUnauthorizedPayload } from 'mongodb-dynamic-api';
+import { refreshAccessToken } from './auth-api';
+
+const socket = io('http://localhost:3000', {
+  auth: (cb) => cb({ token: localStorage.getItem('accessToken') }),
+});
+
+socket.on('unauthorized', async ({ message }: SocketUnauthorizedPayload) => {
+  console.warn(`Connected anonymously: ${message}`);
+  localStorage.setItem('accessToken', await refreshAccessToken());
+  socket.disconnect().connect(); // reconnect with the fresh token to join the user's rooms
+});
+```
 
 ---
 
