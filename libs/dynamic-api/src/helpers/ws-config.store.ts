@@ -10,7 +10,7 @@ export class DynamicApiWsConfigStore {
   static customEvents: CustomSocketEventConfig[] = [];
   static debug = false;
   static jwtSecret: string | undefined;
-  private static rejectInvalidTokenValue = false;
+  private static rejectInvalidTokenValue = true;
 
   static get rejectInvalidToken(): boolean {
     return this.rejectInvalidTokenValue;
@@ -26,7 +26,7 @@ export class DynamicApiWsConfigStore {
     this.customEvents = [];
     this.debug = false;
     this.jwtSecret = undefined;
-    this.rejectInvalidToken = false;
+    this.rejectInvalidToken = true;
   }
 }
 

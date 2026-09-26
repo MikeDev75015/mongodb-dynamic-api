@@ -81,18 +81,20 @@ describe('DynamicApiModule forFeature - Websockets (e2e)', () => {
             type: 'CreateMany',
             webSocket: true,
             broadcast: {
+              public: true, // receivers are anonymous test sockets
               enabled: (_, user) => (user as UserEntity).isAdmin === true,
             },
           },
           {
             type: 'CreateOne',
             webSocket: true,
-            broadcast: { enabled: true },
+            broadcast: { public: true, enabled: true },
           },
           {
             type: 'UpdateMany',
             webSocket: true,
             broadcast: {
+              public: true, // receivers are anonymous test sockets
               enabled: false,
               eventName: customEvent,
             },
@@ -101,6 +103,7 @@ describe('DynamicApiModule forFeature - Websockets (e2e)', () => {
             type: 'UpdateOne',
             webSocket: true,
             broadcast: {
+              public: true, // receivers are anonymous test sockets
               enabled: true,
               eventName: customEvent,
             },
@@ -109,6 +112,7 @@ describe('DynamicApiModule forFeature - Websockets (e2e)', () => {
             type: 'ReplaceOne',
             webSocket: true,
             broadcast: {
+              public: true, // receivers are anonymous test sockets
               enabled: true,
             },
           },
@@ -116,6 +120,7 @@ describe('DynamicApiModule forFeature - Websockets (e2e)', () => {
             type: 'DuplicateOne',
             webSocket: true,
             broadcast: {
+              public: true, // receivers are anonymous test sockets
               enabled: (_, user) => (user as UserEntity).isAdmin === true,
               eventName: customEvent,
             },
@@ -124,6 +129,7 @@ describe('DynamicApiModule forFeature - Websockets (e2e)', () => {
             type: 'DuplicateMany',
             webSocket: true,
             broadcast: {
+              public: true, // receivers are anonymous test sockets
               enabled: true,
             },
           },
@@ -131,6 +137,7 @@ describe('DynamicApiModule forFeature - Websockets (e2e)', () => {
             type: 'DeleteOne',
             webSocket: true,
             broadcast: {
+              public: true, // receivers are anonymous test sockets
               enabled: true,
             },
           },
@@ -138,6 +145,7 @@ describe('DynamicApiModule forFeature - Websockets (e2e)', () => {
             type: 'DeleteMany',
             webSocket: true,
             broadcast: {
+              public: true, // receivers are anonymous test sockets
               enabled: true,
             },
           },

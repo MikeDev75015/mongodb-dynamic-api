@@ -78,11 +78,11 @@ describe('DynamicApiModule forRoot - Websockets EVENT auth-refresh-token with re
       // Wait for the short-lived access token to expire
       await wait(3000);
 
-      // Original access token is expired — auth-get-account should fail
-      await server.emit('auth-get-account', undefined, { accessToken: wsAccessToken });
-      expect(handleSocketException).toHaveBeenCalledWith({ message: 'Unauthorized' });
-      handleSocketException.mockReset();
-      handleSocketResponse.mockReset();
+      // Original access token is expired — the handshake is refused
+      expect(await server.handshake(wsAccessToken)).toStrictEqual({
+        connected: false,
+        error: 'Unauthorized: jwt expired',
+      });
 
       // But the refresh token (10s) is still valid — get a new access token
       await server.emit('auth-refresh-token', undefined, { refreshToken: wsRefreshToken });

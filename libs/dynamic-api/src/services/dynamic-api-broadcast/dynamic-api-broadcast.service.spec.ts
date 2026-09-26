@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, test, vi } from 'vitest';
 import type { Mock, Mocked } from 'vitest';
 import { Server } from 'socket.io';
+import { DYNAMIC_API_AUTHENTICATED_ROOM } from '../../helpers/authenticated-room.constant';
 import { BroadcastConfig } from '../../interfaces';
+import { DynamicApiGlobalStateService } from '../dynamic-api-global-state/dynamic-api-global-state.service';
 import { DynamicApiBroadcastService } from './dynamic-api-broadcast.service';
 
 describe('DynamicApiBroadcastService', () => {
@@ -139,6 +141,31 @@ describe('DynamicApiBroadcastService', () => {
 
         expect(mockServer.emit).toHaveBeenCalledTimes(1);
         expect(mockServer.emit).toHaveBeenCalledWith('admin-event', [{ id: '1', role: 'admin' }]);
+      });
+    });
+
+    describe('authenticated-only broadcasts (auth enabled, no rooms, not public)', () => {
+      it('should emit to the authenticated room only', () => {
+        vi.spyOn(DynamicApiGlobalStateService, 'getValue').mockReturnValue(true as never);
+        service.setWsServer(mockServer as unknown as Server);
+
+        service.broadcastFromHttp('evt', [{ id: '1' }], { enabled: true });
+
+        expect(mockServer.to).toHaveBeenCalledWith(DYNAMIC_API_AUTHENTICATED_ROOM);
+        expect(mockToEmit).toHaveBeenCalledWith('evt', [{ id: '1' }]);
+        expect(mockServer.emit).not.toHaveBeenCalled();
+        vi.restoreAllMocks();
+      });
+
+      it('should emit to every socket when the broadcast is public', () => {
+        vi.spyOn(DynamicApiGlobalStateService, 'getValue').mockReturnValue(true as never);
+        service.setWsServer(mockServer as unknown as Server);
+
+        service.broadcastFromHttp('evt', [{ id: '1' }], { enabled: true, public: true });
+
+        expect(mockServer.emit).toHaveBeenCalledWith('evt', [{ id: '1' }]);
+        expect(mockServer.to).not.toHaveBeenCalled();
+        vi.restoreAllMocks();
       });
     });
 

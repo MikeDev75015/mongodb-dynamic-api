@@ -17,6 +17,7 @@ Add WebSocket support to your API to make your routes accessible via Socket.IO i
   - [Broadcasting Events](#broadcasting-events)
     - [Broadcasting for CRUD Routes](#broadcasting-for-crud-routes)
     - [Broadcasting for Auth Routes](#broadcasting-for-auth-routes)
+    - [Authenticated-Only Broadcasts](#authenticated-only-broadcasts)
     - [Room-Targeted Broadcasting](#room-targeted-broadcasting)
 - [Available Events](#available-events)
   - [Event Name Collisions](#event-name-collisions)
@@ -192,7 +193,11 @@ socket.emit('list-products', { page: 1, limit: 10 }, (response) => {
 
 ### Broadcasting Events
 
-You can automatically broadcast event responses to all connected clients (except the sender) using the `broadcast` option. This is useful for real-time synchronization across multiple clients.
+You can automatically broadcast event responses to connected clients (except the sender) using the `broadcast` option. This is useful for real-time synchronization across multiple clients.
+
+Who receives a broadcast without `rooms`:
+- **auth enabled (`useAuth`)** — only authenticated sockets (since v6), see [Authenticated-Only Broadcasts](#authenticated-only-broadcasts);
+- **no auth** — every connected socket.
 
 #### Broadcasting for CRUD Routes
 
@@ -318,7 +323,7 @@ DynamicApiModule.forFeature({
 The `broadcast` option accepts an object with the following properties:
 
 - `enabled` (required): Can be:
-  - `true` - Always broadcasts to all clients
+  - `true` - Always broadcasts (to the recipients described by `rooms` / `public`)
   - `false` - Never broadcasts (same as omitting the option)
   - `BroadcastAbilityPredicate<ResponseData>` - Function with signature `(data: ResponseData, user: User) => boolean` that determines whether to broadcast a specific entity. **This predicate is evaluated per entity**: for routes that return multiple entities (e.g., `CreateMany`, `UpdateMany`, `DuplicateMany`, `DeleteMany`), the function is called once for each entity in the response, and only entities that pass the test are broadcasted.
 
@@ -329,9 +334,11 @@ The `broadcast` option accepts an object with the following properties:
   - `string[]` — multiple static room names (e.g., `['room-a', 'room-b']`)
   - `(data: ResponseData) => string | string[]` — a function called **per entity** that dynamically resolves room(s) from the entity data. All resolved rooms are deduplicated.
 
-  When `rooms` is set, only clients that have **joined** those rooms (via the `join-rooms` event) will receive the broadcast. When `rooms` is not set, all connected clients receive the broadcast (default behavior).
+  When `rooms` is set, only clients that have **joined** those rooms (via the `join-rooms` event) will receive the broadcast. When `rooms` is not set, the broadcast goes to authenticated sockets when auth is enabled, to every socket otherwise.
 
   See [Room-Targeted Broadcasting](#room-targeted-broadcasting) for full details and examples.
+
+- `public` (optional, since v6): `true` sends a broadcast without `rooms` to **every** connected socket, anonymous ones included — the v5 behavior. Ignored when `rooms` is set or when auth is not enabled. See [Authenticated-Only Broadcasts](#authenticated-only-broadcasts).
 
 **Special Note for Delete Routes:**
 
@@ -527,11 +534,85 @@ DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
 - ✅ `updateAccount` → broadcasts `auth-update-account-broadcast` (or custom `eventName`)
 - ❌ `resetPassword` / `changePassword` — not supported
 
+Auth broadcasts follow the same recipient rules as CRUD broadcasts: authenticated sockets only unless `rooms` or `public: true` is set (see [Authenticated-Only Broadcasts](#authenticated-only-broadcasts)).
+
 > See the [Broadcasting Auth Events](./authentication.md#broadcasting-auth-events) section in the Authentication documentation for full details, including how to filter fields and the data source for each action.
+
+### Authenticated-Only Broadcasts
+
+> **v6 breaking change.** In v5 a broadcast without `rooms` reached every connected socket, anonymous ones included, so any unauthenticated client could listen to every create/update/delete. Since v6, when auth is enabled (`useAuth`), it only reaches **authenticated** sockets.
+
+A socket is authenticated, and joins the `DYNAMIC_API_AUTHENTICATED_ROOM` room (`'dynamic-api:authenticated'`), when:
+- it connects with a valid access token in the handshake (`io(url, { auth: { token } })`), or
+- it logs in through the `auth-login` WebSocket event.
+
+**Signature:**
+
+```typescript
+interface BroadcastConfig<ResponseData extends object, User = unknown> {
+  enabled: boolean | BroadcastAbilityPredicate<ResponseData, User>;
+  eventName?: string;
+  rooms?: BroadcastRooms<ResponseData, User>;
+  /** v6 — `true` sends a room-less broadcast to every socket, anonymous ones included. */
+  public?: boolean;
+}
+
+const DYNAMIC_API_AUTHENTICATED_ROOM = 'dynamic-api:authenticated';
+```
+
+| Auth enabled | `rooms` | `public` | Recipients |
+|---|---|---|---|
+| yes | not set | not set / `false` | authenticated sockets |
+| yes | not set | `true` | every socket |
+| yes / no | set | ignored | sockets in the resolved rooms |
+| no | not set | ignored | every socket |
+
+**Example: a private feed and a public feed**
+
+```typescript
+// src/articles/articles.module.ts
+import { Module } from '@nestjs/common';
+import { DynamicApiModule } from 'mongodb-dynamic-api';
+import { Article } from './article.entity';
+
+@Module({
+  imports: [
+    DynamicApiModule.forFeature({
+      entity: Article,
+      controllerOptions: { path: 'articles' },
+      routes: [
+        // Authenticated sockets only (default when auth is enabled)
+        { type: 'UpdateOne', broadcast: { enabled: true } },
+        // Every socket, anonymous visitors included
+        { type: 'CreateOne', broadcast: { enabled: true, public: true } },
+      ],
+    }),
+  ],
+})
+export class ArticlesModule {}
+```
+
+**Client:**
+
+```typescript
+import { io } from 'socket.io-client';
+
+// Receives `update-one-article` and `create-one-article`
+const member = io('http://localhost:3000', {
+  auth: (cb) => cb({ token: localStorage.getItem('accessToken') }),
+});
+member.on('update-one-article', (articles) => console.log('updated', articles));
+
+// Receives `create-one-article` only
+const visitor = io('http://localhost:3000');
+visitor.on('create-one-article', (articles) => console.log('new', articles));
+```
+
+> **Custom Socket.IO adapter:** `enableDynamicAPIWebSockets(app)` and `new SocketAdapter(app)` join authenticated sockets to the room for you. If you install your own adapter, join `DYNAMIC_API_AUTHENTICATED_ROOM` yourself once the socket is authenticated (`socket.join(DYNAMIC_API_AUTHENTICATED_ROOM)`), or mark the routes `public: true`.
 
 ### Room-Targeted Broadcasting
 
-By default, broadcasts are sent to **all** connected WebSocket clients. With the `rooms` option, you can restrict broadcasts to only the clients that have joined specific [Socket.IO rooms](https://socket.io/docs/v4/rooms/). This is useful when different groups of clients care about different subsets of data (e.g., per-tenant, per-category, per-project).
+By default, broadcasts are sent to every authenticated socket (auth enabled) or every socket (no auth). With the `rooms` option, you can restrict broadcasts to only the clients that have joined specific [Socket.IO rooms](https://socket.io/docs/v4/rooms/). This is useful when different groups of clients care about different subsets of data (e.g., per-tenant, per-category, per-project).
 
 #### How Rooms Work
 
@@ -539,7 +620,7 @@ By default, broadcasts are sent to **all** connected WebSocket clients. With the
 2. **Server broadcasts to rooms** — when `rooms` is configured on a route's `broadcast`, only sockets in the resolved rooms receive the event.
 3. **Clients leave rooms** by emitting `leave-rooms` (requires authentication).
 
-If `rooms` is **not set**, the broadcast falls back to the default behavior (all connected clients).
+If `rooms` is **not set**, the broadcast falls back to the default behavior (see [Authenticated-Only Broadcasts](#authenticated-only-broadcasts)).
 
 #### Joining and Leaving Rooms
 
@@ -1338,14 +1419,14 @@ socket.emit('auth-get-account', {}, (response) => {
 
 ### Invalid or Expired Handshake Tokens
 
-A socket that connects **without** a token is accepted as anonymous. A socket that connects **with** a token that fails JWT verification (expired, bad signature, malformed) is never accepted silently — typically a tab that reconnects in the background with an access token that expired in the meantime. Two behaviors are available through `enableDynamicAPIWebSockets`:
+A socket that connects **without** a token is accepted as anonymous. A socket that connects **with** a token that fails JWT verification (expired, bad signature, malformed, or not an `access` token) is never accepted silently — typically a tab that reconnects in the background with an access token that expired in the meantime. Two behaviors are available through `enableDynamicAPIWebSockets`:
 
 **Signature:**
 
 ```typescript
 interface DynamicApiWebSocketSetupOptions {
   // ...
-  rejectInvalidToken?: boolean; // default: false
+  rejectInvalidToken?: boolean; // default: true (since v6)
 }
 
 interface SocketUnauthorizedPayload {
@@ -1356,8 +1437,10 @@ interface SocketUnauthorizedPayload {
 
 | `rejectInvalidToken` | Invalid token → | Client sees |
 |---|---|---|
-| `false` (default) | socket accepted as anonymous (`user` is `undefined` in `onConnection`) | an `unauthorized` event (`SocketUnauthorizedPayload`), emitted before `onConnection` runs |
-| `true` | handshake refused by a Socket.IO middleware — `onConnection` never runs | a `connect_error` whose `message` is `Unauthorized: <reason>` |
+| `true` (default since v6) | handshake refused by a Socket.IO middleware — `onConnection` never runs | a `connect_error` whose `message` is `Unauthorized: <reason>` |
+| `false` (v5 default) | socket accepted as anonymous (`user` is `undefined` in `onConnection`) | an `unauthorized` event (`SocketUnauthorizedPayload`), emitted before `onConnection` runs |
+
+> **v6:** `rejectInvalidToken` now defaults to `true`. Pass `rejectInvalidToken: false` to keep the v5 behavior. The same default applies when the adapter is installed directly with `app.useWebSocketAdapter(new SocketAdapter(app))`: the handshake token is then verified with `useAuth.jwt.secret`.
 
 **Server:**
 
@@ -1371,7 +1454,6 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   enableDynamicAPIWebSockets(app, {
-    rejectInvalidToken: true,
     onConnection: (socket, user) => {
       // Only reached with a valid token or no token at all
     },
@@ -1382,7 +1464,7 @@ async function bootstrap() {
 bootstrap();
 ```
 
-**Client — refresh then reconnect (`rejectInvalidToken: true`):**
+**Client — refresh then reconnect (default mode):**
 
 ```typescript
 import { io } from 'socket.io-client';
@@ -1402,7 +1484,25 @@ socket.on('connect_error', async (error) => {
 });
 ```
 
-**Client — default mode:**
+**Server — keep the v5 behavior (`rejectInvalidToken: false`):**
+
+```typescript
+// src/main.ts
+import { NestFactory } from '@nestjs/core';
+import { enableDynamicAPIWebSockets } from 'mongodb-dynamic-api';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+
+  enableDynamicAPIWebSockets(app, { rejectInvalidToken: false });
+
+  await app.listen(3000);
+}
+bootstrap();
+```
+
+**Client — `rejectInvalidToken: false`:**
 
 ```typescript
 import { io } from 'socket.io-client';

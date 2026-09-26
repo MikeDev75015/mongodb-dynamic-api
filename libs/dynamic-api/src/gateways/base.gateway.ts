@@ -3,6 +3,7 @@ import { WsException } from '@nestjs/websockets';
 import { ManyEntityQuery } from '../dtos/many-entity.query';
 import { DynamicApiModule } from '../dynamic-api.module';
 import { isTokenOfType, stripTokenClaims } from '../helpers/auth-token.helper';
+import { DYNAMIC_API_AUTHENTICATED_ROOM } from '../helpers/authenticated-room.constant';
 import { isEmpty } from '../helpers/lodash.helper';
 import { resolveBroadcast } from '../helpers/resolve-broadcast.helper';
 import { DynamicApiWsConfigStore } from '../helpers/ws-config.store';
@@ -76,7 +77,7 @@ export abstract class BaseGateway<Entity extends BaseEntity> {
         return;
       }
 
-      const { event: broadcastEvent, rooms, data: broadcastData } = resolved;
+      const { event: broadcastEvent, rooms, data: broadcastData, authenticatedOnly } = resolved;
 
       if (DynamicApiWsConfigStore.debug) {
         this.logger.log(
@@ -88,6 +89,8 @@ export abstract class BaseGateway<Entity extends BaseEntity> {
 
       if (rooms) {
         socket.nsp.to(rooms).emit(broadcastEvent, broadcastData);
+      } else if (authenticatedOnly) {
+        socket.broadcast.to(DYNAMIC_API_AUTHENTICATED_ROOM).emit(broadcastEvent, broadcastData);
       } else {
         socket.broadcast.emit(broadcastEvent, broadcastData);
       }

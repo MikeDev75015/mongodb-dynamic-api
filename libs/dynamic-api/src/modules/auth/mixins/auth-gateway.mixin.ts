@@ -4,6 +4,7 @@ import { ApiProperty, IntersectionType, PartialType, PickType } from '@nestjs/sw
 import { ConnectedSocket, MessageBody, SubscribeMessage, WsException } from '@nestjs/websockets';
 import { BaseGateway } from '../../../gateways';
 import { stripTokenClaims } from '../../../helpers/auth-token.helper';
+import { DYNAMIC_API_AUTHENTICATED_ROOM } from '../../../helpers/authenticated-room.constant';
 import { isEmpty } from '../../../helpers/lodash.helper';
 import { isNotEmptyObject } from '../../../helpers/format.helper';
 import { stripBusinessValidators } from '../../../helpers/strip-business-validators.helper';
@@ -256,6 +257,9 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
       if (loginAbilityPredicate && !loginAbilityPredicate(socket.user)) {
         throw new WsException('Access denied');
       }
+
+      // An anonymous socket that logs in starts receiving authenticated-only broadcasts.
+      await socket.join(DYNAMIC_API_AUTHENTICATED_ROOM);
 
       const result = await authOperationStorage.run('login', async () => this.service.login(socket.user));
 

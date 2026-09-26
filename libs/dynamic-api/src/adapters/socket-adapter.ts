@@ -2,9 +2,11 @@ import { IoAdapter } from '@nestjs/platform-socket.io';
 import * as jwt from 'jsonwebtoken';
 import { Server, ServerOptions, Socket } from 'socket.io';
 import { isTokenOfType, stripTokenClaims } from '../helpers/auth-token.helper';
+import { DYNAMIC_API_AUTHENTICATED_ROOM } from '../helpers/authenticated-room.constant';
 import { DynamicApiWsConfigStore } from '../helpers/ws-config.store';
 import { ExtendedSocket, SocketUnauthorizedPayload } from '../interfaces';
 import { MongoDBDynamicApiLogger } from '../logger/mongo-dynamic-api.logger';
+import { DynamicApiGlobalStateService } from '../services/dynamic-api-global-state/dynamic-api-global-state.service';
 
 /**
  * Outcome of verifying the handshake token: `user` when it verified, `error` when a token was
@@ -30,8 +32,8 @@ export class SocketAdapter extends IoAdapter {
       // `cors` from the gateway options (`webSocket: { cors }`) wins; any origin is allowed otherwise.
       this.ioServer = super.createIOServer(port, { ...options, cors: options?.cors ?? { origin: '*' } }) as Server;
 
-      // Refuse an invalid token at handshake time (opt-in) so the client gets a real
-      // `connect_error` instead of silently being accepted as anonymous.
+      // Refuse an invalid token at handshake time (default since v6, `rejectInvalidToken: false` to
+      // opt out) so the client gets a real `connect_error` instead of being accepted as anonymous.
       this.ioServer.use((socket: Socket, next: (err?: Error) => void) => {
         if (!DynamicApiWsConfigStore.rejectInvalidToken) {
           return next();
@@ -56,12 +58,34 @@ export class SocketAdapter extends IoAdapter {
     return this.ioServer;
   }
 
+  /**
+   * Called by NestJS for every gateway's server (namespace): authenticated sockets join
+   * `DYNAMIC_API_AUTHENTICATED_ROOM` there, so authenticated-only broadcasts reach them whatever
+   * the namespace.
+   */
+  bindClientConnect(server: Server, callback: (socket: Socket) => void): void {
+    server.on('connection', (socket: Socket) => {
+      this.joinAuthenticatedRoom(socket as ExtendedSocket);
+      callback(socket);
+    });
+  }
+
+  private joinAuthenticatedRoom(socket: ExtendedSocket): void {
+    const { user } = this.verifyHandshakeToken(socket);
+
+    if (user) {
+      socket.user = user;
+      socket.join(DYNAMIC_API_AUTHENTICATED_ROOM);
+    }
+  }
+
   private handleConnection(socket: ExtendedSocket): void {
     const { debug, onConnection, customEvents } = DynamicApiWsConfigStore;
     const { user, error } = this.verifyHandshakeToken(socket);
 
     if (user) {
       socket.user = user;
+      socket.join(DYNAMIC_API_AUTHENTICATED_ROOM);
     }
 
     if (error) {
@@ -115,7 +139,8 @@ export class SocketAdapter extends IoAdapter {
   }
 
   private verifyHandshakeToken(socket: Socket): HandshakeVerification {
-    const { jwtSecret } = DynamicApiWsConfigStore;
+    // `enableDynamicAPIWebSockets` fills the store; `new SocketAdapter(app)` alone falls back to the auth secret.
+    const jwtSecret = DynamicApiWsConfigStore.jwtSecret ?? DynamicApiGlobalStateService.getValue('jwtSecret');
     const token = socket.handshake?.auth?.token as string | undefined;
 
     if (!jwtSecret || !token) {
