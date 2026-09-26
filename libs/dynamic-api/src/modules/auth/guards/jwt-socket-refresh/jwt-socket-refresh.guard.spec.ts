@@ -74,7 +74,7 @@ describe('JwtSocketRefreshGuard', () => {
     it('should set socket.user and return true for a valid JWT token with user data', async () => {
       const secret = 'refresh-secret';
       const jwtService = new JwtService({ secret });
-      const validToken = jwtService.sign({ id: 'user-id', email: 'test@test.co' });
+      const validToken = jwtService.sign({ id: 'user-id', email: 'test@test.co', typ: 'refresh' });
 
       const socket: { handshake: { query: Record<string, string> }; user: unknown } = {
         handshake: { query: { refreshToken: validToken } },
@@ -98,7 +98,7 @@ describe('JwtSocketRefreshGuard', () => {
       guard = new JwtSocketRefreshGuard();
 
       const jwtService = new JwtService({ secret: 'access-secret' });
-      const validToken = jwtService.sign({ id: 'user-id', email: 'test@test.co' });
+      const validToken = jwtService.sign({ id: 'user-id', email: 'test@test.co', typ: 'refresh' });
 
       const socket: { handshake: { query: Record<string, string> }; user: unknown } = {
         handshake: { query: { refreshToken: validToken } },

@@ -28,8 +28,8 @@ describe('JwtStrategy', () => {
   });
 
   describe('validate', () => {
-    it('should return user without iat and exp fields', async () => {
-      const payload = { iat: 123, exp: 456, username: 'test', password: 'test' };
+    it('should return user without iat, exp and typ fields', async () => {
+      const payload = { iat: 123, exp: 456, typ: 'access', username: 'test', password: 'test' };
       const user = await jwtStrategy.validate(payload);
       expect(user).toEqual({ username: 'test', password: 'test' });
     });
@@ -44,10 +44,8 @@ describe('JwtStrategy', () => {
         .rejects.toThrow(UnauthorizedException);
     });
 
-    it('should return an empty object if payload only contains iat and exp fields', async () => {
-      const payload = { iat: 123, exp: 456 };
-      const user = await jwtStrategy.validate(payload);
-      expect(user).toEqual({});
+    it('should reject a token without typ (signed before v5.4.2)', async () => {
+      await expect(jwtStrategy.validate({ iat: 123, exp: 456, username: 'test' })).rejects.toThrow(UnauthorizedException);
     });
   });
 });

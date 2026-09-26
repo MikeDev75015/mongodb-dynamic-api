@@ -6,7 +6,7 @@ import { DynamicApiModule } from '../../src';
 import { closeTestingApp, server } from '../e2e.setup';
 import 'dotenv/config';
 import { getModelFromEntity } from '../utils';
-import { createPasswordlessUserEntity, initModule } from '../shared';
+import { createPasswordlessUserEntity, initModule, TEST_JWT_SECRETS } from '../shared';
 
 describe('DynamicApiModule forRoot - useAuth with passwordless options (e2e)', () => {
   const User = createPasswordlessUserEntity();
@@ -172,7 +172,7 @@ describe('DynamicApiModule forRoot - useAuth with passwordless options (e2e)', (
       });
 
       DynamicApiModule.state['resetState']();
-      const jwtService = new JwtService({ secret: 'dynamic-api-jwt-secret' });
+      const jwtService = new JwtService({ secret: TEST_JWT_SECRETS.secret });
       const decoded = jwtService.decode(body.accessToken) as Record<string, unknown>;
 
       expect(decoded).toHaveProperty('email', user.email);

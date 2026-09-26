@@ -135,6 +135,13 @@ describe('DynamicApiModule forRoot - token types and reset-password tokens (e2e)
       expect((await server.get('/auth/account', { authToken: refreshToken })).status).toBe(401);
     });
 
+    it('should reject an access token without typ (signed before v5.4.2)', async () => {
+      const { body: account } = await server.get('/auth/account', { authToken: (await login()).accessToken });
+      const untypedAccessToken = app.get<JwtService>(JwtService).sign({ id: account.id, email });
+
+      expect((await server.get('/auth/account', { authToken: untypedAccessToken })).status).toBe(401);
+    });
+
     it('should reject an access token used as a refresh token', async () => {
       const { accessToken, refreshToken } = await login();
 

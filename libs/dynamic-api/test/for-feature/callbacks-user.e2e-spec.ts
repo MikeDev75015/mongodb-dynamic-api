@@ -25,6 +25,7 @@ import {
 } from '../../src';
 import { closeTestingApp, createTestingApp, server, TestSocketAdapter } from '../e2e.setup';
 import 'dotenv/config';
+import { TEST_JWT_SECRETS } from '../shared';
 
 /**
  * Integration tests: verify that the authenticated user is correctly
@@ -321,7 +322,7 @@ describe('Callbacks receive authenticated user (e2e)', () => {
 
     const moduleRef = await Test.createTestingModule({
       imports: [
-        DynamicApiModule.forRoot(uri, { useAuth: { userEntity: UserEntity } }),
+        DynamicApiModule.forRoot(uri, { useAuth: { userEntity: UserEntity, jwt: TEST_JWT_SECRETS } }),
         DynamicApiModule.forFeature({
           entity: ItemEntity,
           controllerOptions: { path: 'items' },
@@ -641,7 +642,7 @@ describe('Callbacks receive authenticated user via WebSocket (e2e)', () => {
     const moduleRef = await Test.createTestingModule({
       imports: [
         DynamicApiModule.forRoot(uri, {
-          useAuth: { userEntity: UserEntity, webSocket: true },
+          useAuth: { userEntity: UserEntity, jwt: TEST_JWT_SECRETS, webSocket: true },
         }),
         DynamicApiModule.forFeature({
           entity: ItemEntity,

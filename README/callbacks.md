@@ -1242,6 +1242,7 @@ Authentication routes (`register`, `login`, `updateAccount`, `resetPassword`) al
 ```typescript
 DynamicApiModule.forRoot(uri, {
   useAuth: {
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
     userEntity: UserEntity,
     register: {
       // Transform user data before registration

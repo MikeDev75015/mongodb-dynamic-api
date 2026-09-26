@@ -115,7 +115,7 @@ describe('DynamicApiPresenceModule (e2e)', () => {
         DynamicApiModule.forRoot(uri, {
           useAuth: {
             userEntity: PresenceUserEntity,
-            jwt: { secret: 'presence-e2e-secret', expiresIn: '1h' },
+            jwt: { secret: 'presence-e2e-secret', refreshSecret: 'presence-e2e-refresh-secret', expiresIn: '1h' },
             login: {},
             webSocket: true,
           },

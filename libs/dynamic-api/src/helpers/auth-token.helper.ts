@@ -13,21 +13,12 @@ interface AuthTokenClaims {
 }
 
 /**
- * Whether `payload` may be used as a token of type `expected`. Access and refresh tokens signed
- * before the `typ` claim existed carry none: they stay accepted until they expire, so upgrading
- * doesn't log every user out. Reset-password tokens are short-lived and always need the claim.
+ * Whether `payload` is a token of type `expected`. A token without `typ` (signed before v5.4.2)
+ * is rejected.
  * @internal Not part of the public API.
  */
 function isTokenOfType(payload: AuthTokenClaims | null | undefined, expected: AuthTokenType): boolean {
-  if (!payload) {
-    return false;
-  }
-
-  if (payload.typ === undefined) {
-    return expected !== 'reset';
-  }
-
-  return payload.typ === expected;
+  return payload?.typ === expected;
 }
 
 /**

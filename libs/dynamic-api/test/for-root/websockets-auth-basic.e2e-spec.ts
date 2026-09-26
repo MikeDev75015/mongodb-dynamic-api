@@ -251,7 +251,7 @@ describe('DynamicApiModule forRoot - Websockets Authentication Basic (e2e)', () 
           isAuthEnabled: true,
           jwtExpirationTime: '3s',
           jwtRefreshTokenExpiresIn: '7d',
-          jwtRefreshSecret: undefined,
+          jwtRefreshSecret: 'e2e-jwt-refresh-secret',
           jwtRefreshUseCookie: false,
           onAfterSaveError: undefined,
           refreshTokenOnUpdate: false,

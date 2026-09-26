@@ -59,6 +59,7 @@ describe('JwtSocketGuard', () => {
       auth['token'] = accessToken;
       const verifyAsyncSpy = vi.spyOn(JwtService.prototype, 'verifyAsync').mockResolvedValueOnce({
         user,
+        typ: 'access',
       });
 
       const result = await guard.canActivate(context);

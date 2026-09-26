@@ -91,6 +91,7 @@ import { User } from './users/user.entity';
   imports: [
     DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
       useAuth: {
+        jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
         userEntity: User,
       },
     }),
@@ -112,6 +113,7 @@ export class AppModule {}
 ```typescript
 DynamicApiModule.forRoot('mongodb-uri', {
   useAuth: {
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
     // REQUIRED
     userEntity: User,
     
@@ -119,7 +121,7 @@ DynamicApiModule.forRoot('mongodb-uri', {
     jwt: {
       secret: string;
       expiresIn?: string | number;        // Default: '15m' (⚠️ changed from '1d' in v4)
-      refreshSecret?: string;             // Secret for signing refresh tokens (falls back to `secret` if omitted)
+      refreshSecret: string;              // Secret for signing refresh tokens — required since v6, distinct from `secret`
     },
 
     // Refresh Token Configuration (v4)
@@ -242,6 +244,7 @@ DynamicApiModule.forRoot('mongodb-uri', {
 ```typescript
 DynamicApiModule.forRoot('mongodb-uri', {
   useAuth: {
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
     userEntity: User,
     // Customize login field (default: 'email')
     login: {
@@ -263,7 +266,8 @@ DynamicApiModule.forRoot('mongodb-uri', {
     userEntity: User,
     // JWT configuration
     jwt: {
-      secret: process.env.JWT_SECRET || 'your-secret-key',
+      secret: process.env.JWT_SECRET,
+      refreshSecret: process.env.JWT_REFRESH_SECRET,
       expiresIn: '15m', // Token expiration (v4 default; was '1d' in v3)
     },
     // Customize login
@@ -547,6 +551,7 @@ export class User extends BaseEntity {
 // Configuration
 DynamicApiModule.forRoot('mongodb-uri', {
   useAuth: {
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
     user: { 
       entity: User,
       loginField: 'username',
@@ -562,6 +567,7 @@ Restrict registration to authenticated users only:
 ```typescript
 DynamicApiModule.forRoot('mongodb-uri', {
   useAuth: {
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
     userEntity: User,
     register: {
       protected: true,
@@ -583,6 +589,7 @@ Control access to authentication endpoints using ability predicates. **Note:** A
 ```typescript
 DynamicApiModule.forRoot('mongodb-uri', {
   useAuth: {
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
     userEntity: User,
     login: {
       // Control who can login (e.g., block suspended accounts)
@@ -723,6 +730,7 @@ import { DeviceTokenService } from './device-token.service';
 
 DynamicApiModule.forRoot('mongodb-uri', {
   useAuth: {
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
     userEntity: User,
     login: {
       customValidate: async (req: Request): Promise<User | null> => {
@@ -745,6 +753,7 @@ DynamicApiModule.forRoot('mongodb-uri', {
 ```typescript
 DynamicApiModule.forRoot('mongodb-uri', {
   useAuth: {
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
     userEntity: User,
     login: {
       customValidate: async (req: Request): Promise<User | null> => {
@@ -800,6 +809,7 @@ export class LdapStrategy extends PassportStrategy(Strategy, 'local') {
 // Module configuration
 DynamicApiModule.forRoot('mongodb-uri', {
   useAuth: {
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
     userEntity: User,
     login: {
       useStrategy: LdapStrategy,
@@ -829,6 +839,7 @@ export class ApiKeyStrategy extends PassportStrategy(Strategy, 'local') {
 
 DynamicApiModule.forRoot('mongodb-uri', {
   useAuth: {
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
     userEntity: User,
     login: {
       useStrategy: ApiKeyStrategy,
@@ -921,6 +932,7 @@ export class User extends BaseEntity {
 // Configuration
 DynamicApiModule.forRoot('mongodb-uri', {
   useAuth: {
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
     userEntity: User,
     login: {
       additionalFields: ['role', 'isActive', 'organizationId'],
@@ -955,14 +967,11 @@ Since v5.4.2 every token MDA signs carries a `typ` claim, and each one is only a
 | `refresh` | same | `POST /auth/refresh-token`, `auth-refresh-token` event |
 | `reset` | `POST /auth/reset-password` | `PATCH /auth/change-password` |
 
-A refresh token sent as an access token (or the reverse) is rejected with `401`. Access and refresh tokens signed before v5.4.2 carry no `typ` and stay accepted until they expire, so upgrading logs nobody out.
+A refresh token sent as an access token (or the reverse) is rejected with `401`. Since v6 a token without `typ` (signed before v5.4.2) is rejected too.
 
 Reset-password tokens are verified (signature and expiry) and are **single use**: each token is bound to the password hash it was issued for, so it stops working once the password changes, including through that same token. A reset token without `typ: 'reset'`, forged with another secret, or reused is rejected with `400`.
 
-MDA logs a warning at startup when a secret is missing:
-
-- `useAuth.jwt.secret` not set: tokens are signed with the public default secret, so anyone can forge a valid JWT;
-- `useAuth.jwt.refreshSecret` not set: refresh tokens are signed with the access token secret.
+Since v6 both secrets are **required** and must differ: `DynamicApiModule.forRoot()` throws at startup when `useAuth.jwt.secret` or `useAuth.jwt.refreshSecret` is missing, or when they are equal. There is no default secret any more (it shipped with the package, so anyone could forge tokens signed with it).
 
 ```typescript
 import { DynamicApiModule } from 'mongodb-dynamic-api';
@@ -986,6 +995,7 @@ Configure which fields users can update in their account:
 ```typescript
 DynamicApiModule.forRoot('mongodb-uri', {
   useAuth: {
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
     userEntity: User,
     updateAccount: {
       // Exclude additional fields from updates
@@ -1031,6 +1041,7 @@ DynamicApiModule.forRoot('mongodb-uri', {
 ```typescript
 DynamicApiModule.forRoot('mongodb-uri', {
   useAuth: {
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
     userEntity: User,
     login: {
       additionalFields: ['role', 'name'], // These fields are in the JWT — get stale after update
@@ -1095,6 +1106,7 @@ Enable password reset functionality with email notifications:
 ```typescript
 DynamicApiModule.forRoot('mongodb-uri', {
   useAuth: {
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
     userEntity: User,
     resetPassword: {
       // Field to use for reset (default: same as loginField)
@@ -1146,6 +1158,7 @@ All authentication routes support callbacks:
 ```typescript
 DynamicApiModule.forRoot('mongodb-uri', {
   useAuth: {
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
     userEntity: User,
     login: {
       // After successful login
@@ -1195,6 +1208,7 @@ import { LoggingInterceptor, TransformInterceptor } from './interceptors';
 
 DynamicApiModule.forRoot('mongodb-uri', {
   useAuth: {
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
     userEntity: User,
     login: {
       useInterceptors: [LoggingInterceptor],
@@ -1223,6 +1237,7 @@ Apply custom validation to all auth routes:
 ```typescript
 DynamicApiModule.forRoot('mongodb-uri', {
   useAuth: {
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
     userEntity: User,
     validationPipeOptions: {
       whitelist: true,
@@ -1240,6 +1255,7 @@ Enable WebSocket for authentication routes:
 ```typescript
 DynamicApiModule.forRoot('mongodb-uri', {
   useAuth: {
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
     userEntity: User,
     webSocket: true, // or { namespace: '/auth', cors: { origin: '*' } }
   },
@@ -1307,6 +1323,7 @@ DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
     cors: { origin: '*' },
   },
   useAuth: {
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
     userEntity: User,
     // useAuth.webSocket not needed just for broadcasts
     login: {
@@ -1386,6 +1403,7 @@ login: {
 ```typescript
 DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
   useAuth: {
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
     userEntity: User,
     login: {
       additionalFields: ['role', 'name'], // Added to JWT → available for register broadcast
@@ -1410,6 +1428,7 @@ DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
 ```typescript
 DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
   useAuth: {
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
     userEntity: User,
     login: {
       additionalFields: ['role'],
@@ -1439,6 +1458,7 @@ DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
     cors: { origin: 'http://localhost:4200' },
   },
   useAuth: {
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
     userEntity: User,
     login: {
       additionalFields: ['role', 'name'],
@@ -1481,6 +1501,7 @@ You can restrict auth broadcasts to specific Socket.IO rooms using `rooms`. Clie
 ```typescript
 DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
   useAuth: {
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
     userEntity: User,
     login: {
       additionalFields: ['role', 'department'],
@@ -1732,7 +1753,7 @@ DynamicApiModule.forRoot('mongodb-uri', {
     jwt: {
       secret: process.env.JWT_SECRET,
       expiresIn: '15m',                         // Short-lived access token (v4 default)
-      refreshSecret: process.env.JWT_REFRESH_SECRET, // Optional — falls back to `secret` if omitted
+      refreshSecret: process.env.JWT_REFRESH_SECRET, // Required since v6, distinct from `secret`
     },
     refreshToken: {
       refreshTokenField: 'refreshToken',         // Entity field that stores the bcrypt hash
@@ -1774,6 +1795,7 @@ import { User } from './user.entity';
         userEntity: User,
         jwt: {
           secret: process.env.JWT_SECRET,
+          refreshSecret: process.env.JWT_REFRESH_SECRET,
           expiresIn: '15m',
           refreshTokenExpiresIn: '7d',
         },
@@ -1809,7 +1831,7 @@ Setting `rotate: false` disables per-call rotation. The stored hash is verified 
 DynamicApiModule.forRoot(process.env.MONGO_URI, {
   useAuth: {
     userEntity: User,
-    jwt: { secret: process.env.JWT_SECRET, expiresIn: '15m', refreshTokenExpiresIn: '7d' },
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET, expiresIn: '15m', refreshTokenExpiresIn: '7d' },
     refreshToken: {
       refreshTokenField: 'refreshTokenHash',
       rotate: false, // Persistent token — valid until logout
@@ -1830,7 +1852,7 @@ Set `useCookie: true` to transport the refresh token exclusively via an **httpOn
 DynamicApiModule.forRoot('mongodb-uri', {
   useAuth: {
     userEntity: User,
-    jwt: { secret: process.env.JWT_SECRET },
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
     refreshToken: {
       useCookie: true,
       refreshTokenField: 'refreshToken',
@@ -1882,7 +1904,7 @@ DynamicApiModule.forRoot('mongodb-uri', {
     userEntity: User,
     jwt: {
       secret: process.env.JWT_SECRET,
-      refreshSecret: process.env.JWT_REFRESH_SECRET, // Optional — falls back to `secret` if omitted
+      refreshSecret: process.env.JWT_REFRESH_SECRET, // Required since v6, distinct from `secret`
     },
     refreshToken: {
       refreshTokenField: 'refreshToken',
@@ -1983,6 +2005,7 @@ import { User } from './users/user.entity';
   imports: [
     DynamicApiModule.forRoot(process.env.MONGO_DB_URL, {
       useAuth: {
+        jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
         userEntity: User,
 
         passwordless: {
@@ -2088,7 +2111,7 @@ If your application relied on the `'1d'` access-token lifetime, set it explicitl
 ```typescript
 DynamicApiModule.forRoot(uri, {
   auth: {
-    jwt: { secret: '...', expiresIn: '1d' },
+    jwt: { secret: '...', refreshSecret: '...', expiresIn: '1d' },
   },
 });
 ```
@@ -2126,7 +2149,7 @@ export const authConfig = {
   jwt: {
     secret: process.env.JWT_SECRET,
     expiresIn: process.env.JWT_EXPIRES_IN || '15m',
-    refreshSecret: process.env.JWT_REFRESH_SECRET, // Optional — falls back to `secret` if omitted
+    refreshSecret: process.env.JWT_REFRESH_SECRET, // Required since v6, distinct from `secret`
   },
   refreshToken: {
     refreshTokenExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
@@ -2138,6 +2161,7 @@ import { authConfig } from './config/auth.config';
 
 DynamicApiModule.forRoot(process.env.MONGODB_URI, {
   useAuth: {
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
     userEntity: User,
     jwt: authConfig.jwt,
     refreshToken: authConfig.refreshToken,
@@ -2202,7 +2226,7 @@ export class User extends BaseEntity {
 - ✅ Store access tokens in memory (not `localStorage`) to protect against XSS
 
 **Refresh token:**
-- ✅ Use a **separate** `refreshSecret` from your access token `secret` (falls back to `secret` if omitted — **not recommended for production**)
+- ✅ `refreshSecret` is required and must differ from `secret` (since v6 the module refuses to start otherwise)
 - ✅ Use `useCookie: true` to transport the refresh token via httpOnly cookie (recommended)
 - ✅ Configure `refreshTokenField` to enable server-side rotation and revocation
 - ✅ Set a reasonable `refreshTokenExpiresIn` (e.g., `'7d'` or `'30d'`)
@@ -2226,6 +2250,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]), // still required — global storage/options
     DynamicApiModule.forRoot('mongodb-uri', {
       useAuth: {
+        jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
         userEntity: User,
         login: {
           rateLimit: { limit: 5, ttl: 60000 }, // 5 attempts / 60s on POST /auth/login
@@ -2363,7 +2388,7 @@ import { User } from './users/user.entity';
         jwt: {
           secret: process.env.JWT_SECRET,
           expiresIn: '15m',                            // v4 default (short-lived access token)
-          refreshSecret: process.env.JWT_REFRESH_SECRET, // Optional — falls back to `secret` if omitted
+          refreshSecret: process.env.JWT_REFRESH_SECRET, // Required since v6, distinct from `secret`
         },
         // v4: refresh token configuration
         refreshToken: {

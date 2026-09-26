@@ -69,7 +69,7 @@ describe('SocketAdapter', () => {
     });
 
     it('should decode JWT and set user on socket when jwtSecret is set', () => {
-      (jwt.verify as Mock).mockReturnValue({ iat: 1, exp: 2, id: 'user-1', name: 'Test' });
+      (jwt.verify as Mock).mockReturnValue({ iat: 1, exp: 2, typ: 'access', id: 'user-1', name: 'Test' });
       DynamicApiWsConfigStore.jwtSecret = 'secret';
 
       const socket = {
@@ -127,7 +127,7 @@ describe('SocketAdapter', () => {
     });
 
     it('should call onConnection with user when JWT is valid', () => {
-      (jwt.verify as Mock).mockReturnValue({ iat: 1, exp: 2, id: 'u1' });
+      (jwt.verify as Mock).mockReturnValue({ iat: 1, exp: 2, typ: 'access', id: 'u1' });
       DynamicApiWsConfigStore.jwtSecret = 'secret';
       const onConnection = vi.fn();
       DynamicApiWsConfigStore.onConnection = onConnection;
@@ -399,7 +399,7 @@ describe('SocketAdapter', () => {
 
     it.each([
       ['no token is provided', { auth: {} }, undefined],
-      ['the token is valid', { auth: { token: 'tok' } }, { iat: 1, exp: 2, id: 'u1' }],
+      ['the token is valid', { auth: { token: 'tok' } }, { iat: 1, exp: 2, typ: 'access', id: 'u1' }],
     ])('should accept the socket when %s', (_, handshake, decoded) => {
       DynamicApiWsConfigStore.rejectInvalidToken = true;
       (jwt.verify as Mock).mockReturnValue(decoded);
