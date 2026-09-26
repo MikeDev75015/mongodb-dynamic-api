@@ -96,6 +96,18 @@ DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
 })
 ```
 
+> **CORS:** since v5.4.2 the `cors` option is applied to the Socket.IO server as given. Before, the socket adapter always overrode it with `{ origin: '*' }`. Without a `cors` option, every origin is still allowed.
+
+```typescript
+import { DynamicApiModule } from 'mongodb-dynamic-api';
+
+DynamicApiModule.forRoot(process.env.MONGODB_URI, {
+  webSocket: {
+    cors: { origin: ['https://app.example.com'], credentials: true },
+  },
+});
+```
+
 ### Module-Level Configuration
 
 Enable for specific modules:
@@ -189,6 +201,25 @@ You can automatically broadcast event responses to all connected clients (except
 > You can broadcast after **HTTP REST calls** without enabling WebSocket on the route at all. The only requirement is that `enableDynamicAPIWebSockets(app)` is called in `main.ts` so the WebSocket server is available to receive listeners. `webSocket: true` on a route only controls whether that route is also *callable* via WebSocket — it has no effect on broadcasting.
 
 **⚠️ Important: Broadcasting is only available for routes that modify data.**
+
+**Payload serialization:** broadcast payloads go through `instanceToPlain`, like HTTP responses go through `ClassSerializerInterceptor` (since v5.4.2). A field marked `@Exclude()` or `@Exclude({ toPlainOnly: true })` on the entity or presenter is never broadcast. Auth broadcasts (`login`, `register`, `getAccount`, `updateAccount`) always drop the password field and `refreshToken.refreshTokenField`, even when listed in `fields`.
+
+```typescript
+import { Prop, Schema } from '@nestjs/mongoose';
+import { Exclude } from 'class-transformer';
+import { BaseEntity } from 'mongodb-dynamic-api';
+
+@Schema({ collection: 'accounts' })
+export class Account extends BaseEntity {
+  @Prop({ type: String, required: true })
+  name: string;
+
+  // Stored, returned by neither the HTTP response nor the `create-one-account` broadcast
+  @Exclude({ toPlainOnly: true })
+  @Prop({ type: String })
+  apiKey: string;
+}
+```
 
 **Supported Routes:**
 - ✅ `CreateOne` - Broadcasts the created entity

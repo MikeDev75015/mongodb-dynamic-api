@@ -27,7 +27,8 @@ export class SocketAdapter extends IoAdapter {
     },
   ): Server {
     if (!this.ioServer) {
-      this.ioServer = super.createIOServer(port, { ...options, cors: { origin: '*' } }) as Server;
+      // `cors` from the gateway options (`webSocket: { cors }`) wins; any origin is allowed otherwise.
+      this.ioServer = super.createIOServer(port, { ...options, cors: options?.cors ?? { origin: '*' } }) as Server;
 
       // Refuse an invalid token at handshake time (opt-in) so the client gets a real
       // `connect_error` instead of silently being accepted as anonymous.

@@ -44,6 +44,17 @@ describe('SocketAdapter', () => {
       expect(fakeServer.use).toHaveBeenCalledWith(expect.any(Function));
     });
 
+    it('should allow any origin when no cors option is given', () => {
+      adapter.createIOServer(5000);
+      expect(IoAdapter.prototype.createIOServer).toHaveBeenCalledWith(5000, { cors: { origin: '*' } });
+    });
+
+    it('should keep the cors option given by the gateway options', () => {
+      const cors = { origin: ['https://app.example.com'], credentials: true };
+      adapter.createIOServer(5000, { cors } as never);
+      expect(IoAdapter.prototype.createIOServer).toHaveBeenCalledWith(5000, { cors });
+    });
+
     it('should reuse the same server on subsequent calls', () => {
       const server1 = adapter.createIOServer(5000);
       const server2 = adapter.createIOServer(5000);
