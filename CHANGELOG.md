@@ -1,5 +1,19 @@
 Changelog
 
+## [5.4.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v5.3.0...v5.4.0) (2026-09-26)
+
+### quality
+
+* **quality:** resolve 2 SonarCloud leak-period issues on develop ([636b9f5](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/636b9f5637fa6baa6be533c30a779ec80a571c72))
+
+### websockets
+
+* **websockets:** never accept an invalid handshake token silently ([3093451](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/3093451957f1262174ee189a214458700e66c5e9))
+
+### base-service
+
+* **base-service:** return plain objects from createOneDocument/createManyDocuments ([5f97ca7](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/5f97ca76c14c6e0069608a55fb9b88cb2c092b2e))
+
 ## [5.3.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v5.1.0...v5.3.0) (2026-09-14)
 
 ### presenters
