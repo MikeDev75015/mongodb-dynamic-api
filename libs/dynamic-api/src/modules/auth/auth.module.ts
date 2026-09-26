@@ -9,7 +9,6 @@ import { createDynamicApiBroadcastGateway } from '../../gateways/dynamic-api-bro
 import { buildSchemaFromEntity } from '../../helpers/schema.helper';
 import { initializeConfigFromOptions } from '../../helpers/socket-config.helper';
 import { GatewayOptions } from '../../interfaces';
-import { MongoDBDynamicApiLogger } from '../../logger/mongo-dynamic-api.logger';
 import { BaseEntity } from '../../models';
 import { BcryptService } from '../../services/bcrypt/bcrypt.service';
 import { DynamicApiGlobalStateService } from '../../services/dynamic-api-global-state/dynamic-api-global-state.service';
@@ -195,28 +194,6 @@ export class AuthModule implements NestModule {
     };
   }
 
-  /**
-   * The default secret is public (it ships with the package), so any token signed with it can be
-   * forged by anyone. Refusing to boot without a secret would break existing apps, hence a warning.
-   */
-  private static warnAboutJwtSecrets(jwt: DynamicApiAuthOptions['jwt']) {
-    const logger = new MongoDBDynamicApiLogger('AuthModule');
-
-    if (!jwt?.secret) {
-      logger.warn(
-        'useAuth.jwt.secret is not set: tokens are signed with the public default secret, so anyone can forge '
-        + 'a valid JWT. Set useAuth.jwt.secret to a long random value.',
-      );
-    }
-
-    if (!jwt?.refreshSecret) {
-      logger.warn(
-        'useAuth.jwt.refreshSecret is not set: refresh tokens are signed with the access token secret. '
-        + 'Set a distinct useAuth.jwt.refreshSecret.',
-      );
-    }
-  }
-
   private static initializeAuthOptions<Entity extends BaseEntity>({
     userEntity,
     jwt,
@@ -233,12 +210,10 @@ export class AuthModule implements NestModule {
     extraProviders = [],
     extraControllers = [],
   }: DynamicApiAuthOptions<Entity>): DynamicApiAuthOptions<Entity> {
-    AuthModule.warnAboutJwtSecrets(jwt);
-
     return {
       userEntity: userEntity,
       jwt: {
-        secret: jwt?.secret ?? 'dynamic-api-jwt-secret',
+        secret: jwt?.secret,
         expiresIn: jwt?.expiresIn ?? '15m',
         refreshTokenExpiresIn: jwt?.refreshTokenExpiresIn ?? '7d',
         refreshSecret: jwt?.refreshSecret,

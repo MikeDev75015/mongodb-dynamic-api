@@ -64,6 +64,7 @@ import { User } from './users/user.entity';
   imports: [
     DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
       useAuth: {
+        jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
         userEntity: User,
         login: {
           // Make these fields available in JWT payload
@@ -515,6 +516,7 @@ export class User extends BaseEntity {
 // Configuration
 DynamicApiModule.forRoot('mongodb-uri', {
   useAuth: {
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
     userEntity: User,
     login: {
       additionalFields: ['organizationId', 'role'],
@@ -582,6 +584,7 @@ export class User extends BaseEntity {
 // Configuration
 DynamicApiModule.forRoot('mongodb-uri', {
   useAuth: {
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
     userEntity: User,
     login: {
       additionalFields: ['permissions'],
@@ -864,6 +867,7 @@ DynamicApiModule.forFeature({
 // ✅ Good - Only request needed fields
 DynamicApiModule.forRoot('mongodb-uri', {
   useAuth: {
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
     userEntity: User,
     login: {
       additionalFields: ['role', 'isActive'], // Only what you need
@@ -874,6 +878,7 @@ DynamicApiModule.forRoot('mongodb-uri', {
 // ❌ Avoid - Requesting everything
 DynamicApiModule.forRoot('mongodb-uri', {
   useAuth: {
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
     userEntity: User,
     login: {
       additionalFields: [
@@ -983,6 +988,7 @@ import { User } from './users/user.entity';
   imports: [
     DynamicApiModule.forRoot(process.env.MONGODB_URI, {
       useAuth: {
+        jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
         userEntity: User,
         login: {
           additionalFields: ['role', 'isActive', 'isVerified', 'permissions'],
@@ -1063,6 +1069,7 @@ export class PostsModule {}
 // Only admins can register new users
 DynamicApiModule.forRoot('mongodb-uri', {
   useAuth: {
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
     userEntity: User,
     login: {
       additionalFields: ['isAdmin', 'role'],

@@ -71,7 +71,7 @@ describe('JwtSocketAuthGuard', () => {
       const fakeUser = { id: 'id' };
       context.getArgs.mockReturnValue([socket]);
       socket.handshake.auth = { token: 'authToken' };
-      verifyAsyncSpy.mockResolvedValue({ ...fakeUser, iat: 1, exp: 2 });
+      verifyAsyncSpy.mockResolvedValue({ ...fakeUser, iat: 1, exp: 2, typ: 'access' });
 
       await guard.canActivate(context);
 

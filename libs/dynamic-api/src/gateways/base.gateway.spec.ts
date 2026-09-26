@@ -130,6 +130,7 @@ describe('BaseGateway', () => {
       (jwtService.verify = vi.fn()).mockReturnValue({
         iat: Date.now() / 1000,
         exp: Date.now() / 1000 + 1000,
+        typ: 'access',
         ...fakeUser,
       });
 

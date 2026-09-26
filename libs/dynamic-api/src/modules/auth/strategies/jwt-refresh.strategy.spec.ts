@@ -79,14 +79,14 @@ describe('JwtRefreshStrategy', () => {
     });
 
     it('should return user payload without iat and exp', async () => {
-      const payload = { iat: 1000, exp: 9999, id: 'user-id', email: 'test@test.co' };
+      const payload = { iat: 1000, exp: 9999, typ: 'refresh', id: 'user-id', email: 'test@test.co' };
       const result = await strategy.validate(payload);
 
       expect(result).toEqual({ id: 'user-id', email: 'test@test.co' });
     });
 
     it('should return user payload without iat, exp and jti', async () => {
-      const payload = { iat: 1000, exp: 9999, jti: 'some-jti', id: 'user-id', email: 'test@test.co' };
+      const payload = { iat: 1000, exp: 9999, typ: 'refresh', jti: 'some-jti', id: 'user-id', email: 'test@test.co' };
       const result = await strategy.validate(payload);
 
       expect(result).toEqual({ id: 'user-id', email: 'test@test.co' });
@@ -102,11 +102,8 @@ describe('JwtRefreshStrategy', () => {
       await expect(strategy.validate({ iat: 1, exp: 2, typ, id: 'user-id' })).rejects.toThrow(UnauthorizedException);
     });
 
-    it('should return empty object if payload only contains iat and exp', async () => {
-      const payload = { iat: 1000, exp: 9999 };
-      const result = await strategy.validate(payload);
-
-      expect(result).toEqual({});
+    it('should reject a token without typ (signed before v5.4.2)', async () => {
+      await expect(strategy.validate({ iat: 1000, exp: 9999, id: 'user-id' })).rejects.toThrow(UnauthorizedException);
     });
   });
 });

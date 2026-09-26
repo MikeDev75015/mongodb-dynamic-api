@@ -12,8 +12,8 @@ describe('auth-token.helper', () => {
       ['a refresh token used as access token', { typ: 'refresh' }, 'access', false],
       ['an access token used as refresh token', { typ: 'access' }, 'refresh', false],
       ['an access token used as reset token', { typ: 'access' }, 'reset', false],
-      ['a legacy access token without typ', {}, 'access', true],
-      ['a legacy refresh token without typ', {}, 'refresh', true],
+      ['an access token without typ (signed before v5.4.2)', {}, 'access', false],
+      ['a refresh token without typ (signed before v5.4.2)', {}, 'refresh', false],
       ['a reset token without typ', {}, 'reset', false],
     ])('should handle %s', (_, payload, expected, result) => {
       expect(isTokenOfType(payload, expected)).toBe(result);

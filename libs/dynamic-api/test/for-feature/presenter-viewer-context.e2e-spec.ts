@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 import { BaseEntity, DynamicApiModule } from '../../src';
 import { closeTestingApp, createTestingApp, server } from '../e2e.setup';
 import 'dotenv/config';
+import { TEST_JWT_SECRETS } from '../shared';
 
 /**
  * Integration coverage for `Mappable.fromEntity`/`fromEntities` receiving the authenticated
@@ -59,7 +60,7 @@ describe('Mappable.fromEntity/fromEntities receive the authenticated user (e2e)'
 
     const moduleRef = await Test.createTestingModule({
       imports: [
-        DynamicApiModule.forRoot(uri, { useAuth: { userEntity: UserEntity } }),
+        DynamicApiModule.forRoot(uri, { useAuth: { userEntity: UserEntity, jwt: TEST_JWT_SECRETS } }),
         DynamicApiModule.forFeature({
           entity: ItemEntity,
           controllerOptions: { path: 'viewer-items' },

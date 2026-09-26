@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import mongoose from 'mongoose';
 import { DynamicApiForRootOptions, DynamicApiModule } from '../../src';
 import { createTestingApp, TestGateway } from '../e2e.setup';
+import { withTestJwtSecrets } from './test-jwt';
 
 /**
  * Shared initModule factory for forRoot e2e tests.
@@ -17,7 +18,7 @@ export const initModule = async (
   const uri = process.env.MONGO_DB_URL;
 
   const moduleRef = await Test.createTestingModule({
-    imports: [DynamicApiModule.forRoot(uri, dynamicApiForRootOptions)],
+    imports: [DynamicApiModule.forRoot(uri, withTestJwtSecrets(dynamicApiForRootOptions))],
     providers: testGateway ? [TestGateway] : [],
   }).compile();
 

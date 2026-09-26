@@ -485,6 +485,7 @@ DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
     cors: { origin: '*' },
   },
   useAuth: {
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
     userEntity: User,
     login: {
       additionalFields: ['role', 'name'],
@@ -834,6 +835,7 @@ Auth broadcast also supports `rooms`:
 ```typescript
 DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
   useAuth: {
+    jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
     userEntity: User,
     login: {
       additionalFields: ['role', 'department'],
@@ -1099,6 +1101,7 @@ import { User } from './users/user.entity';
   imports: [
     DynamicApiModule.forRoot('mongodb://localhost:27017/myapp', {
       useAuth: {
+        jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
         userEntity: User, // Your user entity
         webSocket: true,  // Enable WebSocket for auth routes
         // ... other auth options
@@ -1150,6 +1153,7 @@ Unlike CRUD route events which are generated from entity names, **authentication
    // ✅ Correct - Configure at forRoot level
    DynamicApiModule.forRoot('mongodb-uri', {
      useAuth: {
+       jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
        userEntity: User,
        webSocket: true, // or { namespace: '/auth' }
      },
@@ -1167,6 +1171,7 @@ Unlike CRUD route events which are generated from entity names, **authentication
    // If User is your auth entity in forRoot()
    DynamicApiModule.forRoot('mongodb-uri', {
      useAuth: {
+       jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
        userEntity: User, // Entity name: "User"
        webSocket: true,
      },
@@ -1202,7 +1207,7 @@ Unlike CRUD route events which are generated from entity names, **authentication
         jwt: {
           secret: process.env.JWT_SECRET,
           expiresIn: '15m',              // v4 default
-          refreshSecret: process.env.JWT_REFRESH_SECRET, // Optional — falls back to `secret` if omitted
+          refreshSecret: process.env.JWT_REFRESH_SECRET, // Required since v6, distinct from `secret`
         },
         refreshToken: {                  // v4: refresh token configuration
           refreshTokenField: 'refreshToken',

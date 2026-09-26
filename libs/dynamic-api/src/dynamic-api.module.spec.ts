@@ -48,6 +48,7 @@ vi.mock('./helpers/mixin-data.helper');
 vi.mock('./helpers/socket-config.helper');
 
 describe('DynamicApiModule', () => {
+  const fakeJwt = { secret: 'fake-secret', refreshSecret: 'fake-refresh-secret' };
   beforeEach(() => {
     vi.spyOn(MongooseModule, 'forRoot').mockReturnValue(null);
     vi.spyOn(MongooseModule, 'forFeature').mockReturnValue(null);
@@ -93,16 +94,26 @@ describe('DynamicApiModule', () => {
       const spyAuthModule = vi.spyOn(AuthModule, 'forRoot').mockImplementationOnce(() => null);
 
       DynamicApiModule.forRoot(uri, {
-        useAuth: { userEntity: UserEntity },
+        useAuth: { userEntity: UserEntity, jwt: fakeJwt },
         cacheOptions: { excludePaths: ['/fake-path'] },
       });
 
-      expect(spyAuthModule).toHaveBeenCalledWith({ userEntity: UserEntity });
+      expect(spyAuthModule).toHaveBeenCalledWith({ userEntity: UserEntity, jwt: fakeJwt });
+    });
+
+    it.each([
+      ['no jwt options', undefined, 'useAuth.jwt.secret is required'],
+      ['no refreshSecret', { secret: 's' }, 'useAuth.jwt.refreshSecret is required'],
+      ['identical secrets', { secret: 's', refreshSecret: 's' }, 'must be different'],
+    ])('should refuse to start the auth module with %s', (_, jwt, message) => {
+      expect(() => DynamicApiModule.forRoot(uri, { useAuth: { userEntity: UserEntity, jwt } }))
+        .toThrow(message);
     });
 
     it('should add auth module with custom options if options are provided', () => {
       const options: DynamicApiAuthOptions<UserEntity> = {
         userEntity: UserEntity,
+        jwt: fakeJwt,
         login: {
           loginField: 'login',
           passwordField: 'pass',
@@ -121,6 +132,7 @@ describe('DynamicApiModule', () => {
       DynamicApiModule.forRoot(uri, {
         useAuth: {
           userEntity: UserEntity,
+          jwt: fakeJwt,
           login: { additionalFields: ['name'] },
           refreshToken: { refreshTokenField: 'pass' },
         },

@@ -7,6 +7,7 @@ import {
   DynamicApiModule,
 } from '../../src';
 import { createTestingApp, TestGateway } from '../e2e.setup';
+import { withTestJwtSecrets } from './test-jwt';
 
 /**
  * Shared initApp factory for forFeature e2e tests.
@@ -23,7 +24,7 @@ export const initApp = async <Entity extends BaseEntity, UserEntity extends Base
 
   const moduleRef = await Test.createTestingModule({
     imports: [
-      DynamicApiModule.forRoot(uri, forRootOptions),
+      DynamicApiModule.forRoot(uri, withTestJwtSecrets(forRootOptions)),
       DynamicApiModule.forFeature(forFeatureOptions),
     ],
     providers: testGateway ? [TestGateway] : [],

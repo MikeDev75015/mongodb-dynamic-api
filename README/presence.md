@@ -31,7 +31,7 @@ import { DynamicApiModule, DynamicApiPresenceModule, enableDynamicAPIWebSockets 
     DynamicApiModule.forRoot('mongodb://localhost/mydb', {
       useAuth: {
         userEntity: UserEntity,
-        jwt: { secret: 'my-secret', expiresIn: '1h' },
+        jwt: { secret: 'my-secret', refreshSecret: 'my-refresh-secret', expiresIn: '1h' },
         login: {},
         webSocket: true,
       },

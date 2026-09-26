@@ -18,6 +18,7 @@ import { DynamicApiGlobalState } from './interfaces/dynamic-api-global-state.int
 import { RouteModule } from './interfaces/dynamic-api-route-module.type';
 import { BaseEntity } from './models';
 import { AuthModule, DynamicApiAuthOptions, DynamicApiConfigModule } from './modules';
+import { assertJwtSecrets } from './modules/auth/jwt-secrets.helper';
 import { AggregateModule, createCachePurgeController, CreateManyModule, CreateOneModule, DeleteManyModule, DeleteOneModule, DuplicateManyModule, DuplicateOneModule, GetManyModule, GetOneModule, ReplaceOneModule, UpdateManyModule, UpdateOneModule, createCustomRouteController, createCustomRouteGateway } from './routes';
 import { DynamicApiCacheService } from './services';
 import { DynamicApiBroadcastService } from './services/dynamic-api-broadcast/dynamic-api-broadcast.service';
@@ -59,6 +60,10 @@ export class DynamicApiModule {
       throw new Error(
         'You must provide a valid mongodb uri in the forRoot method to use MongoDB Dynamic API',
       );
+    }
+
+    if (useAuth?.userEntity) {
+      assertJwtSecrets(useAuth.jwt);
     }
 
     this.state.set([
@@ -344,7 +349,7 @@ export class DynamicApiModule {
             loginField: !useAuth.login?.loginField ? 'email' : String(useAuth.login.loginField),
             passwordField: !useAuth.login?.passwordField ? 'password' : String(useAuth.login.passwordField),
           },
-          jwtSecret: useAuth.jwt?.secret ?? 'dynamic-api-jwt-secret',
+          jwtSecret: useAuth.jwt?.secret,
           jwtExpirationTime: useAuth.jwt?.expiresIn ?? '15m',
           jwtRefreshTokenExpiresIn: useAuth.jwt?.refreshTokenExpiresIn ?? '7d',
           jwtRefreshSecret: useAuth.jwt?.refreshSecret,

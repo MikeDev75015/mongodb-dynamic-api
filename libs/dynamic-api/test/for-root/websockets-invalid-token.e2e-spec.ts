@@ -84,7 +84,7 @@ describe('WebSockets — invalid handshake token (e2e)', () => {
           webSocket: true,
           useAuth: {
             userEntity: WsUserEntity,
-            jwt: { secret: JWT_SECRET, expiresIn: '1h' },
+            jwt: { secret: JWT_SECRET, refreshSecret: `${JWT_SECRET}-refresh`, expiresIn: '1h' },
             webSocket: true,
           },
         }),
@@ -97,7 +97,7 @@ describe('WebSockets — invalid handshake token (e2e)', () => {
   }
 
   const expiredToken = () => jwt.sign({ id: 'u1', exp: Math.floor(Date.now() / 1000) - 60 }, JWT_SECRET);
-  const validToken = () => jwt.sign({ id: 'u1', email: 'ws@test.co' }, JWT_SECRET, { expiresIn: '1h' });
+  const validToken = () => jwt.sign({ id: 'u1', email: 'ws@test.co', typ: 'access' }, JWT_SECRET, { expiresIn: '1h' });
 
   describe('default (rejectInvalidToken not set)', () => {
     it.each([

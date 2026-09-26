@@ -4,7 +4,7 @@ import mongoose from 'mongoose';
 import { DynamicApiHealthModule, DynamicApiModule } from '../../src';
 import { closeTestingApp, createTestingApp, server } from '../e2e.setup';
 import 'dotenv/config';
-import { createBasicUserEntity } from '../shared';
+import { createBasicUserEntity, TEST_JWT_SECRETS } from '../shared';
 
 describe('DynamicApiHealthModule (e2e)', () => {
   const uri = process.env.MONGO_DB_URL;
@@ -58,7 +58,7 @@ describe('DynamicApiHealthModule (e2e)', () => {
     beforeEach(async () => {
       const moduleRef = await Test.createTestingModule({
         imports: [
-          DynamicApiModule.forRoot(uri, { useAuth: { userEntity: UserEntity } }),
+          DynamicApiModule.forRoot(uri, { useAuth: { userEntity: UserEntity, jwt: TEST_JWT_SECRETS } }),
           DynamicApiHealthModule.register(),
         ],
       }).compile();
