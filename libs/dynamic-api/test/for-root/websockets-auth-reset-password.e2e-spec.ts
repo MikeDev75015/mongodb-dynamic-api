@@ -162,8 +162,9 @@ describe('DynamicApiModule forRoot - Websockets useAuth with resetPassword optio
 
     it('should throw a ws exception if resetPasswordToken is expired', async () => {
       const jwtService = app.get<JwtService>(JwtService);
-      const expiredResetPasswordToken = jwtService.sign({ email: user.email }, { expiresIn: 1 });
-      await wait(500);
+      const expiredResetPasswordToken = jwtService.sign({ email: user.email, typ: 'reset' }, { expiresIn: 1 });
+      // The token is verified (not just decoded): wait past its real 1s expiry.
+      await wait(1100);
 
       await server.emit(
         'auth-change-password',

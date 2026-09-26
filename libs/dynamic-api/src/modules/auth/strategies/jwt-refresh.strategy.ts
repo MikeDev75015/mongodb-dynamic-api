@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { DynamicApiModule } from '../../../dynamic-api.module';
+import { isTokenOfType, stripTokenClaims } from '../../../helpers/auth-token.helper';
 
 @Injectable()
 export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
@@ -25,7 +26,11 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
   }
 
   async validate(payload: Record<string, unknown>) {
-    const { iat, exp, jti, ...user } = payload;
+    if (!isTokenOfType(payload, 'refresh')) {
+      throw new UnauthorizedException();
+    }
+
+    const { jti, ...user } = stripTokenClaims(payload);
     return user;
   }
 }

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Mock } from 'vitest';
 import { DynamicModule } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
@@ -9,6 +9,7 @@ import { getFullAuthOptionsMock } from '../../../__mocks__/auth-full-options.moc
 import { DynamicApiModule } from '../../dynamic-api.module';
 import * as SchemaHelpers from '../../helpers/schema.helper';
 import * as SocketConfigHelpers from '../../helpers/socket-config.helper';
+import { MongoDBDynamicApiLogger } from '../../logger/mongo-dynamic-api.logger';
 import { BaseEntity } from '../../models';
 import { BcryptService } from '../../services/bcrypt/bcrypt.service';
 import { DynamicApiGlobalStateService } from '../../services/dynamic-api-global-state/dynamic-api-global-state.service';
@@ -180,6 +181,32 @@ describe('AuthModule', () => {
       vi.spyOn(AuthHelpers, 'createAuthGateway').mockImplementationOnce(vi.fn(() => AuthGateway));
     addEntitySchemaSpy = vi
     .spyOn(DynamicApiGlobalStateService, 'addEntitySchema');
+  });
+
+  describe('warnAboutJwtSecrets', () => {
+    let spyWarn: Mock;
+
+    beforeEach(() => {
+      spyWarn = vi.spyOn(MongoDBDynamicApiLogger.prototype, 'warn').mockImplementation(() => undefined);
+    });
+
+    afterEach(() => {
+      spyWarn.mockRestore();
+    });
+
+    it.each([
+      ['no jwt options', undefined, ['useAuth.jwt.secret is not set', 'useAuth.jwt.refreshSecret is not set']],
+      ['a secret without refreshSecret', { secret: 's' }, ['useAuth.jwt.refreshSecret is not set']],
+      ['a refreshSecret without secret', { refreshSecret: 'r' }, ['useAuth.jwt.secret is not set']],
+      ['both secrets', { secret: 's', refreshSecret: 'r' }, []],
+    ])('should warn accordingly with %s', (_, jwt, expectedWarnings) => {
+      AuthModule['warnAboutJwtSecrets'](jwt);
+
+      expect(spyWarn).toHaveBeenCalledTimes(expectedWarnings.length);
+      expectedWarnings.forEach((warning) => {
+        expect(spyWarn).toHaveBeenCalledWith(expect.stringContaining(warning));
+      });
+    });
   });
 
   describe('forRoot', () => {

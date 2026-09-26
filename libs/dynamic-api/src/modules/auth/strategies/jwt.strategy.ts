@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { DynamicApiModule } from '../../../dynamic-api.module';
+import { isTokenOfType, stripTokenClaims } from '../../../helpers/auth-token.helper';
 import { Credentials } from '../../../interfaces/dynamic-api-global-state.interface';
 
 @Injectable()
@@ -19,7 +20,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: Record<string, unknown>) {
-    const { iat, exp, ...user } = payload;
-    return user;
+    if (!isTokenOfType(payload, 'access')) {
+      throw new UnauthorizedException();
+    }
+
+    return stripTokenClaims(payload);
   }
 }

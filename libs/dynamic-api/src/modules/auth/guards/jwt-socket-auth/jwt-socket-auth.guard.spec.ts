@@ -53,6 +53,20 @@ describe('JwtSocketAuthGuard', () => {
       await expect(guard.canActivate(context)).rejects.toThrow(new WsException('Unauthorized'));
     });
 
+    it('should throw WsException for a refresh token used as access token', async () => {
+      const context = { getArgs: vi.fn().mockReturnValue([{ handshake: { auth: { token: 'refreshToken' } } }]) } as unknown as ExecutionContext;
+      verifyAsyncSpy.mockResolvedValue({ id: 'u1', iat: 1, exp: 2, typ: 'refresh' });
+
+      await expect(guard.canActivate(context)).rejects.toThrow(new WsException('Unauthorized'));
+    });
+
+    it('should throw WsException when verifyAsync rejects with a non-Error value', async () => {
+      const context = { getArgs: vi.fn().mockReturnValue([{ handshake: { auth: { token: 'authToken' } } }]) } as unknown as ExecutionContext;
+      verifyAsyncSpy.mockRejectedValue('not-an-error');
+
+      await expect(guard.canActivate(context)).rejects.toThrow(new WsException('Unauthorized'));
+    });
+
     it('should set user to socket when token is provided via auth.token', async () => {
       const fakeUser = { id: 'id' };
       context.getArgs.mockReturnValue([socket]);

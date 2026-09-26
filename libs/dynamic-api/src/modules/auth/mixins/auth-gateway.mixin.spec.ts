@@ -443,7 +443,7 @@ describe('AuthGatewayMixin', () => {
       service.login.mockResolvedValue(fakeLoginResponse);
       service.register.mockResolvedValue(fakeLoginResponse);
       service.validateUser.mockResolvedValue(fakeUser);
-      jwtService.decode.mockReturnValue({ id: fakeUser.id, loginField: fakeUser.loginField, iat: 1, exp: 9999 });
+      jwtService.decode.mockReturnValue({ id: fakeUser.id, loginField: fakeUser.loginField, iat: 1, exp: 9999, typ: 'access' });
     });
 
     afterEach(() => vi.clearAllMocks());

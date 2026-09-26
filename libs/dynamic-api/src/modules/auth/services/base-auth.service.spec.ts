@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import type { Mock } from 'vitest';
 import { BadRequestException, ConflictException, ForbiddenException, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { createHash } from 'node:crypto';
 import { plainToInstance } from 'class-transformer';
 import { Model, ObjectId, Schema } from 'mongoose';
 import { DynamicApiModule } from '../../../dynamic-api.module';
@@ -9,6 +10,8 @@ import { BaseEntity } from '../../../models';
 import { BcryptService } from '../../../services/bcrypt/bcrypt.service';
 import { DynamicApiGlobalStateService } from '../../../services/dynamic-api-global-state/dynamic-api-global-state.service';
 import { BaseAuthService } from './base-auth.service';
+
+const fingerprint = (hash: string) => createHash('sha256').update(hash).digest('base64url').slice(0, 22);
 
 class User extends BaseEntity {
   login: string;
@@ -212,7 +215,8 @@ describe('BaseAuthService', () => {
 
         const result = await service['refreshToken'](fakeUser);
 
-        expect(spyJwtSign).toHaveBeenNthCalledWith(2, { ...fakeLoginBuilt, jti: expect.any(String) }, { expiresIn: '7d' });
+        expect(spyJwtSign).toHaveBeenNthCalledWith(1, { ...fakeLoginBuilt, typ: 'access' });
+        expect(spyJwtSign).toHaveBeenNthCalledWith(2, { ...fakeLoginBuilt, typ: 'refresh', jti: expect.any(String) }, { expiresIn: '7d' });
         expect(result).toEqual({ accessToken, refreshToken });
       });
 
@@ -225,7 +229,7 @@ describe('BaseAuthService', () => {
 
         await service['refreshToken'](fakeUser);
 
-        expect(spyJwtSign).toHaveBeenNthCalledWith(2, { ...fakeLoginBuilt, jti: expect.any(String) }, { secret: 'my-refresh-secret' });
+        expect(spyJwtSign).toHaveBeenNthCalledWith(2, { ...fakeLoginBuilt, typ: 'refresh', jti: expect.any(String) }, { secret: 'my-refresh-secret' });
       });
     });
 
@@ -796,7 +800,7 @@ describe('BaseAuthService', () => {
         fakeUserInstance,
         service['callbackMethods'],
       );
-      expect(spyJwtSign).toHaveBeenNthCalledWith(1, fakeLoginBuilt);
+      expect(spyJwtSign).toHaveBeenNthCalledWith(1, { ...fakeLoginBuilt, typ: 'access' });
       expect(result).toEqual({ accessToken, refreshToken: fakeRefreshToken });
     });
 
@@ -1120,12 +1124,24 @@ describe('BaseAuthService', () => {
       });
       expect(spyJwtSign).toHaveBeenCalledTimes(1);
       expect(spyJwtSign)
-      .toHaveBeenCalledWith({ email: fakeEmail }, { expiresIn: fakeExpirationInMinutes * 60 });
+      .toHaveBeenCalledWith({ email: fakeEmail, typ: 'reset', pwd: undefined }, { expiresIn: fakeExpirationInMinutes * 60 });
       expect(resetPasswordCallback).toHaveBeenCalledTimes(1);
       expect(resetPasswordCallback)
       .toHaveBeenCalledWith(
         { resetPasswordToken, email: fakeEmail },
         service['resetPasswordCallbackMethods'],
+      );
+    });
+
+    it('should bind the token to a fingerprint of the current password hash', async () => {
+      exec.mockResolvedValueOnce(fakeUser);
+      spyJwtSign.mockReturnValueOnce(resetPasswordToken);
+      await service['resetPassword'](fakeEmail);
+
+      expect(model.findOne).toHaveBeenCalledWith({ [fakeEmailField]: fakeEmail });
+      expect(spyJwtSign).toHaveBeenCalledWith(
+        { email: fakeEmail, typ: 'reset', pwd: fingerprint(fakeUser.pass) },
+        { expiresIn: fakeExpirationInMinutes * 60 },
       );
     });
 
@@ -1148,8 +1164,9 @@ describe('BaseAuthService', () => {
         exec.mockResolvedValueOnce(null);
         const result = await service['resetPasswordCallbackMethods'].findUserByEmail();
 
-        expect(model.findOne).toHaveBeenCalledTimes(1);
-        expect(model.findOne).toHaveBeenCalledWith({ [fakeEmailField]: fakeEmail });
+        // 1st call: resetPassword's own lookup (password fingerprint), 2nd: findUserByEmail
+        expect(model.findOne).toHaveBeenCalledTimes(2);
+        expect(model.findOne).toHaveBeenLastCalledWith({ [fakeEmailField]: fakeEmail });
         expect(result).toBeUndefined();
       });
 
@@ -1180,51 +1197,53 @@ describe('BaseAuthService', () => {
   });
 
   describe('changePassword', () => {
-    let spyJwtDecode: Mock;
-    let spyDateNow: Mock;
-    let spyMathRound: Mock;
+    let spyJwtVerify: Mock;
     let spyLoggerWarn: Mock;
 
-    const fakeDecodedToken = { email: fakeUser.login, exp: 1000 };
+    const validPayload = { email: fakeUser.login, typ: 'reset', pwd: fingerprint(fakeUser.pass) };
+    const invalidTokenError = new BadRequestException(
+      'Invalid reset password token. Please redo the reset password process.',
+    );
 
     beforeEach(() => {
-      spyJwtDecode = vi.spyOn(jwtService, 'decode');
-      spyDateNow = vi.spyOn(Date, 'now');
-      spyMathRound = vi.spyOn(Math, 'round');
+      spyJwtVerify = vi.fn();
+      jwtService.verifyAsync = spyJwtVerify;
       spyLoggerWarn = vi.spyOn<any, any>(service['logger'], 'warn').mockImplementation(vi.fn());
     });
 
-    it('should throw bad request if token is invalid', async () => {
-      await expect(service['changePassword'](resetPasswordToken, newPassword)).rejects.toThrow(
-        new BadRequestException('Invalid reset password token. Please redo the reset password process.'),
-      );
-      expect(spyJwtDecode).toHaveBeenCalledTimes(1);
-      expect(spyJwtDecode).toHaveBeenCalledWith(resetPasswordToken);
-      expect(spyLoggerWarn).toHaveBeenCalledTimes(1);
+    it('should verify the token signature instead of only decoding it', async () => {
+      spyJwtVerify.mockRejectedValueOnce(new Error('invalid signature'));
+
+      await expect(service['changePassword'](resetPasswordToken, newPassword)).rejects.toThrow(invalidTokenError);
+      expect(spyJwtVerify).toHaveBeenCalledWith(resetPasswordToken);
+      expect(jwtService.decode).not.toHaveBeenCalled();
       expect(spyLoggerWarn).toHaveBeenCalledWith('Invalid reset password token');
-      expect(spyMathRound).not.toHaveBeenCalled();
+      expect(spyFindOneDocumentWithAbilityPredicate).not.toHaveBeenCalled();
     });
 
     it('should throw unauthorized if token is expired', async () => {
-      spyJwtDecode.mockReturnValueOnce(fakeDecodedToken);
-      const fakeTimestamp = 2000000;
-      spyDateNow.mockReturnValueOnce(fakeTimestamp);
-      spyMathRound.mockReturnValueOnce(fakeTimestamp / 1000);
+      spyJwtVerify.mockRejectedValueOnce(Object.assign(new Error('jwt expired'), { name: 'TokenExpiredError' }));
 
-      await expect(() => service['changePassword'](resetPasswordToken, newPassword)).rejects.toThrow(
+      await expect(service['changePassword'](resetPasswordToken, newPassword)).rejects.toThrow(
         new UnauthorizedException('Time to reset password has expired. Please redo the reset password process.'),
       );
-      expect(spyDateNow).toHaveBeenCalledTimes(1);
-      expect(spyMathRound).toHaveBeenCalledTimes(1);
-      expect(spyMathRound).toHaveBeenCalledWith(fakeTimestamp / 1000);
       expect(spyFindOneDocumentWithAbilityPredicate).not.toHaveBeenCalled();
-      expect(spyLoggerWarn).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['no payload', undefined],
+      ['no email', { typ: 'reset' }],
+      ['no typ claim', { email: fakeUser.login }],
+      ['an access token', { email: fakeUser.login, typ: 'access' }],
+    ])('should throw bad request for a token with %s', async (_, payload) => {
+      spyJwtVerify.mockResolvedValueOnce(payload);
+
+      await expect(service['changePassword'](resetPasswordToken, newPassword)).rejects.toThrow(invalidTokenError);
+      expect(spyFindOneDocumentWithAbilityPredicate).not.toHaveBeenCalled();
     });
 
     it('should throw forbidden if ability predicate is false', async () => {
-      spyJwtDecode.mockReturnValueOnce(fakeDecodedToken);
-      const fakeTimestamp = 500000;
-      spyDateNow.mockReturnValueOnce(fakeTimestamp);
+      spyJwtVerify.mockResolvedValueOnce(validPayload);
       spyFindOneDocumentWithAbilityPredicate.mockImplementationOnce(() => {
         throw new ForbiddenException('Access denied');
       });
@@ -1232,7 +1251,6 @@ describe('BaseAuthService', () => {
       await expect(() => service['changePassword'](resetPasswordToken, newPassword)).rejects.toThrow(
         new ForbiddenException('You are not allowed to change your password.'),
       );
-      expect(spyFindOneDocumentWithAbilityPredicate).toHaveBeenCalledTimes(1);
       expect(spyFindOneDocumentWithAbilityPredicate).toHaveBeenCalledWith(
         undefined,
         { [fakeEmailField]: fakeUser.login },
@@ -1242,10 +1260,41 @@ describe('BaseAuthService', () => {
     });
 
     it('should not change password if user is not found', async () => {
-      spyJwtDecode.mockReturnValueOnce(fakeDecodedToken);
-      const fakeTimestamp = 500000;
-      spyDateNow.mockReturnValueOnce(fakeTimestamp);
+      spyJwtVerify.mockResolvedValueOnce(validPayload);
+      spyFindOneDocumentWithAbilityPredicate.mockRejectedValueOnce(new BadRequestException('Document not found'));
+
+      await service['changePassword'](resetPasswordToken, newPassword);
+
+      expect(spyLoggerWarn).toHaveBeenCalledWith('Invalid email, user not found');
+      expect(spyBcriptHashPassword).not.toHaveBeenCalled();
+    });
+
+    it('should not change password if the lookup resolves no user', async () => {
+      spyJwtVerify.mockResolvedValueOnce(validPayload);
       spyFindOneDocumentWithAbilityPredicate.mockResolvedValueOnce(undefined);
+
+      await service['changePassword'](resetPasswordToken, newPassword);
+
+      expect(spyBcriptHashPassword).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['the password changed since the token was issued', { ...fakeUser, pass: 'another-hash' }],
+      ['the user has no password hash', { ...fakeUser, pass: undefined }],
+    ])('should reject the token when %s (single use)', async (_, user) => {
+      spyJwtVerify.mockResolvedValueOnce(validPayload);
+      spyFindOneDocumentWithAbilityPredicate.mockResolvedValueOnce(user);
+
+      await expect(service['changePassword'](resetPasswordToken, newPassword)).rejects.toThrow(invalidTokenError);
+      expect(model.updateOne).not.toHaveBeenCalled();
+    });
+
+    it('should change password and call changePasswordCallback if defined', async () => {
+      service['resetPasswordOptions'].beforeChangePasswordCallback = undefined;
+      spyJwtVerify.mockResolvedValueOnce(validPayload);
+      spyFindOneDocumentWithAbilityPredicate.mockResolvedValueOnce(fakeUser);
+      exec.mockResolvedValueOnce(fakeUser);
+      spyBcriptHashPassword.mockResolvedValueOnce(hashedPassword);
 
       await service['changePassword'](resetPasswordToken, newPassword);
 
@@ -1254,66 +1303,39 @@ describe('BaseAuthService', () => {
         { [fakeEmailField]: fakeUser.login },
         undefined,
       );
-      expect(spyLoggerWarn).toHaveBeenCalledTimes(1);
-      expect(spyLoggerWarn).toHaveBeenCalledWith('Invalid email, user not found');
-      expect(spyBcriptHashPassword).not.toHaveBeenCalled();
-    });
-
-    it('should change password and call changePasswordCallback if defined', async () => {
-      service['resetPasswordOptions'].beforeChangePasswordCallback = undefined;
-      spyJwtDecode.mockReturnValueOnce(fakeDecodedToken);
-      const fakeTimestamp = 500000;
-      spyDateNow.mockReturnValueOnce(fakeTimestamp);
-      spyFindOneDocumentWithAbilityPredicate.mockResolvedValueOnce(fakeUser);
-      exec.mockResolvedValueOnce(fakeUser);
-      spyBcriptHashPassword.mockResolvedValueOnce(hashedPassword);
-      vi.spyOn(bcryptService, 'hashPassword').mockResolvedValueOnce(hashedPassword);
-
-      await service['changePassword'](resetPasswordToken, newPassword);
-      expect(spyFindOneDocumentWithAbilityPredicate).toHaveBeenCalledTimes(1);
-      expect(spyFindOneDocumentWithAbilityPredicate).toHaveBeenNthCalledWith(
-        1,
-        undefined,
-        { [fakeEmailField]: fakeUser.login },
-        undefined,
-      );
       expect(spyBcriptHashPassword).toHaveBeenCalledWith(newPassword);
-      expect(model.updateOne)
-      .toHaveBeenCalledWith(
+      expect(model.updateOne).toHaveBeenCalledWith(
         { _id: fakeUser._id },
         { $set: { [fakePasswordField]: hashedPassword, resetPasswordToken: null } },
       );
-      expect(changePasswordCallback).toHaveBeenCalledTimes(1);
-      expect(changePasswordCallback)
-      .toHaveBeenCalledWith({ ...fakeUser, id: fakeUser._id.toString() }, service['callbackMethods']);
+      expect(changePasswordCallback).toHaveBeenCalledWith(
+        { ...fakeUser, id: fakeUser._id.toString() },
+        service['callbackMethods'],
+      );
     });
 
     it('should change password and not call changePasswordCallback if not defined', async () => {
       service['resetPasswordOptions'].beforeChangePasswordCallback = undefined;
       service['resetPasswordOptions'].changePasswordCallback = undefined;
-      spyJwtDecode.mockReturnValueOnce(fakeDecodedToken);
-      const fakeTimestamp = 500000;
-      spyDateNow.mockReturnValueOnce(fakeTimestamp);
+      spyJwtVerify.mockResolvedValueOnce(validPayload);
       spyFindOneDocumentWithAbilityPredicate.mockResolvedValueOnce(fakeUser);
       spyBcriptHashPassword.mockResolvedValueOnce(hashedPassword);
 
       await service['changePassword'](resetPasswordToken, newPassword);
+
+      expect(model.updateOne).toHaveBeenCalled();
       expect(changePasswordCallback).not.toHaveBeenCalled();
     });
 
     it('should change password and call beforeChangePasswordCallback if defined', async () => {
-      service['resetPasswordOptions'].changePasswordCallback = undefined;
-      spyJwtDecode.mockReturnValueOnce(fakeDecodedToken);
-      const fakeTimestamp = 500000;
-      spyDateNow.mockReturnValueOnce(fakeTimestamp);
-      exec.mockResolvedValueOnce(fakeUser);
+      spyJwtVerify.mockResolvedValueOnce(validPayload);
       spyFindOneDocumentWithAbilityPredicate.mockResolvedValueOnce(fakeUser);
+      exec.mockResolvedValueOnce(fakeUser).mockResolvedValueOnce(fakeUser);
       spyBcriptHashPassword.mockResolvedValueOnce(hashedPassword);
 
       await service['changePassword'](resetPasswordToken, newPassword);
-      expect(beforeChangePasswordCallback).toHaveBeenCalledTimes(1);
-      expect(beforeChangePasswordCallback)
-      .toHaveBeenCalledWith(
+
+      expect(beforeChangePasswordCallback).toHaveBeenCalledWith(
         { ...fakeUser, id: fakeUser._id.toString() },
         { resetPasswordToken, newPassword, hashedPassword },
         service['callbackMethods'],

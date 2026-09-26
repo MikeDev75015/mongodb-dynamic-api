@@ -2,6 +2,7 @@ import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
 import { ManyEntityQuery } from '../dtos/many-entity.query';
 import { DynamicApiModule } from '../dynamic-api.module';
+import { isTokenOfType, stripTokenClaims } from '../helpers/auth-token.helper';
 import { isEmpty } from '../helpers/lodash.helper';
 import { resolveBroadcast } from '../helpers/resolve-broadcast.helper';
 import { DynamicApiWsConfigStore } from '../helpers/ws-config.store';
@@ -35,8 +36,12 @@ export abstract class BaseGateway<Entity extends BaseEntity> {
         this.logger.error(e.message, e.stack);
       }
 
-      // noinspection JSUnusedLocalSymbols
-      const { iat, exp, ...user } = verified ?? {};
+      if (verified && !isTokenOfType(verified, 'access')) {
+        this.logger.warn('Invalid access token type');
+        verified = undefined;
+      }
+
+      const user = verified ? stripTokenClaims(verified) : {};
 
       socket.user = !isEmpty(user) ? user as unknown as Entity : undefined;
     }

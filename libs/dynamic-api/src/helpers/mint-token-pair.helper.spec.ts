@@ -65,7 +65,7 @@ describe('mintTokenPair', () => {
 
     const result = await mintTokenPair(TestUser, user);
 
-    expect(decodePayload(result.accessToken)).toMatchObject({ _id: '1', id: '1', email: 'u@test.co' });
+    expect(decodePayload(result.accessToken)).toMatchObject({ _id: '1', id: '1', email: 'u@test.co', typ: 'access' });
   });
 
   it('should sign a refresh token carrying a jti, verifiable with the default secret when refreshSecret is unset', async () => {
@@ -74,7 +74,7 @@ describe('mintTokenPair', () => {
     const result = await mintTokenPair(TestUser, user);
 
     const decoded = new JwtService({ secret: 'secret' }).verify(result.refreshToken) as Record<string, unknown>;
-    expect(decoded).toMatchObject({ id: '1', email: 'u@test.co' });
+    expect(decoded).toMatchObject({ id: '1', email: 'u@test.co', typ: 'refresh' });
     expect(decoded.jti).toEqual(expect.any(String));
   });
 

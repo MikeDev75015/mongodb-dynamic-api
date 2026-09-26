@@ -7,6 +7,7 @@ import { AuthDecoratorsBuilder } from '../../../builders';
 import { ApiEndpointVisibility } from '../../../decorators/api-endpoint-visibility.decorator';
 import { Public } from '../../../decorators';
 import { RateLimit } from '../../../decorators/rate-limit.decorator';
+import { stripTokenClaims } from '../../../helpers/auth-token.helper';
 import { RouteDecoratorsHelper } from '../../../helpers/route-decorators.helper';
 import { stripBusinessValidators } from '../../../helpers/strip-business-validators.helper';
 import { DynamicApiEventRegistryStore } from '../../../helpers/event-registry.store';
@@ -239,29 +240,6 @@ function AuthControllerMixin<Entity extends BaseEntity>(
       @Optional() protected readonly jwtService?: JwtService,
     ) {}
 
-    private extractUserFromToken(req: { headers?: Record<string, string> }): Entity | undefined {
-      if (!this.jwtService) {
-        return undefined;
-      }
-
-      const token = req.headers?.authorization?.split(' ')[1];
-      if (!token) {
-        return undefined;
-      }
-
-      try {
-        const decoded = this.jwtService.decode(token);
-        if (!decoded || typeof decoded === 'string') {
-          return undefined;
-        }
-
-        const { iat, exp, ...userPayload } = decoded as Record<string, unknown>;
-        return userPayload as unknown as Entity;
-      } catch {
-        return undefined;
-      }
-    }
-
     @ApiBearerAuth()
     @UseGuards(JwtAuthGuard)
     @HttpCode(HttpStatus.OK)
@@ -269,7 +247,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     @UseInterceptors(...getAccountUseInterceptors)
     @Get('account')
     async getAccount(@Request() req: { user: Entity; headers: Record<string, string> }) {
-      const user = this.extractUserFromToken(req) ?? req.user;
+      const user = req.user;
       const account = await this.service.getAccount(user);
 
       if (getAccountBroadcastConfig) {
@@ -340,7 +318,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
 
       if (registerBroadcastConfig && this.jwtService) {
         const decoded = this.jwtService.decode(result.accessToken);
-        const { iat, exp, ...userPayload } = (decoded && typeof decoded !== 'string' ? decoded : {}) as Record<string, unknown>;
+        const userPayload = stripTokenClaims((decoded && typeof decoded !== 'string' ? decoded : {}) as Record<string, unknown>);
         const broadcastData = buildAuthBroadcastData(userPayload as Partial<Entity>, registerBroadcastConfig.fields);
         this.broadcastService?.broadcastFromHttp(
           registerBroadcastConfig.eventName ?? AUTH_REGISTER_BROADCAST_EVENT,
@@ -378,7 +356,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
       @Body() body: AuthUpdateAccountDto,
       @Res({ passthrough: true }) res: Response,
     ) {
-      const user = this.extractUserFromToken(req) ?? req.user;
+      const user = req.user;
       const result = await authOperationStorage.run('updateAccount', async () => this.service.updateAccount(user, body));
 
       if (refreshTokenOnUpdate && result && 'accessToken' in result) {

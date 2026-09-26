@@ -1,6 +1,7 @@
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import * as jwt from 'jsonwebtoken';
 import { Server, ServerOptions, Socket } from 'socket.io';
+import { isTokenOfType, stripTokenClaims } from '../helpers/auth-token.helper';
 import { DynamicApiWsConfigStore } from '../helpers/ws-config.store';
 import { ExtendedSocket, SocketUnauthorizedPayload } from '../interfaces';
 import { MongoDBDynamicApiLogger } from '../logger/mongo-dynamic-api.logger';
@@ -121,8 +122,13 @@ export class SocketAdapter extends IoAdapter {
     }
 
     try {
-      const { iat, exp, ...payload } = jwt.verify(token, jwtSecret) as jwt.JwtPayload;
-      return { user: payload };
+      const payload = jwt.verify(token, jwtSecret) as jwt.JwtPayload;
+
+      if (!isTokenOfType(payload, 'access')) {
+        return { error: 'invalid token type' };
+      }
+
+      return { user: stripTokenClaims(payload) };
     } catch (e) {
       return { error: e instanceof Error ? e.message : String(e) };
     }
