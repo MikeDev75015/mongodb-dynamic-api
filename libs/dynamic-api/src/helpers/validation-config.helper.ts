@@ -1,13 +1,10 @@
-import {
-  INestApplication,
-  ValidationPipe,
-  ValidationPipeOptions,
-} from '@nestjs/common';
+import type { INestApplication, ValidationPipeOptions } from '@nestjs/common';
+import { DynamicApiValidationPipe } from '../pipes/dynamic-api-validation.pipe';
 
 
 function enableDynamicAPIValidation(app: INestApplication, options: ValidationPipeOptions = {}) {
   app.useGlobalPipes(
-    new ValidationPipe(options),
+    new DynamicApiValidationPipe(options),
   );
 }
 

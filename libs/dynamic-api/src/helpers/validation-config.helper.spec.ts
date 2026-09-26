@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { INestApplication, ValidationPipe, ValidationPipeOptions } from '@nestjs/common';
+import { INestApplication, ValidationPipeOptions } from '@nestjs/common';
 import { closeApp, initApp } from '../../__mocks__/app.mock';
+import { DynamicApiValidationPipe } from '../pipes/dynamic-api-validation.pipe';
 import { enableDynamicAPIValidation } from './validation-config.helper';
 
 describe('ValidationConfigHelper', () => {
@@ -16,7 +17,7 @@ describe('ValidationConfigHelper', () => {
 
       enableDynamicAPIValidation(app);
 
-      expect(useGlobalPipesSpy).toHaveBeenCalledWith(expect.any(ValidationPipe));
+      expect(useGlobalPipesSpy).toHaveBeenCalledWith(expect.any(DynamicApiValidationPipe));
     });
 
     it('should call useGlobalPipes with custom pipe options', () => {
@@ -31,7 +32,7 @@ describe('ValidationConfigHelper', () => {
         customOptions,
       );
 
-      expect(useGlobalPipesSpy).toHaveBeenCalledWith(expect.any(ValidationPipe));
+      expect(useGlobalPipesSpy).toHaveBeenCalledWith(expect.any(DynamicApiValidationPipe));
     });
   });
 

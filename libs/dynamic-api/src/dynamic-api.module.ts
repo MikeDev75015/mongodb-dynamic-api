@@ -19,6 +19,7 @@ import { RouteModule } from './interfaces/dynamic-api-route-module.type';
 import { BaseEntity } from './models';
 import { AuthModule, DynamicApiAuthOptions, DynamicApiConfigModule } from './modules';
 import { assertJwtSecrets } from './modules/auth/jwt-secrets.helper';
+import { IMPLICIT_ROUTE_VALIDATION_OPTIONS } from './pipes/dynamic-api-validation.pipe';
 import { AggregateModule, createCachePurgeController, CreateManyModule, CreateOneModule, DeleteManyModule, DeleteOneModule, DuplicateManyModule, DuplicateOneModule, GetManyModule, GetOneModule, ReplaceOneModule, UpdateManyModule, UpdateOneModule, createCustomRouteController, createCustomRouteGateway } from './routes';
 import { DynamicApiCacheService } from './services';
 import { DynamicApiBroadcastService } from './services/dynamic-api-broadcast/dynamic-api-broadcast.service';
@@ -247,7 +248,7 @@ export class DynamicApiModule {
                 controllerOptions,
                 { ...routeConfig, description },
                 version,
-                validationPipeOptions ?? { transform: true },
+                validationPipeOptions ?? IMPLICIT_ROUTE_VALIDATION_OPTIONS,
                 routeWebSocket ?? featureWebSocket,
                 extraImports,
                 extraProviders,
