@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { BadRequestException } from '@nestjs/common';
-import { assertNoMongoOperators, buildAbilityPredicateFilter } from './request-filter.helper';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { assertEveryTargetFound, assertNoMongoOperators, buildAbilityPredicateFilter } from './request-filter.helper';
 
 describe('request-filter.helper', () => {
   describe('assertNoMongoOperators', () => {
@@ -38,6 +38,22 @@ describe('request-filter.helper', () => {
 
     it('should reject an input carrying a MongoDB operator key', () => {
       expect(() => buildAbilityPredicateFilter({ ids: { $ne: null } })).toThrow(BadRequestException);
+    });
+  });
+
+  describe('assertEveryTargetFound', () => {
+    it.each([
+      ['no ids in the input', { name: 'toto' }, 0],
+      ['a non-object input', undefined, 0],
+      ['every id found', { ids: ['a', 'b'] }, 2],
+      ['duplicated ids found once', { ids: ['a', 'a'] }, 1],
+      ['a single id found', { ids: 'a' }, 1],
+    ])('should pass with %s', (_, input, foundCount) => {
+      expect(() => assertEveryTargetFound(input, foundCount)).not.toThrow();
+    });
+
+    it('should throw a 404 when some ids were not found', () => {
+      expect(() => assertEveryTargetFound({ ids: ['a', 'b'] }, 1)).toThrow(NotFoundException);
     });
   });
 });

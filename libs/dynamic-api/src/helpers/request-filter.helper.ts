@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 type RequestFilter = Record<string, unknown>;
 
@@ -55,4 +55,21 @@ function buildAbilityPredicateFilter(input: unknown): RequestFilter {
   return filter;
 }
 
-export { assertNoMongoOperators, buildAbilityPredicateFilter };
+/**
+ * Throws a `404` when the request targets documents by `ids` and some of them were not found:
+ * every targeted document must exist and pass the ability predicate, or the whole request fails.
+ * @internal Not part of the public API.
+ */
+function assertEveryTargetFound(input: unknown, foundCount: number): void {
+  if (!isPlainObject(input) || input.ids === undefined) {
+    return;
+  }
+
+  const requested = new Set((Array.isArray(input.ids) ? input.ids : [input.ids]).map(String));
+
+  if (foundCount < requested.size) {
+    throw new NotFoundException('Document not found');
+  }
+}
+
+export { assertEveryTargetFound, assertNoMongoOperators, buildAbilityPredicateFilter };

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, test, vi } from 'vitest';
-import { BadRequestException, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ExecutionContext, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { WsException } from '@nestjs/websockets';
 import { Model } from 'mongoose';
 import { BaseEntity } from '../models';
@@ -49,7 +49,7 @@ describe('BasePoliciesGuard', () => {
   });
 
   it('should not call findManyDocumentsWithAbilityPredicate if predicateBehavior is filter', async () => {
-    const spy = vi.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockImplementationOnce(vi.fn());
+    const spy = vi.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockResolvedValueOnce([]);
     guard['abilityPredicate'] = vi.fn();
     guard['predicateBehavior'] = 'filter';
     context.switchToHttp().getRequest().user = {};
@@ -67,7 +67,7 @@ describe('BasePoliciesGuard', () => {
   });
 
   it('should call findManyDocuments if params.id is not defined', async () => {
-    const spy = vi.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockImplementationOnce(vi.fn());
+    const spy = vi.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockResolvedValueOnce([]);
     guard['abilityPredicate'] = vi.fn();
     context.switchToHttp().getRequest().user = {};
     await guard.canActivate(context);
@@ -76,7 +76,7 @@ describe('BasePoliciesGuard', () => {
 
   it('should call findManyDocuments (not findOneDocument) if params.userId is defined but targetParam is not set', async () => {
     const findOneSpy = vi.spyOn<any, any>(guard, 'findOneDocumentWithAbilityPredicate').mockImplementationOnce(vi.fn());
-    const findManySpy = vi.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockImplementationOnce(vi.fn());
+    const findManySpy = vi.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockResolvedValueOnce([]);
     guard['abilityPredicate'] = vi.fn();
     context.switchToHttp().getRequest().params = { userId: '1' };
     context.switchToHttp().getRequest().user = {};
@@ -108,13 +108,22 @@ describe('BasePoliciesGuard', () => {
   });
 
   it('should check the documents targeted by the ids query (DeleteMany / UpdateMany / DuplicateMany)', async () => {
-    const spy = vi.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockImplementationOnce(vi.fn());
+    const spy = vi.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockResolvedValueOnce([]);
     const user = { id: 'u1' };
     guard['abilityPredicate'] = vi.fn();
     context.switchToHttp().getRequest().user = user;
     context.switchToHttp().getRequest().query = { ids: ['a', 'b'] };
+    spy.mockReset().mockResolvedValueOnce([{}, {}]);
     await guard.canActivate(context);
     expect(spy).toHaveBeenCalledWith({ _id: { $in: ['a', 'b'] } }, user);
+  });
+
+  it('should throw a 404 when some of the targeted ids do not exist', async () => {
+    vi.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockResolvedValueOnce([{}]);
+    guard['abilityPredicate'] = vi.fn();
+    context.switchToHttp().getRequest().user = {};
+    context.switchToHttp().getRequest().query = { ids: ['a', 'missing'] };
+    await expect(guard.canActivate(context)).rejects.toThrow(NotFoundException);
   });
 
   it('should reject a query carrying a MongoDB operator key', async () => {
@@ -141,7 +150,7 @@ describe('BasePoliciesGuard', () => {
   });
 
   it('should return true if abilityPredicate is defined', async () => {
-    vi.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockImplementationOnce(vi.fn());
+    vi.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockResolvedValueOnce([]);
     guard['abilityPredicate'] = vi.fn();
     context.switchToHttp().getRequest().user = {};
     await expect(guard.canActivate(context)).resolves.toBe(true);
@@ -177,7 +186,7 @@ describe('BasePoliciesGuard', () => {
     });
 
     it('should never scan the collection (never call findManyDocumentsWithAbilityPredicate) when only authAbilityPredicate is set', async () => {
-      const spy = vi.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockImplementationOnce(vi.fn());
+      const spy = vi.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockResolvedValueOnce([]);
       guard['authAbilityPredicate'] = vi.fn().mockReturnValue(true);
       context.switchToHttp().getRequest().user = { isAdmin: true };
       await guard.canActivate(context);
@@ -237,7 +246,7 @@ describe('BaseSocketPoliciesGuard', () => {
   });
 
   it('should not call findManyDocumentsWithAbilityPredicate if predicateBehavior is filter (socket)', async () => {
-    const spy = vi.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockImplementationOnce(vi.fn());
+    const spy = vi.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockResolvedValueOnce([]);
     guard['isPublic'] = false;
     guard['abilityPredicate'] = vi.fn();
     guard['predicateBehavior'] = 'filter';
@@ -267,7 +276,7 @@ describe('BaseSocketPoliciesGuard', () => {
   });
 
   it('should call findManyDocumentsWithAbilityPredicate if params.id is not defined', async () => {
-    const spy = vi.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockImplementationOnce(vi.fn());
+    const spy = vi.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockResolvedValueOnce([]);
     guard['abilityPredicate'] = vi.fn();
     context.getArgs()[1] = undefined;
     context.getArgs()[0].user = {};
@@ -287,13 +296,22 @@ describe('BaseSocketPoliciesGuard', () => {
   });
 
   it('should check the documents targeted by the ids payload and ignore the update fields', async () => {
-    const spy = vi.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockImplementationOnce(vi.fn());
+    const spy = vi.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockResolvedValueOnce([]);
     const user = { id: 'u1' };
     guard['abilityPredicate'] = vi.fn();
     context.getArgs()[0].user = user;
     context.getArgs()[1] = { ids: ['a'], name: 'renamed' };
+    spy.mockReset().mockResolvedValueOnce([{}]);
     await guard.canActivate(context);
     expect(spy).toHaveBeenCalledWith({ _id: { $in: ['a'] } }, user);
+  });
+
+  it('should throw a WsException when some of the targeted ids do not exist', async () => {
+    vi.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockResolvedValueOnce([]);
+    guard['abilityPredicate'] = vi.fn();
+    context.getArgs()[0].user = {};
+    context.getArgs()[1] = { ids: ['missing'] };
+    await expect(guard.canActivate(context)).rejects.toThrow(WsException);
   });
 
   it('should reject a payload carrying a MongoDB operator key', async () => {
@@ -332,7 +350,7 @@ describe('BaseSocketPoliciesGuard', () => {
     });
 
     it('should never scan the collection when only authAbilityPredicate is set', async () => {
-      const spy = vi.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockImplementationOnce(vi.fn());
+      const spy = vi.spyOn<any, any>(guard, 'findManyDocumentsWithAbilityPredicate').mockResolvedValueOnce([]);
       guard['isPublic'] = false;
       guard['authAbilityPredicate'] = vi.fn().mockReturnValue(true);
       context.getArgs()[0].user = { isAdmin: true };
