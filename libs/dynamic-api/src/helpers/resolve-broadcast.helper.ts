@@ -1,3 +1,4 @@
+import { instanceToPlain } from 'class-transformer';
 import { resolveRooms } from './resolve-rooms.helper';
 import { BroadcastAbilityPredicate, BroadcastConfig } from '../interfaces';
 
@@ -14,6 +15,10 @@ interface ResolvedBroadcast<T extends object> {
  *
  * Returns `undefined` when the broadcast must be skipped (no config, no data, `enabled: false`,
  * or the `enabled` predicate filtered out every item).
+ *
+ * The emitted `data` is serialized with `instanceToPlain`, like an HTTP response goes through
+ * `ClassSerializerInterceptor`: fields marked `@Exclude()` on the entity or presenter are never
+ * broadcast. `enabled` and `rooms` still receive the original items.
  *
  * @internal Not part of the public API.
  */
@@ -44,7 +49,7 @@ function resolveBroadcast<T extends object, User = unknown>(
   return {
     event: eventName || event,
     rooms: resolveRooms(rooms, broadcastData, user),
-    data: broadcastData,
+    data: broadcastData.map((item) => instanceToPlain(item) as T),
   };
 }
 

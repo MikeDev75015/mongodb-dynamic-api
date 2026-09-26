@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { Exclude } from 'class-transformer';
 import { resolveBroadcast } from './resolve-broadcast.helper';
 import { BroadcastConfig } from '../interfaces';
 
@@ -9,6 +10,26 @@ interface Item {
 
 describe('resolveBroadcast', () => {
   const data: Item[] = [{ id: '1' }, { id: '2' }];
+
+  it('should serialize the emitted items so @Exclude() fields are never broadcast', () => {
+    class UserItem {
+      id: string;
+
+      @Exclude()
+      password: string;
+
+      constructor(id: string, password: string) {
+        this.id = id;
+        this.password = password;
+      }
+    }
+    const enabled = vi.fn().mockReturnValue(true);
+
+    const result = resolveBroadcast('event', [new UserItem('1', 'hash')], { enabled });
+
+    expect(result?.data).toStrictEqual([{ id: '1' }]);
+    expect(enabled).toHaveBeenCalledWith(expect.any(UserItem), undefined);
+  });
 
   it('should return undefined when broadcastConfig is not provided', () => {
     expect(resolveBroadcast('event', data, undefined)).toBeUndefined();

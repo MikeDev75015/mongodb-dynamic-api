@@ -1,5 +1,6 @@
-import { describe, expect, it, test } from 'vitest';
+import { afterEach, describe, expect, it, test, vi } from 'vitest';
 import { BaseEntity } from '../../models';
+import { DynamicApiGlobalStateService } from '../../services/dynamic-api-global-state/dynamic-api-global-state.service';
 import { buildAuthBroadcastData } from './auth-broadcast.helper';
 
 describe('buildAuthBroadcastData', () => {
@@ -15,6 +16,39 @@ describe('buildAuthBroadcastData', () => {
     email: 'john@test.com',
     role: 'admin',
   };
+
+  describe('sensitive fields', () => {
+    const userWithSecrets = { ...user, password: 'hash', refreshToken: 'stored-jti-hash' } as Partial<TestEntity>;
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    const mockState = (credentials: { passwordField: string } | null, refreshTokenField?: string) => {
+      vi.spyOn(DynamicApiGlobalStateService, 'getValue').mockImplementation(((key: string) => (
+        key === 'credentials' ? credentials : refreshTokenField
+      )) as typeof DynamicApiGlobalStateService.getValue);
+    };
+
+    it.each([
+      ['no fields are given', undefined],
+      ['the fields list them explicitly', ['id', 'password', 'refreshToken'] as (keyof TestEntity)[]],
+    ])('should always remove the password and refresh token fields when %s', (_, fields) => {
+      mockState({ passwordField: 'password' }, 'refreshToken');
+
+      const result = buildAuthBroadcastData(userWithSecrets, fields);
+
+      expect(result).not.toHaveProperty('password');
+      expect(result).not.toHaveProperty('refreshToken');
+      expect(result).toHaveProperty('id', 'user-id');
+    });
+
+    it('should keep every field when auth is not configured', () => {
+      mockState(null);
+
+      expect(buildAuthBroadcastData(userWithSecrets)).toEqual(userWithSecrets);
+    });
+  });
 
   it('should return a full copy of the user when fields is undefined', () => {
     const result = buildAuthBroadcastData(user);
