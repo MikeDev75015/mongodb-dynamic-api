@@ -26,6 +26,9 @@
 ---
 
 > [!WARNING]
+> **v6 — Secure defaults (breaking).** JWT `secret` + distinct `refreshSecret` are required, tokens without a `typ` claim are rejected, request bodies reject undeclared properties once validation is configured, `ids` requests fail with `404` when a targeted document is missing, room-less broadcasts reach authenticated sockets only when auth is enabled (`broadcast.public: true` to opt out), and invalid WebSocket handshake tokens are refused by default. See [migration-v6.md](./README/migration-v6.md) for the checklist and the front-end changes.
+
+> [!WARNING]
 > **v5 — Breaking changes.** The package's public export surface was curated: internal implementation classes, mixins, builders and helpers that were never meant to be imported directly are no longer exported from `mongodb-dynamic-api`. Everything documented in this README and in `README/*.md` is unaffected.
 >
 > 🚚 **`npx mongodb-dynamic-api migrate-v5 <path>`** applies every mechanical rename below (`DynamicApiGlobalStateService` → `DynamicApiEntityService`, `@Schema`+`@DynamicApiSchemaOptions` → `@DynamicApiSchema`, every verbose/all-caps alias → its short name, `enableDynamicAPIWebSockets`'s numeric overload → the options-object form) across your codebase automatically, and flags anything else it can't safely fix — including a note on the `query.accessToken` client-side change it cannot detect. See [migration-v5.md](./README/migration-v5.md).
@@ -347,6 +350,7 @@ Register `UsersModule` in `AppModule`, run `npm run start:dev` — your API is l
 | 🩺 **Health Check** | `GET /health` readiness probe, `DynamicApiHealthModule` ⭐ *New* | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/health-check.md) |
 | 🧪 **Testing** | `createDynamicApiTestingApp`, in-memory MongoDB, zero Docker ⭐ *New* | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/testing.md) |
 | 🏗️ **Schematics** | `nest g -c mongodb-dynamic-api resource <name>` — scaffold entity + module in one command ⭐ *New* | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/schematics.md) |
+| 🔐 **Migrating to v6** | Secure defaults: required secrets, strict bodies, authenticated-only broadcasts — checklist + front-end changes ⭐ *New* | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/migration-v6.md) |
 | 🚚 **Migrating to v5** | `npx mongodb-dynamic-api migrate-v5 <path>` — codemod for the mechanical v5 renames ⭐ *New* | [View](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/migration-v5.md) |
 
 > [!NOTE]
