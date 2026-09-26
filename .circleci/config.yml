@@ -48,21 +48,6 @@ aliases:
       template: basic_success_1
 
 commands:
-  unit-tests-parallelized-command:
-    description: "Split and run unit tests with JUnit as reporter"
-    steps:
-      - run:
-          name: Create report folder
-          command: mkdir -p reports/junit
-      - run:
-          name: Split and run unit tests
-          command: |
-            UT_FILES=$(circleci tests glob "libs/**/*.spec.ts" | circleci tests split --split-by=timings)
-            echo $UT_FILES
-            npm run test:ci:junit $UT_FILES
-      - store_test_results:
-          path: reports/junit
-
   unit-tests-parallelized-sonar-command:
     description: "Split and run unit tests with Sonar reporter, per-node coverage and XML"
     steps:
@@ -284,17 +269,8 @@ jobs:
       - *notify-fail
       - *notify-success
 
+  # Unit tests run once, with coverage + the Sonar test report merged by merge-and-sonarcloud-job.
   test-job:
-    executor: node
-    parallelism: 8
-    steps:
-      - checkout
-      - *restore-cache
-      - unit-tests-parallelized-command
-      - *notify-fail
-      - *notify-success
-
-  test-with-coverage-job:
     executor: node
     parallelism: 8
     steps:
@@ -428,10 +404,15 @@ workflows:
   # Trunk-based flow: every change lives on a short-lived branch cut from main and lands through
   # a PR "rebase and merge". There is no develop branch any more.
   #
-  # Every push to a branch other than main runs BOTH workflows below. CircleCI's GitHub OAuth
-  # integration only triggers pipelines on push — opening a PR triggers nothing, so a workflow
-  # can't be restricted to "branches with an open PR" without leaving the required checks
-  # unreported (or falsely green) on the PR's head commit.
+  # A single workflow on every push to a branch other than main: CircleCI's GitHub OAuth
+  # integration only triggers pipelines on push (opening a PR triggers nothing), so a separate
+  # "PR-only" workflow would just run on the same pushes and duplicate the install + unit tests.
+  # test-job runs the unit tests once, with coverage for SonarCloud. build-job, test-job and
+  # e2e-tests-mongodb-job are the ci/circleci checks main's branch protection requires.
+  #
+  # Opt-in release: approving confirm-release-job bumps the version on the PR branch and enables
+  # rebase auto-merge; ci-main-workflow then tags main, and the tag publishes to npm. Leave the
+  # approval pending to merge the PR without a release — the next release picks its commits up.
   ci-default-workflow:
     when:
       not: << pipeline.git.tag >>
@@ -456,34 +437,9 @@ workflows:
           filters:
             branches:
               ignore: main
-
-  # Heavier checks for code on its way to main (build-job, test-job and e2e-tests-mongodb-job are
-  # the ci/circleci checks main's branch protection requires), then the opt-in release:
-  # approving confirm-release-job bumps the version on the PR branch and enables rebase
-  # auto-merge; ci-main-workflow then tags main, and the tag publishes to npm. Leave the approval
-  # pending to merge the PR without a release — the next release picks its commits up.
-  ci-pr-workflow:
-    when:
-      and:
-        - not: << pipeline.git.tag >>
-        - not:
-            equal: [ << pipeline.git.branch >>, main ]
-    jobs:
-      - dependencies-job:
-          filters:
-            branches:
-              ignore: main
-      - test-with-coverage-job:
-          requires:
-            - dependencies-job
-          context:
-            - SLACK
-          filters:
-            branches:
-              ignore: main
       - merge-and-sonarcloud-job:
           requires:
-            - test-with-coverage-job
+            - test-job
           context:
             - SONARCLOUD
             - SLACK
@@ -501,6 +457,7 @@ workflows:
       - confirm-release-job:
           type: approval
           requires:
+            - build-job
             - merge-and-sonarcloud-job
             - e2e-tests-mongodb-job
           filters:
@@ -533,7 +490,7 @@ workflows:
           filters:
             branches:
               only: main
-      - test-with-coverage-job:
+      - test-job:
           requires:
             - dependencies-job
           context:
@@ -543,7 +500,7 @@ workflows:
               only: main
       - merge-and-sonarcloud-job:
           requires:
-            - test-with-coverage-job
+            - test-job
           context:
             - SONARCLOUD
             - SLACK
