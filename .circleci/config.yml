@@ -129,16 +129,6 @@ commands:
       - run: git config user.email ${USER_EMAIL}
       - run: git config user.name ${USER_NAME}
 
-  delete-tag-command:
-    description: "Delete the tag from the repository"
-    parameters:
-      tag:
-        type: string
-    steps:
-      - run:
-          name: Delete the tag from the repository
-          command: git push -d -q https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git << parameters.tag >>
-
   install-github-cli-command:
     description: "Installs the latest Github CLI version"
     steps:
@@ -153,66 +143,56 @@ commands:
             sudo apt install ./gh_latest.deb
           description: Gets latest release version of Github CLI
 
-  create-release-pr-command:
-    description: "Run release-it directly on develop (no rebase onto main), branch release/vX.Y.Z off the result, create + auto-merge the PR to main"
+  release-pr-command:
+    description: "Bump the version on the PR branch, push the release commit, enable rebase auto-merge into main"
     steps:
       - run:
-          name: Checkout to develop
-          command: git checkout develop
-      - run:
-          name: Pull develop
-          command: git pull https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git develop
-      - run:
-          name: Fetch main
-          command: git fetch https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git main
-      - run:
-          # A rebase-onto-main step used to sit here. It replayed EVERY develop commit since the
-          # last time main and develop shared real ancestry — including ones whose conflicts were
-          # already resolved once inside a --merge commit on develop (a linear rebase can't see
-          # content that exists only inside a merge commit's own resolution, so it hits the exact
-          # same conflict again). Every completed release also made it worse: `gh pr merge --rebase`
-          # lands NEW, rebase-rewritten commit hashes on main that develop never receives, so main
-          # was never actually an ancestor of develop again after the very first release — meaning
-          # this replay-and-reconflict happened on every single subsequent release, not just once.
-          # Fix: never rebase. main only ever advances by fast-forwarding to a commit develop
-          # already has, so this check just fails loudly instead of silently re-diverging if
-          # something outside this pipeline ever pushes to main directly.
-          name: Verify main is an ancestor of develop (the release pipeline only ever fast-forwards)
+          name: Checkout and pull the PR branch
           command: |
-            if ! git merge-base --is-ancestor FETCH_HEAD HEAD; then
-              echo "main is NOT an ancestor of develop — this pipeline can only fast-forward main to a commit develop already contains."
-              echo "This means something pushed to main outside this pipeline (or an old rebase-based release rewrote main's history)."
-              echo "Fix the divergence by hand once (e.g. reconcile main to a real ancestor of develop), then retry."
+            git checkout ${CIRCLE_BRANCH}
+            git pull https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git ${CIRCLE_BRANCH}
+            git fetch --tags https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git main
+      - run:
+          name: Verify an open PR targets main from this branch
+          command: |
+            PR_BASE=$(gh pr view "${CIRCLE_BRANCH}" -R ${GH_OWNER}/${GH_REPO} --json state,baseRefName -q 'select(.state == "OPEN") | .baseRefName' || true)
+            if [ "${PR_BASE}" != "main" ]; then
+              echo "No open PR from ${CIRCLE_BRANCH} into main — open the PR before approving the release."
               exit 1
             fi
       - run:
-          name: Run release-it to prepare the release commit on develop itself (local only, no push/tag — see .release-it.json)
+          # release-it computes the next version from the last version tag reachable from HEAD.
+          # Tags live on main, so a branch that is behind main would miss a newer release tag and
+          # compute a version that is already taken.
+          name: Verify the branch contains main (so the last release tag is reachable)
+          command: |
+            if ! git merge-base --is-ancestor FETCH_HEAD HEAD; then
+              echo "${CIRCLE_BRANCH} is behind main — rebase it onto main (or merge main into it), then re-approve."
+              exit 1
+            fi
+      - run:
+          name: Refuse a second bump on an already-released branch
+          command: |
+            if git log -1 --format=%s | grep -q '^chore(release):'; then
+              echo "HEAD is already a release commit — nothing to bump."
+              exit 1
+            fi
+      - run:
+          name: Run release-it to create the release commit (local only, no push/tag — see .release-it.json)
           command: npm run auto-release
       - run:
-          name: Push the release commit to develop
-          command: git push https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git HEAD:develop
+          name: Push the release commit to the PR branch
+          command: git push https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git HEAD:${CIRCLE_BRANCH}
       - run:
-          name: Branch release/vX.Y.Z off develop's new tip and push it
-          command: |
-            VERSION_NUMBER=v$(jq -r '.version' package.json)
-            echo ${VERSION_NUMBER}
-            git checkout -b "release/${VERSION_NUMBER}"
-            git push https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git "release/${VERSION_NUMBER}"
-      - run:
-          # release/vX.Y.Z is a plain descendant of develop, which is itself a descendant of main
-          # (checked above) — so this "rebase and merge" always finds zero commits to replay and
-          # degrades to a pure fast-forward. main's tip becomes byte-identical to develop's tip,
-          # which is exactly what keeps main an ancestor of develop for the *next* release too —
-          # no separate "sync main back into develop" step needed.
-          name: Create the PR from release/vX.Y.Z to main and enable auto-merge
-          command: |
-            VERSION_NUMBER=v$(jq -r '.version' package.json)
-            echo ${VERSION_NUMBER}
-            gh pr create -R ${GH_OWNER}/${GH_REPO} -H "release/${VERSION_NUMBER}" -B main --fill-verbose -t "New ${VERSION_NUMBER} created automatically from CircleCI"
-            gh pr merge "release/${VERSION_NUMBER}" -R ${GH_OWNER}/${GH_REPO} --auto --rebase --delete-branch
+          # "Rebase and merge" rewrites the branch's commits onto main — fine now that no long-lived
+          # branch has to stay in sync with main. The version tag is therefore NOT created here
+          # (it would point at a pre-rewrite commit that never lands on main): create-version-tags-job
+          # tags main's own HEAD once the PR has merged.
+          name: Enable rebase auto-merge of the PR into main
+          command: gh pr merge "${CIRCLE_BRANCH}" -R ${GH_OWNER}/${GH_REPO} --auto --rebase --delete-branch
 
   create-version-tags-command:
-    description: "Create and push the version tags"
+    description: "Tag main with the package.json version, unless that tag already exists"
     steps:
       - run:
           name: Checkout to main
@@ -221,10 +201,16 @@ commands:
           name: Pull main
           command: git pull https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git main
       - run:
-          name: Create the release / prerelease version tags
+          # Every push to main runs this job, but only a merged release PR changes package.json's
+          # version: for any other merge the tag already exists and there is nothing to publish.
+          name: Create and push the version tag (triggers cd-release-version-workflow)
           command: |
             VERSION_NUMBER=v$(jq -r '.version' package.json)
             echo ${VERSION_NUMBER}
+            if git ls-remote --exit-code --tags https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git "refs/tags/${VERSION_NUMBER}" > /dev/null; then
+              echo "Tag ${VERSION_NUMBER} already exists — no new release to publish."
+              exit 0
+            fi
             git tag ${VERSION_NUMBER}
             git push https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git ${VERSION_NUMBER}
 
@@ -402,14 +388,14 @@ jobs:
       - *notify-fail
       - *notify-success
 
-  create-release-pr-job:
+  release-pr-job:
     executor: node
     steps:
       - checkout
       - *restore-cache
       - git-config-local-user-command
       - install-github-cli-command
-      - create-release-pr-command
+      - release-pr-command
       - *notify-fail
       - *notify-success
 
@@ -439,6 +425,13 @@ jobs:
       - *notify-success
 
 workflows:
+  # Trunk-based flow: every change lives on a short-lived branch cut from main and lands through
+  # a PR "rebase and merge". There is no develop branch any more.
+  #
+  # Every push to a branch other than main runs BOTH workflows below. CircleCI's GitHub OAuth
+  # integration only triggers pipelines on push — opening a PR triggers nothing, so a workflow
+  # can't be restricted to "branches with an open PR" without leaving the required checks
+  # unreported (or falsely green) on the PR's head commit.
   ci-default-workflow:
     when:
       not: << pipeline.git.tag >>
@@ -446,39 +439,40 @@ workflows:
       - dependencies-job:
           filters:
             branches:
-              ignore:
-                - main
-                - develop
-                - /^release\/.*/
+              ignore: main
       - build-job:
           requires:
             - dependencies-job
-          context: SLACK
+          context:
+            - SLACK
           filters:
             branches:
-              ignore:
-                - main
-                - develop
-                - /^release\/.*/
+              ignore: main
       - test-job:
           requires:
             - dependencies-job
-          context: SLACK
+          context:
+            - SLACK
           filters:
             branches:
-              ignore:
-                - main
-                - develop
-                - /^release\/.*/
+              ignore: main
 
-  ci-develop-workflow:
+  # Heavier checks for code on its way to main (build-job, test-job and e2e-tests-mongodb-job are
+  # the ci/circleci checks main's branch protection requires), then the opt-in release:
+  # approving confirm-release-job bumps the version on the PR branch and enables rebase
+  # auto-merge; ci-main-workflow then tags main, and the tag publishes to npm. Leave the approval
+  # pending to merge the PR without a release — the next release picks its commits up.
+  ci-pr-workflow:
     when:
-      equal: [ << pipeline.git.branch >>, develop ]
+      and:
+        - not: << pipeline.git.tag >>
+        - not:
+            equal: [ << pipeline.git.branch >>, main ]
     jobs:
       - dependencies-job:
           filters:
             branches:
-              only: develop
+              ignore: main
       - test-with-coverage-job:
           requires:
             - dependencies-job
@@ -486,7 +480,7 @@ workflows:
             - SLACK
           filters:
             branches:
-              only: develop
+              ignore: main
       - merge-and-sonarcloud-job:
           requires:
             - test-with-coverage-job
@@ -495,7 +489,7 @@ workflows:
             - SLACK
           filters:
             branches:
-              only: develop
+              ignore: main
       - e2e-tests-mongodb-job:
           requires:
             - dependencies-job
@@ -503,65 +497,24 @@ workflows:
             - SLACK
           filters:
             branches:
-              only: develop
-
-  # Dedicated release-branch workflow: no SonarCloud here — the code was already analyzed on
-  # every `develop` push by ci-develop-workflow above; release/vX.Y.Z is just that same code
-  # rebased onto main, re-scanning it would be redundant. build/test/e2e-tests-mongodb-job's
-  # individual `ci/circleci: <job>` checks are what main's branch protection requires for a
-  # release-branch PR to merge (see create-release-pr-command / .release-it.json).
-  ci-release-branch-workflow:
-    when:
-      matches:
-        pattern: "^release/.*"
-        value: << pipeline.git.branch >>
-    jobs:
-      - dependencies-job:
-          filters:
-            branches:
-              only: /^release\/.*/
-      - build-job:
-          requires:
-            - dependencies-job
-          context: SLACK
-          filters:
-            branches:
-              only: /^release\/.*/
-      - test-job:
-          requires:
-            - dependencies-job
-          context: SLACK
-          filters:
-            branches:
-              only: /^release\/.*/
-      - e2e-tests-mongodb-job:
-          requires:
-            - dependencies-job
-          context:
-            - SLACK
-          filters:
-            branches:
-              only: /^release\/.*/
-
-  cd-release-pr-workflow:
-    when:
-      equal: [ << pipeline.git.branch >>, develop ]
-    jobs:
-      - confirm-release-pr-job:
+              ignore: main
+      - confirm-release-job:
           type: approval
+          requires:
+            - merge-and-sonarcloud-job
+            - e2e-tests-mongodb-job
           filters:
             branches:
-              only: develop
-      - create-release-pr-job:
+              ignore: main
+      - release-pr-job:
           requires:
-            - confirm-release-pr-job
+            - confirm-release-job
           context:
-            - SONARCLOUD
             - GIT
             - SLACK
           filters:
             branches:
-              only: develop
+              ignore: main
 
   ci-main-workflow:
     when:
