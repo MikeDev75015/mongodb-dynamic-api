@@ -10,6 +10,7 @@ Enable global validation for all API endpoints using NestJS's built-in validatio
 
 - [Quick Start](#quick-start)
 - [Configuration Levels](#configuration-levels)
+  - [Strict Bodies by Default](#strict-bodies-by-default)
 - [Validation Decorators](#validation-decorators)
 - [Custom Validation](#custom-validation)
 - [Best Practices](#best-practices)
@@ -76,6 +77,46 @@ export class User extends BaseEntity {
 ---
 
 ## Configuration Levels
+
+### Strict Bodies by Default
+
+Since v6, as soon as your app configures validation itself — `enableDynamicAPIValidation(app, options)`, or `validationPipeOptions` on a controller or a route — **request bodies** are validated with `whitelist: true` and `forbidNonWhitelisted: true` by default. A body property without a class-validator decorator is rejected with `400` (`property ownerId should not exist`), which blocks mass-assignment of fields the client should not set.
+
+| | Bodies | Query strings and params |
+|---|---|---|
+| No validation configured (implicit `{ transform: true }`) | lenient, as before | lenient |
+| Validation configured | `whitelist` + `forbidNonWhitelisted` unless you override them | your options as given; GetMany filters stay free-form |
+
+Every field a client may send must carry a class-validator decorator (`@IsOptional()` for optional ones). To keep the v5 behavior, pass the flags explicitly:
+
+```typescript
+import { Prop, Schema } from '@nestjs/mongoose';
+import { IsOptional, IsString } from 'class-validator';
+import { BaseEntity, DynamicApiModule } from 'mongodb-dynamic-api';
+
+@Schema({ collection: 'notes' })
+class Note extends BaseEntity {
+  @IsString()
+  @Prop({ type: String, required: true })
+  title: string;
+
+  @IsOptional()
+  @IsString()
+  @Prop({ type: String })
+  content?: string;
+}
+
+DynamicApiModule.forFeature({
+  entity: Note,
+  controllerOptions: {
+    path: 'notes',
+    // POST /notes { title, ownerId } → 400 "property ownerId should not exist"
+    validationPipeOptions: { transform: true },
+    // v5 behavior instead: { transform: true, whitelist: false, forbidNonWhitelisted: false }
+  },
+  routes: [{ type: 'CreateOne' }, { type: 'UpdateOne' }, { type: 'GetMany' }],
+});
+```
 
 ### Global Configuration
 
