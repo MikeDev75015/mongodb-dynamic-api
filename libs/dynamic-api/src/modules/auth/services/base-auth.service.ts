@@ -320,7 +320,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
       throw new BadRequestException(invalidTokenMessage);
     }
 
-    const userId = document._id.toString();
+    const userId = (document._id as { toString(): string }).toString();
 
     const hashedPassword = await this.bcryptService.hashPassword(newPassword);
 
@@ -566,13 +566,13 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
    * tokens so a token can only be used while that password is still in place.
    */
   private passwordFingerprint(user: Entity | undefined): string | undefined {
-    const hash = user?.[this.passwordField];
+    const hash = user?.[this.passwordField] as string | undefined;
 
     if (!hash) {
       return undefined;
     }
 
-    return createHash('sha256').update(String(hash)).digest('base64url').slice(0, 22);
+    return createHash('sha256').update(hash).digest('base64url').slice(0, 22);
   }
 
   private buildRefreshToken(payload: object): string {
