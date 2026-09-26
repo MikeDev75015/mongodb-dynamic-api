@@ -3,7 +3,7 @@ import { WsException } from '@nestjs/websockets';
 import { PipelineStage } from 'mongodb-pipeline-builder';
 import { Model } from 'mongoose';
 import { AbilityPredicate, AuthAbilityPredicate, PredicateBehavior, RouteType } from '../interfaces';
-import { buildAbilityPredicateFilter } from '../helpers/request-filter.helper';
+import { assertEveryTargetFound, buildAbilityPredicateFilter } from '../helpers/request-filter.helper';
 import { MongoDBDynamicApiLogger } from '../logger/mongo-dynamic-api.logger';
 import { BaseEntity } from '../models';
 import { BaseService } from '../services/base/base.service';
@@ -54,7 +54,8 @@ abstract class BasePoliciesGuard<Entity extends BaseEntity> extends BaseService<
       } else if (this.routeType === 'Aggregate' && query && this.queryToPipeline) {
         await this.aggregateDocumentsWithAbilityPredicate(this.queryToPipeline(query), user);
       } else {
-        await this.findManyDocumentsWithAbilityPredicate(buildAbilityPredicateFilter(query), user);
+        const documents = await this.findManyDocumentsWithAbilityPredicate(buildAbilityPredicateFilter(query), user);
+        assertEveryTargetFound(query, documents.length);
       }
     }
 
@@ -121,7 +122,8 @@ abstract class BaseSocketPoliciesGuard<Entity extends BaseEntity> extends BaseSe
             await this.aggregateDocumentsWithAbilityPredicate(this.queryToPipeline(data), socket.user);
           } else {
             this.logger.debug('Finding many documents with ability predicate');
-            await this.findManyDocumentsWithAbilityPredicate(buildAbilityPredicateFilter(data), socket.user);
+            const documents = await this.findManyDocumentsWithAbilityPredicate(buildAbilityPredicateFilter(data), socket.user);
+            assertEveryTargetFound(data, documents.length);
           }
         } catch (error) {
           this.logger.error('Error in canActivate', error);

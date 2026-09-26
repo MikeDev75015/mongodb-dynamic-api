@@ -305,7 +305,7 @@ The Guard loads the documents an `abilityPredicate` is checked against from the 
 | Route | Documents checked |
 |---|---|
 | Routes with an `:id` param (`GetOne`, `UpdateOne`, `ReplaceOne`, `DuplicateOne`, `DeleteOne`) | The document with that `_id`. A `?_id=` in the query string can no longer replace it. |
-| `DeleteMany`, `UpdateMany`, `DuplicateMany` | Every document listed in `ids` (`{ _id: { $in: ids } }`). Previously the Guard filtered on a non-existent `ids` field, found nothing and let the request through. |
+| `DeleteMany`, `UpdateMany`, `DuplicateMany` | Every document listed in `ids` (`{ _id: { $in: ids } }`). Previously the Guard filtered on a non-existent `ids` field, found nothing and let the request through. Since v6, if one of the `ids` doesn't exist the whole request fails with `404 Not Found` (`WsException` over WebSocket) and nothing is written. |
 | Other routes (`GetMany`, `CreateOne`, …) | The documents matching the query string (WebSocket: the payload). |
 
 A query-string or WebSocket-payload key starting with `$` (a MongoDB operator such as `$ne` or `$where`) is rejected with `400 Bad Request` (`WsException` over WebSocket), on guarded routes and on `GetMany`. Filter on plain field values only.
@@ -330,7 +330,8 @@ DynamicApiModule.forFeature({
     { type: 'GetMany' },
     // GET /notes/:id?_id=<my-note> → the `:id` document is still the one checked
     { type: 'GetOne', abilityPredicate: (note, user: { id: string }) => note.ownerId === user.id },
-    // DELETE /notes?ids=a&ids=b → 403 as soon as one of a/b belongs to someone else
+    // DELETE /notes?ids=a&ids=b → 403 as soon as one of a/b belongs to someone else,
+    //                             404 (v6) as soon as one of them doesn't exist
     { type: 'DeleteMany', abilityPredicate: (note, user: { id: string }) => note.ownerId === user.id },
   ],
 });

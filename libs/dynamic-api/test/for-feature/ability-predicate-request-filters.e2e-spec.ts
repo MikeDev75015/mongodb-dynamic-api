@@ -129,6 +129,20 @@ describe('Ability predicate — request-supplied filters (e2e)', () => {
       expect(status).toBe(403);
     });
 
+    it('fails the whole request with a 404 when one of the ids does not exist (v6)', async () => {
+      const missingId = new mongoose.Types.ObjectId().toString();
+
+      const { status } = await server.delete('/request-filter-notes', {
+        authToken: alice.accessToken,
+        query: { ids: [aliceNoteId, missingId] },
+      });
+
+      expect(status).toBe(404);
+
+      const { body } = await server.get(`/request-filter-notes/${aliceNoteId}`, { authToken: alice.accessToken });
+      expect(body.title).toBe('alice note');
+    });
+
     it('lets the owner delete their own notes', async () => {
       const secondAliceNoteId = await createNote('alice second note', alice);
 
