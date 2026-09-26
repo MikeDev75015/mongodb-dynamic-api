@@ -706,8 +706,17 @@ export abstract class BaseService<Entity extends BaseEntity> {
     throw new NotFoundException('Document not found');
   }
 
+  /**
+   * Returns a plain copy of `document` with its string `id` set from `_id`.
+   *
+   * Accepts both lean objects (`find().lean()`) and hydrated Mongoose documents (`model.create()`,
+   * `findById()` without `.lean()`). A hydrated document keeps its schema fields behind prototype
+   * getters, so spreading it directly would only copy Mongoose internals (`$__`, `_doc`, …) and
+   * leave every schema field `undefined` — it is converted with `toObject()` first.
+   */
   protected addDocumentId<T extends BaseEntity>(document: T): T {
-    return { ...document, id: document._id.toString() };
+    const plain = isHydratedDocument<T>(document) ? document.toObject() : document;
+    return { ...plain, id: plain._id.toString() };
   }
 
   private isModelSoftDeletable<T>(model: Model<T>): boolean {
@@ -733,4 +742,12 @@ export abstract class BaseService<Entity extends BaseEntity> {
     }
     throw new ServiceUnavailableException(errorMessage);
   }
+}
+
+interface HydratedDocumentLike<T> {
+  toObject(): T;
+}
+
+function isHydratedDocument<T>(document: T | HydratedDocumentLike<T>): document is HydratedDocumentLike<T> {
+  return typeof (document as Partial<HydratedDocumentLike<T>>).toObject === 'function';
 }
