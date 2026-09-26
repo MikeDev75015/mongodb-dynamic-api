@@ -379,6 +379,19 @@ describe('BaseService', () => {
       expect(result).toEqual(expectedDocuments);
       expect(fakeModel.create).toHaveBeenCalledWith(data);
     });
+
+    it('should return the schema fields of the hydrated documents returned by model.create', async () => {
+      const data = [{ name: 'toto' }, { name: 'unit' }];
+      fakeModel.create.mockResolvedValue(
+        documents.map((d) => ({ $__: {}, _doc: d, toObject: () => ({ ...d }) })),
+      );
+      vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
+      const service = new TestService(fakeModel as unknown as Model<TestEntity>);
+
+      const result = await service['callbackMethods'].createManyDocuments(TestEntity, data);
+
+      expect(result).toStrictEqual(expectedDocuments);
+    });
   });
 
   describe('createOneDocument', () => {
@@ -391,6 +404,16 @@ describe('BaseService', () => {
 
       expect(result).toEqual(expectedEntity);
       expect(fakeModel.create).toHaveBeenCalledWith(fakeEntity);
+    });
+
+    it('should return the schema fields of the hydrated document returned by model.create', async () => {
+      fakeModel.create.mockResolvedValue({ $__: {}, _doc: fakeEntity, toObject: () => ({ ...fakeEntity }) });
+      vi.spyOn(DynamicApiGlobalStateService, 'getEntityModel').mockResolvedValue(fakeModel as unknown as Model<unknown>);
+      const service = new TestService(fakeModel as unknown as Model<TestEntity>);
+
+      const result = await service['callbackMethods'].createOneDocument(TestEntity, fakeEntity);
+
+      expect(result).toStrictEqual(expectedEntity);
     });
   });
 
@@ -919,6 +942,25 @@ describe('BaseService', () => {
       const result = service['addDocumentId'](data);
 
       expect(result).toEqual({ id: fakeId, ...data });
+    });
+
+    it('should convert a hydrated document with toObject() before adding the id', () => {
+      const service = new TestService({} as unknown as Model<TestEntity>);
+      const plain = { _id: fakeId, name: 'toto' };
+      const toObject = vi.fn(() => plain);
+      // Mimics a hydrated Mongoose document: schema fields live behind prototype getters, so only
+      // internals are own enumerable properties.
+      const hydrated = Object.assign(Object.create({ get name() { return 'toto'; } }), {
+        $__: {},
+        _doc: plain,
+        _id: fakeId,
+        toObject,
+      }) as unknown as TestEntity;
+
+      const result = service['addDocumentId'](hydrated);
+
+      expect(toObject).toHaveBeenCalledTimes(1);
+      expect(result).toStrictEqual({ _id: fakeId, id: fakeId, name: 'toto' });
     });
   });
 
