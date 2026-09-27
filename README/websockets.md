@@ -1068,6 +1068,7 @@ You can customize event names using the `eventName` parameter in route configura
 - `auth-change-password` - Change password with reset token
 - `auth-refresh-token` - Obtain a new token pair using the refresh token ⭐ *New in v4*
 - `auth-logout` - Invalidate the current refresh token ⭐ *New in v4*
+- `auth-logout-all` - Revoke every refresh session of the user (requires `refreshToken.multiSession`) ⭐ *New in v6.1*
 
 **Authentication Broadcast Events (Fixed Names):**
 - `auth-login-broadcast` - Broadcast after login
@@ -1123,6 +1124,7 @@ These event names are fixed and cannot be customized:
 | `auth-change-password` | Change password with reset token | No (requires reset token) |
 | `auth-refresh-token` | Obtain a new token pair (access + refresh) | Yes (refresh token via `JwtRefreshGuard`) ⭐ *New in v4* |
 | `auth-logout` | Invalidate the current refresh token | Yes (refresh token via `JwtRefreshGuard`) ⭐ *New in v4* |
+| `auth-logout-all` | Revoke every refresh session of the user — only with `refreshToken.multiSession: true` (`This feature is not available` otherwise) | Yes (refresh token via `JwtSocketRefreshGuard`) ⭐ *New in v6.1* |
 
 **Response Format for All Events:**
 ```typescript
@@ -1207,6 +1209,7 @@ Unlike CRUD route events which are generated from entity names, **authentication
 | `auth-change-password` | Reset password with token | No** | `{ resetPasswordToken, newPassword }` |
 | `auth-refresh-token` | Get new token pair | Yes (refresh token) ⭐ *v4* | `{}` (token via header or cookie) |
 | `auth-logout` | Invalidate refresh token | Yes (refresh token) ⭐ *v4* | `{}` (token via header or cookie) |
+| `auth-logout-all` | Revoke all refresh sessions (`multiSession` only) | Yes (refresh token) ⭐ *v6.1* | `{}` (token via handshake `query.refreshToken`) |
 
 \* May require authentication if `register.protected` is set to `true`  
 \** Requires a valid reset token, not JWT authentication
