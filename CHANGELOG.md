@@ -1,5 +1,42 @@
 Changelog
 
+## [6.0.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v5.4.2...v6.0.0) (2026-09-27)
+
+### ⚠ BREAKING CHANGES
+
+* **websockets:** with useAuth enabled, broadcasts without rooms no longer reach anonymous sockets; set broadcast.public: true to keep them public. A handshake carrying an invalid or expired token is now refused with a connect_error; pass rejectInvalidToken: false to enableDynamicAPIWebSockets for the v5 behavior.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01GkMbWLRLybgXX99EyjuGvA
+* **guards:** a guarded DeleteMany/UpdateMany/DuplicateMany whose ids include a non-existent document now fails with a 404 instead of silently processing the documents that exist.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01GkMbWLRLybgXX99EyjuGvA
+* **validation:** with validation configured, a body property without a class-validator decorator is rejected with a 400; pass whitelist: false and forbidNonWhitelisted: false to keep the previous behavior.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01GkMbWLRLybgXX99EyjuGvA
+* **auth:** useAuth.jwt.secret and useAuth.jwt.refreshSecret are required and must differ; tokens without a typ claim (issued before v5.4.2) are rejected, so users still holding one must log in again.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01GkMbWLRLybgXX99EyjuGvA
+
+### websockets
+
+* **websockets:** send room-less broadcasts to authenticated sockets only and reject invalid handshake tokens by default ([ca94e52](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/ca94e523fc46f745cd71f0996ad55e737efdc06e))
+
+### guards
+
+* **guards:** fail the whole ids request when a targeted document is missing ([d559dad](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/d559dad21c34742acc0e234ed04cd26ebb87a9fc))
+
+### validation
+
+* **validation:** reject undeclared body properties when validation is configured ([9e41eab](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/9e41eab36f1747c09253a159df84e9b3012be057))
+
+### auth
+
+* **auth:** require distinct JWT secrets and the typ claim ([03592e6](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/03592e6e41554add64d2138587890232ffac3ab6))
+
 ## [5.4.2](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v5.4.1...v5.4.2) (2026-09-26)
 
 ### quality
