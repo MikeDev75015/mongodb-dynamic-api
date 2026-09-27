@@ -3,6 +3,21 @@
 export * from './authenticated-room.constant';
 export * from './index-sync.helper';
 export * from './mint-token-pair.helper';
+export {
+  LEGACY_REFRESH_SESSION_ID,
+  RefreshSessionStore,
+  parseRefreshSessions,
+  serializeRefreshSessions,
+} from './refresh-session.store';
+export type {
+  RefreshSession,
+  RefreshSessionClaims,
+  RefreshSessionIssuer,
+  RefreshSessionMutator,
+  RefreshSessionRecord,
+  RefreshSessionStoreOptions,
+  RefreshSessionTokens,
+} from './refresh-session.store';
 export { isTransactionsUnsupportedError } from './mongo-transaction.helper';
 export * from './paging-params.helper';
 export * from './validation-config.helper';
