@@ -190,7 +190,7 @@ Full CRUD REST API generated from a single schema definition.
 <td>
 
 🔐 **JWT Authentication**<br/>
-Dual-token (access + refresh), 8 built-in endpoints, cookie mode, server-side revocation.
+Dual-token (access + refresh), 8 built-in endpoints, cookie mode, server-side revocation, one refresh session per device (`multiSession`, v6.1).
 
 </td>
 </tr>

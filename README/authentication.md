@@ -34,6 +34,8 @@ JWT authentication is built-in and provides secure, **dual-token** (access + ref
   - [Refresh Token Configuration](#refresh-token-configuration) ⭐ *New in v4*
   - [Cookie Mode](#cookie-mode) ⭐ *New in v4*
   - [Server-Side Token Revocation](#server-side-token-revocation) ⭐ *New in v4*
+  - [Multi-Session (One Refresh Session per Device)](#multi-session-one-refresh-session-per-device) ⭐ *New in v6.1*
+  - [Custom Refresh Routes (`RefreshSessionStore`)](#custom-refresh-routes-refreshsessionstore) ⭐ *New in v6.1*
   - [Passwordless / OTP Flow](#passwordless--otp-flow) ⭐ *New*
 - [Migration Guide (v3 → v4)](#migration-guide-v3--v4) ⚠️ *Breaking changes*
 - [Best Practices](#best-practices)
@@ -131,6 +133,10 @@ DynamicApiModule.forRoot('mongodb-uri', {
       refreshTokenExpiresIn?: string | number; // Default: '7d'
       rotate?: boolean;                        // Rotate token on each use (default: true). Set false for persistent-token mode.
       reuseWindowMs?: number;                  // Grace window in ms: accept previous jti within this period (default: 0). Recommended: 10000.
+      multiSession?: boolean;                  // v6.1 — one refresh session per device (default: false; planned true in v7)
+      maxSessions?: number;                    // v6.1 — max sessions per user with multiSession, LRU eviction (default: 10)
+      revokeSessionOnReuse?: boolean;          // v6.1 — revoke a session when its superseded token is replayed (default: false)
+      revokeSessionsOnPasswordChange?: boolean; // v6.1 — revoke all sessions on change-password (default: true with multiSession)
     },
 
     // Passwordless / OTP Configuration
@@ -530,6 +536,23 @@ Cookie: refreshToken=<refreshToken>
 
 > **Note:** Without `refreshTokenField`, the endpoint still returns `204` but **cannot** invalidate tokens server-side — a warning is logged at startup. After a successful logout with `refreshTokenField` configured, any call to `/auth/refresh-token` using the invalidated token returns `401 Unauthorized`.
 
+> **Note (v6.1):** With `refreshToken.multiSession: true`, logout only revokes the session of the refresh token sent (the calling device). The user's other devices stay logged in — use `POST /auth/logout-all` to log out everywhere.
+
+---
+
+### 8. Logout All Sessions ⭐ *New in v6.1*
+
+**POST** `/auth/logout-all`
+
+Revokes **every** refresh session of the user (all devices) at once. Only available when `refreshToken.multiSession` is `true` — returns `503 Service Unavailable` otherwise. Protected by `JwtRefreshGuard`, exactly like `/auth/logout` (Bearer header or `refreshToken` cookie). WebSocket equivalent: the `auth-logout-all` event.
+
+```http
+POST /auth/logout-all
+Authorization: Bearer <refreshToken>
+```
+
+**Response (204 No Content)**
+
 ---
 
 ## Advanced Configuration
@@ -899,6 +922,11 @@ Register `GoogleAuthController` the same way as any hand-written controller — 
 | `loginField` | `useAuth.login.loginField` | The minted token should key off a different field than the configured one |
 | `additionalFields` | `useAuth.login.additionalFields` | Include different extra payload fields for this particular flow |
 | `refreshTokenField` | `useAuth.refreshToken.refreshTokenField` | Store the refresh-token record on a different field, or force server-side storage without a global default |
+| `multiSession` *(v6.1)* | `useAuth.refreshToken.multiSession` | `true` adds a session next to the user's other devices (a `sid` claim is signed in both tokens) instead of overwriting the stored record — see [Multi-Session](#multi-session-one-refresh-session-per-device). Needs a `refreshTokenField`. |
+| `sid` *(v6.1)* | a fresh `randomUUID()` | Sign the pair for an existing session id (multi-session only) — e.g. inside the `issue` callback of [`RefreshSessionStore.refreshSession`](#custom-refresh-routes-refreshsessionstore) |
+| `persist` *(v6.1)* | `true` | `false` only signs the pair, without writing anything to `refreshTokenField` |
+
+> **Multi-session (v6.1):** without `multiSession`, `mintTokenPair` **overwrites** the stored refresh-token record, so a social login on a second device logs the first one out at its next refresh. Turn `refreshToken.multiSession` on (globally, or per call with `{ multiSession: true }`) to keep one session per device.
 
 > **Requirements:** `useAuth` must be configured in `forRoot` (that's where the JWT secrets/expirations come from — `mintTokenPair` throws a descriptive error otherwise), and `entity` must be registered via `forRoot`/`forFeature`. `user` must carry `_id`/`id` and the login field — typically a document you already fetched or created via your own `Model`/service.
 
@@ -956,6 +984,8 @@ Now your JWT payload will include these fields:
 ```
 
 The `typ` claim is removed from `req.user` / `socket.user`, like `iat` and `exp`.
+
+> **Reserved claims:** `typ`, `jti` and — since v6.1 — `sid` are signed by MDA itself. Don't name an entity field listed in `additionalFields` after one of them: with `refreshToken.multiSession`, `sid` (the session id of the device) is signed in both tokens and is kept on `req.user.sid` / `socket.user.sid`, overriding any user field of the same name. It is always stripped from auth broadcasts.
 
 ### Token Types and JWT Secrets
 
@@ -1921,6 +1951,176 @@ DynamicApiModule.forRoot('mongodb-uri', {
 4. Each successful refresh **rotates** the token, revoking the previous one.
 
 > Without `refreshTokenField`, the server cannot compare or revoke tokens. A warning is logged at startup when `POST /auth/logout` is called without this field configured.
+
+> **Single session per user:** by default (`multiSession: false`) the field holds **one** record per user — every login, register, OTP verification or `mintTokenPair` call overwrites it, so logging in on a 2nd device invalidates the 1st one at its next refresh, and `/auth/logout` or `refreshTokenOnUpdate` affect every device. Enable [Multi-Session](#multi-session-one-refresh-session-per-device) to keep one session per device.
+
+---
+
+### Multi-Session (One Refresh Session per Device)
+
+⭐ *New in v6.1* — opt-in in 6.x (`multiSession: false` keeps the v6.0 behavior strictly unchanged), planned default in v7.
+
+With `refreshToken.multiSession: true`, each login opens its **own** refresh session, identified by a `sid` claim signed in both the access and the refresh token. Refresh, logout and `refreshTokenOnUpdate` only touch the caller's session: logging in on a phone no longer logs the laptop out.
+
+```typescript
+// src/app.module.ts
+import { Module } from '@nestjs/common';
+import { DynamicApiModule } from 'mongodb-dynamic-api';
+import { User } from './users/user.entity';
+
+@Module({
+  imports: [
+    DynamicApiModule.forRoot(process.env.MONGODB_URI, {
+      useAuth: {
+        userEntity: User,
+        jwt: {
+          secret: process.env.JWT_SECRET,
+          refreshSecret: process.env.JWT_REFRESH_SECRET,
+          refreshTokenExpiresIn: '30d',
+        },
+        updateAccount: { refreshTokenOnUpdate: true },
+        refreshToken: {
+          refreshTokenField: 'refreshToken',  // same String field as before — no schema change
+          reuseWindowMs: 10_000,              // grace window, now per session
+          multiSession: true,
+          maxSessions: 10,                    // default
+          revokeSessionOnReuse: true,         // default false
+          // revokeSessionsOnPasswordChange defaults to true with multiSession
+        },
+      },
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `multiSession` | `boolean` | `false` | One refresh session per device (`sid` claim) instead of one per user. Enables `POST /auth/logout-all` / `auth-logout-all`. Requires `refreshTokenField`. |
+| `maxSessions` | `number` | `10` | Max concurrent sessions per user. Beyond it, the **least recently used** session (oldest login or refresh) is evicted. |
+| `revokeSessionOnReuse` | `boolean` | `false` | When a superseded refresh token of a session is replayed **outside** `reuseWindowMs` (likely theft), revoke that session — the user's other devices are not affected. Otherwise the replay only gets a `401`. |
+| `revokeSessionsOnPasswordChange` | `boolean` | `true` with `multiSession`, `false` otherwise | `PATCH /auth/change-password` also revokes every refresh session, in the same update as the new password. |
+
+**What each route does with `multiSession: true`:**
+
+| Route / event | Effect |
+|---|---|
+| `POST /auth/login`, `/auth/register`, `/auth/passwordless/verify-code`, `mintTokenPair` | Open a new session (fresh `sid`), keep the others |
+| `POST /auth/refresh-token`, `auth-refresh-token` | Validate the token against **its own** session only (one bcrypt compare) and rotate that session |
+| `PATCH /auth/account` with `refreshTokenOnUpdate` | Rotate the caller's session in place (same `sid`) — no extra session |
+| `POST /auth/logout`, `auth-logout` | Revoke the caller's session only |
+| `POST /auth/logout-all`, `auth-logout-all` | Revoke every session of the user |
+| `PATCH /auth/change-password` | Revoke every session (see `revokeSessionsOnPasswordChange`) |
+
+**Stored format.** The field still holds a JSON **string** (no schema change), now in the `v: 2` format:
+
+```json
+{
+  "v": 2,
+  "sessions": {
+    "4f1c…": { "currentHash": "$2b$10$…", "previousHash": "$2b$10$…", "rotatedAt": 1790000000000,
+               "cachedTokens": { "accessToken": "…", "refreshToken": "…" },
+               "createdAt": 1789990000000, "lastUsedAt": 1790000000000, "expiresAt": 1792592000000 }
+  }
+}
+```
+
+- `expiresAt` is the `exp` of the session's latest refresh token (pushed back on each rotation); expired sessions are purged on the next write.
+- Every write is a compare-and-swap on the stored string, replayed (3 attempts) on the re-read record when another device wrote in between — two devices refreshing at the same time never get a false `401`.
+- Setting the field to `''` or `null` yourself (e.g. `$set: { refreshToken: '' }` when suspending an account) still revokes every session.
+
+**Zero-downtime migration.** Records written before the switch (the flat `{ currentHash, … }` object or a bare hash) are read as a `legacy` session, and refresh tokens without `sid` are matched against it. The legacy session is migrated to a real `sid` on its first rotation (the new pair carries the new `sid`) — nobody is logged out by the deploy. Switching `multiSession` back **off** is not migrated: users then have to log in again.
+
+> ⚠️ If your own code parses the stored value (e.g. a hand-written rotation over the old `{ currentHash, previousHash, rotatedAt, cachedTokens }` format), switch it to [`parseRefreshSessions` / `RefreshSessionStore`](#custom-refresh-routes-refreshsessionstore) before enabling `multiSession`.
+
+---
+
+### Custom Refresh Routes (`RefreshSessionStore`)
+
+⭐ *New in v6.1* — the multi-session engine is exported for apps that keep a **second** refresh-token field with their own route (e.g. a companion app whose tokens are minted with `mintTokenPair(…, { refreshTokenField })`), so they no longer re-implement MDA's rotation by hand.
+
+```typescript
+import {
+  LEGACY_REFRESH_SESSION_ID,     // 'legacy' — session id of a pre-v2 record / a token without sid
+  RefreshSessionStore,
+  parseRefreshSessions,          // (raw: unknown) => RefreshSessionRecord — v2, legacy flat, bare hash, '' / null
+  serializeRefreshSessions,      // (record: RefreshSessionRecord) => string | null
+} from 'mongodb-dynamic-api';
+import type {
+  RefreshSession, RefreshSessionClaims, RefreshSessionIssuer, RefreshSessionMutator,
+  RefreshSessionRecord, RefreshSessionStoreOptions, RefreshSessionTokens,
+} from 'mongodb-dynamic-api';
+
+class RefreshSessionStore<Entity> {
+  constructor(
+    model: Model<Entity>,
+    field: keyof Entity | string,
+    options?: RefreshSessionStoreOptions,   // { maxSessions?: number = 10; reuseWindowMs?: number = 0; revokeSessionOnReuse?: boolean = false }
+    bcryptService?: BcryptService,
+  );
+  read(userId: unknown): Promise<RefreshSessionRecord>;
+  mutate(userId: unknown, mutate: RefreshSessionMutator): Promise<RefreshSessionRecord>;   // CAS + 3 retries
+  createSession(userId: unknown, sid: string, refreshToken: string): Promise<void>;
+  refreshSession(userId: unknown, claims: RefreshSessionClaims, issue: RefreshSessionIssuer, rotate?: boolean): Promise<RefreshSessionTokens>;
+  reissueSession(userId: unknown, sid: string, tokens: RefreshSessionTokens): Promise<boolean>;
+  revokeSession(userId: unknown, sid?: string): Promise<void>;
+  revokeAllSessions(userId: unknown): Promise<void>;
+}
+```
+
+`refreshSession` resolves the session from the incoming `sid` (`'legacy'` when absent), does a single bcrypt compare on its `currentHash`, then rotates it through `issue(sid)` — or returns the cached pair within the grace window, or throws `UnauthorizedException('Invalid refresh token')`. `mutate` throws a `ConflictException` if 3 compare-and-swap attempts in a row lose the race.
+
+**Example — a FamilyPlay refresh route over its own `familyPlayRefreshToken` field:**
+
+```typescript
+// src/family-play/family-play-auth.controller.ts
+import { Controller, Headers, Post, UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { DynamicApiEntityService, mintTokenPair, Public, RefreshSessionStore } from 'mongodb-dynamic-api';
+import { User } from '../users/user.entity';
+
+const FIELD = 'familyPlayRefreshToken';
+
+@Controller('family-play/auth')
+export class FamilyPlayAuthController {
+  constructor(private readonly jwtService: JwtService) {}
+
+  @Public()
+  @Post('refresh-token')
+  async refresh(@Headers('authorization') authorization = '') {
+    const rawToken = authorization.replace(/^Bearer /, '');
+    const { id, jti, sid, typ } = await this.jwtService.verifyAsync<{ id: string; jti: string; sid?: string; typ: string }>(
+      rawToken,
+      { secret: process.env.JWT_REFRESH_SECRET },
+    );
+    if (typ !== 'refresh') {
+      throw new UnauthorizedException();
+    }
+
+    const model = await DynamicApiEntityService.getModel(User);
+    const user = await model.findById(id).lean();
+    const store = new RefreshSessionStore(model, FIELD, { reuseWindowMs: 10_000, maxSessions: 5 });
+
+    return store.refreshSession(id, { jti, sid }, (newSid) =>
+      mintTokenPair(User, { ...user, id }, { refreshTokenField: FIELD, multiSession: true, sid: newSid, persist: false }),
+    );
+  }
+
+  @Public()
+  @Post('logout')
+  async logout(@Headers('authorization') authorization = '') {
+    const { id, sid } = await this.jwtService.verifyAsync<{ id: string; sid?: string }>(
+      authorization.replace(/^Bearer /, ''),
+      { secret: process.env.JWT_REFRESH_SECRET },
+    );
+    const model = await DynamicApiEntityService.getModel(User);
+
+    await new RefreshSessionStore(model, FIELD).revokeSession(id, sid);
+  }
+}
+```
+
+The companion login simply calls `mintTokenPair(User, user, { refreshTokenField: 'familyPlayRefreshToken', multiSession: true })`, which opens a session in that field.
 
 ---
 
