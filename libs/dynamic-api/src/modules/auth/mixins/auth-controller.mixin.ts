@@ -7,6 +7,7 @@ import { AuthDecoratorsBuilder } from '../../../builders';
 import { ApiEndpointVisibility } from '../../../decorators/api-endpoint-visibility.decorator';
 import { Public } from '../../../decorators';
 import { RateLimit } from '../../../decorators/rate-limit.decorator';
+import { allowBodyFields } from '../../../helpers/allow-body-fields.helper';
 import { stripTokenClaims } from '../../../helpers/auth-token.helper';
 import { RouteDecoratorsHelper } from '../../../helpers/route-decorators.helper';
 import { stripBusinessValidators } from '../../../helpers/strip-business-validators.helper';
@@ -50,6 +51,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
       loginField,
       passwordField,
       additionalFields: additionalRequestFields = [],
+      additionalBodyFields = [],
       useInterceptors: loginUseInterceptors = [],
       broadcast: loginBroadcastConfig,
       rateLimit: loginRateLimit,
@@ -171,6 +173,11 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     login?: string;
   }
 
+  // Credentials may carry no validator on the entity (`@Prop()` alone): whitelist them, plus the
+  // extra fields read by customValidate / a custom strategy.
+  allowBodyFields(AuthLoginDto, [loginField, passwordField]);
+  allowBodyFields(AuthLoginDto, additionalBodyFields, true);
+
   const additionalMandatoryFields: (keyof Entity)[] = [];
   const additionalOptionalFields: (keyof Entity)[] = [];
 
@@ -203,6 +210,11 @@ function AuthControllerMixin<Entity extends BaseEntity>(
       )
       : AuthBodyPasswordFieldDto,
   ) {}
+
+  // additionalFields may have no validator (or not even be an entity property, e.g. a TExtra field
+  // only read by beforeSaveCallback): whitelist them so a strict body pipe accepts them.
+  allowBodyFields(AuthRegisterDto, [loginField, passwordField, ...additionalMandatoryFields]);
+  allowBodyFields(AuthRegisterDto, additionalOptionalFields, true);
 
   class AuthUpdateAccountDto extends EntityBodyMixin(
     userEntity,

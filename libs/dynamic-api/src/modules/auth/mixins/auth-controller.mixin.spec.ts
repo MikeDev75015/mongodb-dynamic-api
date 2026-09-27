@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { createMock } from '@test-helpers';
 import { JwtService } from '@nestjs/jwt';
 import { Response } from 'express';
+import { plainToInstance } from 'class-transformer';
+import { IsEmail, validate } from 'class-validator';
 import { DynamicApiEventRegistryStore } from '../../../helpers/event-registry.store';
 import { BaseEntity } from '../../../models';
 import { DynamicApiBroadcastService } from '../../../services/dynamic-api-broadcast/dynamic-api-broadcast.service';
@@ -482,6 +484,62 @@ describe('AuthControllerMixin', () => {
 
       expect(service.logout).toHaveBeenCalledWith(user);
       expect(fakeRes.clearCookie).toHaveBeenCalledWith('refreshToken');
+    });
+  });
+
+  describe('body DTOs under a strict body pipe', () => {
+    const strict = { whitelist: true, forbidNonWhitelisted: true };
+
+    class ValidatedEntity extends BaseEntity {
+      @IsEmail()
+      loginField: string;
+
+      passwordField: string;
+
+      field1?: string;
+    }
+
+    type BodyDto = new () => object;
+    const bodyDtoOf = (Controller: object, method: 'login' | 'register', index: number): BodyDto =>
+      Reflect.getMetadata('design:paramtypes', (Controller as { prototype: object }).prototype, method)[index];
+    const errorsOf = async (Dto: BodyDto, body: object) =>
+      (await validate(plainToInstance(Dto, body), strict)).map(({ property }) => property);
+
+    it('should accept the credentials and additionalBodyFields on login, and nothing else', async () => {
+      const AuthController = AuthControllerMixin(
+        ValidatedEntity,
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField', additionalBodyFields: ['deviceToken'] } },
+      );
+      const LoginDto = bodyDtoOf(AuthController, 'login', 1);
+
+      await expect(errorsOf(LoginDto, { loginField: 'a@b.co', passwordField: 'p', deviceToken: 'dev-1' })).resolves.toEqual([]);
+      await expect(errorsOf(LoginDto, { loginField: 'a@b.co', passwordField: 'p' })).resolves.toEqual([]);
+      await expect(errorsOf(LoginDto, { loginField: 'a@b.co', passwordField: 'p', role: 'admin' })).resolves.toEqual(['role']);
+    });
+
+    it('should accept additional register fields without validator and keep entity validators', async () => {
+      const AuthController = AuthControllerMixin(
+        ValidatedEntity,
+        {
+          loginOptions: { loginField: 'loginField', passwordField: 'passwordField' },
+          registerOptions: {
+            additionalFields: [
+              { name: 'acceptedTerms' as keyof ValidatedEntity, required: true },
+              'field1',
+              { name: 'familyId' as keyof ValidatedEntity, required: false },
+            ],
+          },
+        },
+      );
+      const RegisterDto = bodyDtoOf(AuthController, 'register', 0);
+
+      await expect(errorsOf(RegisterDto, {
+        loginField: 'a@b.co', passwordField: 'p', acceptedTerms: true, field1: 'x', familyId: 'f1',
+      })).resolves.toEqual([]);
+      await expect(errorsOf(RegisterDto, { loginField: 'a@b.co', passwordField: 'p', acceptedTerms: true }))
+      .resolves.toEqual([]);
+      await expect(errorsOf(RegisterDto, { loginField: 'not-an-email', passwordField: 'p', role: 'admin' }))
+      .resolves.toEqual(expect.arrayContaining(['loginField', 'role']));
     });
   });
 

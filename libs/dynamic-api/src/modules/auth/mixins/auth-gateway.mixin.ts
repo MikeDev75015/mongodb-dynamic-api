@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ApiProperty, IntersectionType, PartialType, PickType } from '@nestjs/swagger';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WsException } from '@nestjs/websockets';
 import { BaseGateway } from '../../../gateways';
+import { allowBodyFields } from '../../../helpers/allow-body-fields.helper';
 import { stripTokenClaims } from '../../../helpers/auth-token.helper';
 import { DYNAMIC_API_AUTHENTICATED_ROOM } from '../../../helpers/authenticated-room.constant';
 import { isEmpty } from '../../../helpers/lodash.helper';
@@ -141,6 +142,8 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
     AuthSocketBodyPasswordFieldDto,
   ) {}
 
+  allowBodyFields(AuthSocketLoginDto, [loginField, passwordField]);
+
   const additionalSocketMandatoryFields: (keyof Entity)[] = [];
   const additionalSocketOptionalFields: (keyof Entity)[] = [];
 
@@ -173,6 +176,9 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
       )
       : AuthSocketBodyPasswordFieldDto,
   ) {}
+
+  allowBodyFields(AuthSocketRegisterDto, [loginField, passwordField, ...additionalSocketMandatoryFields]);
+  allowBodyFields(AuthSocketRegisterDto, additionalSocketOptionalFields, true);
 
   class AuthUpdateAccountDto extends EntityBodyMixin(
     userEntity,
