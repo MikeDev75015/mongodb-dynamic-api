@@ -39,6 +39,10 @@ interface DynamicApiGlobalState {
   refreshTokenOnUpdate: boolean;
   /** `useAuth.refreshToken.refreshTokenField`, if configured — used by {@link mintTokenPair} to default its own `refreshTokenField` option. */
   refreshTokenField: string | undefined;
+  /** `useAuth.refreshToken.multiSession` — used by {@link mintTokenPair} to default its own `multiSession` option. */
+  refreshTokenMultiSession: boolean;
+  /** `useAuth.refreshToken.maxSessions` — used by {@link mintTokenPair} when adding a session. */
+  refreshTokenMaxSessions: number | undefined;
   /** `useAuth.login.additionalFields`, if configured — used by {@link mintTokenPair} to default its own `additionalFields` option. */
   additionalRequestFields: string[];
   routesConfig: RoutesConfig;

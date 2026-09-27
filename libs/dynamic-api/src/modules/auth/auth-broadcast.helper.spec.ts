@@ -81,5 +81,14 @@ describe('buildAuthBroadcastData', () => {
 
     expect(result).toEqual({ id: 'user-id' });
   });
-});
 
+  it.each([
+    ['no fields are given', undefined],
+    ['sid is explicitly listed', ['id', 'sid'] as (keyof TestEntity)[]],
+  ])('should always strip the sid session claim when %s', (_, fields) => {
+    const result = buildAuthBroadcastData({ ...user, sid: 'session-id' } as TestEntity, fields);
+
+    expect(result).not.toHaveProperty('sid');
+    expect(result).toHaveProperty('id', 'user-id');
+  });
+});

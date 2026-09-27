@@ -15,6 +15,7 @@ interface AuthGateway<Entity extends BaseEntity> {
   changePassword(body: ChangePasswordDto): GatewayResponse<void>;
   refreshToken(socket: ExtendedSocket<Entity>): GatewayResponse<LoginResponse>;
   logout(socket: ExtendedSocket<Entity>): GatewayResponse<void>;
+  logoutAll(socket: ExtendedSocket<Entity>): GatewayResponse<void>;
 }
 
 type AuthGatewayConstructor<Entity extends BaseEntity> = new (

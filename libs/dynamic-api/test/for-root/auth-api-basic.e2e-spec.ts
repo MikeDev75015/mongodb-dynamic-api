@@ -49,6 +49,8 @@ describe('DynamicApiModule forRoot - Authentication API Basic (e2e)', () => {
         onAfterSaveError: undefined,
         refreshTokenOnUpdate: false,
         refreshTokenField: undefined,
+        refreshTokenMultiSession: false,
+        refreshTokenMaxSessions: undefined,
         additionalRequestFields: [],
         jwtSecret: 'e2e-jwt-secret',
         routesConfig: {
@@ -281,6 +283,8 @@ describe('DynamicApiModule forRoot - Authentication API Basic (e2e)', () => {
         onAfterSaveError: undefined,
         refreshTokenOnUpdate: false,
         refreshTokenField: undefined,
+        refreshTokenMultiSession: false,
+        refreshTokenMaxSessions: undefined,
         additionalRequestFields: [],
         jwtSecret: 'test-secret',
         routesConfig: {

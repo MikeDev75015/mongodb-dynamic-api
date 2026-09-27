@@ -159,6 +159,33 @@ type DynamicApiRefreshTokenOptions<Entity extends BaseEntity = any> = {
    * Recommended value: 5000–15000 (5 s – 15 s).
    */
   reuseWindowMs?: number;
+  /**
+   * Since v6.1 — keeps one refresh session per device instead of a single one per user.
+   * Each login (`/auth/login`, `/auth/register`, passwordless, `mintTokenPair`) opens a session
+   * identified by a `sid` claim signed in both tokens; refresh, logout and `refreshTokenOnUpdate`
+   * only touch the caller's own session, so logging in on a 2nd device no longer kills the 1st.
+   * Enables `POST /auth/logout-all` (and the `auth-logout-all` socket event).
+   * The stored value stays a JSON string in `refreshTokenField` (format `{ v: 2, sessions }`) —
+   * records written before the switch keep working and migrate on their first rotation.
+   * Default: false (single session, v6.0 behavior). Planned default in v7: true.
+   */
+  multiSession?: boolean;
+  /**
+   * Max concurrent sessions per user when `multiSession` is on — beyond it, the least recently
+   * used session is evicted. Default: 10.
+   */
+  maxSessions?: number;
+  /**
+   * When `multiSession` is on, revokes a session as soon as one of its superseded refresh tokens
+   * is replayed outside `reuseWindowMs` (likely token theft). Other sessions are not affected.
+   * Default: false (the replay only gets a 401).
+   */
+  revokeSessionOnReuse?: boolean;
+  /**
+   * Revokes every refresh session of the user when its password is changed through
+   * `PATCH /auth/change-password`. Default: true when `multiSession` is on, false otherwise.
+   */
+  revokeSessionsOnPasswordChange?: boolean;
   /** Rate-limits `POST /auth/refresh-token`. See {@link DynamicApiLoginOptions.rateLimit}. */
   rateLimit?: RateLimitConfig;
 };
