@@ -87,9 +87,9 @@ Since v6, as soon as your app configures validation itself — `enableDynamicAPI
 | No validation configured (implicit `{ transform: true }`) | lenient, as before | lenient |
 | Validation configured | `whitelist` + `forbidNonWhitelisted` unless you override them | your options as given; GetMany filters stay free-form |
 
-Every field a client may send must carry a class-validator decorator (`@IsOptional()` for optional ones). Auth routes are the exception: the login field, the password, `register.additionalFields` and `login.additionalBodyFields` are whitelisted automatically (since v6.0.1 — see [Extra Login Body Fields](./authentication.md#extra-login-body-fields-additionalbodyfields)).
+Every field a client may send must carry a class-validator decorator (`@IsOptional()` for optional ones). Auth routes are the exception: the login field, the password, `register.additionalFields` and `login.additionalBodyFields` are whitelisted automatically (since v6.1 — see [Extra Login Body Fields](./authentication.md#extra-login-body-fields-additionalbodyfields)).
 
-> **Output-only decorators never touch the request (since v6.0.1).** Unless you pass `transform: true` (validated DTO instance handed as is), the validated body is handed to MDA as a plain copy of the whitelisted DTO **without** applying class-transformer output rules. Nest's own `ValidationPipe` returns `classToPlain(dto)` instead, which applies `@Exclude({ toPlainOnly: true })` — the usual way to hide `password` from responses — to the incoming body and drops the password. In 6.0.0 this made `POST /auth/register` fail with `password property is required`.
+> **Output-only decorators never touch the request (since v6.1).** Unless you pass `transform: true` (validated DTO instance handed as is), the validated body is handed to MDA as a plain copy of the whitelisted DTO **without** applying class-transformer output rules. Nest's own `ValidationPipe` returns `classToPlain(dto)` instead, which applies `@Exclude({ toPlainOnly: true })` — the usual way to hide `password` from responses — to the incoming body and drops the password. In 6.0.0 this made `POST /auth/register` fail with `password property is required`.
 
 To keep the v5 behavior, pass the flags explicitly:
 

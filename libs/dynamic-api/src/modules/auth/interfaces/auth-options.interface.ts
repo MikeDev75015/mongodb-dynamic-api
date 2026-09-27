@@ -45,7 +45,7 @@ type DynamicApiLoginOptions<Entity extends BaseEntity = any> = {
    */
   customValidate?: (req: Request) => Promise<Entity | null>;
   /**
-   * Since v6.0.1 — extra `POST /auth/login` body properties accepted on top of the login field,
+   * Since v6.1 — extra `POST /auth/login` body properties accepted on top of the login field,
    * the password and the `login` alias (all optional, no validator). Needed to send fields read by
    * `customValidate` / a custom strategy (e.g. `deviceToken`) once the body pipe rejects
    * undeclared properties (`enableDynamicAPIValidation` / `validationPipeOptions`).

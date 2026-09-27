@@ -168,7 +168,7 @@ DynamicApiModule.forRoot('mongodb-uri', {
        */
       customValidate?: (req: Request) => Promise<Entity | null>;
       /**
-       * v6.0.1 — extra login body properties (e.g. read by customValidate) accepted by the
+       * v6.1 — extra login body properties (e.g. read by customValidate) accepted by the
        * strict body pipe on top of the login field, the password and the `login` alias.
        */
       additionalBodyFields?: string[];
@@ -802,7 +802,7 @@ DynamicApiModule.forRoot('mongodb-uri', {
 
 #### Extra Login Body Fields (`additionalBodyFields`)
 
-⭐ *New in v6.0.1*
+⭐ *New in v6.1*
 
 Once validation is configured (`enableDynamicAPIValidation(app)` or `validationPipeOptions`), request bodies are [strict](./validation.md#strict-bodies-by-default): `POST /auth/login` only accepts the login field, the password and the `login` alias — any other property gets `400 property x should not exist`, **after** `customValidate` already ran. Declare the extra properties your `customValidate` (or `useStrategy`) reads with `login.additionalBodyFields`: they are accepted as optional, with no validator.
 
