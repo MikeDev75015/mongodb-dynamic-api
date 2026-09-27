@@ -164,9 +164,8 @@ function pruneRefreshSessions(
   maxSessions = DEFAULT_MAX_REFRESH_SESSIONS,
 ): RefreshSessionRecord {
   const alive = Object.entries(record.sessions).filter(([, s]) => !s.expiresAt || s.expiresAt > now);
-  const kept = alive
-  .sort(([, a], [, b]) => (b.lastUsedAt ?? 0) - (a.lastUsedAt ?? 0))
-  .slice(0, Math.max(1, maxSessions));
+  alive.sort(([, a], [, b]) => (b.lastUsedAt ?? 0) - (a.lastUsedAt ?? 0));
+  const kept = alive.slice(0, Math.max(1, maxSessions));
 
   return { v: 2, sessions: Object.fromEntries(kept) };
 }
