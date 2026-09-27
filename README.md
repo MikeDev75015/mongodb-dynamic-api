@@ -26,7 +26,45 @@
 ---
 
 > [!WARNING]
-> **v6 — Secure defaults (breaking).** JWT `secret` + distinct `refreshSecret` are required, tokens without a `typ` claim are rejected, request bodies reject undeclared properties once validation is configured, `ids` requests fail with `404` when a targeted document is missing, room-less broadcasts reach authenticated sockets only when auth is enabled (`broadcast.public: true` to opt out), and invalid WebSocket handshake tokens are refused by default. See [migration-v6.md](./README/migration-v6.md) for the checklist and the front-end changes.
+> **v6 — Breaking changes.** Secure defaults: insecure fallbacks that v5 kept for compatibility are gone. No symbol is renamed, so there is no codemod — apps that already set both JWT secrets, don't send undeclared body fields and don't rely on anonymous WebSocket listeners upgrade without code changes.
+>
+> 🔐 See [migration-v6.md](./README/migration-v6.md) for the per-change checklist and the front-end changes.
+>
+> <details>
+> <summary>📋 Full list of breaking changes (v5 → v6)</summary>
+>
+> ### 🔑 JWT secrets required
+> `useAuth.jwt.secret` and `useAuth.jwt.refreshSecret` are required and must differ — `forRoot()` throws at startup otherwise. There is no default secret any more.
+> ```typescript
+> jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET }
+> ```
+>
+> ### 🏷️ `typ` claim required
+> Tokens without a `typ` claim (signed before v5.4.2) are rejected with `401`.
+>
+> ### 🧾 Strict request bodies
+> Once validation is configured (`enableDynamicAPIValidation` or `validationPipeOptions`), bodies are validated with `whitelist` + `forbidNonWhitelisted`: an undeclared property → `400`. Routes without configured validation are unchanged.
+>
+> ### 🛡️ Strict `ids` check
+> `DeleteMany` / `UpdateMany` / `DuplicateMany` with an `abilityPredicate`: one missing id → `404` for the whole request, nothing written.
+>
+> ### 📡 Authenticated-only broadcasts
+> With `useAuth`, a broadcast without `rooms` only reaches authenticated sockets. `broadcast: { enabled: true, public: true }` restores the v5 behavior.
+>
+> ### 🔌 Invalid handshake tokens refused
+> `rejectInvalidToken` defaults to `true`: an expired or invalid token gets a `connect_error` (`Unauthorized: …`). `enableDynamicAPIWebSockets(app, { rejectInvalidToken: false })` restores the v5 behavior.
+>
+> | Change | v5 | v6 |
+> |---|---|---|
+> | Missing `jwt.secret` | package default secret | startup error |
+> | Missing `jwt.refreshSecret` | falls back to `secret` | startup error |
+> | Token without `typ` | accepted as access token | `401` |
+> | Undeclared body field (validation configured) | accepted | `400` |
+> | Missing id in `ids` (with `abilityPredicate`) | ignored | `404` |
+> | Room-less broadcast (auth enabled) | every socket | authenticated sockets |
+> | Invalid handshake token | anonymous + `unauthorized` event | `connect_error` |
+>
+> </details>
 
 > [!WARNING]
 > **v5 — Breaking changes.** The package's public export surface was curated: internal implementation classes, mixins, builders and helpers that were never meant to be imported directly are no longer exported from `mongodb-dynamic-api`. Everything documented in this README and in `README/*.md` is unaffected.
