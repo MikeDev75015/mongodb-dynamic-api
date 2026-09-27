@@ -4,13 +4,15 @@ import { DynamicApiValidationPipe, IMPLICIT_ROUTE_VALIDATION_OPTIONS } from '../
 
 /** @internal Not part of the public API. */
 function ValidatorPipe(validationPipeOptions?: ValidationPipeOptions): ClassDecorator {
-  return validationPipeOptions ? applyDecorators(
-    UsePipes(
-      validationPipeOptions === IMPLICIT_ROUTE_VALIDATION_OPTIONS
-        ? new ValidationPipe(validationPipeOptions)
-        : new DynamicApiValidationPipe(validationPipeOptions),
-    ),
-  ) : (_: unknown) => undefined;
+  if (!validationPipeOptions) {
+    return (_: unknown) => undefined;
+  }
+
+  const pipe = validationPipeOptions === IMPLICIT_ROUTE_VALIDATION_OPTIONS
+    ? new ValidationPipe(validationPipeOptions)
+    : new DynamicApiValidationPipe(validationPipeOptions);
+
+  return applyDecorators(UsePipes(pipe));
 }
 
 export { ValidatorPipe };
