@@ -3,6 +3,8 @@ import { createMock } from '@test-helpers';
 import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
 import { ObjectId } from 'mongoose';
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
 import { getFullAuthOptionsMock } from '../../../../__mocks__/auth-full-options.mock';
 import { DynamicApiEventRegistryStore } from '../../../helpers/event-registry.store';
 import { ExtendedSocket } from '../../../interfaces';
@@ -394,6 +396,25 @@ describe('AuthGatewayMixin', () => {
 
       expect(service.logout).not.toHaveBeenCalled();
       expect(result).toEqual({ event: 'auth-logout', data: undefined });
+    });
+  });
+
+  describe('body DTOs under a strict body pipe', () => {
+    type BodyDto = new () => object;
+    const bodyDtoOf = (Gateway: object, method: 'login' | 'register'): BodyDto =>
+      Reflect.getMetadata('design:paramtypes', (Gateway as { prototype: object }).prototype, method)[1];
+    const errorsOf = async (Dto: BodyDto, body: object) =>
+      (await validate(plainToInstance(Dto, body), { whitelist: true, forbidNonWhitelisted: true })).map(({ property }) => property);
+
+    it('should accept the credentials and the declared register fields only', async () => {
+      const AuthGateway = AuthGatewayMixin(TestEntity, login, register);
+
+      await expect(errorsOf(bodyDtoOf(AuthGateway, 'login'), { loginField: 'l', passwordField: 'p' })).resolves.toEqual([]);
+      await expect(errorsOf(bodyDtoOf(AuthGateway, 'register'), {
+        loginField: 'l', passwordField: 'p', field1: 'a', field2: 'b', field3: 'c',
+      })).resolves.toEqual([]);
+      await expect(errorsOf(bodyDtoOf(AuthGateway, 'register'), { loginField: 'l', passwordField: 'p', role: 'x' }))
+      .resolves.toEqual(['role']);
     });
   });
 
