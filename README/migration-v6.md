@@ -122,7 +122,7 @@ bootstrap();
 
 See [Strict Bodies by Default](./validation.md#strict-bodies-by-default).
 
-> **Auth routes — upgrade to 6.0.1.** In 6.0.0 the strict body pipe broke `POST /auth/login` / `POST /auth/register` for fields read by `customValidate` or `beforeSaveCallback` (`property deviceToken should not exist`) and removed a `password` marked `@Exclude({ toPlainOnly: true })` from the request (`password property is required`). 6.0.1 fixes both: `register.additionalFields` are always accepted, login extras are declared with [`login.additionalBodyFields`](./authentication.md#extra-login-body-fields-additionalbodyfields), and output-only class-transformer rules no longer apply to request bodies. If you replaced `enableDynamicAPIValidation(app)` with a plain `new ValidationPipe()` as a workaround, you can switch back.
+> **Auth routes — upgrade to 6.1.** In 6.0.0 the strict body pipe broke `POST /auth/login` / `POST /auth/register` for fields read by `customValidate` or `beforeSaveCallback` (`property deviceToken should not exist`) and removed a `password` marked `@Exclude({ toPlainOnly: true })` from the request (`password property is required`). 6.1 fixes both: `register.additionalFields` are always accepted, login extras are declared with [`login.additionalBodyFields`](./authentication.md#extra-login-body-fields-additionalbodyfields), and output-only class-transformer rules no longer apply to request bodies. If you replaced `enableDynamicAPIValidation(app)` with a plain `new ValidationPipe()` as a workaround, you can switch back.
 
 ---
 
