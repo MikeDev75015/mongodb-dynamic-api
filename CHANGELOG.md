@@ -1,5 +1,17 @@
 Changelog
 
+## [6.1.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v6.0.0...v6.1.0) (2026-09-27)
+
+### auth
+
+* **auth:** accept declared login and register fields under strict bodies ([9ea04f2](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/9ea04f26817892a40ab575b471e38970483e52d8))
+* **auth:** add RefreshSessionStore multi-session primitives ([d1d108b](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/d1d108b74f7a5e293750bc84f6d67d7d637e9fac))
+* **auth:** add refreshToken.multiSession to keep one session per device ([1c0382b](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/1c0382b95b806b9a362a4dd236ebeee3b78576e5))
+
+### validation
+
+* **validation:** stop applying output-only transforms to validated bodies ([da9413e](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/da9413e49332f1583d58148528eaf7b80dfb09d7))
+
 ## [6.0.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v5.4.2...v6.0.0) (2026-09-27)
 
 ### ⚠ BREAKING CHANGES
