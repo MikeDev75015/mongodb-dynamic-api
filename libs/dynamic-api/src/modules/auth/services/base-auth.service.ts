@@ -248,7 +248,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
 
     if (this.refreshTokenOnUpdate) {
       const updatedUser = await this.model.findOne({ _id: id }).lean<Entity>().exec();
-      const freshUser = { ...updatedUser, id: updatedUser._id.toString() };
+      const freshUser = { ...updatedUser, id: (updatedUser._id as { toString(): string }).toString() };
       const sid = this.sessionIdOf(user);
 
       if (this.isMultiSession() && sid) {
