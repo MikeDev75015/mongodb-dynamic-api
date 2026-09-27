@@ -397,6 +397,36 @@ describe('AuthGatewayMixin', () => {
     });
   });
 
+  describe('logoutAll', () => {
+    let gateway: AuthGateway<TestEntity>;
+    let socket: ExtendedSocket<TestEntity>;
+
+    beforeEach(() => {
+      service.logoutAllSessions = vi.fn().mockResolvedValue(undefined);
+      socket = { join: vi.fn() } as unknown as ExtendedSocket<TestEntity>;
+      const AuthGateway = AuthGatewayMixin(
+        TestEntity, login, undefined, undefined, undefined, undefined, { multiSession: true },
+      );
+      gateway = new AuthGateway(service, jwtService);
+    });
+
+    it('should call service logoutAllSessions and return event when socket.user is set', async () => {
+      socket.user = fakeUser;
+
+      const result = await gateway.logoutAll(socket);
+
+      expect(service.logoutAllSessions).toHaveBeenCalledWith(fakeUser);
+      expect(result).toEqual({ event: 'auth-logout-all', data: undefined });
+    });
+
+    it('should not call service logoutAllSessions when socket.user is not set', async () => {
+      const result = await gateway.logoutAll(socket);
+
+      expect(service.logoutAllSessions).not.toHaveBeenCalled();
+      expect(result).toEqual({ event: 'auth-logout-all', data: undefined });
+    });
+  });
+
   describe('refreshToken', () => {
     let gateway: AuthGateway<TestEntity>;
     let socket: ExtendedSocket<TestEntity>;

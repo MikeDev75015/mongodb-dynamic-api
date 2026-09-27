@@ -9,6 +9,7 @@ import { DynamicApiModule } from '../../../dynamic-api.module';
 import { BaseEntity } from '../../../models';
 import { BcryptService } from '../../../services/bcrypt/bcrypt.service';
 import { DynamicApiGlobalStateService } from '../../../services/dynamic-api-global-state/dynamic-api-global-state.service';
+import { RefreshSessionStore } from '../../../helpers/refresh-session.store';
 import { BaseAuthService } from './base-auth.service';
 
 const fingerprint = (hash: string) => createHash('sha256').update(hash).digest('base64url').slice(0, 22);
@@ -612,29 +613,40 @@ describe('BaseAuthService', () => {
     });
   });
 
-  describe('extractIncomingJti (private)', () => {
-    it('should return undefined when rawToken is absent', () => {
-      expect(service['extractIncomingJti'](undefined)).toBeUndefined();
+  describe('parseRefreshTokenRecord (private)', () => {
+    it('should treat a JSON null as a bare legacy hash', () => {
+      expect(service['parseRefreshTokenRecord']('null')).toEqual({ currentHash: 'null' });
+    });
+  });
+
+  describe('extractIncomingClaims (private)', () => {
+    it('should return no claim when rawToken is absent', () => {
+      expect(service['extractIncomingClaims'](undefined)).toEqual({});
     });
 
-    it('should return undefined when decode returns null', () => {
+    it('should return no claim when decode returns null', () => {
       vi.spyOn(jwtService, 'decode').mockReturnValueOnce(null);
-      expect(service['extractIncomingJti']('some-token')).toBeUndefined();
+      expect(service['extractIncomingClaims']('some-token')).toEqual({});
     });
 
-    it('should return undefined when decode returns a plain string', () => {
+    it('should return no claim when decode returns a plain string', () => {
       vi.spyOn(jwtService, 'decode').mockReturnValueOnce('plain-string');
-      expect(service['extractIncomingJti']('some-token')).toBeUndefined();
+      expect(service['extractIncomingClaims']('some-token')).toEqual({});
     });
 
-    it('should return undefined when decoded object has no jti', () => {
+    it('should return undefined jti/sid when decoded object has neither', () => {
       vi.spyOn(jwtService, 'decode').mockReturnValueOnce({ sub: '123' });
-      expect(service['extractIncomingJti']('some-token')).toBeUndefined();
+      expect(service['extractIncomingClaims']('some-token')).toEqual({ jti: undefined, sid: undefined });
     });
 
-    it('should return jti when decoded object has jti', () => {
-      vi.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'abc-jti' });
-      expect(service['extractIncomingJti']('some-token')).toBe('abc-jti');
+    it('should return jti and sid when decoded object has them', () => {
+      vi.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'abc-jti', sid: 'sid-1' });
+      expect(service['extractIncomingClaims']('some-token')).toEqual({ jti: 'abc-jti', sid: 'sid-1' });
+    });
+
+    it('should ignore a non-string sid', () => {
+      vi.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'abc-jti', sid: 42 });
+      expect(service['extractIncomingClaims']('some-token')).toEqual({ jti: 'abc-jti', sid: undefined });
     });
   });
 
@@ -1460,6 +1472,16 @@ describe('BaseAuthService', () => {
         expect(sendCodeCallback).toHaveBeenCalledWith(identifier, 'ABCDEF');
       });
 
+      it('should default the OTP expiration to 10 minutes', async () => {
+        serviceWithPasswordless['passwordlessOptions'] = { sendCodeCallback };
+        const before = Date.now();
+
+        await serviceWithPasswordless.sendOtpCode(identifier);
+
+        const { expiresAt } = otpModel.findOneAndUpdate.mock.calls[0][1] as { expiresAt: Date };
+        expect(expiresAt.getTime()).toBeGreaterThanOrEqual(before + 10 * 60 * 1000);
+      });
+
       it('should throw BadRequestException if identifier is undefined', async () => {
         await expect(serviceWithPasswordless.sendOtpCode(undefined)).rejects.toThrow();
       });
@@ -1570,6 +1592,267 @@ describe('BaseAuthService', () => {
       await serviceWithPasswordless.verifyOtpCode(identifier, plainCode);
 
       expect(verifyCallback).toHaveBeenCalled();
+    });
+  });
+
+  describe('multiSession', () => {
+    let spyCreateSession: Mock;
+    let spyRefreshSession: Mock;
+    let spyReissueSession: Mock;
+    let spyRevokeSession: Mock;
+    let spyRevokeAllSessions: Mock;
+
+    const sessionUser = { ...fakeUser, sid: 'sid-a' } as unknown as User;
+
+    type TokenPair = { accessToken: string; refreshToken: string };
+    /** Protected / private members spied on below. */
+    type ServiceInternals = {
+      login(user: User, fromMember?: boolean): Promise<TokenPair>;
+      buildTokenPair(user: User, sid?: string): Promise<TokenPair>;
+    };
+    const internals = () => service as unknown as ServiceInternals;
+
+    beforeEach(() => {
+      service['refreshTokenField'] = 'nickname' as keyof User;
+      service['multiSession'] = true;
+      spyCreateSession = vi.spyOn(RefreshSessionStore.prototype, 'createSession').mockResolvedValue(undefined);
+      spyRefreshSession = vi.spyOn(RefreshSessionStore.prototype, 'refreshSession')
+      .mockResolvedValue({ accessToken: 'at', refreshToken: 'rt' });
+      spyReissueSession = vi.spyOn(RefreshSessionStore.prototype, 'reissueSession').mockResolvedValue(true);
+      spyRevokeSession = vi.spyOn(RefreshSessionStore.prototype, 'revokeSession').mockResolvedValue(undefined);
+      spyRevokeAllSessions = vi.spyOn(RefreshSessionStore.prototype, 'revokeAllSessions').mockResolvedValue(undefined);
+      vi.spyOn(DynamicApiModule.state, 'get').mockReturnValue(undefined);
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('should build its store from the service options', () => {
+      service['maxSessions'] = 3;
+      service['reuseWindowMs'] = 500;
+      service['revokeSessionOnReuse'] = true;
+
+      const store = service['refreshSessionStore']();
+
+      expect(store['field']).toBe('nickname');
+      expect(store['maxSessions']).toBe(3);
+      expect(store['reuseWindowMs']).toBe(500);
+      expect(store['revokeSessionOnReuse']).toBe(true);
+      expect(store['bcryptService']).toBe(bcryptService);
+    });
+
+    describe('login', () => {
+      beforeEach(() => {
+        spyBuildUserFields.mockReturnValueOnce(fakeLoginBuilt);
+        spyJwtSign.mockReturnValueOnce(accessToken).mockReturnValueOnce('fake-refresh-token');
+      });
+
+      it('should sign a sid in both tokens and add a session instead of overwriting the field', async () => {
+        const result = await service['login'](fakeUser, true);
+
+        const [[accessPayload], [refreshPayload]] = spyJwtSign.mock.calls;
+        expect(accessPayload).toEqual({ ...fakeLoginBuilt, sid: expect.any(String), typ: 'access' });
+        expect(refreshPayload).toEqual({ ...fakeLoginBuilt, sid: accessPayload.sid, typ: 'refresh', jti: expect.any(String) });
+        expect(spyCreateSession).toHaveBeenCalledWith(fakeUser._id, accessPayload.sid, 'fake-refresh-token');
+        expect(model.updateOne).not.toHaveBeenCalled();
+        expect(result).toEqual({ accessToken, refreshToken: 'fake-refresh-token' });
+      });
+
+      it('should use user.id when user._id is absent', async () => {
+        await service['login']({ ...fakeUser, _id: undefined, id: 'only-id' } as unknown as User, true);
+
+        expect(spyCreateSession).toHaveBeenCalledWith('only-id', expect.any(String), 'fake-refresh-token');
+      });
+
+      it('should not open a session for a user without id', async () => {
+        await service['login']({ ...fakeUser, _id: undefined, id: undefined } as unknown as User, true);
+
+        expect(spyCreateSession).not.toHaveBeenCalled();
+        expect(model.updateOne).not.toHaveBeenCalled();
+      });
+
+      it('should neither sign a sid nor store anything without refreshTokenField', async () => {
+        service['refreshTokenField'] = undefined;
+
+        await service['login'](fakeUser, true);
+
+        expect(spyJwtSign.mock.calls[0][0]).not.toHaveProperty('sid');
+        expect(spyCreateSession).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('refreshToken', () => {
+      const storedUser = { ...fakeUser, _id: { toString: () => 'stored-id' } };
+
+      it.each([
+        ['no raw token is given', undefined],
+        ['the raw token has no jti', 'token-without-jti'],
+      ])('should throw 401 when %s', async (_, rawToken) => {
+        vi.spyOn(jwtService, 'decode').mockReturnValueOnce({ sid: 'sid-a' });
+
+        await expect(service['refreshToken'](sessionUser, rawToken))
+        .rejects.toThrow(new UnauthorizedException('Invalid refresh token'));
+        expect(spyRefreshSession).not.toHaveBeenCalled();
+      });
+
+      it('should throw 401 when the user no longer exists', async () => {
+        vi.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'jti-a', sid: 'sid-a' });
+        exec.mockResolvedValueOnce(null);
+
+        await expect(service['refreshToken'](sessionUser, 'raw'))
+        .rejects.toThrow(new UnauthorizedException('Invalid refresh token'));
+      });
+
+      it('should delegate to the store with the claims of the raw token and the rotate option', async () => {
+        vi.spyOn(jwtService, 'decode').mockReturnValueOnce({ jti: 'jti-a', sid: 'sid-raw' });
+        exec.mockResolvedValueOnce(storedUser);
+        service['rotate'] = false;
+        const spyBuildTokenPair = vi.spyOn(internals(), 'buildTokenPair').mockResolvedValue({ accessToken: 'n', refreshToken: 'm' });
+
+        const result = await service['refreshToken']({ ...sessionUser, _id: undefined, id: 'user-id' } as unknown as User, 'raw');
+
+        expect(result).toEqual({ accessToken: 'at', refreshToken: 'rt' });
+        const [userId, claims, issue, rotate] = spyRefreshSession.mock.calls[0];
+        expect(userId).toBe('user-id');
+        expect(claims).toEqual({ jti: 'jti-a', sid: 'sid-raw' });
+        expect(rotate).toBe(false);
+
+        await expect(issue('new-sid')).resolves.toEqual({ accessToken: 'n', refreshToken: 'm' });
+        expect(spyBuildTokenPair).toHaveBeenCalledWith({ ...storedUser, id: 'stored-id' }, 'new-sid');
+        service['rotate'] = true;
+      });
+
+      it('should sign the sid given by the store in the new pair', async () => {
+        spyBuildUserFields.mockReturnValueOnce(fakeLoginBuilt);
+        spyJwtSign.mockReturnValueOnce('new-access').mockReturnValueOnce('new-refresh');
+
+        await expect(service['buildTokenPair'](fakeUser, 'sid-x')).resolves.toEqual({ accessToken: 'new-access', refreshToken: 'new-refresh' });
+        expect(spyJwtSign).toHaveBeenNthCalledWith(1, { ...fakeLoginBuilt, sid: 'sid-x', typ: 'access' });
+      });
+    });
+
+    describe('updateAccount with refreshTokenOnUpdate', () => {
+      const updatedUser = { ...fakeUser, _id: 'fake-id' };
+
+      beforeEach(() => {
+        service['refreshTokenOnUpdate'] = true;
+        service['beforeUpdateAccountCallback'] = undefined;
+        service['updateAccountCallback'] = undefined;
+        exec.mockResolvedValueOnce(undefined).mockResolvedValueOnce(updatedUser);
+      });
+
+      afterEach(() => {
+        service['refreshTokenOnUpdate'] = false;
+      });
+
+      it('should rotate the caller session in place instead of opening a new one', async () => {
+        const spyLogin = vi.spyOn(internals(), 'login');
+        vi.spyOn(internals(), 'buildTokenPair').mockResolvedValueOnce({ accessToken: 'n', refreshToken: 'm' });
+
+        const result = await service['updateAccount']({ id: 'fake-id', sid: 'sid-a' } as unknown as User, { nickname: 'x' });
+
+        expect(result).toEqual({ accessToken: 'n', refreshToken: 'm' });
+        expect(spyReissueSession).toHaveBeenCalledWith('fake-id', 'sid-a', { accessToken: 'n', refreshToken: 'm' });
+        expect(spyLogin).not.toHaveBeenCalled();
+      });
+
+      it('should fall back to login when the access token carries no sid', async () => {
+        const spyLogin = vi.spyOn(internals(), 'login').mockResolvedValueOnce({ accessToken: 'l', refreshToken: 'r' });
+
+        await service['updateAccount']({ id: 'fake-id' } as User, { nickname: 'x' });
+
+        expect(spyLogin).toHaveBeenCalledWith({ ...updatedUser, id: 'fake-id' }, true);
+        expect(spyReissueSession).not.toHaveBeenCalled();
+      });
+
+      it('should fall back to login when multiSession is off', async () => {
+        service['multiSession'] = false;
+        const spyLogin = vi.spyOn(internals(), 'login').mockResolvedValueOnce({ accessToken: 'l', refreshToken: 'r' });
+
+        await service['updateAccount']({ id: 'fake-id', sid: 'sid-a' } as unknown as User, { nickname: 'x' });
+
+        expect(spyLogin).toHaveBeenCalled();
+        expect(spyReissueSession).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('logout', () => {
+      it('should revoke only the caller session', async () => {
+        await service['logout'](sessionUser);
+
+        expect(spyRevokeSession).toHaveBeenCalledWith(fakeUser._id, 'sid-a');
+        expect(model.updateOne).not.toHaveBeenCalled();
+      });
+
+      it('should revoke the legacy session for a token without sid, using user.id as fallback', async () => {
+        await service['logout']({ ...fakeUser, _id: undefined, id: 'only-id' } as unknown as User);
+
+        expect(spyRevokeSession).toHaveBeenCalledWith('only-id', 'legacy');
+      });
+    });
+
+    describe('logoutAllSessions', () => {
+      it('should revoke every session of the user', async () => {
+        await service['logoutAllSessions'](sessionUser);
+
+        expect(spyRevokeAllSessions).toHaveBeenCalledWith(fakeUser._id);
+      });
+
+      it('should use user.id when user._id is absent, even with multiSession off', async () => {
+        service['multiSession'] = false;
+
+        await service['logoutAllSessions']({ ...fakeUser, _id: undefined, id: 'only-id' } as unknown as User);
+
+        expect(spyRevokeAllSessions).toHaveBeenCalledWith('only-id');
+      });
+
+      it('should only warn without refreshTokenField', async () => {
+        service['refreshTokenField'] = undefined;
+        const spyWarn = vi.spyOn(service['logger'], 'warn').mockImplementation(vi.fn());
+
+        await service['logoutAllSessions'](sessionUser);
+
+        expect(spyWarn).toHaveBeenCalledWith(expect.stringContaining('refreshTokenField'));
+        expect(spyRevokeAllSessions).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('changePassword with revokeSessionsOnPasswordChange', () => {
+      beforeEach(() => {
+        jwtService.verifyAsync = vi.fn().mockResolvedValueOnce({
+          email: fakeUser.login, typ: 'reset', pwd: fingerprint(fakeUser.pass),
+        });
+        spyFindOneDocumentWithAbilityPredicate.mockResolvedValueOnce(fakeUser);
+        spyBcriptHashPassword.mockResolvedValueOnce(hashedPassword);
+        service['resetPasswordOptions'].beforeChangePasswordCallback = undefined;
+        service['resetPasswordOptions'].changePasswordCallback = undefined;
+        service['revokeSessionsOnPasswordChange'] = true;
+      });
+
+      afterEach(() => {
+        service['revokeSessionsOnPasswordChange'] = false;
+      });
+
+      it('should clear the refresh sessions in the same update as the password', async () => {
+        await service['changePassword'](resetPasswordToken, newPassword);
+
+        expect(model.updateOne).toHaveBeenCalledWith(
+          { _id: fakeUser._id },
+          { $set: { [fakePasswordField]: hashedPassword, resetPasswordToken: null, nickname: null } },
+        );
+      });
+
+      it('should not touch any refresh field without refreshTokenField', async () => {
+        service['refreshTokenField'] = undefined;
+
+        await service['changePassword'](resetPasswordToken, newPassword);
+
+        expect(model.updateOne).toHaveBeenCalledWith(
+          { _id: fakeUser._id },
+          { $set: { [fakePasswordField]: hashedPassword, resetPasswordToken: null } },
+        );
+      });
     });
   });
 });

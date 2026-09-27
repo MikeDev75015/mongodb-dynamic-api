@@ -36,6 +36,8 @@ describe('DynamicApiModule forRoot - Initialization (e2e)', () => {
       onAfterSaveError: undefined,
       jwtSecret: undefined,
       refreshTokenField: undefined,
+      refreshTokenMultiSession: false,
+      refreshTokenMaxSessions: undefined,
       additionalRequestFields: [],
       routesConfig: {
         defaults: [
@@ -86,6 +88,8 @@ describe('DynamicApiModule forRoot - Initialization (e2e)', () => {
       onAfterSaveError: undefined,
       jwtSecret: undefined,
       refreshTokenField: undefined,
+      refreshTokenMultiSession: false,
+      refreshTokenMaxSessions: undefined,
       additionalRequestFields: [],
       routesConfig: {
         defaults: ['GetMany', 'GetOne', 'CreateOne', 'UpdateOne', 'DeleteOne'],

@@ -21,6 +21,8 @@ interface AuthService<Entity extends BaseEntity> {
 
   logout(user: Entity): Promise<void>;
 
+  logoutAllSessions(user: Entity): Promise<void>;
+
   sendOtpCode(identifier: string): Promise<void>;
 
   verifyOtpCode(identifier: string, code: string): Promise<LoginResponse>;

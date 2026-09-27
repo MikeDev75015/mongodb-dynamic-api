@@ -10,6 +10,7 @@ import { ValidatorPipe } from '../../decorators/validator-pipe.decorator';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { DynamicAPIWsExceptionFilter } from '../../filters/ws-exception/dynamic-api-ws-exception.filter';
 import { AuthAbilityPredicate, AfterSaveCallback, DynamicApiServiceProvider, GatewayOptions } from '../../interfaces';
+import { DEFAULT_MAX_REFRESH_SESSIONS } from '../../helpers/refresh-session.store';
 import { BaseEntity } from '../../models';
 import { BcryptService } from '../../services/bcrypt/bcrypt.service';
 import { DynamicApiBroadcastService } from '../../services/dynamic-api-broadcast/dynamic-api-broadcast.service';
@@ -132,6 +133,11 @@ function createAuthServiceProvider<Entity extends BaseEntity>(
     protected refreshTokenOnUpdate = DynamicApiModule.state.get<boolean>('refreshTokenOnUpdate') ?? false;
     protected rotate = refreshToken?.rotate ?? true;
     protected reuseWindowMs = refreshToken?.reuseWindowMs ?? 0;
+    protected multiSession = refreshToken?.multiSession ?? false;
+    protected maxSessions = refreshToken?.maxSessions ?? DEFAULT_MAX_REFRESH_SESSIONS;
+    protected revokeSessionOnReuse = refreshToken?.revokeSessionOnReuse ?? false;
+    protected revokeSessionsOnPasswordChange =
+      refreshToken?.revokeSessionsOnPasswordChange ?? (refreshToken?.multiSession ?? false);
 
     protected beforeRegisterCallback = register?.beforeSaveCallback;
     protected registerCallback = register?.callback;

@@ -6,6 +6,7 @@ const AUTH_RESET_PASSWORD_EVENT = 'auth-reset-password';
 const AUTH_CHANGE_PASSWORD_EVENT = 'auth-change-password';
 const AUTH_REFRESH_TOKEN_EVENT = 'auth-refresh-token';
 const AUTH_LOGOUT_EVENT = 'auth-logout';
+const AUTH_LOGOUT_ALL_EVENT = 'auth-logout-all';
 
 const AUTH_LOGIN_BROADCAST_EVENT = 'auth-login-broadcast';
 const AUTH_REGISTER_BROADCAST_EVENT = 'auth-register-broadcast';
@@ -21,6 +22,7 @@ export {
   AUTH_CHANGE_PASSWORD_EVENT,
   AUTH_REFRESH_TOKEN_EVENT,
   AUTH_LOGOUT_EVENT,
+  AUTH_LOGOUT_ALL_EVENT,
   AUTH_LOGIN_BROADCAST_EVENT,
   AUTH_REGISTER_BROADCAST_EVENT,
   AUTH_GET_ACCOUNT_BROADCAST_EVENT,

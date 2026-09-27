@@ -4,6 +4,11 @@ import { createHash, randomInt, randomUUID } from 'node:crypto';
 import { FilterQuery, Model, UpdateQuery, UpdateWithAggregationPipeline } from 'mongoose';
 import { DynamicApiResetPasswordCallbackMethods, BeforeSaveCallback, AfterSaveCallback } from '../../../interfaces';
 import { isTokenOfType } from '../../../helpers/auth-token.helper';
+import {
+  DEFAULT_MAX_REFRESH_SESSIONS,
+  LEGACY_REFRESH_SESSION_ID,
+  RefreshSessionStore,
+} from '../../../helpers/refresh-session.store';
 import { MongoDBDynamicApiLogger } from '../../../logger/mongo-dynamic-api.logger';
 import { BaseEntity } from '../../../models';
 import { BaseService } from '../../../services/base/base.service';
@@ -25,6 +30,13 @@ interface RefreshTokenRecord {
     accessToken: string;
     refreshToken: string;
   };
+}
+
+/** Claims read from an incoming refresh token. */
+interface IncomingRefreshClaims {
+  jti?: string;
+  /** Session id — only signed when `multiSession` is on. */
+  sid?: string;
 }
 
 /** Claims of a reset-password token. */
@@ -67,6 +79,21 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
    * Default: 0 (disabled).
    */
   protected reuseWindowMs = 0;
+
+  /**
+   * One refresh session per device (`sid` claim) instead of one per user — see
+   * `DynamicApiRefreshTokenOptions.multiSession`. Default: false.
+   */
+  protected multiSession = false;
+
+  /** Max sessions per user when `multiSession` is on (LRU eviction beyond). Default: 10. */
+  protected maxSessions = DEFAULT_MAX_REFRESH_SESSIONS;
+
+  /** Revoke a session when one of its superseded tokens is replayed outside the grace window. */
+  protected revokeSessionOnReuse = false;
+
+  /** Revoke every refresh session on `changePassword`. */
+  protected revokeSessionsOnPasswordChange = false;
 
   private resetPasswordCallbackMethods: DynamicApiResetPasswordCallbackMethods<Entity> | undefined;
 
@@ -115,12 +142,16 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
       ...this.additionalRequestFields,
     ];
 
-    const payload: object = { ...this.buildUserFields(user, fieldsToBuild) };
+    const sid = this.isMultiSession() ? randomUUID() : undefined;
+    const payload: object = { ...this.buildUserFields(user, fieldsToBuild), ...(sid ? { sid } : {}) };
 
     const accessToken = this.jwtService.sign({ ...payload, typ: 'access' });
     const refreshToken = this.buildRefreshToken(payload);
 
-    if (this.refreshTokenField && (user._id || user.id)) {
+    if (sid && (user._id || user.id)) {
+      // Adds a session next to the other devices' ones instead of overwriting them.
+      await this.refreshSessionStore().createSession(user._id || user.id, sid, refreshToken);
+    } else if (this.refreshTokenField && (user._id || user.id)) {
       const decodedRefresh = this.jwtService.decode(refreshToken);
       const jti: string = decodedRefresh && typeof decodedRefresh !== 'string' ? decodedRefresh['jti'] : '';
       const hashedRefreshToken = await this.bcryptService.hashPassword(jti);
@@ -186,7 +217,8 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     return this.buildUserFields(user, fieldsToBuild);
   }
 
-  protected async updateAccount({ id }: Entity, update: Partial<Entity>): Promise<Entity | import('../interfaces').LoginResponse> {
+  protected async updateAccount(user: Entity, update: Partial<Entity>): Promise<Entity | import('../interfaces').LoginResponse> {
+    const { id } = user;
     this.logger.debug('Updating account', { userId: id, update });
     this.verifyArguments(id, update);
 
@@ -216,7 +248,15 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
 
     if (this.refreshTokenOnUpdate) {
       const updatedUser = await this.model.findOne({ _id: id }).lean<Entity>().exec();
-      return this.login({ ...updatedUser, id: updatedUser._id.toString() }, true);
+      const freshUser = { ...updatedUser, id: updatedUser._id.toString() };
+      const sid = this.sessionIdOf(user);
+
+      if (this.isMultiSession() && sid) {
+        // Rotate the caller's own session only: login() would open an extra session instead.
+        return this.reissueSession(freshUser, sid);
+      }
+
+      return this.login(freshUser, true);
     }
 
     return this.getAccount({ id } as Entity);
@@ -336,7 +376,13 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     await this.model.updateOne(
       { _id: userId },
       // @ts-ignore
-      { $set: { [this.passwordField]: hashedPassword, resetPasswordToken: null } },
+      {
+        $set: {
+          [this.passwordField]: hashedPassword,
+          resetPasswordToken: null,
+          ...(this.revokeSessionsOnPasswordChange && this.refreshTokenField ? { [this.refreshTokenField]: null } : {}),
+        },
+      },
     );
 
     if (this.resetPasswordOptions?.changePasswordCallback) {
@@ -356,10 +402,14 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
       return this.buildTokenPair(user);
     }
 
+    if (this.multiSession) {
+      return this.refreshMultiSessionToken(user, rawToken);
+    }
+
     const userId = user._id || user.id;
     const storedUser = await this.model.findOne({ _id: userId }).lean<Entity>().exec();
     const storedRaw = storedUser?.[this.refreshTokenField] as string | undefined;
-    const incomingJti = this.extractIncomingJti(rawToken);
+    const incomingJti = this.extractIncomingClaims(rawToken).jti;
 
     if (!storedRaw || !incomingJti) {
       throw new UnauthorizedException('Invalid refresh token');
@@ -390,18 +440,76 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
   }
 
   /**
-   * Extracts the `jti` claim from a raw JWT string.
-   * Returns `undefined` when `rawToken` is absent, not decodable, or carries no `jti`.
+   * Multi-session refresh: validates and rotates only the session of the incoming token (`sid`
+   * claim, `'legacy'` when absent), leaving every other device's session untouched.
+   * Claims are decoded from the raw token (not from `user`) so the socket path behaves the same.
    */
-  private extractIncomingJti(rawToken?: string): string | undefined {
-    if (!rawToken) {
-      return undefined;
+  private async refreshMultiSessionToken(user: Entity, rawToken?: string) {
+    const { jti, sid } = this.extractIncomingClaims(rawToken);
+    const userId = user._id || user.id;
+    const storedUser = jti ? await this.model.findOne({ _id: userId }).lean<Entity>().exec() : null;
+
+    if (!storedUser) {
+      throw new UnauthorizedException('Invalid refresh token');
     }
-    const decoded = this.jwtService.decode(rawToken);
+
+    // Fresh claims from the DB, as in the single-session path below.
+    const freshUser = { ...storedUser, id: (storedUser._id as { toString(): string }).toString() } as Entity;
+
+    return this.refreshSessionStore().refreshSession(
+      userId,
+      { jti, sid },
+      (newSid) => this.buildTokenPair(freshUser, newSid),
+      this.rotate,
+    );
+  }
+
+  /**
+   * Rotates session `sid` of `user` in place (same `sid`, new `jti`) — the superseded token stays
+   * usable within the grace window for the other tabs of the same device.
+   */
+  private async reissueSession(user: Entity, sid: string) {
+    const pair = await this.buildTokenPair(user, sid);
+    await this.refreshSessionStore().reissueSession(user.id, sid, pair);
+    return pair;
+  }
+
+  /**
+   * Extracts the `jti` and `sid` claims from a raw JWT string.
+   * Each is `undefined` when `rawToken` is absent, not decodable, or does not carry it.
+   */
+  private extractIncomingClaims(rawToken?: string): IncomingRefreshClaims {
+    const decoded = rawToken ? this.jwtService.decode(rawToken) : undefined;
     if (!decoded || typeof decoded === 'string') {
-      return undefined;
+      return {};
     }
-    return decoded['jti'] as string | undefined;
+    return {
+      jti: decoded['jti'] as string | undefined,
+      sid: typeof decoded['sid'] === 'string' ? decoded['sid'] : undefined,
+    };
+  }
+
+  private isMultiSession(): boolean {
+    return this.multiSession && !!this.refreshTokenField;
+  }
+
+  /** `sid` claim carried by `user` (decoded from an access or refresh token), if any. */
+  private sessionIdOf(user: Entity): string | undefined {
+    const { sid } = user as Entity & { sid?: unknown };
+    return typeof sid === 'string' ? sid : undefined;
+  }
+
+  private refreshSessionStore(): RefreshSessionStore<Entity> {
+    return new RefreshSessionStore<Entity>(
+      this.model,
+      this.refreshTokenField,
+      {
+        maxSessions: this.maxSessions,
+        reuseWindowMs: this.reuseWindowMs,
+        revokeSessionOnReuse: this.revokeSessionOnReuse,
+      },
+      this.bcryptService,
+    );
   }
 
   /**
@@ -497,11 +605,30 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
       return;
     }
 
+    if (this.multiSession) {
+      // Only the caller's own session: the other devices stay logged in.
+      await this.refreshSessionStore().revokeSession(user._id || user.id, this.sessionIdOf(user) ?? LEGACY_REFRESH_SESSION_ID);
+      return;
+    }
+
     await this.model.updateOne(
       { _id: user._id || user.id },
       // @ts-ignore
       { $set: { [this.refreshTokenField]: null } },
     ).exec();
+  }
+
+  /** Revokes every refresh session of `user` (all devices), whatever `multiSession` is. */
+  protected async logoutAllSessions(user: Entity) {
+    this.logger.debug('Logging out all sessions of user', { userId: user.id });
+    this.verifyArguments(user);
+
+    if (!this.refreshTokenField) {
+      this.logger.warn('logoutAllSessions called without refreshTokenField configured — nothing to revoke.');
+      return;
+    }
+
+    await this.refreshSessionStore().revokeAllSessions(user._id || user.id);
   }
 
   async sendOtpCode(identifier: string): Promise<void> {
@@ -594,14 +721,14 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
    * Builds an `{ accessToken, refreshToken }` pair from the user's payload fields.
    * Pure: does NOT update the database.
    */
-  private async buildTokenPair(user: Entity): Promise<{ accessToken: string; refreshToken: string }> {
+  private async buildTokenPair(user: Entity, sid?: string): Promise<{ accessToken: string; refreshToken: string }> {
     const fieldsToBuild = [
       '_id' as keyof Entity,
       'id' as keyof Entity,
       this.loginField,
       ...this.additionalRequestFields,
     ];
-    const payload: object = { ...this.buildUserFields(user, fieldsToBuild) };
+    const payload: object = { ...this.buildUserFields(user, fieldsToBuild), ...(sid ? { sid } : {}) };
     const accessToken = this.jwtService.sign({ ...payload, typ: 'access' });
     const refreshToken = this.buildRefreshToken(payload);
     return { accessToken, refreshToken };

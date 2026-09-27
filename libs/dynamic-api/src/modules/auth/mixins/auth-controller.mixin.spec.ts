@@ -207,6 +207,27 @@ describe('AuthControllerMixin', () => {
         expect(result).toEqual({ accessToken: 'at' });
       });
 
+      it('should broadcast the requesting user when a broadcast is configured', async () => {
+        const AuthController = AuthControllerMixin(
+          TestEntity,
+          {
+            loginOptions: { loginField: 'loginField', passwordField: 'passwordField' },
+            updateAccountOptions: { refreshTokenOnUpdate: true, broadcast: { enabled: true } },
+          },
+        );
+        const controller = new AuthController(service, broadcastService);
+        const user = Object.assign(new TestEntity(), { id: 'user-id', loginField: 'u@test.co' });
+        service.updateAccount.mockResolvedValueOnce({ accessToken: 'at', refreshToken: 'rt' });
+
+        await controller.updateAccount({ user, headers: {} as Record<string, string> }, {}, { cookie: vi.fn() } as unknown as Response);
+
+        expect(broadcastService.broadcastFromHttp).toHaveBeenCalledWith(
+          'auth-update-account-broadcast',
+          [expect.objectContaining({ id: 'user-id', loginField: 'u@test.co' })],
+          { enabled: true },
+        );
+      });
+
       it('should return account entity when service returns entity (no accessToken)', async () => {
         const AuthController = AuthControllerMixin(
           TestEntity,
@@ -460,6 +481,45 @@ describe('AuthControllerMixin', () => {
       await controller.logout({ user }, fakeRes as unknown as Response);
 
       expect(service.logout).toHaveBeenCalledWith(user);
+      expect(fakeRes.clearCookie).toHaveBeenCalledWith('refreshToken');
+    });
+  });
+
+  describe('logoutAll', () => {
+    beforeEach(() => {
+      service.logoutAllSessions = vi.fn().mockResolvedValue(undefined);
+    });
+
+    it('should call service logoutAllSessions', async () => {
+      const AuthController = AuthControllerMixin(
+        TestEntity,
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' }, refreshTokenOptions: { multiSession: true } },
+      );
+      const controller = new AuthController(service);
+      const user = new TestEntity();
+      const fakeRes = { clearCookie: vi.fn() };
+
+      await controller.logoutAll({ user }, fakeRes as unknown as Response);
+
+      expect(service.logoutAllSessions).toHaveBeenCalledWith(user);
+      expect(fakeRes.clearCookie).not.toHaveBeenCalled();
+    });
+
+    it('should clear cookie when useCookie is true', async () => {
+      const AuthController = AuthControllerMixin(
+        TestEntity,
+        {
+          loginOptions: { loginField: 'loginField', passwordField: 'passwordField' },
+          refreshTokenOptions: { useCookie: true, multiSession: true },
+        },
+      );
+      const controller = new AuthController(service);
+      const user = new TestEntity();
+      const fakeRes = { clearCookie: vi.fn() };
+
+      await controller.logoutAll({ user }, fakeRes as unknown as Response);
+
+      expect(service.logoutAllSessions).toHaveBeenCalledWith(user);
       expect(fakeRes.clearCookie).toHaveBeenCalledWith('refreshToken');
     });
   });

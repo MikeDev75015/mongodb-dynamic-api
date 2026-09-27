@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import type { Mock } from 'vitest';
 import { createMock } from '@test-helpers';
 import { JwtService } from '@nestjs/jwt';
@@ -7,6 +7,7 @@ import { BaseEntity } from '../models';
 import { BcryptService } from '../services/bcrypt/bcrypt.service';
 import { DynamicApiGlobalStateService } from '../services/dynamic-api-global-state/dynamic-api-global-state.service';
 import { mintTokenPair } from './mint-token-pair.helper';
+import { RefreshSessionStore } from './refresh-session.store';
 
 const mockStateGet = vi.fn();
 
@@ -196,5 +197,83 @@ describe('mintTokenPair', () => {
     await mintTokenPair(TestUser, user);
 
     expect(getEntityModelSpy).not.toHaveBeenCalled();
+  });
+
+  describe('multiSession', () => {
+    let createSessionSpy: Mock;
+
+    const multiState = { ...defaultState, refreshTokenField: 'refreshToken', refreshTokenMultiSession: true, refreshTokenMaxSessions: 4 };
+
+    beforeEach(() => {
+      createSessionSpy = vi.spyOn(RefreshSessionStore.prototype, 'createSession').mockResolvedValue(undefined);
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('should sign a fresh sid in both tokens and add a session (global multiSession)', async () => {
+      mockStateGet.mockImplementation((key: string) => multiState[key]);
+      const user = { id: '1', _id: 'mongo-id', email: 'u@test.co' } as unknown as TestUser;
+
+      const result = await mintTokenPair(TestUser, user);
+
+      const { sid } = decodePayload(result.accessToken);
+      expect(sid).toEqual(expect.any(String));
+      expect(decodePayload(result.refreshToken).sid).toBe(sid);
+      expect(createSessionSpy).toHaveBeenCalledWith('mongo-id', sid, result.refreshToken);
+      expect(model.updateOne).not.toHaveBeenCalled();
+      expect(createSessionSpy.mock.contexts[0]).toMatchObject({ field: 'refreshToken', maxSessions: 4 });
+    });
+
+    it('should honor options.multiSession and options.sid over the state', async () => {
+      const user = { id: '1', email: 'u@test.co' } as TestUser;
+
+      const result = await mintTokenPair(TestUser, user, { refreshTokenField: 'customField', multiSession: true, sid: 'given-sid' });
+
+      expect(decodePayload(result.refreshToken).sid).toBe('given-sid');
+      expect(createSessionSpy).toHaveBeenCalledWith('1', 'given-sid', result.refreshToken);
+    });
+
+    it('should keep the single-session format when options.multiSession is false', async () => {
+      mockStateGet.mockImplementation((key: string) => multiState[key]);
+      const user = { id: '1', email: 'u@test.co' } as TestUser;
+
+      const result = await mintTokenPair(TestUser, user, { multiSession: false, sid: 'ignored' });
+
+      expect(decodePayload(result.accessToken)).not.toHaveProperty('sid');
+      expect(createSessionSpy).not.toHaveBeenCalled();
+      expect(model.updateOne).toHaveBeenCalled();
+    });
+
+    it('should neither sign a sid nor persist anything without a refreshTokenField', async () => {
+      mockStateGet.mockImplementation((key: string) => ({ ...multiState, refreshTokenField: undefined }[key]));
+      const user = { id: '1', email: 'u@test.co' } as TestUser;
+
+      const result = await mintTokenPair(TestUser, user, { multiSession: true });
+
+      expect(decodePayload(result.accessToken)).not.toHaveProperty('sid');
+      expect(getEntityModelSpy).not.toHaveBeenCalled();
+    });
+
+    it('should default multiSession to false when the state has no value', async () => {
+      mockStateGet.mockImplementation((key: string) => ({ ...multiState, refreshTokenMultiSession: undefined }[key]));
+      const user = { id: '1', email: 'u@test.co' } as TestUser;
+
+      await mintTokenPair(TestUser, user);
+
+      expect(createSessionSpy).not.toHaveBeenCalled();
+    });
+
+    it('should only sign the pair when persist is false', async () => {
+      mockStateGet.mockImplementation((key: string) => multiState[key]);
+      const user = { id: '1', email: 'u@test.co' } as TestUser;
+
+      const result = await mintTokenPair(TestUser, user, { sid: 'sid-x', persist: false });
+
+      expect(decodePayload(result.accessToken).sid).toBe('sid-x');
+      expect(getEntityModelSpy).not.toHaveBeenCalled();
+      expect(createSessionSpy).not.toHaveBeenCalled();
+    });
   });
 });

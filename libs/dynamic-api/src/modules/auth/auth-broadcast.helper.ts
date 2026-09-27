@@ -4,7 +4,8 @@ import { DynamicApiGlobalStateService } from '../../services/dynamic-api-global-
 
 /**
  * Builds the payload of an auth broadcast from `user`, restricted to `fields` when given. The
- * password and refresh-token fields are always removed, even when listed in `fields`.
+ * password and refresh-token fields, and the `sid` session claim, are always removed, even when
+ * listed in `fields`.
  */
 function buildAuthBroadcastData<Entity extends BaseEntity>(
   user: Partial<Entity>,
@@ -15,7 +16,7 @@ function buildAuthBroadcastData<Entity extends BaseEntity>(
   const passwordField = DynamicApiGlobalStateService.getValue('credentials')?.passwordField;
   const refreshTokenField = DynamicApiGlobalStateService.getValue('refreshTokenField');
 
-  for (const sensitiveField of [passwordField, refreshTokenField]) {
+  for (const sensitiveField of [passwordField, refreshTokenField, 'sid']) {
     if (sensitiveField) {
       delete data[sensitiveField];
     }

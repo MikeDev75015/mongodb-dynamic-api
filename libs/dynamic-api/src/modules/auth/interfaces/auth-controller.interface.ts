@@ -15,6 +15,7 @@ interface AuthController<Entity extends BaseEntity> {
   changePassword(body: ChangePasswordDto): Promise<void>;
   refreshToken(req: { user: Entity; headers: Record<string, string>; cookies: Record<string, string> }, res: Response): Promise<LoginResponse>;
   logout(req: { user: Entity }, res: Response): Promise<void>;
+  logoutAll(req: { user: Entity }, res: Response): Promise<void>;
   sendOtpCode(body: { identifier: string }): Promise<void>;
   verifyOtpCode(body: { identifier: string; code: string }, res: Response): Promise<LoginResponse>;
 }

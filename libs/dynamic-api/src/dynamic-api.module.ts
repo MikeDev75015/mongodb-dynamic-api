@@ -359,6 +359,8 @@ export class DynamicApiModule {
           refreshTokenField: useAuth.refreshToken?.refreshTokenField
             ? String(useAuth.refreshToken.refreshTokenField)
             : undefined,
+          refreshTokenMultiSession: useAuth.refreshToken?.multiSession ?? false,
+          refreshTokenMaxSessions: useAuth.refreshToken?.maxSessions,
           additionalRequestFields: (useAuth.login?.additionalFields ?? []).map(String),
           gatewayOptions: initializeConfigFromOptions(webSocket),
         } : {}

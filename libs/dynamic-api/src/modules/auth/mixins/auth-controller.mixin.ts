@@ -26,7 +26,7 @@ import { ChangePasswordDto } from '../dtos/change-password.dto';
 import { ResetPasswordDto } from '../dtos/reset-password.dto';
 import { SendOtpCodeDto } from '../dtos/send-otp-code.dto';
 import { VerifyOtpCodeDto } from '../dtos/verify-otp-code.dto';
-import { JwtAuthGuard, JwtRefreshGuard, LocalAuthGuard, PasswordlessGuard, ResetPasswordGuard } from '../guards';
+import { JwtAuthGuard, JwtRefreshGuard, LocalAuthGuard, MultiSessionGuard, PasswordlessGuard, ResetPasswordGuard } from '../guards';
 import { AuthController, AuthControllerConstructor, AuthService, DynamicApiGetAccountOptions, DynamicApiLoginOptions, DynamicApiRefreshTokenOptions, DynamicApiRegisterOptions, DynamicApiResetPasswordOptions, DynamicApiUpdateAccountOptions, PasswordlessOptions } from '../interfaces';
 import { AuthPoliciesGuardMixin } from './auth-policies-guard.mixin';
 
@@ -83,6 +83,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
       useInterceptors: refreshTokenUseInterceptors = [],
       useCookie = false,
       rateLimit: refreshTokenRateLimit,
+      multiSession = false,
     } = {},
     passwordlessOptions,
   }: AuthControllerMixinOptions<Entity>,
@@ -431,6 +432,23 @@ function AuthControllerMixin<Entity extends BaseEntity>(
       @Res({ passthrough: true }) res: Response,
     ) {
       await this.service.logout(req.user);
+
+      if (useCookie) {
+        res.clearCookie(REFRESH_TOKEN_COOKIE);
+      }
+    }
+
+    @Public()
+    @ApiEndpointVisibility(multiSession)
+    @ApiBearerAuth()
+    @UseGuards(new MultiSessionGuard(multiSession), JwtRefreshGuard)
+    @HttpCode(HttpStatus.NO_CONTENT)
+    @Post('logout-all')
+    async logoutAll(
+      @Request() req: { user: Entity },
+      @Res({ passthrough: true }) res: Response,
+    ) {
+      await this.service.logoutAllSessions(req.user);
 
       if (useCookie) {
         res.clearCookie(REFRESH_TOKEN_COOKIE);

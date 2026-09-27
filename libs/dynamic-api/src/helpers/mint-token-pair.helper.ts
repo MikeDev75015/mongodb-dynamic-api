@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import type { StringValue } from 'ms';
 import { BaseEntity } from '../models';
 import { BcryptService } from '../services/bcrypt/bcrypt.service';
+import { RefreshSessionStore } from './refresh-session.store';
 import { DynamicApiEntityService } from '../services/dynamic-api-entity/dynamic-api-entity.service';
 import { DynamicApiGlobalStateService } from '../services/dynamic-api-global-state/dynamic-api-global-state.service';
 
@@ -28,6 +29,24 @@ interface MintTokenPairOptions<Entity extends BaseEntity> {
    * refresh-token storage (the pair still works for access, just not for revocation/rotation).
    */
   refreshTokenField?: keyof Entity;
+  /**
+   * Since v6.1 — opens a new session next to the user's other ones (a `sid` claim is signed in
+   * both tokens) instead of overwriting the stored record, so minting a pair (social login, handoff…)
+   * no longer logs the user's other devices out. See `refreshToken.multiSession`.
+   * Defaults to `useAuth.refreshToken.multiSession`.
+   */
+  multiSession?: boolean;
+  /**
+   * Since v6.1 — signs the pair for this session id instead of a fresh `randomUUID()`
+   * (multi-session only). Combined with `persist: false`, this is the pair builder to hand to
+   * `RefreshSessionStore.refreshSession` for a custom refresh route.
+   */
+  sid?: string;
+  /**
+   * Since v6.1 — `false` only signs the pair, without writing anything to `refreshTokenField`.
+   * Default: true.
+   */
+  persist?: boolean;
 }
 
 /** The `{ accessToken, refreshToken }` pair returned by {@link mintTokenPair}. */
@@ -93,6 +112,9 @@ async function mintTokenPair<Entity extends BaseEntity>(
     (options.additionalFields ?? DynamicApiGlobalStateService.getValue('additionalRequestFields') ?? []) as (keyof Entity)[];
   const refreshTokenField =
     (options.refreshTokenField ?? DynamicApiGlobalStateService.getValue('refreshTokenField')) as keyof Entity | undefined;
+  const multiSession = !!refreshTokenField
+    && (options.multiSession ?? DynamicApiGlobalStateService.getValue('refreshTokenMultiSession') ?? false);
+  const sid = multiSession ? options.sid ?? randomUUID() : undefined;
 
   const jwtService = new JwtService({
     secret: jwtSecret,
@@ -100,10 +122,13 @@ async function mintTokenPair<Entity extends BaseEntity>(
   });
 
   const fieldsToBuild = ['_id' as keyof Entity, 'id' as keyof Entity, loginField, ...additionalFields];
-  const payload: object = fieldsToBuild.reduce(
-    (acc, field) => (user[field] === undefined ? acc : { ...acc, [field]: user[field] }),
-    {} as object,
-  );
+  const payload: object = {
+    ...fieldsToBuild.reduce(
+      (acc, field) => (user[field] === undefined ? acc : { ...acc, [field]: user[field] }),
+      {} as object,
+    ),
+    ...(sid ? { sid } : {}),
+  };
 
   const accessToken = jwtService.sign({ ...payload, typ: 'access' });
 
@@ -117,15 +142,25 @@ async function mintTokenPair<Entity extends BaseEntity>(
     },
   );
 
-  if (refreshTokenField && (user._id || user.id)) {
+  if (!refreshTokenField || !(user._id || user.id) || options.persist === false) {
+    return { accessToken, refreshToken };
+  }
+
+  // Routed through the public DynamicApiEntityService.getModel() (a thin wrapper over this same
+  // call) rather than the internal DynamicApiGlobalStateService directly, so consumer code can
+  // mock model resolution via the same public API surface used everywhere else — mintTokenPair
+  // was the one caller still reaching past it into the non-exported internal class.
+  const model = await DynamicApiEntityService.getModel(entity);
+
+  if (sid) {
+    const store = new RefreshSessionStore<Entity>(model, refreshTokenField, {
+      maxSessions: DynamicApiGlobalStateService.getValue('refreshTokenMaxSessions'),
+    });
+    await store.createSession(user._id || user.id, sid, refreshToken);
+  } else {
     const decoded = jwtService.decode(refreshToken);
     const jti: string = decoded && typeof decoded !== 'string' ? decoded['jti'] : '';
     const hashedJti = await new BcryptService().hashPassword(jti);
-    // Routed through the public DynamicApiEntityService.getModel() (a thin wrapper over this same
-    // call) rather than the internal DynamicApiGlobalStateService directly, so consumer code can
-    // mock model resolution via the same public API surface used everywhere else — mintTokenPair
-    // was the one caller still reaching past it into the non-exported internal class.
-    const model = await DynamicApiEntityService.getModel(entity);
 
     await model.updateOne(
       { _id: user._id || user.id },

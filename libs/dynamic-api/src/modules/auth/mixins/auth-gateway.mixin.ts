@@ -20,6 +20,7 @@ import {
   AUTH_GET_ACCOUNT_EVENT,
   AUTH_LOGIN_BROADCAST_EVENT,
   AUTH_LOGIN_EVENT,
+  AUTH_LOGOUT_ALL_EVENT,
   AUTH_LOGOUT_EVENT,
   AUTH_REFRESH_TOKEN_EVENT,
   AUTH_REGISTER_BROADCAST_EVENT,
@@ -30,7 +31,7 @@ import {
 } from '../auth-events.constants';
 import { ChangePasswordDto } from '../dtos/change-password.dto';
 import { ResetPasswordDto } from '../dtos/reset-password.dto';
-import { JwtSocketAuthGuard, JwtSocketRefreshGuard, ResetPasswordGuard } from '../guards';
+import { JwtSocketAuthGuard, JwtSocketRefreshGuard, MultiSessionGuard, ResetPasswordGuard } from '../guards';
 import { AuthGatewayConstructor, AuthService, DynamicApiGetAccountOptions, DynamicApiLoginOptions, DynamicApiRefreshTokenOptions, DynamicApiRegisterOptions, DynamicApiResetPasswordOptions, DynamicApiUpdateAccountOptions } from '../interfaces';
 import { AuthSocketPoliciesGuardMixin } from './auth-policies-guard.mixin';
 
@@ -66,6 +67,7 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
   }: DynamicApiGetAccountOptions<Entity> = {},
   {
     useInterceptors: refreshTokenUseInterceptors = [],
+    multiSession = false,
   }: DynamicApiRefreshTokenOptions<Entity> = {}
 ): AuthGatewayConstructor<Entity> {
   if (loginBroadcastConfig) {
@@ -348,6 +350,16 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
       }
 
       return { event: AUTH_LOGOUT_EVENT, data: undefined };
+    }
+
+    @UseGuards(new MultiSessionGuard(multiSession), new JwtSocketRefreshGuard())
+    @SubscribeMessage(AUTH_LOGOUT_ALL_EVENT)
+    async logoutAll(@ConnectedSocket() socket: ExtendedSocket<Entity>) {
+      if (socket.user) {
+        await this.service.logoutAllSessions(socket.user);
+      }
+
+      return { event: AUTH_LOGOUT_ALL_EVENT, data: undefined };
     }
   }
 
