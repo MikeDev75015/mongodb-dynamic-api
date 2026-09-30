@@ -138,11 +138,22 @@ commands:
             git pull https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git ${CIRCLE_BRANCH}
             git fetch --tags https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git main
       - run:
-          name: Verify an open PR targets main from this branch
+          # The approval is offered as soon as the checks are green, PR or not: when the release is
+          # approved before the PR is opened, open it here instead of failing the release.
+          name: Ensure an open PR targets main from this branch
           command: |
             PR_BASE=$(gh pr view "${CIRCLE_BRANCH}" -R ${GH_OWNER}/${GH_REPO} --json state,baseRefName -q 'select(.state == "OPEN") | .baseRefName' || true)
-            if [ "${PR_BASE}" != "main" ]; then
-              echo "No open PR from ${CIRCLE_BRANCH} into main — open the PR before approving the release."
+            if [ -z "${PR_BASE}" ]; then
+              echo "No open PR from ${CIRCLE_BRANCH} — opening one into main."
+              # FETCH_HEAD is main (fetched by the previous step): title from the branch's first commit.
+              # No pipe into head: under pipefail, git's SIGPIPE on a long branch would fail the step.
+              PR_SUBJECTS=$(git log --reverse --format=%s FETCH_HEAD..HEAD)
+              PR_TITLE=${PR_SUBJECTS%%$'\n'*}
+              PR_BODY=$(git log --reverse --format='- %s' FETCH_HEAD..HEAD)
+              gh pr create -R ${GH_OWNER}/${GH_REPO} --base main --head "${CIRCLE_BRANCH}" \
+                --title "${PR_TITLE:-${CIRCLE_BRANCH}}" --body "${PR_BODY:-Release from ${CIRCLE_BRANCH}}"
+            elif [ "${PR_BASE}" != "main" ]; then
+              echo "The open PR from ${CIRCLE_BRANCH} targets ${PR_BASE}, not main — retarget it to main, then re-approve."
               exit 1
             fi
       - run:
