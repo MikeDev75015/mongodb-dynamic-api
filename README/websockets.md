@@ -207,7 +207,7 @@ Who receives a broadcast without `rooms`:
 
 **⚠️ Important: Broadcasting is only available for routes that modify data.**
 
-**Payload serialization:** broadcast payloads go through `instanceToPlain`, like HTTP responses go through `ClassSerializerInterceptor` (since v5.4.2). A field marked `@Exclude()` or `@Exclude({ toPlainOnly: true })` on the entity or presenter is never broadcast. Auth broadcasts (`login`, `register`, `getAccount`, `updateAccount`) always drop the password field and `refreshToken.refreshTokenField`, even when listed in `fields`.
+**Payload serialization:** broadcast payloads go through `instanceToPlain`, like HTTP responses go through `ClassSerializerInterceptor` (since v5.4.2). A field marked `@Exclude()` or `@Exclude({ toPlainOnly: true })` on the entity or presenter is never broadcast. BSON values are sent in their JSON form (since v6.1.1): an `ObjectId` — the `_id` of a lean document returned by `methods.findOneDocument`, or a `Types.ObjectId` reference — arrives as its hex string, not as `{ buffer: { type: 'Buffer', data: [...] } }`. Auth broadcasts (`login`, `register`, `getAccount`, `updateAccount`) always drop the password field and `refreshToken.refreshTokenField`, even when listed in `fields`.
 
 ```typescript
 import { Prop, Schema } from '@nestjs/mongoose';
@@ -224,6 +224,31 @@ export class Account extends BaseEntity {
   @Prop({ type: String })
   apiKey: string;
 }
+```
+
+Broadcasting a lean document from a custom route keeps its ids readable:
+
+```typescript
+import { Prop, Schema } from '@nestjs/mongoose';
+import { Types } from 'mongoose';
+import { BaseEntity, CustomRouteConfig, DynamicApiBroadcastService } from 'mongodb-dynamic-api';
+
+@Schema({ collection: 'multiplayer_lobbies' })
+export class MultiplayerLobby extends BaseEntity {
+  @Prop({ type: [Types.ObjectId], default: [] })
+  playerIds: Types.ObjectId[];
+}
+
+export const joinLobbyRoute: CustomRouteConfig<MultiplayerLobby> = {
+  path: ':id/join',
+  method: 'PATCH',
+  handler: async ({ methods, params }) => {
+    const lobby = await methods.findOneDocument(MultiplayerLobby, { _id: params.id });
+    // Clients receive `_id` and every `playerIds` entry as 24-character hex strings.
+    new DynamicApiBroadcastService().broadcastFromHttp('multiplayer-lobby-updated', [lobby], { enabled: true });
+    return { joined: true };
+  },
+};
 ```
 
 **Supported Routes:**

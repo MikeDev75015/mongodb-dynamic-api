@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { Exclude } from 'class-transformer';
+import { Types } from 'mongoose';
 import { DynamicApiGlobalStateService } from '../services/dynamic-api-global-state/dynamic-api-global-state.service';
 import { resolveBroadcast } from './resolve-broadcast.helper';
 import { BroadcastConfig } from '../interfaces';
@@ -30,6 +31,69 @@ describe('resolveBroadcast', () => {
 
     expect(result?.data).toStrictEqual([{ id: '1' }]);
     expect(enabled).toHaveBeenCalledWith(expect.any(UserItem), undefined);
+  });
+
+  describe('BSON values', () => {
+    it('should emit every nested ObjectId as its hex string', () => {
+      const id = new Types.ObjectId();
+      const childId = new Types.ObjectId();
+      const refId = new Types.ObjectId();
+
+      const result = resolveBroadcast('event', [{ _id: id, children: [{ _id: childId }], ref: { ownerId: refId } }], { enabled: true });
+
+      expect(result?.data).toStrictEqual([{
+        _id: id.toHexString(),
+        children: [{ _id: childId.toHexString() }],
+        ref: { ownerId: refId.toHexString() },
+      }]);
+    });
+
+    it('should emit a Decimal128 in its JSON form', () => {
+      const result = resolveBroadcast('event', [{ price: Types.Decimal128.fromString('9.99') }], { enabled: true });
+
+      expect(result?.data).toStrictEqual([{ price: { $numberDecimal: '9.99' } }]);
+    });
+
+    it('should keep applying @Exclude() on an entity instance carrying an ObjectId', () => {
+      class Account {
+        _id: Types.ObjectId;
+
+        @Exclude()
+        apiKey: string;
+
+        constructor(_id: Types.ObjectId, apiKey: string) {
+          this._id = _id;
+          this.apiKey = apiKey;
+        }
+      }
+      const id = new Types.ObjectId();
+      const account = new Account(id, 'secret');
+
+      const result = resolveBroadcast('event', [account], { enabled: true });
+
+      expect(result?.data).toStrictEqual([{ _id: id.toHexString() }]);
+      expect(account._id).toBe(id);
+    });
+
+    it('should leave dates, buffers, maps, sets and null values as they are', () => {
+      const date = new Date('2026-09-30T00:00:00.000Z');
+      const map = new Map([['a', 1]]);
+      const set = new Set([1]);
+      const item = { date, buffer: Buffer.from('ab'), map, set, empty: null, count: 1 };
+
+      const result = resolveBroadcast('event', [item], { enabled: true });
+
+      expect(result?.data[0]).toMatchObject({ empty: null, count: 1 });
+      expect(result?.data[0]).toHaveProperty('date');
+    });
+
+    it('should copy an object without prototype', () => {
+      const item = Object.assign(Object.create(null) as object, { _id: new Types.ObjectId() });
+
+      const result = resolveBroadcast('event', [item], { enabled: true });
+
+      expect(typeof (result?.data[0] as { _id: unknown })._id).toBe('string');
+    });
   });
 
   it('should return undefined when broadcastConfig is not provided', () => {
