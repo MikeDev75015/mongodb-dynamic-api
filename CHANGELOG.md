@@ -1,5 +1,19 @@
 Changelog
 
+## [6.1.1](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v6.1.0...v6.1.1) (2026-09-30)
+
+### websockets
+
+* **websockets:** broadcast ObjectIds as hex strings ([b25a4af](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/b25a4af8e004e4144708ed37091a39ec0a234935))
+
+### cache
+
+* **cache:** invalidate an entity's keys under a global prefix ([344a279](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/344a27993d334b9a62e96d6efd6de3dc63938cff))
+
+### routes
+
+* **routes:** accept a single id in the ids query of the Many routes ([df605dd](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/df605dd9a9f00f4d505c212e500198d8f928be15))
+
 ## [6.1.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v6.0.0...v6.1.0) (2026-09-27)
 
 ### auth
