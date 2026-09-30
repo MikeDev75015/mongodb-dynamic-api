@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, test } from 'vitest';
 import { createMock } from '@test-helpers';
 import { BadRequestException } from '@nestjs/common';
+import { ManyEntityQuery } from '../../dtos/many-entity.query';
 import { DeleteResult, DynamicApiControllerOptions, DynamicApiRouteConfig } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { DeleteManyController } from './delete-many-controller.interface';
@@ -58,6 +59,20 @@ describe('DeleteManyControllerMixin', () => {
     await expect(controller.deleteMany(query)).resolves.toEqual(fakeDeleteResult);
     expect(service.deleteMany).toHaveBeenCalledTimes(1);
     expect(service.deleteMany).toHaveBeenCalledWith(query.ids, undefined);
+  });
+
+  it('should wrap a single id sent as ?ids=x in an array', async () => {
+    controller = initController();
+
+    await expect(controller.deleteMany({ ids: '1' } as unknown as ManyEntityQuery)).resolves.toEqual(fakeDeleteResult);
+    expect(service.deleteMany).toHaveBeenCalledWith(['1'], undefined);
+  });
+
+  it('should throw a BadRequestException (400) if the query has no ids', async () => {
+    controller = initController();
+
+    await expect(controller.deleteMany(undefined as unknown as ManyEntityQuery)).rejects.toThrow(new BadRequestException('Invalid query'));
+    expect(service.deleteMany).toHaveBeenCalledTimes(0);
   });
 
   it('should pass user from request to service.deleteMany', async () => {

@@ -76,6 +76,14 @@ describe('UpdateManyControllerMixin', () => {
     expect(service.updateMany).toHaveBeenCalledWith(ids, body, undefined);
   });
 
+  it('should wrap a single id sent as ?ids=x in an array', async () => {
+    controller = initController();
+    const body = { name: 'test' };
+
+    await expect(controller.updateMany('fakeId', body)).resolves.toEqual(fakeEntities);
+    expect(service.updateMany).toHaveBeenCalledWith(['fakeId'], body, undefined);
+  });
+
   it('should pass user from request to service.updateMany', async () => {
     controller = initController();
     const ids = ['fakeId'];

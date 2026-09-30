@@ -63,6 +63,14 @@ describe('DuplicateManyControllerMixin', () => {
     expect(service.duplicateMany).toHaveBeenCalledWith(ids, body, undefined);
   });
 
+  it('should wrap a single id sent as ?ids=x in an array', async () => {
+    controller = initController();
+    const body = {};
+
+    await expect(controller.duplicateMany('1', body)).resolves.toEqual(fakeEntities);
+    expect(service.duplicateMany).toHaveBeenCalledWith(['1'], body, undefined);
+  });
+
   it('should pass user from request to service.duplicateMany', async () => {
     controller = initController();
     const ids = ['1'];

@@ -5,6 +5,7 @@ import { addVersionSuffix } from '../../helpers/versioning-config.helper';
 import { getMixinData } from '../../helpers/mixin-data.helper';
 import { isEmpty } from '../../helpers/lodash.helper';
 import { provideName } from '../../helpers/format.helper';
+import { toIdList } from '../../helpers/id-list.helper';
 import { RouteDecoratorsHelper } from '../../helpers/route-decorators.helper';
 import { DynamicApiControllerOptions, DynamicApiRouteConfig, DynamicApiRequest, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin, EntityBodyMixin, EntityPresenterMixin, stripProtectedFields } from '../../mixins';
@@ -88,8 +89,9 @@ function DuplicateManyControllerMixin<Entity extends BaseEntity>(
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(DuplicateManyPoliciesGuard)
     @UseInterceptors(...useInterceptors)
-    async duplicateMany(@Query('ids') ids: string[], @Body() body?: DuplicateManyBody, @Request() req?: DynamicApiRequest) {
-      if (!ids?.length) {
+    async duplicateMany(@Query('ids') idsQuery: string | string[], @Body() body?: DuplicateManyBody, @Request() req?: DynamicApiRequest) {
+      const ids = toIdList(idsQuery);
+      if (!ids.length) {
         throw new BadRequestException('Invalid query');
       }
 
