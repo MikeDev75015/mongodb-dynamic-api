@@ -127,23 +127,9 @@ class DynamicApiCacheService {
   }
 
   private async invalidateMatching(target: string, matches: (key: string) => boolean): Promise<void> {
-    let sawIterableStore = false;
-    const keysToDelete = new Set<string>();
+    const iterableStores = this.cacheManager.stores.filter((store) => typeof store.iterator === 'function');
 
-    for (const store of this.cacheManager.stores) {
-      if (typeof store.iterator !== 'function') {
-        continue;
-      }
-      sawIterableStore = true;
-
-      for await (const [key] of store.iterator(undefined)) {
-        if (typeof key === 'string' && matches(key)) {
-          keysToDelete.add(key);
-        }
-      }
-    }
-
-    if (!sawIterableStore) {
+    if (!iterableStores.length) {
       this.logger.warn(
         `[Cache] No configured cache store supports key enumeration — falling back to a full `
         + `clear() to invalidate ${target}. Configure a store with iterator support (the default `
@@ -153,9 +139,29 @@ class DynamicApiCacheService {
       return;
     }
 
+    const keyLists = await Promise.all(
+      iterableStores.map((store) => DynamicApiCacheService.collectMatchingKeys(store, matches)),
+    );
+    const keysToDelete = new Set(keyLists.flat());
+
     // Collected first, deleted afterwards: no store is mutated while it is being iterated.
     await Promise.all([...keysToDelete].map((key) => this.cacheManager.del(key)));
     this.logger.debug(`[Cache] Invalidated ${keysToDelete.size} cached response(s) for ${target}.`);
+  }
+
+  private static async collectMatchingKeys(
+    store: Cache['stores'][number],
+    matches: (key: string) => boolean,
+  ): Promise<string[]> {
+    const keys: string[] = [];
+
+    for await (const [key] of store.iterator(undefined)) {
+      if (typeof key === 'string' && matches(key)) {
+        keys.push(key);
+      }
+    }
+
+    return keys;
   }
 
   /** `/api/products::<userId>` → `/api/products`: drops the identity suffix of a `url+identity` key. */
