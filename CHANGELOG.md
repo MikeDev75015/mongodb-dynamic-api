@@ -1,5 +1,7 @@
 Changelog
 
+## [6.1.2](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v6.1.1...v6.1.2) (2026-09-30)
+
 ## [6.1.1](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v6.1.0...v6.1.1) (2026-09-30)
 
 ### websockets
