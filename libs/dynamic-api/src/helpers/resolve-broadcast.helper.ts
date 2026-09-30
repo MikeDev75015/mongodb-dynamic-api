@@ -11,6 +11,54 @@ interface ResolvedBroadcast<T extends object> {
   authenticatedOnly: boolean;
 }
 
+interface BsonValue {
+  _bsontype: string;
+  toJSON(): unknown;
+}
+
+function isBsonValue(value: object): value is BsonValue {
+  return typeof (value as Partial<BsonValue>)._bsontype === 'string'
+    && typeof (value as Partial<BsonValue>).toJSON === 'function';
+}
+
+/**
+ * Replaces every BSON value (`ObjectId`, `Decimal128`, ...) nested in `value` with its JSON form
+ * (`toJSON()`: an `ObjectId` becomes its hex string). `instanceToPlain` walks an `ObjectId` like any
+ * object and would emit `{ buffer: { type: 'Buffer', data: [...] } }` — the `_id` of a lean document
+ * broadcast by a custom route, or any `Types.ObjectId` reference.
+ *
+ * Objects keep their prototype, so `instanceToPlain` still applies the entity's `@Exclude()` rules.
+ * @internal Not part of the public API.
+ */
+function toBroadcastValue(value: unknown): unknown {
+  if (
+    value === null
+    || typeof value !== 'object'
+    || value instanceof Date
+    || value instanceof Map
+    || value instanceof Set
+    || Buffer.isBuffer(value)
+  ) {
+    return value;
+  }
+
+  if (isBsonValue(value)) {
+    return value.toJSON();
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(toBroadcastValue);
+  }
+
+  return Object.entries(value).reduce<Record<string, unknown>>(
+    (target, [key, item]) => {
+      target[key] = toBroadcastValue(item);
+      return target;
+    },
+    Object.create(Object.getPrototypeOf(value) as object | null) as Record<string, unknown>,
+  );
+}
+
 /**
  * Decides whether a broadcast should be emitted and computes its final event name, filtered
  * payload and target rooms. Shared by `DynamicApiBroadcastService.broadcastFromHttp` and
@@ -21,7 +69,8 @@ interface ResolvedBroadcast<T extends object> {
  *
  * The emitted `data` is serialized with `instanceToPlain`, like an HTTP response goes through
  * `ClassSerializerInterceptor`: fields marked `@Exclude()` on the entity or presenter are never
- * broadcast. `enabled` and `rooms` still receive the original items.
+ * broadcast. BSON values are emitted in their JSON form first (an `ObjectId` as its hex string).
+ * `enabled` and `rooms` still receive the original items.
  *
  * @internal Not part of the public API.
  */
@@ -54,7 +103,7 @@ function resolveBroadcast<T extends object, User = unknown>(
   return {
     event: eventName || event,
     rooms: resolvedRooms,
-    data: broadcastData.map((item) => instanceToPlain(item) as T),
+    data: broadcastData.map((item) => instanceToPlain(toBroadcastValue(item)) as T),
     authenticatedOnly: !resolvedRooms
       && !broadcastConfig.public
       && !!DynamicApiGlobalStateService.getValue('isAuthEnabled'),
