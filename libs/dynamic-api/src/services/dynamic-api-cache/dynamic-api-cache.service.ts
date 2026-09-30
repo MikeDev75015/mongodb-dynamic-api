@@ -128,7 +128,7 @@ class DynamicApiCacheService {
 
   private async invalidateMatching(target: string, matches: (key: string) => boolean): Promise<void> {
     let sawIterableStore = false;
-    let deletedCount = 0;
+    const keysToDelete = new Set<string>();
 
     for (const store of this.cacheManager.stores) {
       if (typeof store.iterator !== 'function') {
@@ -138,8 +138,7 @@ class DynamicApiCacheService {
 
       for await (const [key] of store.iterator(undefined)) {
         if (typeof key === 'string' && matches(key)) {
-          await this.cacheManager.del(key);
-          deletedCount++;
+          keysToDelete.add(key);
         }
       }
     }
@@ -154,7 +153,9 @@ class DynamicApiCacheService {
       return;
     }
 
-    this.logger.debug(`[Cache] Invalidated ${deletedCount} cached response(s) for ${target}.`);
+    // Collected first, deleted afterwards: no store is mutated while it is being iterated.
+    await Promise.all([...keysToDelete].map((key) => this.cacheManager.del(key)));
+    this.logger.debug(`[Cache] Invalidated ${keysToDelete.size} cached response(s) for ${target}.`);
   }
 
   /** `/api/products::<userId>` → `/api/products`: drops the identity suffix of a `url+identity` key. */
