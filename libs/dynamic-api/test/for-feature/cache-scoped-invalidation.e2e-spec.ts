@@ -167,6 +167,54 @@ describe('DynamicApiModule forFeature - scoped cache invalidation (e2e)', () => 
     });
   });
 
+  describe('DynamicApiCacheService.invalidate under a global prefix', () => {
+    beforeEach(async () => {
+      await initApp(
+        {
+          entity: CacheScopeProductEntity,
+          controllerOptions: { path: 'cache-scope-products', isPublic: true },
+          routes: [{ type: 'GetMany' }, { type: 'GetOne' }],
+          extraImports: [
+            DynamicApiModule.forFeature({
+              entity: CacheScopeOrderEntity,
+              controllerOptions: { path: 'cache-scope-orders', isPublic: true },
+              routes: [{ type: 'GetMany' }],
+            }),
+          ],
+        },
+        undefined,
+        undefined,
+        async (app: INestApplication) => {
+          app.setGlobalPrefix('api');
+        },
+      );
+    });
+
+    it('should invalidate the entity\'s cached responses whose keys carry the /api prefix', async () => {
+      const productModel = await getModelFromEntity(CacheScopeProductEntity);
+      const orderModel = await getModelFromEntity(CacheScopeOrderEntity);
+      const [seed] = await productModel.insertMany([{ name: 'seed' }]);
+      await orderModel.insertMany([{ label: 'order-1' }]);
+      const seedId = seed._id.toString();
+
+      expect((await server.get('/api/cache-scope-products')).body).toHaveLength(1);
+      expect((await server.get(`/api/cache-scope-products/${seedId}`)).body).toEqual(expect.objectContaining({ name: 'seed' }));
+      expect((await server.get('/api/cache-scope-orders')).body).toHaveLength(1);
+
+      await productModel.insertMany([{ name: 'added-by-cron' }]);
+      await productModel.updateOne({ _id: seed._id }, { $set: { name: 'renamed' } });
+      await orderModel.insertMany([{ label: 'order-2' }]);
+
+      const cacheService = (global.app as INestApplication).get(DynamicApiCacheService);
+      await cacheService.invalidate(CacheScopeProductEntity);
+
+      expect((await server.get('/api/cache-scope-products')).body).toHaveLength(2);
+      expect((await server.get(`/api/cache-scope-products/${seedId}`)).body).toEqual(expect.objectContaining({ name: 'renamed' }));
+      // Another entity's cache is left untouched.
+      expect((await server.get('/api/cache-scope-orders')).body).toHaveLength(1);
+    });
+  });
+
   describe('suggestion #11 — DynamicApiCacheService reachable from a custom route handler via inject', () => {
     // Mirrors the real-world shape suggestion #11 was raised about: a custom route whose handler
     // writes through ctx.methods (see #10) — a path the native CreateOne/UpdateOne/DeleteOne

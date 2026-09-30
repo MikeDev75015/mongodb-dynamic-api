@@ -75,6 +75,45 @@ describe('DynamicApiCachePathRegistryStore', () => {
     });
   });
 
+  describe('findPathForUrl', () => {
+    beforeEach(() => {
+      DynamicApiCachePathRegistryStore.register('Message', '/messages/');
+      DynamicApiCachePathRegistryStore.register('AdminMessage', 'admin/messages');
+    });
+
+    it.each([
+      ['/messages', 'messages'],
+      ['/api/messages/64f0000000000000000000a1', 'messages'],
+      ['/api/v1/messages?page=2', 'messages'],
+      ['/api/admin/messages/1', 'admin/messages'],
+    ])('should resolve %s to the registered path %s', (url, expected) => {
+      expect(DynamicApiCachePathRegistryStore.findPathForUrl(url)).toBe(expected);
+    });
+
+    it('should keep the most specific path whatever the registration order', () => {
+      DynamicApiCachePathRegistryStore.reset();
+      DynamicApiCachePathRegistryStore.register('AdminMessage', 'admin/messages');
+      DynamicApiCachePathRegistryStore.register('Message', 'messages');
+
+      expect(DynamicApiCachePathRegistryStore.findPathForUrl('/api/admin/messages/1')).toBe('admin/messages');
+    });
+
+    it('should return undefined when no registered path matches', () => {
+      expect(DynamicApiCachePathRegistryStore.findPathForUrl('/api/health')).toBeUndefined();
+    });
+  });
+
+  describe('normalizePath', () => {
+    it.each([
+      ['products', 'products'],
+      ['/products/', 'products'],
+      ['//admin//messages', 'admin/messages'],
+      ['', ''],
+    ])('should normalize %s to %s', (path, expected) => {
+      expect(DynamicApiCachePathRegistryStore.normalizePath(path)).toBe(expected);
+    });
+  });
+
   describe('reset', () => {
     it('should clear every registered entity path', () => {
       DynamicApiCachePathRegistryStore.register('Product', 'products');

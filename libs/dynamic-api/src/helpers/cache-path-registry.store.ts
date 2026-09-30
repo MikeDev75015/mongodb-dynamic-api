@@ -38,10 +38,28 @@ class DynamicApiCachePathRegistryStore {
    * more than one could match (e.g. `'items'` vs `'items/archive'`).
    */
   static findPrefixForUrl(url: string): string | undefined {
+    return DynamicApiCachePathRegistryStore.findMatchForUrl(url)?.prefix;
+  }
+
+  /**
+   * Same matching as {@link findPrefixForUrl}, but returns the registered path the URL belongs to
+   * (normalized, without leading/trailing slashes) — whatever sits in front of it (a global
+   * prefix such as `/api`, a URI version segment).
+   */
+  static findPathForUrl(url: string): string | undefined {
+    return DynamicApiCachePathRegistryStore.findMatchForUrl(url)?.path;
+  }
+
+  /** `'/products/'` → `'products'`: the form {@link findPathForUrl} returns. */
+  static normalizePath(path: string): string {
+    return path.split('/').filter(Boolean).join('/');
+  }
+
+  private static findMatchForUrl(url: string): { prefix: string; path: string } | undefined {
     const [pathname] = url.split('?');
     const urlSegments = pathname.split('/').filter(Boolean);
 
-    let best: { prefix: string; segmentCount: number } | undefined;
+    let best: { prefix: string; path: string; segmentCount: number } | undefined;
 
     for (const { path } of DynamicApiCachePathRegistryStore.entries.values()) {
       const pathSegments = path.split('/').filter(Boolean);
@@ -58,6 +76,7 @@ class DynamicApiCachePathRegistryStore {
         if (!best || pathSegments.length > best.segmentCount) {
           best = {
             prefix: `/${urlSegments.slice(0, start + pathSegments.length).join('/')}`,
+            path: pathSegments.join('/'),
             segmentCount: pathSegments.length,
           };
         }
@@ -65,7 +84,7 @@ class DynamicApiCachePathRegistryStore {
       }
     }
 
-    return best?.prefix;
+    return best && { prefix: best.prefix, path: best.path };
   }
 
   /** Clears every registered entity path — useful for testing. */

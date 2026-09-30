@@ -70,6 +70,11 @@ class DynamicApiCacheService {
    * Invalidates every cached response for `entity`'s routes (`GetMany`, `GetOne`, `Aggregate`,
    * and any custom sub-path under the same controller) — never other entities' cached responses.
    *
+   * Cache keys are request URLs, so they carry whatever Nest put in front of the controller path:
+   * a global prefix (`app.setGlobalPrefix('api')`), a URI version segment. Keys are matched on the
+   * controller path as a whole segment wherever it sits in the URL, so `/api/v1/products/42` is
+   * invalidated for a controller registered at `products`.
+   *
    * `id` is accepted for call-site clarity (documenting which document changed) but doesn't
    * currently narrow invalidation further: a cached list response can't be selectively patched
    * without inspecting its contents, so any write to an entity invalidates that entity's cache as
@@ -88,7 +93,11 @@ class DynamicApiCacheService {
       return;
     }
 
-    await this.invalidatePrefix(`/${path.replace(/^\/+/, '')}`);
+    const entityPath = DynamicApiCachePathRegistryStore.normalizePath(path);
+    await this.invalidateMatching(
+      `"${entity.name}" (/${entityPath})`,
+      (key) => DynamicApiCachePathRegistryStore.findPathForUrl(DynamicApiCacheService.stripIdentity(key)) === entityPath,
+    );
   }
 
   /** Clears the entire response cache, for every entity. Prefer {@link invalidate} when possible. */
@@ -114,7 +123,12 @@ class DynamicApiCacheService {
   }
 
   private async invalidatePrefix(prefix: string): Promise<void> {
+    await this.invalidateMatching(`"${prefix}"`, (key) => DynamicApiCacheService.matchesPrefix(key, prefix));
+  }
+
+  private async invalidateMatching(target: string, matches: (key: string) => boolean): Promise<void> {
     let sawIterableStore = false;
+    let deletedCount = 0;
 
     for (const store of this.cacheManager.stores) {
       if (typeof store.iterator !== 'function') {
@@ -123,8 +137,9 @@ class DynamicApiCacheService {
       sawIterableStore = true;
 
       for await (const [key] of store.iterator(undefined)) {
-        if (typeof key === 'string' && DynamicApiCacheService.matchesPrefix(key, prefix)) {
+        if (typeof key === 'string' && matches(key)) {
           await this.cacheManager.del(key);
+          deletedCount++;
         }
       }
     }
@@ -132,11 +147,20 @@ class DynamicApiCacheService {
     if (!sawIterableStore) {
       this.logger.warn(
         `[Cache] No configured cache store supports key enumeration — falling back to a full `
-        + `clear() to invalidate "${prefix}". Configure a store with iterator support (the default `
+        + `clear() to invalidate ${target}. Configure a store with iterator support (the default `
         + 'in-memory store already does) for scoped invalidation.',
       );
       await this.cacheManager.clear();
+      return;
     }
+
+    this.logger.debug(`[Cache] Invalidated ${deletedCount} cached response(s) for ${target}.`);
+  }
+
+  /** `/api/products::<userId>` → `/api/products`: drops the identity suffix of a `url+identity` key. */
+  private static stripIdentity(key: string): string {
+    const identityIndex = key.indexOf('::');
+    return identityIndex === -1 ? key : key.slice(0, identityIndex);
   }
 
   private static matchesPrefix(key: string, prefix: string): boolean {
