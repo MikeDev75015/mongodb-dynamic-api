@@ -66,14 +66,38 @@ The `type` field is **required** and must be one of the following values:
 | `GetOne` | GET | `/:path/:id` | Retrieve a single document by ID |
 | `CreateMany` | POST | `/:path/many` | Create multiple documents at once |
 | `CreateOne` | POST | `/:path` | Create a single document |
-| `UpdateMany` | PATCH | `/:path/many` | Partially update multiple documents |
+| `UpdateMany` | PATCH | `/:path?ids=…` | Partially update multiple documents |
 | `UpdateOne` | PATCH | `/:path/:id` | Partially update a single document |
 | `ReplaceOne` | PUT | `/:path/:id` | Fully replace a single document |
-| `DuplicateMany` | POST | `/:path/duplicate/many` | Duplicate multiple documents |
+| `DuplicateMany` | POST | `/:path/duplicate?ids=…` | Duplicate multiple documents |
 | `DuplicateOne` | POST | `/:path/duplicate/:id` | Duplicate a single document |
-| `DeleteMany` | DELETE | `/:path/many` | Delete multiple documents by IDs |
+| `DeleteMany` | DELETE | `/:path?ids=…` | Delete multiple documents by IDs |
 | `DeleteOne` | DELETE | `/:path/:id` | Delete a single document |
 | `Aggregate` | GET | `/:path/aggregate` | Execute a custom aggregation pipeline |
+
+**The `ids` query** of `UpdateMany`, `DuplicateMany` and `DeleteMany` takes one or more ids: repeat the key for
+several documents (`?ids=a&ids=b`). A single `?ids=a` — what a generated OpenAPI client sends for a one-element
+array — targets that one document (since v6.1.1). A request without `ids` is rejected with `400`.
+
+```typescript
+import { Prop, Schema } from '@nestjs/mongoose';
+import { BaseEntity, DynamicApiModule } from 'mongodb-dynamic-api';
+
+@Schema({ collection: 'game_sessions' })
+export class GameSession extends BaseEntity {
+  @Prop({ type: String, required: true })
+  gameType: string;
+}
+
+export const gameSessionsApi = DynamicApiModule.forFeature({
+  entity: GameSession,
+  controllerOptions: { path: 'game-sessions' },
+  routes: [{ type: 'DeleteMany' }],
+});
+
+// DELETE /game-sessions?ids=66f0c0ffee0000000000000a                                → { deletedCount: 1 }
+// DELETE /game-sessions?ids=66f0c0ffee0000000000000a&ids=66f0c0ffee0000000000000b   → { deletedCount: 2 }
+```
 
 ---
 

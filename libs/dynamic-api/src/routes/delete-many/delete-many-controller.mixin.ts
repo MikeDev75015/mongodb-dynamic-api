@@ -5,6 +5,7 @@ import { DeletePresenter } from '../../dtos/delete.presenter';
 import { addVersionSuffix } from '../../helpers/versioning-config.helper';
 import { getMixinData } from '../../helpers/mixin-data.helper';
 import { provideName } from '../../helpers/format.helper';
+import { toIdList } from '../../helpers/id-list.helper';
 import { RouteDecoratorsHelper } from '../../helpers/route-decorators.helper';
 import { DynamicApiControllerOptions, DynamicApiRouteConfig, DynamicApiRequest, Mappable } from '../../interfaces';
 import { RoutePoliciesGuardMixin } from '../../mixins';
@@ -76,8 +77,9 @@ function DeleteManyControllerMixin<Entity extends BaseEntity>(
     @RouteDecoratorsHelper(routeDecoratorsBuilder)
     @UseGuards(DeleteManyPoliciesGuard)
     @UseInterceptors(...useInterceptors)
-    async deleteMany(@Query() { ids }: ManyEntityQuery, @Request() req?: DynamicApiRequest) {
-      if (!ids?.length) {
+    async deleteMany(@Query() query: ManyEntityQuery, @Request() req?: DynamicApiRequest) {
+      const ids = toIdList(query?.ids);
+      if (!ids.length) {
         throw new BadRequestException('Invalid query');
       }
 
