@@ -129,7 +129,7 @@ commands:
           description: Gets latest release version of Github CLI
 
   release-pr-command:
-    description: "Bump the version on the PR branch, push the release commit, enable rebase auto-merge into main"
+    description: "Bump the version on the PR branch and push the release commit"
     steps:
       - run:
           name: Checkout and pull the PR branch
@@ -177,22 +177,27 @@ commands:
           name: Run release-it to create the release commit (local only, no push/tag — see .release-it.json)
           command: npm run auto-release
       - run:
+          # Must stay the last step: the push starts a new pipeline, whose auto-cancel of redundant
+          # workflows cancels this one. merge-release-pr-job merges the PR from that new pipeline.
           name: Push the release commit to the PR branch
           command: git push https://${GH_TOKEN}@github.com/${GH_OWNER}/${GH_REPO}.git HEAD:${CIRCLE_BRANCH}
+
+  merge-release-pr-command:
+    description: "Rebase-merge the PR into main once its release commit has passed the checks"
+    steps:
       - run:
-          # "Rebase and merge" rewrites the branch's commits onto main — fine now that no long-lived
-          # branch has to stay in sync with main. The version tag is therefore NOT created here
-          # (it would point at a pre-rewrite commit that never lands on main): create-version-tags-job
-          # tags main's own HEAD once the PR has merged.
-          name: Enable rebase auto-merge of the PR into main
-          # GitHub recomputes mergeability right after the push above, and rejects the call with
-          # "Pull Request is not mergeable" until it's done: retry for up to ~2 minutes.
+          # "Rebase and merge" rewrites the branch's commits onto main. The version tag is
+          # therefore NOT created here (it would point at a pre-rewrite commit that never lands on
+          # main): create-version-tags-job tags main's own HEAD once the PR has merged.
+          name: Rebase-merge the PR into main
+          # The required checks passed in this workflow, but GitHub may still be recomputing
+          # mergeability or receiving their statuses: retry for up to ~2 minutes.
           command: |
             for attempt in $(seq 1 12); do
-              if gh pr merge "${CIRCLE_BRANCH}" -R ${GH_OWNER}/${GH_REPO} --auto --rebase --delete-branch; then
+              if gh pr merge "${CIRCLE_BRANCH}" -R ${GH_OWNER}/${GH_REPO} --rebase --delete-branch; then
                 exit 0
               fi
-              echo "Auto-merge not accepted yet (attempt ${attempt}/12), retrying in 10s..."
+              echo "Merge not accepted yet (attempt ${attempt}/12), retrying in 10s..."
               sleep 10
             done
             exit 1
@@ -396,6 +401,25 @@ jobs:
       - *notify-fail
       - *notify-success
 
+  # Runs on every branch pipeline but only acts on a release commit: pushing that commit cancels
+  # the workflow of release-pr-job (auto-cancel of redundant workflows), so the merge has to happen
+  # from the release commit's own pipeline, once its checks are green.
+  merge-release-pr-job:
+    executor: node
+    steps:
+      - checkout
+      - run:
+          name: Stop unless HEAD is a release commit
+          command: |
+            SUBJECT=$(git log -1 --format=%s)
+            if [[ "${SUBJECT}" != chore\(release\):* ]]; then
+              echo "HEAD is not a release commit — nothing to merge."
+              circleci-agent step halt
+            fi
+      - install-github-cli-command
+      - merge-release-pr-command
+      - *notify-fail
+
   create-version-tags-job:
     executor: node
     steps:
@@ -431,9 +455,10 @@ workflows:
   # test-job runs the unit tests once, with coverage for SonarCloud. build-job, test-job and
   # e2e-tests-mongodb-job are the ci/circleci checks main's branch protection requires.
   #
-  # Opt-in release: approving confirm-release-job bumps the version on the PR branch and enables
-  # rebase auto-merge; ci-main-workflow then tags main, and the tag publishes to npm. Leave the
-  # approval pending to merge the PR without a release — the next release picks its commits up.
+  # Opt-in release: approving confirm-release-job bumps the version on the PR branch (opening the
+  # PR if needed); the release commit's own pipeline then merges the PR (merge-release-pr-job),
+  # ci-main-workflow tags main, and the tag publishes to npm. Leave the approval pending to merge
+  # the PR without a release — the next release picks its commits up.
   ci-default-workflow:
     when:
       not: << pipeline.git.tag >>
@@ -487,6 +512,17 @@ workflows:
       - release-pr-job:
           requires:
             - confirm-release-job
+          context:
+            - GIT
+            - SLACK
+          filters:
+            branches:
+              ignore: main
+      - merge-release-pr-job:
+          requires:
+            - build-job
+            - merge-and-sonarcloud-job
+            - e2e-tests-mongodb-job
           context:
             - GIT
             - SLACK
