@@ -472,6 +472,14 @@ const bulkRenameRoute: CustomRouteConfig<Product> = {
 };
 ```
 
+**Global prefix and versioning:** cache keys are request URLs, so they carry what Nest puts in front of the
+controller path — `app.setGlobalPrefix('api')`, a URI version segment. `invalidate()` matches the entity's
+controller path as a whole segment wherever it sits in the key: with `setGlobalPrefix('api')`,
+`invalidate(Product)` clears `/api/products`, `/api/products/42`, `/api/v2/products?page=2` and their
+per-user keys (`::<userId>`). Before v6.1.1 it only looked for keys starting with `/products`, so it cleared
+nothing under a global prefix. With [`MONGODB_DYNAMIC_API_LOGGER`](./debugging.md) at `DEBUG`, each call logs
+how many cached responses it cleared.
+
 `invalidate()` needs the entity's cache store to support key enumeration to scope correctly — the default
 in-memory store already does. If a custom store doesn't (rare — most `Keyv`-compatible stores, including
 Redis, do), `invalidate()` falls back to a full `clear()` for that call and logs a warning via

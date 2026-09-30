@@ -58,6 +58,58 @@ describe('DynamicApiCacheService', () => {
       expect(cacheManager.clear).not.toHaveBeenCalled();
     });
 
+    it('should delete the entity\'s keys under a global prefix and a version segment', async () => {
+      cacheManager.stores = [
+        fakeIterableStore([
+          ['/api/products::user-1', ['a']],
+          ['/api/products/1::user-1', { id: 1 }],
+          ['/api/v2/products?page=2', ['b']],
+          ['/api/products-extra::user-1', ['unrelated']],
+          ['/api/orders/1::user-1', { id: 1 }],
+        ]),
+      ];
+
+      await service.invalidate(ProductEntity);
+
+      expect(cacheManager.del).toHaveBeenCalledTimes(3);
+      expect(cacheManager.del).toHaveBeenCalledWith('/api/products::user-1');
+      expect(cacheManager.del).toHaveBeenCalledWith('/api/products/1::user-1');
+      expect(cacheManager.del).toHaveBeenCalledWith('/api/v2/products?page=2');
+      expect(cacheManager.clear).not.toHaveBeenCalled();
+    });
+
+    it('should leave the keys of a more specific registered path to that entity', async () => {
+      DynamicApiCachePathRegistryStore.register('ArchivedProductEntity', 'products/archive');
+      cacheManager.stores = [
+        fakeIterableStore([
+          ['/api/products/1', { id: 1 }],
+          ['/api/products/archive/1', { id: 1 }],
+        ]),
+      ];
+
+      await service.invalidate(ProductEntity);
+
+      expect(cacheManager.del).toHaveBeenCalledTimes(1);
+      expect(cacheManager.del).toHaveBeenCalledWith('/api/products/1');
+    });
+
+    it('should match a controller path registered with slashes', async () => {
+      DynamicApiCachePathRegistryStore.register('ProductEntity', '/products/');
+
+      await service.invalidate(ProductEntity);
+
+      expect(cacheManager.del).toHaveBeenCalledWith('/products/1::user-1');
+    });
+
+    it('should skip non-string keys', async () => {
+      cacheManager.stores = [fakeIterableStore([[42 as unknown as string, 'x'], ['/products', ['a']]])];
+
+      await service.invalidate(ProductEntity);
+
+      expect(cacheManager.del).toHaveBeenCalledTimes(1);
+      expect(cacheManager.del).toHaveBeenCalledWith('/products');
+    });
+
     it('should ignore the optional id parameter (accepted for call-site clarity only)', async () => {
       await service.invalidate(ProductEntity, 'some-id');
 
@@ -90,6 +142,25 @@ describe('DynamicApiCacheService', () => {
       expect(cacheManager.del).toHaveBeenCalledWith('/orders');
       expect(cacheManager.del).not.toHaveBeenCalledWith('/products');
       expect(cacheManager.clear).not.toHaveBeenCalled();
+    });
+
+    it('should delete the prefix key, its sub-paths and identity keys, never a key merely sharing the string prefix', async () => {
+      cacheManager.stores = [
+        fakeIterableStore([
+          ['/orders', ['x']],
+          ['/orders/5', { id: 5 }],
+          ['/orders?page=2', ['y']],
+          ['/orders::user-1', ['z']],
+          ['/orders-extra', ['unrelated']],
+          ['/products', ['a']],
+        ]),
+      ];
+
+      await service.invalidateForUrl('/orders/5');
+
+      expect(cacheManager.del).toHaveBeenCalledTimes(4);
+      expect(cacheManager.del).not.toHaveBeenCalledWith('/orders-extra');
+      expect(cacheManager.del).not.toHaveBeenCalledWith('/products');
     });
 
     it('should fall back to a full clear() when no registered entity matches the URL', async () => {
