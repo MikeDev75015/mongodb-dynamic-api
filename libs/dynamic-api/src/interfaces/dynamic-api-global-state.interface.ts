@@ -1,5 +1,6 @@
 import { GatewayMetadata } from '@nestjs/websockets';
 import { Schema } from 'mongoose';
+import { CachePurgeOptions } from './dynamic-api-cache-options.interface';
 import { OnAfterSaveErrorHook } from './dynamic-api-service-callback.interface';
 import { RouteType } from './dynamic-api-route-type.type';
 
@@ -28,6 +29,8 @@ interface DynamicApiGlobalState {
   cacheExcludedPaths: string[];
   /** @see {@link DynamicApiCacheOptions.keyBy} */
   cacheKeyBy: 'url' | 'url+identity';
+  /** `forRoot`'s `cachePurge` — default for every entity's purge route. */
+  cachePurge: CachePurgeOptions | false;
   isAuthEnabled: boolean;
   credentials: Credentials;
   jwtSecret: string | undefined;

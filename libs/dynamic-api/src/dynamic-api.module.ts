@@ -12,7 +12,7 @@ import { initializeConfigFromOptions } from './helpers/socket-config.helper';
 import { isValidVersion } from './helpers/format.helper';
 import { DynamicApiCachePathRegistryStore } from './helpers/cache-path-registry.store';
 import { DynamicApiCacheInterceptor } from './interceptors/dynamic-api-cache.interceptor';
-import { DynamicApiCacheOptions, DynamicApiForFeatureOptions, DynamicApiForRootOptions, DynamicApiRouteConfig, DynamicApiWebSocketOptions, GatewayOptions, OnAfterSaveErrorHook, RoutesConfig, RouteType } from './interfaces';
+import { CachePurgeOptions, DynamicApiCacheOptions, DynamicApiForFeatureOptions, DynamicApiForRootOptions, DynamicApiRouteConfig, DynamicApiWebSocketOptions, GatewayOptions, OnAfterSaveErrorHook, RoutesConfig, RouteType } from './interfaces';
 import { DYNAMIC_API_GLOBAL_STATE } from './interfaces/dynamic-api-options.interface';
 import { DynamicApiGlobalState } from './interfaces/dynamic-api-global-state.interface';
 import { RouteModule } from './interfaces/dynamic-api-route-module.type';
@@ -20,7 +20,7 @@ import { BaseEntity } from './models';
 import { AuthModule, DynamicApiAuthOptions, DynamicApiConfigModule } from './modules';
 import { assertJwtSecrets } from './modules/auth/jwt-secrets.helper';
 import { IMPLICIT_ROUTE_VALIDATION_OPTIONS } from './pipes/dynamic-api-validation.pipe';
-import { AggregateModule, createCachePurgeController, CreateManyModule, CreateOneModule, DeleteManyModule, DeleteOneModule, DuplicateManyModule, DuplicateOneModule, GetManyModule, GetOneModule, ReplaceOneModule, UpdateManyModule, UpdateOneModule, createCustomRouteController, createCustomRouteGateway } from './routes';
+import { AggregateModule, createCachePurgeController, CreateManyModule, CreateOneModule, DeleteManyModule, DeleteOneModule, DuplicateManyModule, DuplicateOneModule, GetManyModule, GetOneModule, ReplaceOneModule, UpdateManyModule, UpdateOneModule, createCustomRouteController, createCustomRouteGateway, resolveCachePurgeOptions } from './routes';
 import { DynamicApiCacheService } from './services';
 import { DynamicApiBroadcastService } from './services/dynamic-api-broadcast/dynamic-api-broadcast.service';
 import { DynamicApiGlobalStateService } from './services/dynamic-api-global-state/dynamic-api-global-state.service';
@@ -50,6 +50,7 @@ export class DynamicApiModule {
     {
       useGlobalCache = true,
       cacheOptions = {},
+      cachePurge,
       useAuth,
       routesConfig,
       webSocket,
@@ -73,7 +74,7 @@ export class DynamicApiModule {
         uri,
         useGlobalCache,
         cacheOptions,
-        { useAuth, routesConfig, webSocket, broadcastGatewayOptions, onAfterSaveError },
+        { useAuth, routesConfig, webSocket, broadcastGatewayOptions, onAfterSaveError, cachePurge },
       ),
     ]);
 
@@ -209,6 +210,10 @@ export class DynamicApiModule {
         );
 
         const isCacheEnabledForFeature = this.state.get('isGlobalCacheEnabled') && !controllerOptions.disableCache;
+        const cachePurgeOptions = resolveCachePurgeOptions(
+          this.state.get<CachePurgeOptions | false>('cachePurge'),
+          controllerOptions.cachePurge,
+        );
 
         const apiModule = {
           module: DynamicApiModule,
@@ -259,8 +264,8 @@ export class DynamicApiModule {
           controllers: [
             ...customRouteControllers,
             ...(
-              isCacheEnabledForFeature
-                ? [createCachePurgeController(entity, controllerOptions)]
+              isCacheEnabledForFeature && cachePurgeOptions.enabled
+                ? [createCachePurgeController(entity, controllerOptions, cachePurgeOptions.authAbilityPredicate)]
                 : []
             ),
           ],
@@ -308,6 +313,7 @@ export class DynamicApiModule {
    * @param options.webSocket - The web socket options.
    * @param options.broadcastGatewayOptions
    * @param options.onAfterSaveError - Global hook invoked when `callback` fails on any route.
+   * @param options.cachePurge - Default options for every entity's cache purge route.
    * @returns {{ initialized: boolean; isGlobalCacheEnabled: boolean }} - The built state.
    */
   private static buildStateFromOptions(
@@ -320,12 +326,14 @@ export class DynamicApiModule {
       webSocket,
       broadcastGatewayOptions,
       onAfterSaveError,
+      cachePurge,
     }: {
       useAuth?: DynamicApiAuthOptions;
       routesConfig?: Partial<RoutesConfig>;
       webSocket?: DynamicApiWebSocketOptions;
       broadcastGatewayOptions?: GatewayOptions;
       onAfterSaveError?: OnAfterSaveErrorHook;
+      cachePurge?: CachePurgeOptions | false;
     },
   ): Partial<DynamicApiGlobalState> {
     const routesConfigState = this.state.get<RoutesConfig>('routesConfig');
@@ -342,6 +350,9 @@ export class DynamicApiModule {
       ),
       ...(
         cacheOptions?.keyBy ? { cacheKeyBy: cacheOptions.keyBy } : {}
+      ),
+      ...(
+        cachePurge === undefined ? {} : { cachePurge }
       ),
       ...(
         useAuth?.userEntity ? {

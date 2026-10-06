@@ -15,6 +15,7 @@ import * as FormatHelpers from './helpers/format.helper';
 import * as VersioningConfigHelpers from './helpers/versioning-config.helper';
 import * as RouteDecoratorsHelpers from './helpers/route-decorators.helper';
 import * as MixinDataHelpers from './helpers/mixin-data.helper';
+import * as CachePurgeHelpers from './routes/cache-purge/cache-purge.helper';
 import { DynamicApiRouteConfig, RoutesConfig, RouteType } from './interfaces';
 import { DynamicApiGlobalState } from './interfaces/dynamic-api-global-state.interface';
 import { BaseEntity } from './models';
@@ -220,6 +221,23 @@ describe('DynamicApiModule', () => {
         DynamicApiModule.forRoot(uri, { onAfterSaveError });
 
         expect(DynamicApiModule.state.get('onAfterSaveError')).toBe(onAfterSaveError);
+      });
+    });
+
+    describe('with cachePurge', () => {
+      it('should keep the default cachePurge state when not provided', () => {
+        DynamicApiModule.forRoot(uri);
+
+        expect(DynamicApiModule.state.get('cachePurge')).toStrictEqual({});
+      });
+
+      it.each([
+        ['false', false],
+        ['an options object', { authAbilityPredicate: () => true }],
+      ])('should set cachePurge when provided as %s', (_, cachePurge) => {
+        DynamicApiModule.forRoot(uri, { cachePurge });
+
+        expect(DynamicApiModule.state.get('cachePurge')).toBe(cachePurge);
       });
     });
 
@@ -1172,6 +1190,44 @@ describe('DynamicApiModule', () => {
         const module = await DynamicApiModule.forFeature(options);
 
         expect(module.controllers).toEqual([]);
+      });
+
+      describe('cachePurge', () => {
+        it('should include the cache purge controller by default', async () => {
+          const module = await DynamicApiModule.forFeature(buildDynamicApiModuleOptionsMock());
+
+          expect(module.controllers).toHaveLength(1);
+          expect(module.controllers[0].name).toMatch(/^CachePurge/);
+        });
+
+        it('should not include the cache purge controller when controllerOptions.cachePurge is false', async () => {
+          const options = buildDynamicApiModuleOptionsMock({
+            controllerOptions: { path: 'fake-path', cachePurge: false },
+          });
+
+          const module = await DynamicApiModule.forFeature(options);
+
+          expect(module.controllers).toEqual([]);
+        });
+
+        it('should not include the cache purge controller when forRoot cachePurge is false', async () => {
+          DynamicApiModule.state.set(['cachePurge', false]);
+
+          const module = await DynamicApiModule.forFeature(buildDynamicApiModuleOptionsMock());
+
+          expect(module.controllers).toEqual([]);
+        });
+
+        it('should pass the resolved authAbilityPredicate to the cache purge controller', async () => {
+          const authAbilityPredicate = vi.fn();
+          DynamicApiModule.state.set(['cachePurge', { authAbilityPredicate }]);
+          const spy = vi.spyOn(CachePurgeHelpers, 'createCachePurgeController');
+
+          const options = buildDynamicApiModuleOptionsMock();
+          await DynamicApiModule.forFeature(options);
+
+          expect(spy).toHaveBeenCalledWith(options.entity, options.controllerOptions, authAbilityPredicate);
+        });
       });
 
       describe('customRoutes', () => {

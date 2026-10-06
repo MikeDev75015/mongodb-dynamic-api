@@ -1,4 +1,5 @@
 import type Keyv from 'keyv';
+import { AuthAbilityPredicate } from './dynamic-api-ability.interface';
 
 interface DynamicApiCacheOptions {
   /**
@@ -38,4 +39,32 @@ interface DynamicApiCacheOptions {
   keyBy?: 'url' | 'url+identity';
 }
 
-export { DynamicApiCacheOptions };
+/**
+ * Controls the `DELETE /<path>/cache` route generated for every cached entity.
+ *
+ * Set globally with `DynamicApiModule.forRoot(uri, { cachePurge })` and override per entity with
+ * `controllerOptions.cachePurge` (fields set on the entity win). `false` is short for
+ * `{ enabled: false }`: the route is not generated, responses are still cached.
+ *
+ * @example
+ * ```typescript
+ * DynamicApiModule.forRoot(process.env.MONGO_DB_URL, {
+ *   useAuth: { userEntity: User, jwt: { secret: 'secret', refreshSecret: 'refresh-secret' } },
+ *   cachePurge: { authAbilityPredicate: (user: User) => user.isAdmin },
+ * });
+ * ```
+ */
+interface CachePurgeOptions {
+  /**
+   * Generate the route. `false` removes it without disabling the entity's cache.
+   * @default true
+   */
+  enabled?: boolean;
+  /**
+   * Checked against the authenticated user before the purge runs. Missing user or `false` → `403`.
+   * Without it, any authenticated user can purge the entity's cache.
+   */
+  authAbilityPredicate?: AuthAbilityPredicate<unknown>;
+}
+
+export { DynamicApiCacheOptions, CachePurgeOptions };
