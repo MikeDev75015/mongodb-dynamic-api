@@ -22,6 +22,7 @@ JWT authentication is built-in and provides secure, **dual-token** (access + ref
   - [Minting Tokens Outside `/auth/login` (`mintTokenPair`)](#minting-tokens-outside-authlogin-minttokenpair) ⭐ *New*
   - [JWT Payload Customization](#jwt-payload-customization)
   - [Token Types and JWT Secrets](#token-types-and-jwt-secrets)
+    - [Tokens You Sign Yourself](#tokens-you-sign-yourself)
   - [Update Account Configuration](#update-account-configuration)
   - [Automatic Token Refresh on Update (`refreshTokenOnUpdate`)](#automatic-token-refresh-on-update-refreshtokenonupdate) ⭐ *New*
   - [Auth Operation Context (`getAuthOperationContext`)](#auth-operation-context-getauthoperationcontext) ⭐ *New*
@@ -1057,6 +1058,75 @@ DynamicApiModule.forRoot(process.env.MONGODB_URI, {
     },
   },
 });
+```
+
+#### Tokens You Sign Yourself
+
+`typ` is **reserved** by MDA. Its only valid values are `'access'`, `'refresh'` and `'reset'`. Any token you sign
+with `jwt.secret` outside MDA (guest tokens, your own refresh flow, a test helper...) is checked by the same rule:
+
+| `typ` on your token | HTTP (protected route) | WebSocket handshake |
+|---|---|---|
+| `'access'` | ✅ accepted | ✅ accepted |
+| missing (since v6) | `401` | `connect_error` |
+| any other value, e.g. `'guest'` | `401` | `connect_error` (`invalid token type`) |
+
+Put your own flags in another claim (e.g. `isGuest: true`) and sign with `typ: 'access'`. Prefer
+[`mintTokenPair`](#minting-tokens-outside-authlogin-minttokenpair) when the token belongs to a user document. When
+you do sign tokens yourself, reuse MDA's helpers instead of re-implementing the rule:
+
+```typescript
+isTokenOfType(payload: AuthTokenClaims | null | undefined, expected: AuthTokenType): boolean;
+stripTokenClaims<T extends AuthTokenClaims>(payload: T): Omit<T, 'iat' | 'exp' | 'typ'>;
+
+type AuthTokenType = 'access' | 'refresh' | 'reset';
+interface AuthTokenClaims { iat?: number; exp?: number; typ?: unknown }
+```
+
+```typescript
+// src/guests/guest-token.service.ts
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { isTokenOfType, stripTokenClaims } from 'mongodb-dynamic-api';
+
+interface GuestClaims {
+  id: string;
+  isGuest: true;
+}
+
+@Injectable()
+export class GuestTokenService {
+  constructor(private readonly jwtService: JwtService) {}
+
+  async signPair(guestId: string) {
+    const claims: GuestClaims = { id: guestId, isGuest: true };
+
+    return {
+      accessToken: await this.jwtService.signAsync(
+        { ...claims, typ: 'access' },
+        { secret: process.env.JWT_SECRET, expiresIn: '15m' },
+      ),
+      refreshToken: await this.jwtService.signAsync(
+        { ...claims, typ: 'refresh' },
+        { secret: process.env.JWT_REFRESH_SECRET, expiresIn: '1d' },
+      ),
+    };
+  }
+
+  async rotate(refreshToken: string) {
+    const payload = await this.jwtService.verifyAsync<GuestClaims & { typ?: unknown; iat?: number; exp?: number }>(
+      refreshToken,
+      { secret: process.env.JWT_REFRESH_SECRET },
+    );
+
+    if (!isTokenOfType(payload, 'refresh')) {
+      throw new UnauthorizedException('Invalid token type');
+    }
+
+    const { id } = stripTokenClaims(payload);
+    return this.signPair(id);
+  }
+}
 ```
 
 ### Update Account Configuration
