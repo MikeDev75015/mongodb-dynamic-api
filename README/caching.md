@@ -20,6 +20,7 @@ Smart caching is enabled by default for all **read** routes (GET / Aggregate), u
 - [Cache Purge](#cache-purge)
   - [Auto-Purge on Write Operations](#auto-purge-on-write-operations)
   - [Manual Purge Endpoint](#manual-purge-endpoint)
+  - [Protecting the Purge Endpoint](#protecting-the-purge-endpoint)
 - [DynamicApiCacheService](#dynamicapicacheservice)
 - [Cache Strategies](#cache-strategies)
 - [Best Practices](#best-practices)
@@ -356,15 +357,17 @@ DELETE /products/cache → { "purged": true }
 
 **When is the endpoint generated?**
 
-| `useGlobalCache` | Controller `disableCache` | Endpoint Generated? |
-|:-:|:-:|:-:|
-| `true` (default) | _not set_ or `false` | ✅ Yes |
-| `true` | `true` | ❌ No |
-| `false` | _any_ | ❌ No |
+| `useGlobalCache` | Controller `disableCache` | `cachePurge` (resolved) | Endpoint Generated? |
+|:-:|:-:|:-:|:-:|
+| `true` (default) | _not set_ or `false` | _not set_ / `{ enabled: true }` | ✅ Yes |
+| `true` (default) | _not set_ or `false` | `false` / `{ enabled: false }` | ❌ No (responses still cached) |
+| `true` | `true` | _any_ | ❌ No |
+| `false` | _any_ | _any_ | ❌ No |
 
 The endpoint:
 - Appears in **Swagger UI** under the same tag as the feature
 - Respects **authentication**: protected by JWT when auth is enabled, or public when the feature's `isPublic: true`
+- Is open to **every authenticated user** unless you set a `cachePurge.authAbilityPredicate` (see below). With `MONGODB_DYNAMIC_API_LOGGER` set to `WARN`, `INFO` or `DEBUG`, a warning is logged at startup for each unprotected endpoint (auth enabled, not `isPublic`, no predicate).
 - Returns `{ "purged": true }` on success
 
 #### Example: Swagger Integration
@@ -403,6 +406,107 @@ This will generate the following endpoint in Swagger:
 })
 export class OrdersModule {}
 ```
+
+### Protecting the Purge Endpoint
+
+Purging a cache moves every following read to MongoDB. Left open, any logged-in user can do it in a loop on every
+entity. `cachePurge` restricts or removes the endpoint without turning off the cache.
+
+```typescript
+interface CachePurgeOptions {
+  /** Generate the endpoint. `false` removes it, responses are still cached. @default true */
+  enabled?: boolean;
+  /** Checked against the authenticated user. Missing user or `false` → 403. */
+  authAbilityPredicate?: AuthAbilityPredicate<unknown>; // (user, body?) => boolean
+}
+
+// DynamicApiForRootOptions
+cachePurge?: CachePurgeOptions | false;    // default for every entity
+
+// DynamicApiControllerOptions
+cachePurge?: CachePurgeOptions | false;    // per-entity override
+```
+
+- `false` is short for `{ enabled: false }`.
+- Entity options win over global ones, field by field: an entity can set its own predicate and still inherit the
+  global `enabled`, or re-enable an endpoint that is globally disabled.
+- When a predicate is set, the endpoint documents a `403` response in Swagger.
+
+| Request | No predicate | Predicate accepts user | Predicate rejects user |
+|---|:-:|:-:|:-:|
+| No token (auth enabled, not `isPublic`) | `401` | `401` | `401` |
+| Valid token | `200` | `200` | `403` |
+
+#### Example: Admin-Only Purge Everywhere
+
+```typescript
+// src/app.module.ts
+import { Module } from '@nestjs/common';
+import { DynamicApiModule } from 'mongodb-dynamic-api';
+import { User } from './users/user.entity';
+
+@Module({
+  imports: [
+    DynamicApiModule.forRoot(process.env.MONGO_DB_URL, {
+      useAuth: {
+        userEntity: User,
+        jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
+        login: { additionalFields: ['isAdmin'] },
+      },
+      cachePurge: {
+        authAbilityPredicate: (user: User) => user.isAdmin,
+      },
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+The predicate receives `req.user`, i.e. the JWT payload: put the fields it reads (here `isAdmin`) in
+`login.additionalFields`.
+
+#### Example: Per-Entity Override
+
+```typescript
+// src/products/products.module.ts
+import { Module } from '@nestjs/common';
+import { DynamicApiModule } from 'mongodb-dynamic-api';
+import { Product } from './product.entity';
+import { User } from '../users/user.entity';
+
+@Module({
+  imports: [
+    DynamicApiModule.forFeature({
+      entity: Product,
+      controllerOptions: {
+        path: 'products',
+        // Catalog managers can purge products, on top of the global rule
+        cachePurge: { authAbilityPredicate: (user: User) => user.isAdmin || user.role === 'catalog-manager' },
+      },
+    }),
+  ],
+})
+export class ProductsModule {}
+```
+
+#### Example: Remove the Endpoint, Keep the Cache
+
+```typescript
+// src/app.module.ts
+import { Module } from '@nestjs/common';
+import { DynamicApiModule } from 'mongodb-dynamic-api';
+
+@Module({
+  imports: [
+    DynamicApiModule.forRoot(process.env.MONGO_DB_URL, {
+      cachePurge: false, // no DELETE /{path}/cache anywhere; GET responses still cached
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+Invalidate from code with [`DynamicApiCacheService`](#dynamicapicacheservice) instead.
 
 ---
 
@@ -990,7 +1094,7 @@ interface DynamicApiRouteConfig<Entity> {
 
 | Method | Path | Response | Description |
 |--------|------|----------|-------------|
-| `DELETE` | `/{path}/cache` | `{ "purged": true }` | Invalidates every cached entry for this entity — other entities' cache is untouched |
+| `DELETE` | `/{path}/cache` | `{ "purged": true }` | Invalidates every cached entry for this entity — other entities' cache is untouched. Restrict or remove with [`cachePurge`](#protecting-the-purge-endpoint) |
 
 > Only generated when `useGlobalCache: true` **and** controller `disableCache` is not `true`.
 

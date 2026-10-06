@@ -34,6 +34,7 @@
   - [version](#version)
   - [isPublic](#ispublic)
   - [disableCache](#disablecache)
+  - [cachePurge](#cachepurge)
   - [validationPipeOptions](#validationpipeoptions)
   - [abilityPredicates](#abilitypredicates)
   - [routesConfig](#routesconfig)
@@ -548,6 +549,7 @@ interface DynamicApiControllerOptions<Entity extends BaseEntity> {
 
   // Caching
   disableCache?: boolean;
+  cachePurge?: CachePurgeOptions | false;
 
   // Validation
   validationPipeOptions?: ValidationPipeOptions;
@@ -675,6 +677,41 @@ routes: [
 ```
 
 > 📚 See [Caching guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/caching.md) for full details on cache control, auto-purge, and the manual purge endpoint.
+
+---
+
+### cachePurge
+
+**Optional.** Protects or removes this entity's `DELETE /{path}/cache` endpoint. Overrides `forRoot`'s `cachePurge`
+field by field. Without any `authAbilityPredicate`, every authenticated user can purge the cache.
+
+```typescript
+cachePurge?: CachePurgeOptions | false; // { enabled?: boolean; authAbilityPredicate?: (user, body?) => boolean }
+```
+
+```typescript
+import { Module } from '@nestjs/common';
+import { DynamicApiModule } from 'mongodb-dynamic-api';
+import { Order } from './order.entity';
+import { User } from '../users/user.entity';
+
+@Module({
+  imports: [
+    DynamicApiModule.forFeature({
+      entity: Order,
+      controllerOptions: {
+        path: 'orders',
+        cachePurge: { authAbilityPredicate: (user: User) => user.isAdmin }, // non-admin → 403
+      },
+    }),
+  ],
+})
+export class OrdersModule {}
+
+// cachePurge: false → no purge endpoint, GET responses still cached
+```
+
+> 📚 See [Protecting the Purge Endpoint](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/caching.md#protecting-the-purge-endpoint).
 
 ---
 
