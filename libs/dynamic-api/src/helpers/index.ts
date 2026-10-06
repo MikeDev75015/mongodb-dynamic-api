@@ -1,6 +1,7 @@
 // Most of `helpers/**` is internal wiring for the auto-generated routes — not part of the public
 // API. Only the documented bootstrap helpers below are re-exported.
 export * from './authenticated-room.constant';
+export * from './auth-token.helper';
 export * from './index-sync.helper';
 export * from './mint-token-pair.helper';
 export {

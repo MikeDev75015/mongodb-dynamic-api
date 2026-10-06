@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { INestApplication } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import mongoose, { Connection } from 'mongoose';
-import { DynamicApiModule } from '../../src';
+import { DynamicApiModule, isTokenOfType, stripTokenClaims } from '../../src';
 import { BcryptService } from '../../src/services/bcrypt/bcrypt.service';
 import { closeTestingApp, server } from '../e2e.setup';
 import 'dotenv/config';
@@ -150,6 +150,35 @@ describe('DynamicApiModule forRoot - token types and reset-password tokens (e2e)
 
       expect(withAccessToken.status).toBe(401);
       expect(withRefreshToken.status).toBe(200);
+    });
+  });
+
+  describe('tokens signed outside MDA with the same secret', () => {
+    const signOwnToken = async (typ?: string) => {
+      const { body: account } = await server.get('/auth/account', { authToken: (await login()).accessToken });
+      return app.get<JwtService>(JwtService).sign({ id: account.id, email, isGuest: true, ...(typ ? { typ } : {}) });
+    };
+
+    it('should reject an application-defined typ value', async () => {
+      const guestToken = await signOwnToken('guest');
+
+      expect((await server.get('/auth/account', { authToken: guestToken })).status).toBe(401);
+    });
+
+    it('should accept a token signed with typ access', async () => {
+      const ownAccessToken = await signOwnToken('access');
+
+      expect((await server.get('/auth/account', { authToken: ownAccessToken })).status).toBe(200);
+    });
+
+    it('should let the exported helpers apply the same rule', async () => {
+      const jwtService = app.get<JwtService>(JwtService);
+      const guestPayload = jwtService.verify(await signOwnToken('guest'));
+      const accessPayload = jwtService.verify(await signOwnToken('access'));
+
+      expect(isTokenOfType(guestPayload, 'access')).toBe(false);
+      expect(isTokenOfType(accessPayload, 'access')).toBe(true);
+      expect(stripTokenClaims(accessPayload)).toStrictEqual({ id: accessPayload.id, email, isGuest: true });
     });
   });
 });

@@ -15,6 +15,7 @@ describe('auth-token.helper', () => {
       ['an access token without typ (signed before v5.4.2)', {}, 'access', false],
       ['a refresh token without typ (signed before v5.4.2)', {}, 'refresh', false],
       ['a reset token without typ', {}, 'reset', false],
+      ['an application-defined typ value', { typ: 'guest' }, 'access', false],
     ])('should handle %s', (_, payload, expected, result) => {
       expect(isTokenOfType(payload, expected)).toBe(result);
     });
