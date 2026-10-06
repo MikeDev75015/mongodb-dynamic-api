@@ -19,7 +19,7 @@ import {
 } from '@nestjs/swagger';
 import { Public } from '../../decorators';
 import { DynamicApiModule } from '../../dynamic-api.module';
-import { AuthAbilityPredicate, CachePurgeOptions, DynamicApiControllerOptions } from '../../interfaces';
+import { AuthAbilityPredicate, CachePurgeConfig, CachePurgeOptions, DynamicApiControllerOptions } from '../../interfaces';
 import { MongoDBDynamicApiLogger } from '../../logger/mongo-dynamic-api.logger';
 import { BaseEntity } from '../../models';
 // Concrete path — see the same note in interceptors/dynamic-api-cache.interceptor.ts.
@@ -38,13 +38,13 @@ interface ResolvedCachePurgeOptions {
   authAbilityPredicate: AuthAbilityPredicate<unknown> | undefined;
 }
 
-const toCachePurgeOptions = (options: CachePurgeOptions | false | undefined): CachePurgeOptions =>
+const toCachePurgeOptions = (options: CachePurgeConfig | undefined): CachePurgeOptions =>
   options === false ? { enabled: false } : options ?? {};
 
 /** @internal Not part of the public API. Entity options win over global ones, field by field. */
 function resolveCachePurgeOptions(
-  globalOptions: CachePurgeOptions | false | undefined,
-  featureOptions: CachePurgeOptions | false | undefined,
+  globalOptions: CachePurgeConfig | undefined,
+  featureOptions: CachePurgeConfig | undefined,
 ): ResolvedCachePurgeOptions {
   const global = toCachePurgeOptions(globalOptions);
   const feature = toCachePurgeOptions(featureOptions);

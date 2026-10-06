@@ -12,7 +12,7 @@ import { initializeConfigFromOptions } from './helpers/socket-config.helper';
 import { isValidVersion } from './helpers/format.helper';
 import { DynamicApiCachePathRegistryStore } from './helpers/cache-path-registry.store';
 import { DynamicApiCacheInterceptor } from './interceptors/dynamic-api-cache.interceptor';
-import { CachePurgeOptions, DynamicApiCacheOptions, DynamicApiForFeatureOptions, DynamicApiForRootOptions, DynamicApiRouteConfig, DynamicApiWebSocketOptions, GatewayOptions, OnAfterSaveErrorHook, RoutesConfig, RouteType } from './interfaces';
+import { CachePurgeConfig, DynamicApiCacheOptions, DynamicApiForFeatureOptions, DynamicApiForRootOptions, DynamicApiRouteConfig, DynamicApiWebSocketOptions, GatewayOptions, OnAfterSaveErrorHook, RoutesConfig, RouteType } from './interfaces';
 import { DYNAMIC_API_GLOBAL_STATE } from './interfaces/dynamic-api-options.interface';
 import { DynamicApiGlobalState } from './interfaces/dynamic-api-global-state.interface';
 import { RouteModule } from './interfaces/dynamic-api-route-module.type';
@@ -211,7 +211,7 @@ export class DynamicApiModule {
 
         const isCacheEnabledForFeature = this.state.get('isGlobalCacheEnabled') && !controllerOptions.disableCache;
         const cachePurgeOptions = resolveCachePurgeOptions(
-          this.state.get<CachePurgeOptions | false>('cachePurge'),
+          this.state.get<CachePurgeConfig>('cachePurge'),
           controllerOptions.cachePurge,
         );
 
@@ -333,7 +333,7 @@ export class DynamicApiModule {
       webSocket?: DynamicApiWebSocketOptions;
       broadcastGatewayOptions?: GatewayOptions;
       onAfterSaveError?: OnAfterSaveErrorHook;
-      cachePurge?: CachePurgeOptions | false;
+      cachePurge?: CachePurgeConfig;
     },
   ): Partial<DynamicApiGlobalState> {
     const routesConfigState = this.state.get<RoutesConfig>('routesConfig');

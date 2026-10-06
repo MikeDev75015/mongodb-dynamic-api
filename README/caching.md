@@ -420,11 +420,13 @@ interface CachePurgeOptions {
   authAbilityPredicate?: AuthAbilityPredicate<unknown>; // (user, body?) => boolean
 }
 
+type CachePurgeConfig = CachePurgeOptions | false;
+
 // DynamicApiForRootOptions
-cachePurge?: CachePurgeOptions | false;    // default for every entity
+cachePurge?: CachePurgeConfig;    // default for every entity
 
 // DynamicApiControllerOptions
-cachePurge?: CachePurgeOptions | false;    // per-entity override
+cachePurge?: CachePurgeConfig;    // per-entity override
 ```
 
 - `false` is short for `{ enabled: false }`.

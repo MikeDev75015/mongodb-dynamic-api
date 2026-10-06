@@ -3,7 +3,7 @@ import { GatewayMetadata } from '@nestjs/websockets';
 import { BaseEntity } from '../models';
 import { DynamicApiAuthOptions } from '../modules';
 import { DynamicApiControllerOptions } from './dynamic-api-controller-options.interface';
-import { CachePurgeOptions, DynamicApiCacheOptions } from './dynamic-api-cache-options.interface';
+import { CachePurgeConfig, DynamicApiCacheOptions } from './dynamic-api-cache-options.interface';
 import { CustomRouteConfig } from './dynamic-api-custom-route.interface';
 import { RoutesConfig } from './dynamic-api-global-state.interface';
 import { DynamicApiRouteConfig } from './dynamic-api-route-config.interface';
@@ -19,7 +19,7 @@ interface DynamicApiForRootOptions<Entity extends BaseEntity = any, RegisterExtr
   /**
    * Default protection for every entity's `DELETE /<path>/cache` route. See {@link CachePurgeOptions}.
    */
-  cachePurge?: CachePurgeOptions | false;
+  cachePurge?: CachePurgeConfig;
   useAuth?: DynamicApiAuthOptions<Entity, RegisterExtra>;
   routesConfig?: Partial<RoutesConfig>;
   webSocket?: DynamicApiWebSocketOptions;

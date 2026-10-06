@@ -67,4 +67,7 @@ interface CachePurgeOptions {
   authAbilityPredicate?: AuthAbilityPredicate<unknown>;
 }
 
-export { DynamicApiCacheOptions, CachePurgeOptions };
+/** `cachePurge` value: options, or `false` (short for `{ enabled: false }`). */
+type CachePurgeConfig = CachePurgeOptions | false;
+
+export { DynamicApiCacheOptions, CachePurgeOptions, CachePurgeConfig };
