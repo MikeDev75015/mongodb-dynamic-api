@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { Prop, Schema } from '@nestjs/mongoose';
 import mongoose from 'mongoose';
-import { BaseEntity, CachePurgeOptions, DynamicApiModule } from '../../src';
+import { BaseEntity, CachePurgeConfig, DynamicApiModule } from '../../src';
 import { closeTestingApp, server } from '../e2e.setup';
 import 'dotenv/config';
 import { getModelFromEntity } from '../utils';
@@ -52,8 +52,8 @@ describe('DynamicApiModule forFeature - cache purge route protection (e2e)', () 
   };
 
   const setup = async ({ global, feature }: {
-    global?: CachePurgeOptions | false;
-    feature?: CachePurgeOptions | false;
+    global?: CachePurgeConfig;
+    feature?: CachePurgeConfig;
   }) => {
     await initApp(
       {

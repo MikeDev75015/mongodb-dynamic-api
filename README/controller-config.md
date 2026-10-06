@@ -549,7 +549,7 @@ interface DynamicApiControllerOptions<Entity extends BaseEntity> {
 
   // Caching
   disableCache?: boolean;
-  cachePurge?: CachePurgeOptions | false;
+  cachePurge?: CachePurgeConfig;
 
   // Validation
   validationPipeOptions?: ValidationPipeOptions;
@@ -686,7 +686,7 @@ routes: [
 field by field. Without any `authAbilityPredicate`, every authenticated user can purge the cache.
 
 ```typescript
-cachePurge?: CachePurgeOptions | false; // { enabled?: boolean; authAbilityPredicate?: (user, body?) => boolean }
+cachePurge?: CachePurgeConfig; // { enabled?: boolean; authAbilityPredicate?: (user, body?) => boolean }
 ```
 
 ```typescript
