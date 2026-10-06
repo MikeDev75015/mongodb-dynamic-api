@@ -40,7 +40,7 @@
 > ```
 >
 > ### 🏷️ `typ` claim required
-> Tokens without a `typ` claim (signed before v5.4.2) are rejected with `401`.
+> Tokens without a `typ` claim (signed before v5.4.2) are rejected with `401`. `typ` is reserved (`access` / `refresh` / `reset`): a token you sign yourself with the same secret, e.g. a guest token with `typ: 'guest'`, is rejected too. Sign it with `typ: 'access'` and check it with the exported `isTokenOfType` / `stripTokenClaims` ([Tokens You Sign Yourself](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/authentication.md#tokens-you-sign-yourself)).
 >
 > ### 🧾 Strict request bodies
 > Once validation is configured (`enableDynamicAPIValidation` or `validationPipeOptions`), bodies are validated with `whitelist` + `forbidNonWhitelisted`: an undeclared property → `400`. Routes without configured validation are unchanged.
