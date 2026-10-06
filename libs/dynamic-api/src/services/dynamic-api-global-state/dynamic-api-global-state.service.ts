@@ -30,6 +30,7 @@ export class DynamicApiGlobalStateService {
     additionalRequestFields: [],
     cacheExcludedPaths: [],
     cacheKeyBy: 'url+identity',
+    cachePurge: {},
     routesConfig: {
       excluded: [],
       defaults: [
