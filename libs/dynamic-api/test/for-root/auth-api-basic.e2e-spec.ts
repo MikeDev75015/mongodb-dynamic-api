@@ -37,6 +37,7 @@ describe('DynamicApiModule forRoot - Authentication API Basic (e2e)', () => {
         connectionName: 'dynamic-api-connection',
         cacheExcludedPaths: [],
         cacheKeyBy: 'url+identity',
+        cachePurge: {},
         credentials: {
           loginField: 'email',
           passwordField: 'password',
@@ -271,6 +272,7 @@ describe('DynamicApiModule forRoot - Authentication API Basic (e2e)', () => {
         connectionName: 'dynamic-api-connection',
         cacheExcludedPaths: [],
         cacheKeyBy: 'url+identity',
+        cachePurge: {},
         credentials: {
           loginField: 'email',
           passwordField: 'password',
