@@ -1,5 +1,15 @@
 Changelog
 
+## [6.2.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v6.1.2...v6.2.0) (2026-10-06)
+
+### auth
+
+* **auth:** export isTokenOfType and stripTokenClaims ([42e97de](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/42e97dea3732e1ee286c618f67cefa619672071f))
+
+### cache
+
+* **cache:** add cachePurge option to protect or remove the purge route ([264deb8](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/264deb8d1d4c29e63de1cd1bd6dad6246acfa487))
+
 ## [6.1.2](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v6.1.1...v6.1.2) (2026-09-30)
 
 ## [6.1.1](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v6.1.0...v6.1.1) (2026-09-30)
