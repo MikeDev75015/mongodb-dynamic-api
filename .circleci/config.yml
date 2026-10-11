@@ -314,6 +314,11 @@ jobs:
       - attach_workspace:
           at: .
       - merge-coverage-command
+      - run:
+          # Without sonar.projectVersion, SonarCloud's "previous_version" new-code period never
+          # resets, so "new code" kept growing back to Feb 2025 and old issues failed the gate.
+          name: Set Sonar project version from package.json
+          command: echo "sonar.projectVersion=$(node -p "require('./package.json').version")" >> sonar-project.properties
       - sonarcloud/scan
       - *notify-fail
       - *notify-success
