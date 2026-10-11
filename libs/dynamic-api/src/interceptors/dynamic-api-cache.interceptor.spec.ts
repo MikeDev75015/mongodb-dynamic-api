@@ -305,6 +305,29 @@ describe('DynamicApiCacheInterceptor', () => {
       });
     }));
 
+    it.each([
+      ['an Error', new Error('store down'), 'store down'],
+      ['a non-Error value', 'string-error', 'string-error'],
+    ])('should log, not fail the write, when invalidation rejects with %s', async (_, rejection, expected) => {
+      state.isGlobalCacheEnabled = true;
+      cacheService.invalidateForUrl.mockRejectedValueOnce(rejection);
+      const spyError = vi.spyOn(interceptor['logger'], 'error').mockImplementation(() => {});
+      const context = {
+        switchToHttp: () => ({
+          getRequest: () => ({ method: 'POST', url: '/users' }),
+        }),
+        getHandler: fakeHandler,
+      } as unknown as ExecutionContext;
+      const next = { handle: () => of('created') } as CallHandler;
+
+      const obs = await interceptor.intercept(context, next);
+      const result = await new Promise((r) => { obs.subscribe(r); });
+      await new Promise((r) => setTimeout(r, 0));
+
+      expect(result).toBe('created');
+      expect(spyError).toHaveBeenCalledWith(`[Cache] invalidation failed for /users: ${expected}`);
+    });
+
     it('should invalidate the cache after a DELETE operation', () => new Promise<void>((resolve) => {
       state.isGlobalCacheEnabled = true;
       const context = {
