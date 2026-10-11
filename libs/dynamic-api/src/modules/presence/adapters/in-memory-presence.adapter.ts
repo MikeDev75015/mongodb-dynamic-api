@@ -17,11 +17,7 @@ export class InMemoryPresenceAdapter implements PresenceAdapter {
   /** socketId → roomId */
   private readonly roomBySocket = new Map<string, string>();
 
-  async setOnline(userId: string, socketId: string, room?: string): Promise<void> {
-    if (!this.socketsByUser.has(userId)) {
-      this.socketsByUser.set(userId, new Set());
-    }
-
+  setOnline(userId: string, socketId: string, room?: string): Promise<void> {
     const sockets = this.socketsByUser.get(userId) ?? new Set<string>();
     sockets.add(socketId);
     this.socketsByUser.set(userId, sockets);
@@ -29,9 +25,11 @@ export class InMemoryPresenceAdapter implements PresenceAdapter {
     if (room) {
       this.roomBySocket.set(socketId, room);
     }
+
+    return Promise.resolve();
   }
 
-  async setOffline(userId: string, socketId: string): Promise<void> {
+  setOffline(userId: string, socketId: string): Promise<void> {
     const sockets = this.socketsByUser.get(userId);
 
     if (sockets) {
@@ -42,16 +40,17 @@ export class InMemoryPresenceAdapter implements PresenceAdapter {
     }
 
     this.roomBySocket.delete(socketId);
+    return Promise.resolve();
   }
 
-  async isOnline(userId: string): Promise<boolean> {
+  isOnline(userId: string): Promise<boolean> {
     const sockets = this.socketsByUser.get(userId);
-    return !!(sockets && sockets.size > 0);
+    return Promise.resolve(!!(sockets && sockets.size > 0));
   }
 
-  async getOnlineUserIds(room?: string): Promise<string[]> {
+  getOnlineUserIds(room?: string): Promise<string[]> {
     if (!room) {
-      return Array.from(this.socketsByUser.keys());
+      return Promise.resolve(Array.from(this.socketsByUser.keys()));
     }
 
     const result: string[] = [];
@@ -65,11 +64,11 @@ export class InMemoryPresenceAdapter implements PresenceAdapter {
       }
     }
 
-    return result;
+    return Promise.resolve(result);
   }
 
-  async getSocketCount(userId: string): Promise<number> {
-    return this.socketsByUser.get(userId)?.size ?? 0;
+  getSocketCount(userId: string): Promise<number> {
+    return Promise.resolve(this.socketsByUser.get(userId)?.size ?? 0);
   }
 }
 

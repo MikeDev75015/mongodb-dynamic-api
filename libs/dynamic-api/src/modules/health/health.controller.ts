@@ -30,17 +30,17 @@ function createHealthController(connectionName: string, path: string): Type {
     @ApiOperation({ summary: 'Readiness probe — reports the MongoDB connection status' })
     @ApiOkResponse({ description: 'The MongoDB connection is up.' })
     @ApiServiceUnavailableResponse({ description: 'The MongoDB connection is down.' })
-    async check(): Promise<DynamicApiHealthCheckResponse> {
+    check(): Promise<DynamicApiHealthCheckResponse> {
       // readyState: 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting.
       const isUp = this.connection.readyState === 1;
 
       if (!isUp) {
-        throw new ServiceUnavailableException(
+        return Promise.reject(new ServiceUnavailableException(
           { status: 'error', mongo: 'down' } as DynamicApiHealthCheckResponse,
-        );
+        ));
       }
 
-      return { status: 'ok', mongo: 'up' };
+      return Promise.resolve({ status: 'ok', mongo: 'up' });
     }
   }
 
