@@ -1,5 +1,15 @@
 Changelog
 
+## [6.2.1](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v6.2.0...v6.2.1) (2026-10-11)
+
+### cache
+
+* **cache:** log failed write-path cache invalidation ([da1b9cf](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/da1b9cf767832b459296d5beef46b2821e1db6b6))
+
+### ws
+
+* **ws:** catch rejected room joins and presence setOnline ([ebb5d6f](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/ebb5d6fd0593bc33ac1a27d66f80b7cb87fb2fa3))
+
 ## [6.2.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v6.1.2...v6.2.0) (2026-10-06)
 
 ### auth
