@@ -307,7 +307,7 @@ describe('DynamicApiCacheInterceptor', () => {
 
     it.each([
       ['an Error', new Error('store down'), 'store down'],
-      ['a non-Error value', 'string-error', 'string-error'],
+      ['a non-Error value', 'string-error', '"string-error"'],
     ])('should log, not fail the write, when invalidation rejects with %s', async (_, rejection, expected) => {
       state.isGlobalCacheEnabled = true;
       cacheService.invalidateForUrl.mockRejectedValueOnce(rejection);
