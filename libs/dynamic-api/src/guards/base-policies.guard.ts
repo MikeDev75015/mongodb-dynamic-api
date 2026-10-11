@@ -99,40 +99,47 @@ abstract class BaseSocketPoliciesGuard<Entity extends BaseEntity> extends BaseSe
       abilityPredicate: !!this.abilityPredicate,
     });
 
-    if (!this.isPublic) {
-      if (!socket.user) {
-        this.logger.warn('No user data in socket');
-        throw new WsException('Access Denied');
-      }
+    if (this.isPublic) {
+      return true;
+    }
 
-      if (this.authAbilityPredicate && !this.authAbilityPredicate(socket.user, data)) {
-        this.logger.warn('authAbilityPredicate denied access');
-        throw new WsException('Access Denied');
-      }
+    if (!socket.user) {
+      this.logger.warn('No user data in socket');
+      throw new WsException('Access Denied');
+    }
 
-      if (this.abilityPredicate && this.predicateBehavior !== 'filter') {
-        try {
-          const { id } = data || {};
+    if (this.authAbilityPredicate && !this.authAbilityPredicate(socket.user, data)) {
+      this.logger.warn('authAbilityPredicate denied access');
+      throw new WsException('Access Denied');
+    }
 
-          if (id) {
-            this.logger.debug(`Finding one document with id: ${id} and ability predicate`);
-            await this.findOneDocumentWithAbilityPredicate(id, undefined, undefined, socket.user);
-          } else if (this.routeType === 'Aggregate' && data && this.queryToPipeline) {
-            this.logger.debug('Aggregating documents with ability predicate');
-            await this.aggregateDocumentsWithAbilityPredicate(this.queryToPipeline(data), socket.user);
-          } else {
-            this.logger.debug('Finding many documents with ability predicate');
-            const documents = await this.findManyDocumentsWithAbilityPredicate(buildAbilityPredicateFilter(data), socket.user);
-            assertEveryTargetFound(data, documents.length);
-          }
-        } catch (error) {
-          this.logger.error('Error in canActivate', error);
-          throw new WsException(error.message);
-        }
+    if (this.abilityPredicate && this.predicateBehavior !== 'filter') {
+      try {
+        await this.checkAbilityPredicate(data, socket.user);
+      } catch (error) {
+        this.logger.error('Error in canActivate', error);
+        throw new WsException(error.message);
       }
     }
 
     return true;
+  }
+
+  /** Runs the ability predicate against the document(s) targeted by the socket payload. */
+  private async checkAbilityPredicate(data: unknown, user: unknown): Promise<void> {
+    const id = (data as { id?: string } | undefined)?.id;
+
+    if (id) {
+      this.logger.debug(`Finding one document with id: ${id} and ability predicate`);
+      await this.findOneDocumentWithAbilityPredicate(id, undefined, undefined, user);
+    } else if (this.routeType === 'Aggregate' && data && this.queryToPipeline) {
+      this.logger.debug('Aggregating documents with ability predicate');
+      await this.aggregateDocumentsWithAbilityPredicate(this.queryToPipeline(data), user);
+    } else {
+      this.logger.debug('Finding many documents with ability predicate');
+      const documents = await this.findManyDocumentsWithAbilityPredicate(buildAbilityPredicateFilter(data), user);
+      assertEveryTargetFound(data, documents.length);
+    }
   }
 }
 
