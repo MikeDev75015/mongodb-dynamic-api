@@ -418,6 +418,31 @@ describe('SocketAdapter', () => {
     });
   });
 
+  describe('authenticated room join failures', () => {
+    beforeEach(() => {
+      (jwt.verify as Mock).mockReturnValue({ typ: 'access', id: 'u1' });
+      DynamicApiWsConfigStore.jwtSecret = 'secret';
+    });
+
+    it.each([
+      ['an Error', new Error('redis down'), 'redis down'],
+      ['a non-Error value', 'string-error', 'string-error'],
+    ])('should log, not throw, when an async adapter join rejects with %s', async (_, rejection, expected) => {
+      const spyError = vi.spyOn(adapter['logger'], 'error').mockImplementation(() => {});
+      let handler: (socket: unknown) => void = () => undefined;
+      const namespaceServer = { on: vi.fn((_: string, cb: typeof handler) => { handler = cb; }) };
+      const socket = { id: 'ns-err', handshake: { auth: { token: 'tok' } }, join: vi.fn().mockRejectedValue(rejection) };
+
+      adapter.bindClientConnect(namespaceServer as never, vi.fn());
+      handler(socket);
+      await new Promise((r) => setTimeout(r, 0));
+
+      expect(spyError).toHaveBeenCalledWith(
+        `[WS] failed to join the authenticated room for socket ns-err: ${expected}`,
+      );
+    });
+  });
+
   describe('JWT secret fallback', () => {
     it('should verify with the auth secret when enableDynamicAPIWebSockets did not fill the store', () => {
       (jwt.verify as Mock).mockReturnValue({ typ: 'access', id: 'u1' });
