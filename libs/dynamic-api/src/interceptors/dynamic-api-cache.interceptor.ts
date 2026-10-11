@@ -6,6 +6,7 @@ import { Cache } from 'cache-manager';
 import { Observable, tap } from 'rxjs';
 import { DISABLE_CACHE_KEY } from '../decorators';
 import { DynamicApiGlobalState } from '../interfaces/dynamic-api-global-state.interface';
+import { MongoDBDynamicApiLogger } from '../logger/mongo-dynamic-api.logger';
 // Concrete path, not the `../services` barrel: see the same note in
 // helpers/mixin-data.helper.ts — that barrel re-exports DynamicApiBroadcastService, which
 // imports the helpers barrel this file's own import graph can reach.
@@ -14,6 +15,8 @@ import { DynamicApiCacheService } from '../services/dynamic-api-cache/dynamic-ap
 @Injectable()
 /** @internal Not part of the public API. */
 export class DynamicApiCacheInterceptor extends CacheInterceptor {
+  private readonly logger = new MongoDBDynamicApiLogger('DynamicApiCacheInterceptor');
+
   private readonly excludePaths = [
     '/',
     ...this.state.cacheExcludedPaths,
@@ -55,7 +58,14 @@ export class DynamicApiCacheInterceptor extends CacheInterceptor {
     if (isWriteOperation) {
       return Promise.resolve(
         next.handle().pipe(
-          tap(() => { this.cacheService.invalidateForUrl(req.url); }),
+          tap(() => {
+            // Fire-and-forget: a failing invalidation must never fail an already-successful write,
+            // nor surface as an unhandled rejection.
+            this.cacheService.invalidateForUrl(req.url).catch((err: unknown) => {
+              const message = err instanceof Error ? err.message : String(err);
+              this.logger.error(`[Cache] invalidation failed for ${req.url}: ${message}`);
+            });
+          }),
         ),
       );
     }
