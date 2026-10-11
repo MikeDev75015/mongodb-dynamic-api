@@ -68,7 +68,7 @@ describe('DynamicApiGlobalStateService', () => {
     service = new DynamicApiGlobalStateService({ jwtSecret: 'secret' });
     service['resetState']();
 
-    expect(service.get('jwtSecret')).toStrictEqual(undefined);
+    expect(service.get('jwtSecret')).toBeUndefined();
   });
 
   describe('onInitialized', () => {

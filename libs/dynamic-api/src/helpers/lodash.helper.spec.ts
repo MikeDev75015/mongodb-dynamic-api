@@ -84,7 +84,7 @@ describe('lodash.helper', () => {
     it('should deep clone primitives', () => {
       expect(cloneDeep('hello')).toBe('hello');
       expect(cloneDeep(42)).toBe(42);
-      expect(cloneDeep(null)).toBe(null);
+      expect(cloneDeep(null)).toBeNull();
     });
   });
 

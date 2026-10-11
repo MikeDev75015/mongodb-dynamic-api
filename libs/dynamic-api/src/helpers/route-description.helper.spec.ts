@@ -4,56 +4,22 @@ import { getDefaultRouteDescription } from './route-description.helper';
 
 describe('RouteDescriptionHelper', () => {
   describe('getDefaultRouteDescription', () => {
-    it('should return default description for CreateMany', () => {
-      expect(getDefaultRouteDescription('CreateMany', 'Entity')).toBe('Create many entity');
-    });
-
-    it('should return default description for CreateOne', () => {
-      expect(getDefaultRouteDescription('CreateOne', 'Entity')).toBe('Create one entity');
-    });
-
-    it('should return default description for DeleteOne', () => {
-      expect(getDefaultRouteDescription('DeleteMany', 'Entity')).toBe('Delete many entity');
-    });
-
-    it('should return default description for DeleteOne', () => {
-      expect(getDefaultRouteDescription('DeleteOne', 'Entity')).toBe('Delete one entity');
-    });
-
-    it('should return default description for DuplicateOne', () => {
-      expect(getDefaultRouteDescription('DuplicateMany', 'Entity')).toBe('Duplicate many entity');
-    });
-
-    it('should return default description for DuplicateOne', () => {
-      expect(getDefaultRouteDescription('DuplicateOne', 'Entity')).toBe('Duplicate one entity');
-    });
-
-    it('should return default description for GetMany', () => {
-      expect(getDefaultRouteDescription('GetMany', 'Entity')).toBe('Get many entity');
-    });
-
-    it('should return default description for GetOne', () => {
-      expect(getDefaultRouteDescription('GetOne', 'Entity')).toBe('Get one entity by id');
-    });
-
-    it('should return default description for ReplaceOne', () => {
-      expect(getDefaultRouteDescription('ReplaceOne', 'Entity')).toBe('Replace one entity');
-    });
-
-    it('should return default description for UpdateOne', () => {
-      expect(getDefaultRouteDescription('UpdateMany', 'Entity')).toBe('Update many entity');
-    });
-
-    it('should return default description for UpdateOne', () => {
-      expect(getDefaultRouteDescription('UpdateOne', 'Entity')).toBe('Update one entity');
-    });
-
-    it('should return default description for Aggregate', () => {
-      expect(getDefaultRouteDescription('Aggregate', 'Entity')).toBe('Get aggregated entity');
-    });
-
-    it('should return default description for Custom', () => {
-      expect(getDefaultRouteDescription('Custom', 'Entity')).toBe('Custom entity endpoint');
+    it.each<[RouteType, string]>([
+      ['CreateMany', 'Create many entity'],
+      ['CreateOne', 'Create one entity'],
+      ['DeleteMany', 'Delete many entity'],
+      ['DeleteOne', 'Delete one entity'],
+      ['DuplicateMany', 'Duplicate many entity'],
+      ['DuplicateOne', 'Duplicate one entity'],
+      ['GetMany', 'Get many entity'],
+      ['GetOne', 'Get one entity by id'],
+      ['ReplaceOne', 'Replace one entity'],
+      ['UpdateMany', 'Update many entity'],
+      ['UpdateOne', 'Update one entity'],
+      ['Aggregate', 'Get aggregated entity'],
+      ['Custom', 'Custom entity endpoint'],
+    ])('should return default description for %s', (routeType, expected) => {
+      expect(getDefaultRouteDescription(routeType, 'Entity')).toBe(expected);
     });
 
     it('should throw an error for unsupported route type', () => {

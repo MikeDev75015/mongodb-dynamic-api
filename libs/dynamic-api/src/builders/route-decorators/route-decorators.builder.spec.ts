@@ -102,7 +102,7 @@ describe('RouteDecoratorsBuilder', () => {
         const decorators = routeDecoratorsBuilder.build();
 
         expect(Array.isArray(decorators)).toBe(true);
-        expect(decorators.length).toBe(expectedLength);
+        expect(decorators).toHaveLength(expectedLength);
       },
     );
 

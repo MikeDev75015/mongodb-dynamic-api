@@ -17,7 +17,7 @@ describe('VerifyOtpCodeDto', () => {
   ])('%s should have %i validation error(s)', async (_label, input, expectedErrors) => {
     const dto = plainToInstance(VerifyOtpCodeDto, input);
     const errors = await validate(dto);
-    expect(errors.length).toBe(expectedErrors);
+    expect(errors).toHaveLength(expectedErrors);
   });
 });
 
