@@ -721,7 +721,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
    * Builds an `{ accessToken, refreshToken }` pair from the user's payload fields.
    * Pure: does NOT update the database.
    */
-  private async buildTokenPair(user: Entity, sid?: string): Promise<{ accessToken: string; refreshToken: string }> {
+  private buildTokenPair(user: Entity, sid?: string): Promise<{ accessToken: string; refreshToken: string }> {
     const fieldsToBuild = [
       '_id' as keyof Entity,
       'id' as keyof Entity,
@@ -731,7 +731,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     const payload: object = { ...this.buildUserFields(user, fieldsToBuild), ...(sid ? { sid } : {}) };
     const accessToken = this.jwtService.sign({ ...payload, typ: 'access' });
     const refreshToken = this.buildRefreshToken(payload);
-    return { accessToken, refreshToken };
+    return Promise.resolve({ accessToken, refreshToken });
   }
 
   /**

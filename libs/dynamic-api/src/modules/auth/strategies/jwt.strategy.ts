@@ -19,11 +19,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: Record<string, unknown>) {
+  validate(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
     if (!isTokenOfType(payload, 'access')) {
-      throw new UnauthorizedException();
+      return Promise.reject(new UnauthorizedException());
     }
 
-    return stripTokenClaims(payload);
+    return Promise.resolve(stripTokenClaims(payload));
   }
 }

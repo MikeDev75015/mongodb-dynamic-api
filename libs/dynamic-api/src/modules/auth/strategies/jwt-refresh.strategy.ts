@@ -25,13 +25,13 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
     });
   }
 
-  async validate(payload: Record<string, unknown>) {
+  validate(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
     if (!isTokenOfType(payload, 'refresh')) {
-      throw new UnauthorizedException();
+      return Promise.reject(new UnauthorizedException());
     }
 
     const { jti, ...user } = stripTokenClaims(payload);
-    return user;
+    return Promise.resolve(user);
   }
 }
 
