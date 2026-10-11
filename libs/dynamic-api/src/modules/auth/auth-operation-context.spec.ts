@@ -7,35 +7,18 @@ describe('auth-operation-context', () => {
       expect(getAuthOperationContext()).toBeUndefined();
     });
 
-    it('should return "login" inside authOperationStorage.run("login", ...)', async () => {
-      let capturedContext: AuthOperationContext | undefined;
+    it.each<AuthOperationContext>(['login', 'register', 'updateAccount'])(
+      'should return "%s" inside authOperationStorage.run("%s", ...)',
+      async (operation) => {
+        let capturedContext: AuthOperationContext | undefined;
 
-      await authOperationStorage.run('login', async () => {
-        capturedContext = getAuthOperationContext();
-      });
+        await authOperationStorage.run(operation, async () => {
+          capturedContext = getAuthOperationContext();
+        });
 
-      expect(capturedContext).toBe('login');
-    });
-
-    it('should return "register" inside authOperationStorage.run("register", ...)', async () => {
-      let capturedContext: AuthOperationContext | undefined;
-
-      await authOperationStorage.run('register', async () => {
-        capturedContext = getAuthOperationContext();
-      });
-
-      expect(capturedContext).toBe('register');
-    });
-
-    it('should return "updateAccount" inside authOperationStorage.run("updateAccount", ...)', async () => {
-      let capturedContext: AuthOperationContext | undefined;
-
-      await authOperationStorage.run('updateAccount', async () => {
-        capturedContext = getAuthOperationContext();
-      });
-
-      expect(capturedContext).toBe('updateAccount');
-    });
+        expect(capturedContext).toBe(operation);
+      },
+    );
 
     it('should return undefined again after storage run completes', async () => {
       await authOperationStorage.run('login', async () => {

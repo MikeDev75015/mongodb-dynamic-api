@@ -36,19 +36,22 @@ describe('PoliciesGuardMixin', () => {
       expect(guard['entity']).toBe(TestEntity);
     });
 
+    it.each(['abilityPredicate', 'targetParam', 'authAbilityPredicate'] as const)(
+      'should create a PoliciesGuard without %s if not provided',
+      (property) => {
+        const guard = new (
+          RoutePoliciesGuardMixin(TestEntity, routeType, displayedName, '1', undefined)
+        )(model);
+        expect(guard[property]).toBeUndefined();
+      },
+    );
+
     it('should create a PoliciesGuard with the correct abilityPredicate', () => {
       const abilityPredicate = (_: TestEntity) => true;
       const guard = new (
         RoutePoliciesGuardMixin(TestEntity, routeType, displayedName, '1', abilityPredicate)
       )(model);
       expect(guard['abilityPredicate']).toBe(abilityPredicate);
-    });
-
-    it('should create a PoliciesGuard without abilityPredicate if not provided', () => {
-      const guard = new (
-        RoutePoliciesGuardMixin(TestEntity, routeType, displayedName, '1', undefined)
-      )(model);
-      expect(guard['abilityPredicate']).toBeUndefined();
     });
 
     it('should create a PoliciesGuard with the correct targetParam when provided in options', () => {
@@ -58,26 +61,12 @@ describe('PoliciesGuardMixin', () => {
       expect(guard['targetParam']).toBe('userId');
     });
 
-    it('should create a PoliciesGuard without targetParam if options are not provided', () => {
-      const guard = new (
-        RoutePoliciesGuardMixin(TestEntity, routeType, displayedName, '1', undefined)
-      )(model);
-      expect(guard['targetParam']).toBeUndefined();
-    });
-
     it('should create a PoliciesGuard with the correct authAbilityPredicate when provided in options', () => {
       const authAbilityPredicate = (_: unknown) => true;
       const guard = new (
         RoutePoliciesGuardMixin(TestEntity, routeType, displayedName, '1', undefined, { authAbilityPredicate })
       )(model);
       expect(guard['authAbilityPredicate']).toBe(authAbilityPredicate);
-    });
-
-    it('should create a PoliciesGuard without authAbilityPredicate if options are not provided', () => {
-      const guard = new (
-        RoutePoliciesGuardMixin(TestEntity, routeType, displayedName, '1', undefined)
-      )(model);
-      expect(guard['authAbilityPredicate']).toBeUndefined();
     });
   });
 

@@ -14,7 +14,7 @@ describe('PagingQuery', () => {
   ])('%s should have %i validation error(s)', async (_label, input, expectedErrors) => {
     const dto = plainToInstance(PagingQuery, input);
     const errors = await validate(dto);
-    expect(errors.length).toBe(expectedErrors);
+    expect(errors).toHaveLength(expectedErrors);
   });
 
   it('coerces string query values into numbers via plainToInstance', () => {
