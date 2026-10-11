@@ -80,7 +80,7 @@ async function enableDynamicAPIIndexSync(
 
   for (const [name, model] of Object.entries(connection.models)) {
     try {
-      await model.syncIndexes();
+      await model.syncIndexes(); // NOSONAR: sequential on purpose — fail fast, one index build at a time
     } catch (error) {
       if (!isDuplicateKeyError(error)) {
         throw error;
