@@ -85,7 +85,7 @@ export class SocketAdapter extends IoAdapter {
    */
   private addToAuthenticatedRoom(socket: ExtendedSocket): void {
     Promise.resolve(socket.join(DYNAMIC_API_AUTHENTICATED_ROOM)).catch((err: unknown) => {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = err instanceof Error ? err.message : JSON.stringify(err);
       this.logger.error(`[WS] failed to join the authenticated room for socket ${socket.id}: ${message}`);
     });
   }

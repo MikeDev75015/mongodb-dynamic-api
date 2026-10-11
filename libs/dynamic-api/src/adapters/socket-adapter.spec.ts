@@ -426,7 +426,7 @@ describe('SocketAdapter', () => {
 
     it.each([
       ['an Error', new Error('redis down'), 'redis down'],
-      ['a non-Error value', 'string-error', 'string-error'],
+      ['a non-Error value', 'string-error', '"string-error"'],
     ])('should log, not throw, when an async adapter join rejects with %s', async (_, rejection, expected) => {
       const spyError = vi.spyOn(adapter['logger'], 'error').mockImplementation(() => {});
       let handler: (socket: unknown) => void = () => undefined;

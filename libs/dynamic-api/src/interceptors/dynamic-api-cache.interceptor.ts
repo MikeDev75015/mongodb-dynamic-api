@@ -62,7 +62,7 @@ export class DynamicApiCacheInterceptor extends CacheInterceptor {
             // Fire-and-forget: a failing invalidation must never fail an already-successful write,
             // nor surface as an unhandled rejection.
             this.cacheService.invalidateForUrl(req.url).catch((err: unknown) => {
-              const message = err instanceof Error ? err.message : String(err);
+              const message = err instanceof Error ? err.message : JSON.stringify(err);
               this.logger.error(`[Cache] invalidation failed for ${req.url}: ${message}`);
             });
           }),
