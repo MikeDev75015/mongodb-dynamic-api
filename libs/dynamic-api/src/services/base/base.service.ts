@@ -319,10 +319,10 @@ export abstract class BaseService<Entity extends BaseEntity> {
       }
 
       const useSoftDelete = config.softDelete ?? isSoftDelete;
-      const model = await this.resolveCascadeModel(config, session);
+      const model = await this.resolveCascadeModel(config, session); // NOSONAR: sequential on purpose — shared session/transaction
       const filter = { [config.foreignKey]: { $in: parentIds } } as FilterQuery<BaseEntity>;
 
-      await (useSoftDelete
+      await (useSoftDelete // NOSONAR: sequential on purpose — shared session/transaction
         ? BaseService.softDeleteCascade(model, filter, session)
         : BaseService.hardDeleteCascade(model, filter, session));
     }
@@ -653,7 +653,7 @@ export abstract class BaseService<Entity extends BaseEntity> {
       } catch (error) {
         lastError = error;
         if (attempt < attempts && delayMs > 0) {
-          await this.sleep(delayMs);
+          await this.sleep(delayMs); // NOSONAR: retry backoff, attempts must be sequential
         }
       }
     }
