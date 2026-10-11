@@ -109,6 +109,24 @@ describe('createPresenceGateway', () => {
     });
   });
 
+  describe('connection failure handling', () => {
+    it.each([
+      ['an Error', new Error('redis down'), 'redis down'],
+      ['a non-Error value', 'string-error', '"string-error"'],
+    ])('should log, not throw, when setOnline rejects with %s', async (_, rejection, expected) => {
+      mockPresenceAdapter.setOnline.mockRejectedValue(rejection);
+      const spyError = vi.spyOn(gateway.logger, 'error').mockImplementation(() => {});
+      const socket = { id: 'sock-1', user: { id: 'user-1' }, on: vi.fn() };
+
+      gateway.onSocketConnection(mockServer as never, socket as never);
+      await new Promise((r) => setTimeout(r, 10));
+
+      expect(spyError).toHaveBeenCalledWith(`[Presence] connection handler error: ${expected}`);
+      expect(mockServer.emit).not.toHaveBeenCalledWith('user:online', expect.anything());
+      expect(socket.on).not.toHaveBeenCalled();
+    });
+  });
+
   describe('disconnect handling (onSocketDisconnect)', () => {
     it('should call setOffline on disconnect', async () => {
       gateway.onSocketDisconnect(mockServer as never, 'user-1', 'sock-1');

@@ -75,8 +75,19 @@ export class SocketAdapter extends IoAdapter {
 
     if (user) {
       socket.user = user;
-      socket.join(DYNAMIC_API_AUTHENTICATED_ROOM);
+      this.addToAuthenticatedRoom(socket);
     }
+  }
+
+  /**
+   * `socket.join()` returns a promise with an async adapter (e.g. Redis), so a failure there must be
+   * caught and logged instead of surfacing as an unhandled rejection.
+   */
+  private addToAuthenticatedRoom(socket: ExtendedSocket): void {
+    Promise.resolve(socket.join(DYNAMIC_API_AUTHENTICATED_ROOM)).catch((err: unknown) => {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.error(`[WS] failed to join the authenticated room for socket ${socket.id}: ${message}`);
+    });
   }
 
   private handleConnection(socket: ExtendedSocket): void {
@@ -85,7 +96,7 @@ export class SocketAdapter extends IoAdapter {
 
     if (user) {
       socket.user = user;
-      socket.join(DYNAMIC_API_AUTHENTICATED_ROOM);
+      this.addToAuthenticatedRoom(socket);
     }
 
     if (error) {

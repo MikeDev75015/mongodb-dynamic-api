@@ -65,6 +65,9 @@ export function createPresenceGateway(options: GatewayOptions = {}) {
         socket.on('disconnect', () => {
           this.onSocketDisconnect(server, userId, socket.id);
         });
+      }).catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : JSON.stringify(err);
+        this.logger.error(`[Presence] connection handler error: ${message}`);
       });
     }
 
