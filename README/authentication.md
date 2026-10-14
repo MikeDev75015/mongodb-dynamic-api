@@ -1171,6 +1171,8 @@ DynamicApiModule.forRoot('mongodb-uri', {
 
 **Note:** By default, `loginField` and `passwordField` are automatically excluded from updates.
 
+**Note (v6.3):** a write that hits a **unique index** (e.g. `beforeSaveCallback` lets the user change `email` and the new address already belongs to another account) answers `409 Conflict` — `email 'taken@example.com' is already used` — exactly like `POST /auth/register`, instead of a `500`. Mongoose `ValidationError`/`CastError` map to `400`/`404` the same way. No option to set: it is the default behavior.
+
 ### Automatic Token Refresh on Update (`refreshTokenOnUpdate`)
 
 > ⭐ **New option** — eliminates the need for a client-side `/auth/refresh-token` call after a profile change.

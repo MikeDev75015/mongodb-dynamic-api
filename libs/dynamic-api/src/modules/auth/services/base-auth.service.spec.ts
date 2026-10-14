@@ -1063,6 +1063,38 @@ describe('BaseAuthService', () => {
       );
     });
 
+    it('should convert a duplicate key error (E11000) into a 409 conflict', async () => {
+      service['beforeUpdateAccountCallback'] = undefined;
+      service['updateAccountCallback'] = undefined;
+      vi.spyOn<any, any>(service, 'updateOneDocument')
+      .mockRejectedValueOnce({ code: 11000, keyValue: { login: 'taken@test.co' } });
+
+      await expect(service['updateAccount']({ id: fakeUserId } as User, update))
+      .rejects.toThrow(new ConflictException(`login 'taken@test.co' is already used`));
+      expect(spyGetAccount).not.toHaveBeenCalled();
+    });
+
+    it('should convert a mongoose validation error into a 400 bad request', async () => {
+      service['beforeUpdateAccountCallback'] = undefined;
+      service['updateAccountCallback'] = undefined;
+      vi.spyOn<any, any>(service, 'updateOneDocument').mockRejectedValueOnce({
+        name: 'ValidationError',
+        errors: { nickname: { properties: { message: 'nickname is invalid' } } },
+      });
+
+      await expect(service['updateAccount']({ id: fakeUserId } as User, update))
+      .rejects.toThrow(new BadRequestException(['nickname is invalid']));
+    });
+
+    it('should wrap any other write error into a 503', async () => {
+      service['beforeUpdateAccountCallback'] = undefined;
+      service['updateAccountCallback'] = undefined;
+      vi.spyOn<any, any>(service, 'updateOneDocument').mockRejectedValueOnce(new Error('connection lost'));
+
+      await expect(service['updateAccount']({ id: fakeUserId } as User, update))
+      .rejects.toThrow(new ServiceUnavailableException('connection lost'));
+    });
+
     describe('with refreshTokenOnUpdate = true', () => {
       let spyLogin: Mock;
 

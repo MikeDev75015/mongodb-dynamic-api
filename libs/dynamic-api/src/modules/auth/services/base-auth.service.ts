@@ -233,12 +233,19 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     // write, same as every other out-of-native-pipeline write CallbackMethods exposes
     // (updateOneDocument/rawUpdateOneDocument) — updateAccount used to bypass that entirely,
     // leaving derived fields stale after a profile update.
-    await this.updateOneDocument(
-      this.entity,
-      { _id: id } as FilterQuery<Entity>,
-      // @ts-ignore
-      { $set: update },
-    );
+    try {
+      await this.updateOneDocument(
+        this.entity,
+        { _id: id } as FilterQuery<Entity>,
+        // @ts-ignore
+        { $set: update },
+      );
+    } catch (error) {
+      // Same conversion as register: a unique index hit (E11000, e.g. an email already taken by
+      // another account) is a 409, not a 500; CastError/ValidationError map to 404/400.
+      this.handleDuplicateKeyError(error, false);
+      this.handleMongoErrors(error);
+    }
 
     if (this.updateAccountCallback) {
       const fullUser = (await this.model.findOne({ _id: id }).lean<Entity>().exec());
