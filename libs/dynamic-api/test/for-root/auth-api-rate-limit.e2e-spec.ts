@@ -53,6 +53,44 @@ describe('DynamicApiModule forRoot - Auth rate limiting (e2e)', () => {
     });
   });
 
+  describe('PATCH /auth/account/password with updatePassword.rateLimit configured', () => {
+    const UserEntity = createBasicUserEntity();
+    let accessToken: string;
+
+    beforeEach(async () => {
+      const moduleRef = await Test.createTestingModule({
+        imports: [
+          ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
+          DynamicApiModule.forRoot(uri, {
+            useAuth: {
+              userEntity: UserEntity,
+              jwt: TEST_JWT_SECRETS,
+              updatePassword: { rateLimit: { limit: 2, ttl: 60000 } },
+            },
+          }),
+        ],
+      }).compile();
+
+      await createTestingApp(moduleRef);
+      const { body } = await server.post('/auth/register', { email: 'ratelimit@test.co', password: 'test' });
+      accessToken = body.accessToken;
+    });
+
+    it('rejects with 429 once the configured limit is exceeded', async () => {
+      const payload = { currentPassword: 'wrong', newPassword: 'new-password' };
+      const options = { authToken: accessToken };
+
+      const first = await server.patch('/auth/account/password', payload, options);
+      const second = await server.patch('/auth/account/password', payload, options);
+      const third = await server.patch('/auth/account/password', payload, options);
+
+      // The throttle guard counts every attempt before the current password is compared.
+      expect(first.status).toBe(401);
+      expect(second.status).toBe(401);
+      expect(third.status).toBe(429);
+    });
+  });
+
   describe('POST /auth/login without rateLimit configured', () => {
     const UserEntity = createBasicUserEntity();
 

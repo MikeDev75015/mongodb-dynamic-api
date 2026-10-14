@@ -171,6 +171,10 @@ describe('BaseAuthService', () => {
     it('should have refreshToken method', () => {
       expect(service).toHaveProperty('refreshToken');
     });
+
+    it('should have updatePassword method', () => {
+      expect(service).toHaveProperty('updatePassword');
+    });
   });
 
   describe('refreshToken', () => {
@@ -1255,6 +1259,19 @@ describe('BaseAuthService', () => {
       spyLoggerWarn = vi.spyOn<any, any>(service['logger'], 'warn').mockImplementation(vi.fn());
     });
 
+    it('should throw bad request before verifying the token when newPassword is shorter than passwordMinLength', async () => {
+      service['passwordMinLength'] = newPassword.length + 1;
+
+      try {
+        await expect(service['changePassword'](resetPasswordToken, newPassword)).rejects.toThrow(
+          new BadRequestException([`newPassword must be longer than or equal to ${newPassword.length + 1} characters`]),
+        );
+        expect(spyJwtVerify).not.toHaveBeenCalled();
+      } finally {
+        service['passwordMinLength'] = undefined;
+      }
+    });
+
     it('should verify the token signature instead of only decoding it', async () => {
       spyJwtVerify.mockRejectedValueOnce(new Error('invalid signature'));
 
@@ -1429,6 +1446,180 @@ describe('BaseAuthService', () => {
       expect(() => service['checkFieldsValidity']({})).toThrow(
         new BadRequestException([`${fakeLoginField} property is required`, `${fakePasswordField} property is required`]),
       );
+    });
+
+    describe('with passwordMinLength', () => {
+      beforeEach(() => {
+        service['passwordMinLength'] = 8;
+      });
+
+      afterEach(() => {
+        service['passwordMinLength'] = undefined;
+      });
+
+      it('should not throw if the password is long enough', () => {
+        expect(() => service['checkFieldsValidity']({ login: fakeLogin, pass: 'long-enough' })).not.toThrow();
+      });
+
+      it('should throw bad request with a class-validator-style message if the password is too short', () => {
+        expect(() => service['checkFieldsValidity']({ login: fakeLogin, pass: 'short' }))
+        .toThrow(new BadRequestException([`${fakePasswordField} must be longer than or equal to 8 characters`]));
+      });
+
+      it('should report the missing login field together with the length error', () => {
+        expect(() => service['checkFieldsValidity']({ pass: 'short' })).toThrow(
+          new BadRequestException([
+            `${fakeLoginField} property is required`,
+            `${fakePasswordField} must be longer than or equal to 8 characters`,
+          ]),
+        );
+      });
+
+      it('should keep the "required" error (not the length one) when the password is missing', () => {
+        expect(() => service['checkFieldsValidity']({ login: fakeLogin }))
+        .toThrow(new BadRequestException([`${fakePasswordField} property is required`]));
+      });
+    });
+  });
+
+  describe('updatePassword', () => {
+    const currentPassword = 'current-pass';
+    const storedUser = { ...fakeUser, nickname: 'stored-refresh-record' };
+    const beforeSaveCallback = vi.fn();
+    const callback = vi.fn();
+
+    beforeEach(() => {
+      beforeSaveCallback.mockReset().mockResolvedValue(storedUser);
+      callback.mockReset().mockResolvedValue(undefined);
+      service['updatePasswordOptions'] = undefined;
+      service['passwordMinLength'] = undefined;
+      service['refreshTokenField'] = undefined;
+      service['revokeSessionsOnPasswordChange'] = false;
+      spyBcriptHashPassword.mockResolvedValue(hashedPassword);
+    });
+
+    afterEach(() => {
+      service['updatePasswordOptions'] = undefined;
+      service['passwordMinLength'] = undefined;
+      service['refreshTokenField'] = undefined;
+      service['revokeSessionsOnPasswordChange'] = false;
+    });
+
+    it.each([
+      ['user', [undefined, currentPassword, newPassword]],
+      ['currentPassword', [fakeUserInstance, undefined, newPassword]],
+      ['newPassword', [fakeUserInstance, currentPassword, undefined]],
+    ])('should throw bad request when %s is missing', async (_, args) => {
+      await expect(service['updatePassword'](args[0] as User, args[1] as string, args[2] as string))
+      .rejects.toThrow(new BadRequestException('Invalid or missing argument'));
+      expect(model.findOne).not.toHaveBeenCalled();
+    });
+
+    it('should throw bad request before reading the user when newPassword is shorter than passwordMinLength', async () => {
+      service['passwordMinLength'] = 12;
+
+      await expect(service['updatePassword'](fakeUserInstance, currentPassword, newPassword)).rejects.toThrow(
+        new BadRequestException(['newPassword must be longer than or equal to 12 characters']),
+      );
+      expect(model.findOne).not.toHaveBeenCalled();
+      expect(bcryptService.comparePassword).not.toHaveBeenCalled();
+    });
+
+    it('should throw unauthorized (Invalid credentials) when the user no longer exists', async () => {
+      exec.mockResolvedValueOnce(null);
+
+      await expect(service['updatePassword'](fakeUserInstance, currentPassword, newPassword))
+      .rejects.toThrow(new UnauthorizedException('Invalid credentials'));
+      expect(bcryptService.comparePassword).not.toHaveBeenCalled();
+      expect(model.updateOne).not.toHaveBeenCalled();
+    });
+
+    it('should throw unauthorized (Invalid credentials) when currentPassword does not match the stored hash', async () => {
+      exec.mockResolvedValueOnce(storedUser);
+      vi.spyOn(bcryptService, 'comparePassword').mockResolvedValueOnce(false);
+
+      await expect(service['updatePassword'](fakeUserInstance, currentPassword, newPassword))
+      .rejects.toThrow(new UnauthorizedException('Invalid credentials'));
+      expect(bcryptService.comparePassword).toHaveBeenCalledWith(currentPassword, storedUser.pass);
+      expect(spyBcriptHashPassword).not.toHaveBeenCalled();
+      expect(model.updateOne).not.toHaveBeenCalled();
+    });
+
+    it('should look the user up by _id when the token payload carries one', async () => {
+      exec.mockResolvedValueOnce(storedUser);
+      vi.spyOn(bcryptService, 'comparePassword').mockResolvedValueOnce(true);
+
+      await service['updatePassword']({ _id: 'object-id', id: 'string-id' } as unknown as User, currentPassword, newPassword);
+
+      expect(model.findOne).toHaveBeenCalledWith({ _id: 'object-id' });
+    });
+
+    it('should hash and persist the new password without any callback or session revocation by default', async () => {
+      exec.mockResolvedValueOnce(storedUser);
+      vi.spyOn(bcryptService, 'comparePassword').mockResolvedValueOnce(true);
+
+      await expect(service['updatePassword']({ id: fakeUserId } as User, currentPassword, newPassword)).resolves.toBeUndefined();
+
+      expect(model.findOne).toHaveBeenCalledWith({ _id: fakeUserId });
+      expect(spyBcriptHashPassword).toHaveBeenCalledWith(newPassword);
+      expect(model.updateOne).toHaveBeenCalledWith({ _id: fakeUserId }, { $set: { [fakePasswordField]: hashedPassword } });
+      expect(beforeSaveCallback).not.toHaveBeenCalled();
+      expect(callback).not.toHaveBeenCalled();
+    });
+
+    it('should call beforeSaveCallback with the stored user and the password context, then callback with the fresh user', async () => {
+      service['updatePasswordOptions'] = { beforeSaveCallback, callback };
+      const updatedUser = { ...storedUser, pass: hashedPassword };
+      exec.mockResolvedValueOnce(storedUser).mockResolvedValueOnce(undefined).mockResolvedValueOnce(updatedUser);
+      vi.spyOn(bcryptService, 'comparePassword').mockResolvedValueOnce(true);
+
+      await service['updatePassword']({ id: fakeUserId } as User, currentPassword, newPassword);
+
+      expect(beforeSaveCallback).toHaveBeenCalledTimes(1);
+      expect(beforeSaveCallback).toHaveBeenCalledWith(
+        { ...storedUser, id: fakeUserId },
+        { currentPassword, newPassword, hashedPassword },
+        service['callbackMethods'],
+      );
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledWith({ ...updatedUser, id: fakeUserId }, service['callbackMethods']);
+      expect(model.updateOne).toHaveBeenCalledWith({ _id: fakeUserId }, { $set: { [fakePasswordField]: hashedPassword } });
+    });
+
+    it('should not persist anything when beforeSaveCallback throws', async () => {
+      service['updatePasswordOptions'] = { beforeSaveCallback, callback };
+      beforeSaveCallback.mockRejectedValueOnce(new BadRequestException('rejected'));
+      exec.mockResolvedValueOnce(storedUser);
+      vi.spyOn(bcryptService, 'comparePassword').mockResolvedValueOnce(true);
+
+      await expect(service['updatePassword']({ id: fakeUserId } as User, currentPassword, newPassword))
+      .rejects.toThrow(new BadRequestException('rejected'));
+      expect(model.updateOne).not.toHaveBeenCalled();
+      expect(callback).not.toHaveBeenCalled();
+    });
+
+    it('should clear the refresh sessions in the same update when revokeSessionsOnPasswordChange is on', async () => {
+      service['refreshTokenField'] = 'nickname';
+      service['revokeSessionsOnPasswordChange'] = true;
+      exec.mockResolvedValueOnce(storedUser);
+      vi.spyOn(bcryptService, 'comparePassword').mockResolvedValueOnce(true);
+
+      await service['updatePassword']({ id: fakeUserId } as User, currentPassword, newPassword);
+
+      expect(model.updateOne).toHaveBeenCalledWith(
+        { _id: fakeUserId },
+        { $set: { [fakePasswordField]: hashedPassword, nickname: null } },
+      );
+    });
+
+    it('should not touch any refresh field when revokeSessionsOnPasswordChange is on without refreshTokenField', async () => {
+      service['revokeSessionsOnPasswordChange'] = true;
+      exec.mockResolvedValueOnce(storedUser);
+      vi.spyOn(bcryptService, 'comparePassword').mockResolvedValueOnce(true);
+
+      await service['updatePassword']({ id: fakeUserId } as User, currentPassword, newPassword);
+
+      expect(model.updateOne).toHaveBeenCalledWith({ _id: fakeUserId }, { $set: { [fakePasswordField]: hashedPassword } });
     });
   });
 

@@ -27,6 +27,9 @@ JWT authentication is built-in and provides secure, **dual-token** (access + ref
   - [Automatic Token Refresh on Update (`refreshTokenOnUpdate`)](#automatic-token-refresh-on-update-refreshtokenonupdate) ⭐ *New*
   - [Auth Operation Context (`getAuthOperationContext`)](#auth-operation-context-getauthoperationcontext) ⭐ *New*
   - [Reset Password Configuration](#reset-password-configuration)
+  - [Password Policy (`password.minLength`)](#password-policy-passwordminlength) ⭐ *New in v6.3*
+  - [Authenticated Password Change (`updatePassword`)](#authenticated-password-change-updatepassword) ⭐ *New in v6.3*
+  - [Disabling Routes (`disabled`)](#disabling-routes-disabled) ⭐ *New in v6.3*
   - [Callbacks and Lifecycle Hooks](#callbacks-and-lifecycle-hooks)
   - [Interceptors](#interceptors)
   - [Validation Options](#validation-options)
@@ -206,6 +209,7 @@ DynamicApiModule.forRoot('mongodb-uri', {
         fields?: (keyof Entity)[];            // Fields to include (default: all)
         rooms?: string | string[] | ((data: Partial<Entity>) => string | string[]); // Target rooms
       };
+      disabled?: boolean;                      // v6.3 — do not declare POST /auth/register at all (404, hidden from Swagger)
     },
     
     // Update Account Configuration
@@ -227,6 +231,21 @@ DynamicApiModule.forRoot('mongodb-uri', {
        * round-trip after a profile change.
        */
       refreshTokenOnUpdate?: boolean;         // Default: false
+      disabled?: boolean;                     // v6.3 — do not declare PATCH /auth/account at all (404, hidden from Swagger)
+    },
+
+    // Authenticated Password Change (v6.3) — PATCH /auth/account/password exists only when this object is set
+    updatePassword?: {
+      beforeSaveCallback?: (user: Entity, ctx: BeforeUpdatePasswordContext, methods: CallbackMethods) => Promise<Partial<Entity>>;
+      callback?: (user: Entity, methods: CallbackMethods) => Promise<void>;
+      abilityPredicate?: (user, body?) => boolean;
+      useInterceptors?: Type<NestInterceptor>[];
+      rateLimit?: RateLimitConfig;
+    },
+
+    // Password Policy (v6.3) — register, change-password and account/password
+    password?: {
+      minLength?: number;                     // Default: no minimum
     },
     
     // Reset Password Configuration
@@ -312,7 +331,7 @@ DynamicApiModule.forRoot('mongodb-uri', {
 
 ## Generated Endpoints
 
-Authentication automatically generates **eight endpoints**:
+Authentication automatically generates **eight endpoints**, plus an optional ninth one (`PATCH /auth/account/password`, see below):
 
 ### 1. Register a New User
 
@@ -558,6 +577,35 @@ Authorization: Bearer <refreshToken>
 ```
 
 **Response (204 No Content)**
+
+### 9. Change Password (Authenticated) ⭐ *New in v6.3*
+
+**PATCH** `/auth/account/password`
+
+Lets a logged-in user change their own password with their current one — no reset e-mail involved. Only declared when the `updatePassword` option is set (see [Authenticated Password Change](#authenticated-password-change-updatepassword)); the route answers `404` otherwise.
+
+**Headers:**
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+**Request Body:**
+```json
+{
+  "currentPassword": "SecurePassword123!",
+  "newPassword": "EvenMoreSecure456!"
+}
+```
+
+**Response (204 No Content)**
+
+| Status | When |
+|---|---|
+| `204` | Password changed (and every refresh session revoked when `revokeSessionsOnPasswordChange` is on) |
+| `400` | Missing field, or `newPassword` shorter than `password.minLength` (`["newPassword must be longer than or equal to 12 characters"]`) |
+| `401` | Missing/invalid access token, or wrong `currentPassword` (`Invalid credentials`, same message as login) |
+| `403` | `updatePassword.abilityPredicate` returned `false` (`Access denied`) |
+| `429` | `updatePassword.rateLimit` exceeded |
 
 ---
 
@@ -1293,6 +1341,173 @@ DynamicApiModule.forRoot('mongodb-uri', {
 6. The token can't be used again: see [Token Types and JWT Secrets](#token-types-and-jwt-secrets)
 
 **Note:** If `resetPassword` is not configured or `emailField` is missing, both reset endpoints are hidden.
+
+### Password Policy (`password.minLength`) ⭐ *New in v6.3*
+
+One option enforces a minimum password length on **every** route that sets a password: `POST /auth/register`, `PATCH /auth/change-password` (reset token) and `PATCH /auth/account/password` (authenticated). Nothing is enforced when the option is absent, so existing setups keep their behavior.
+
+```typescript
+type PasswordOptions = {
+  minLength?: number; // Default: no minimum
+};
+```
+
+```typescript
+import { Module } from '@nestjs/common';
+import { DynamicApiModule } from 'mongodb-dynamic-api';
+import { User } from './user.entity';
+
+@Module({
+  imports: [
+    DynamicApiModule.forRoot(process.env.MONGO_DB_URL, {
+      useAuth: {
+        jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
+        userEntity: User,
+        password: { minLength: 12 },
+        resetPassword: {
+          resetPasswordCallback: async ({ email, resetPasswordToken }) => {
+            await mailer.sendResetLink(email, resetPasswordToken);
+          },
+        },
+        updatePassword: {},
+      },
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+A too-short password gets a `400` whose message follows the class-validator format used by the body pipe, so clients can treat it like any other validation error:
+
+```json
+{
+  "statusCode": 400,
+  "message": ["newPassword must be longer than or equal to 12 characters"],
+  "error": "Bad Request"
+}
+```
+
+On `POST /auth/register` the message names `passwordField` (`password must be longer than or equal to 12 characters`) and is listed together with the other registration errors (`email property is required`…). The check runs before any token verification or password comparison.
+
+> Still want complexity rules (uppercase, digits…)? Keep a `@Matches()` validator on the entity for `register` (see [Password Validation](#3-password-validation)) and throw from `resetPassword.beforeChangePasswordCallback` / `updatePassword.beforeSaveCallback` for the two change routes — `minLength` only covers the length.
+
+### Authenticated Password Change (`updatePassword`) ⭐ *New in v6.3*
+
+Until v6.2 the only way to change a password was the reset link (`POST /auth/reset-password` → e-mail → `PATCH /auth/change-password`). Setting `updatePassword` declares `PATCH /auth/account/password`, protected by the access token (`JwtAuthGuard`), which verifies the **current** password with bcrypt (the same check as login) before storing the new one.
+
+```typescript
+type UpdatePasswordOptions<Entity> = {
+  beforeSaveCallback?: BeforeSaveCallback<Entity, BeforeUpdatePasswordContext>;
+  callback?: AfterSaveCallback<Entity>;
+  abilityPredicate?: AuthAbilityPredicate;
+  useInterceptors?: Type<NestInterceptor>[];
+  rateLimit?: RateLimitConfig;
+};
+
+type BeforeUpdatePasswordContext = {
+  currentPassword: string; // plain, already verified against the stored hash
+  newPassword: string;     // plain, already checked against password.minLength
+  hashedPassword: string;  // bcrypt hash about to be persisted
+};
+```
+
+| Option | Description |
+|---|---|
+| `beforeSaveCallback` | Called once the current password is verified and the new one hashed, before the write. **Throw to reject** the change — the return value is ignored. |
+| `callback` | Called after the write with the fresh user document (send a "your password was changed" e-mail, write an audit log…). |
+| `abilityPredicate` | `(user, body) => boolean` — `403 Access denied` when it returns `false`. |
+| `useInterceptors` | NestJS interceptors applied to the route. |
+| `rateLimit` | Per-route throttling, see [Rate Limiting](#5-rate-limiting--new). |
+
+The route is **opt-in**: like `resetPassword` and `passwordless`, it only exists when its option object is set — `updatePassword: {}` is enough to enable it with the defaults. Without it, nothing changes: the route answers `404` and is absent from Swagger.
+
+```typescript
+import { BadRequestException, Module } from '@nestjs/common';
+import { BeforeSaveCallback, BeforeUpdatePasswordContext, DynamicApiModule } from 'mongodb-dynamic-api';
+import { User } from './user.entity';
+
+const rejectSamePassword: BeforeSaveCallback<User, BeforeUpdatePasswordContext> =
+  async (user, { currentPassword, newPassword }) => {
+    if (newPassword === currentPassword) {
+      throw new BadRequestException('newPassword must differ from currentPassword');
+    }
+    return user;
+  };
+
+@Module({
+  imports: [
+    DynamicApiModule.forRoot(process.env.MONGO_DB_URL, {
+      useAuth: {
+        jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
+        userEntity: User,
+        password: { minLength: 12 },
+        refreshToken: { refreshTokenField: 'refreshTokenHash', revokeSessionsOnPasswordChange: true },
+        updatePassword: {
+          rateLimit: { limit: 5, ttl: 60000 },
+          abilityPredicate: (user: User) => user.isActive,
+          beforeSaveCallback: rejectSamePassword,
+          callback: async (user) => {
+            await mailer.send(user.email, 'Your password was changed');
+          },
+        },
+      },
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+```http
+PATCH /auth/account/password
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+
+{ "currentPassword": "SecurePassword123!", "newPassword": "EvenMoreSecure456!" }
+```
+
+**What the route does, in order:**
+1. `password.minLength` check on `newPassword` (`400`).
+2. Loads the user behind the access token and compares `currentPassword` with the stored bcrypt hash — `401 Invalid credentials` (the login message, so a wrong guess leaks nothing more than a failed login does). A `401` is also what `validateUser` returns on login, which is why this status was kept over a `400`.
+3. Hashes `newPassword`, calls `beforeSaveCallback`.
+4. Stores the hash. With `refreshToken.revokeSessionsOnPasswordChange` (default `true` when `multiSession` is on), every refresh session of the user is revoked in the same write — exactly like `PATCH /auth/change-password` — so the client should log in again (the current access token stays valid until it expires).
+5. Calls `callback`.
+
+The password is never returned: the response is an empty `204`.
+
+> Sharing one validation with the reset flow: `resetPassword.beforeChangePasswordCallback` receives `{ resetPasswordToken, newPassword, hashedPassword }` and `updatePassword.beforeSaveCallback` receives `{ currentPassword, newPassword, hashedPassword }` — both carry `newPassword`, so one function that only reads it can be passed to both options.
+
+> WebSocket: this route has no socket event (same as the passwordless routes). Use HTTP.
+
+### Disabling Routes (`disabled`) ⭐ *New in v6.3*
+
+`register.disabled` and `updateAccount.disabled` remove the route **entirely** — it is not declared by the controller (so it answers `404 Not Found` instead of `401`/`403`), it does not appear in Swagger, its broadcast event is not registered and the WebSocket gateway does not listen for `auth-register` / `auth-update-account`. Use it when accounts are created by your own code (invitations, SSO, an admin tool) rather than by a public sign-up route.
+
+```typescript
+import { Module } from '@nestjs/common';
+import { DynamicApiModule } from 'mongodb-dynamic-api';
+import { User } from './user.entity';
+
+@Module({
+  imports: [
+    DynamicApiModule.forRoot(process.env.MONGO_DB_URL, {
+      useAuth: {
+        jwt: { secret: process.env.JWT_SECRET, refreshSecret: process.env.JWT_REFRESH_SECRET },
+        userEntity: User,
+        register: { disabled: true },        // POST /auth/register → 404, hidden from Swagger
+        updateAccount: { disabled: true },   // PATCH /auth/account → 404, GET /auth/account untouched
+      },
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+| Option | Removes |
+|---|---|
+| `register.disabled` | `POST /auth/register` and the `auth-register` socket event |
+| `updateAccount.disabled` | `PATCH /auth/account` and the `auth-update-account` socket event (`GET /auth/account` stays) |
+
+Compared with `register: { protected: true, abilityPredicate: () => false }`, which keeps the route and answers `401`/`403`, `disabled: true` does not reveal that the route exists. Default: `false` for both. The other optional routes already have their own switch: `resetPassword`/`passwordless` are hidden from Swagger and answer `503` when not configured, `logout-all` when `multiSession` is off, and `PATCH /auth/account/password` is only declared when `updatePassword` is set.
 
 ### Callbacks and Lifecycle Hooks
 
@@ -2512,7 +2727,7 @@ export class User extends BaseEntity {
 
 ### 3. Password Validation
 
-Use class-validator for strong password requirements:
+Set `password.minLength` for the length rule — it applies to `register`, `change-password` and `account/password` alike (see [Password Policy](#password-policy-passwordminlength)). For complexity rules on registration, use class-validator on the entity:
 
 ```typescript
 import { Matches, MinLength } from 'class-validator';
@@ -2579,6 +2794,9 @@ import { ThrottlerModule } from '@nestjs/throttler';
           rateLimit: { limit: 3, ttl: 3600000 },            // POST /auth/reset-password
           changePasswordRateLimit: { limit: 3, ttl: 3600000 }, // PATCH /auth/change-password
         },
+        updatePassword: {
+          rateLimit: { limit: 5, ttl: 60000 },              // PATCH /auth/account/password (v6.3)
+        },
         passwordless: {
           sendCodeCallback: async (identifier, code) => { /* ... */ },
           sendCodeRateLimit: { limit: 3, ttl: 60000 },     // POST /auth/passwordless/send-code
@@ -2600,6 +2818,7 @@ Each `rateLimit`/`*RateLimit` option is independent and optional — set only th
 | `refreshToken.rateLimit` | `POST /auth/refresh-token` |
 | `resetPassword.rateLimit` | `POST /auth/reset-password` |
 | `resetPassword.changePasswordRateLimit` | `PATCH /auth/change-password` |
+| `updatePassword.rateLimit` | `PATCH /auth/account/password` ⭐ *v6.3* |
 | `passwordless.sendCodeRateLimit` | `POST /auth/passwordless/send-code` |
 | `passwordless.verifyCodeRateLimit` | `POST /auth/passwordless/verify-code` |
 

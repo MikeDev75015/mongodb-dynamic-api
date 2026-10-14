@@ -9,6 +9,7 @@ import { Public } from '../../../decorators';
 import { RateLimit } from '../../../decorators/rate-limit.decorator';
 import { allowBodyFields } from '../../../helpers/allow-body-fields.helper';
 import { stripTokenClaims } from '../../../helpers/auth-token.helper';
+import { removeRouteHandler } from '../../../helpers/remove-route-handler.helper';
 import { RouteDecoratorsHelper } from '../../../helpers/route-decorators.helper';
 import { stripBusinessValidators } from '../../../helpers/strip-business-validators.helper';
 import { DynamicApiEventRegistryStore } from '../../../helpers/event-registry.store';
@@ -26,9 +27,22 @@ import {
 import { ChangePasswordDto } from '../dtos/change-password.dto';
 import { ResetPasswordDto } from '../dtos/reset-password.dto';
 import { SendOtpCodeDto } from '../dtos/send-otp-code.dto';
+import { UpdatePasswordDto } from '../dtos/update-password.dto';
 import { VerifyOtpCodeDto } from '../dtos/verify-otp-code.dto';
 import { JwtAuthGuard, JwtRefreshGuard, LocalAuthGuard, MultiSessionGuard, PasswordlessGuard, ResetPasswordGuard } from '../guards';
-import { AuthController, AuthControllerConstructor, AuthService, DynamicApiGetAccountOptions, DynamicApiLoginOptions, DynamicApiRefreshTokenOptions, DynamicApiRegisterOptions, DynamicApiResetPasswordOptions, DynamicApiUpdateAccountOptions, PasswordlessOptions } from '../interfaces';
+import {
+  AuthController,
+  AuthControllerConstructor,
+  AuthService,
+  DynamicApiGetAccountOptions,
+  DynamicApiLoginOptions,
+  DynamicApiRefreshTokenOptions,
+  DynamicApiRegisterOptions,
+  DynamicApiResetPasswordOptions,
+  DynamicApiUpdateAccountOptions,
+  PasswordlessOptions,
+  UpdatePasswordOptions,
+} from '../interfaces';
 import { AuthPoliciesGuardMixin } from './auth-policies-guard.mixin';
 
 const REFRESH_TOKEN_COOKIE = 'refreshToken';
@@ -42,6 +56,7 @@ type AuthControllerMixinOptions<Entity extends BaseEntity> = {
   getAccountOptions?: DynamicApiGetAccountOptions<Entity>;
   refreshTokenOptions?: DynamicApiRefreshTokenOptions<Entity>;
   passwordlessOptions?: PasswordlessOptions<Entity>;
+  updatePasswordOptions?: UpdatePasswordOptions<Entity>;
 };
 
 function AuthControllerMixin<Entity extends BaseEntity>(
@@ -63,6 +78,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
       useInterceptors: registerUseInterceptors = [],
       broadcast: registerBroadcastConfig,
       rateLimit: registerRateLimit,
+      disabled: registerDisabled = false,
     } = {},
     resetPasswordOptions: {
       resetPasswordUseInterceptors = [],
@@ -75,6 +91,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
       useInterceptors: updateAccountUseInterceptors = [],
       broadcast: updateAccountBroadcastConfig,
       refreshTokenOnUpdate = false,
+      disabled: updateAccountDisabled = false,
       ...updateAccountOptions
     } = {},
     getAccountOptions: {
@@ -88,11 +105,18 @@ function AuthControllerMixin<Entity extends BaseEntity>(
       multiSession = false,
     } = {},
     passwordlessOptions,
+    updatePasswordOptions,
   }: AuthControllerMixinOptions<Entity>,
 ): AuthControllerConstructor<Entity> {
   if (!loginField || !passwordField) {
     throw new Error('Login and password fields are required');
   }
+
+  const {
+    abilityPredicate: updatePasswordAbilityPredicate,
+    useInterceptors: updatePasswordUseInterceptors = [],
+    rateLimit: updatePasswordRateLimit,
+  } = updatePasswordOptions ?? {};
 
   if (loginBroadcastConfig) {
     DynamicApiEventRegistryStore.register({
@@ -107,7 +131,8 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     });
   }
 
-  if (registerBroadcastConfig) {
+  // A disabled route never fires its broadcast: don't advertise its event either.
+  if (registerBroadcastConfig && !registerDisabled) {
     DynamicApiEventRegistryStore.register({
       event: registerBroadcastConfig.eventName || AUTH_REGISTER_BROADCAST_EVENT,
       routeType: 'Auth',
@@ -133,7 +158,7 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     });
   }
 
-  if (updateAccountBroadcastConfig) {
+  if (updateAccountBroadcastConfig && !updateAccountDisabled) {
     DynamicApiEventRegistryStore.register({
       event: updateAccountBroadcastConfig.eventName || AUTH_UPDATE_ACCOUNT_BROADCAST_EVENT,
       routeType: 'Auth',
@@ -245,6 +270,9 @@ function AuthControllerMixin<Entity extends BaseEntity>(
     true,
     AuthUpdateAccountPoliciesGuard
   );
+
+  class AuthUpdatePasswordPoliciesGuard extends AuthPoliciesGuardMixin(userEntity, updatePasswordAbilityPredicate) {}
+  const authUpdatePasswordDecorators = new AuthDecoratorsBuilder(true, AuthUpdatePasswordPoliciesGuard);
 
   class BaseAuthController implements AuthController<Entity> {
     constructor(
@@ -407,6 +435,18 @@ function AuthControllerMixin<Entity extends BaseEntity>(
       return account;
     }
 
+    @RouteDecoratorsHelper(authUpdatePasswordDecorators)
+    @RateLimit(updatePasswordRateLimit)
+    @HttpCode(HttpStatus.NO_CONTENT)
+    @UseInterceptors(...updatePasswordUseInterceptors)
+    @Patch('account/password')
+    updatePassword(
+      @Request() req: { user: Entity },
+      @Body() { currentPassword, newPassword }: UpdatePasswordDto,
+    ) {
+      return this.service.updatePassword(req.user, currentPassword, newPassword);
+    }
+
     @Public()
     @ApiBearerAuth()
     @UseGuards(JwtRefreshGuard)
@@ -498,6 +538,21 @@ function AuthControllerMixin<Entity extends BaseEntity>(
 
       return result;
     }
+  }
+
+  // Routes that must not exist at all (404, absent from Swagger) are removed from the prototype:
+  // `register.disabled` / `updateAccount.disabled`, and `PATCH /auth/account/password` unless
+  // `updatePassword` is configured.
+  if (registerDisabled) {
+    removeRouteHandler(BaseAuthController.prototype, 'register');
+  }
+
+  if (updateAccountDisabled) {
+    removeRouteHandler(BaseAuthController.prototype, 'updateAccount');
+  }
+
+  if (!updatePasswordOptions) {
+    removeRouteHandler(BaseAuthController.prototype, 'updatePassword');
   }
 
   return BaseAuthController;

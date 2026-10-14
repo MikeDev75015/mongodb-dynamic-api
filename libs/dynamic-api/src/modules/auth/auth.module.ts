@@ -54,6 +54,8 @@ export class AuthModule implements NestModule {
       resetPassword,
       refreshToken,
       passwordless,
+      updatePassword,
+      password,
       jwt: { secret, expiresIn },
       validationPipeOptions,
       webSocket,
@@ -82,6 +84,7 @@ export class AuthModule implements NestModule {
         updateAccountOptions: updateAccount,
         refreshTokenOptions: refreshToken,
         passwordlessOptions: passwordless,
+        updatePasswordOptions: updatePassword,
       },
     );
 
@@ -95,6 +98,8 @@ export class AuthModule implements NestModule {
         updateAccount,
         refreshToken,
         passwordlessOptions: passwordless,
+        updatePasswordOptions: updatePassword,
+        passwordOptions: password,
       },
     );
     const LocalStrategyProvider = createLocalStrategyProvider(
@@ -204,6 +209,8 @@ export class AuthModule implements NestModule {
     resetPassword,
     refreshToken,
     passwordless,
+    updatePassword,
+    password,
     validationPipeOptions,
     webSocket,
     extraImports = [],
@@ -254,6 +261,8 @@ export class AuthModule implements NestModule {
             otpExpirationMinutes: passwordless.otpExpirationMinutes ?? 10,
           }
         : undefined,
+      updatePassword,
+      password,
       validationPipeOptions: validationPipeOptions,
       webSocket,
       extraImports,

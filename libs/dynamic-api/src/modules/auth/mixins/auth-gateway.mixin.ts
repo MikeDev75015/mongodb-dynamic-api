@@ -8,6 +8,7 @@ import { stripTokenClaims } from '../../../helpers/auth-token.helper';
 import { DYNAMIC_API_AUTHENTICATED_ROOM } from '../../../helpers/authenticated-room.constant';
 import { isEmpty } from '../../../helpers/lodash.helper';
 import { isNotEmptyObject } from '../../../helpers/format.helper';
+import { removeRouteHandler } from '../../../helpers/remove-route-handler.helper';
 import { stripBusinessValidators } from '../../../helpers/strip-business-validators.helper';
 import { DynamicApiEventRegistryStore } from '../../../helpers/event-registry.store';
 import { ExtendedSocket } from '../../../interfaces';
@@ -51,6 +52,7 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
     abilityPredicate: registerAbilityPredicate,
     useInterceptors: registerUseInterceptors = [],
     broadcast: registerBroadcastConfig,
+    disabled: registerDisabled = false,
   }: DynamicApiRegisterOptions<Entity> = {},
   {
     resetPasswordUseInterceptors = [],
@@ -60,6 +62,7 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
   {
     useInterceptors: updateAccountUseInterceptors = [],
     broadcast: updateAccountBroadcastConfig,
+    disabled: updateAccountDisabled = false,
     ...updateAccountOptions
   }: DynamicApiUpdateAccountOptions<Entity> = {},
   {
@@ -84,7 +87,8 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
     });
   }
 
-  if (registerBroadcastConfig) {
+  // A disabled handler never fires its broadcast: don't advertise its event either.
+  if (registerBroadcastConfig && !registerDisabled) {
     DynamicApiEventRegistryStore.register({
       event: registerBroadcastConfig.eventName || AUTH_REGISTER_BROADCAST_EVENT,
       routeType: 'Auth',
@@ -110,7 +114,7 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
     });
   }
 
-  if (updateAccountBroadcastConfig) {
+  if (updateAccountBroadcastConfig && !updateAccountDisabled) {
     DynamicApiEventRegistryStore.register({
       event: updateAccountBroadcastConfig.eventName || AUTH_UPDATE_ACCOUNT_BROADCAST_EVENT,
       routeType: 'Auth',
@@ -367,6 +371,16 @@ function AuthGatewayMixin<Entity extends BaseEntity>(
 
       return { event: AUTH_LOGOUT_ALL_EVENT, data: undefined };
     }
+  }
+
+  // Same as the HTTP controller: a disabled handler is removed so the gateway never listens for
+  // its event (`register.disabled` / `updateAccount.disabled`).
+  if (registerDisabled) {
+    removeRouteHandler(BaseAuthGateway.prototype, 'register');
+  }
+
+  if (updateAccountDisabled) {
+    removeRouteHandler(BaseAuthGateway.prototype, 'updateAccount');
   }
 
   return BaseAuthGateway;
