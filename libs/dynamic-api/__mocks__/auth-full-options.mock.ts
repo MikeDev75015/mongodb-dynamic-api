@@ -58,6 +58,13 @@ export const getFullAuthOptionsMock = <Entity extends BaseEntity>(
     refreshTokenField: 'refreshToken' as keyof Entity,
     useCookie: false,
   },
+  updatePassword: {
+    beforeSaveCallback: vi.fn(),
+    callback: vi.fn(),
+    abilityPredicate: vi.fn(),
+    useInterceptors: [],
+  },
+  password: { minLength: 8 },
   validationPipeOptions: { whitelist: true },
   webSocket: { namespace: 'namespace' },
   extraImports,

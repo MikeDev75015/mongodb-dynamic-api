@@ -1237,7 +1237,7 @@ const routes: DynamicApiRouteConfig<Item>[] = [
 
 ## Auth route callbacks
 
-Authentication routes (`register`, `login`, `updateAccount`, `resetPassword`) also support callbacks with the same `CallbackMethods`.
+Authentication routes (`register`, `login`, `updateAccount`, `resetPassword`, `updatePassword`) also support callbacks with the same `CallbackMethods`.
 
 ```typescript
 DynamicApiModule.forRoot(uri, {
@@ -1285,9 +1285,29 @@ DynamicApiModule.forRoot(uri, {
         );
       },
     },
+    // v6.3 — PATCH /auth/account/password (authenticated password change)
+    updatePassword: {
+      // Called once the current password is verified and the new one hashed: throw to reject
+      beforeSaveCallback: async (user, context) => {
+        const { currentPassword, newPassword } = context as BeforeUpdatePasswordContext;
+        if (newPassword === currentPassword) {
+          throw new BadRequestException('newPassword must differ from currentPassword');
+        }
+        return user;
+      },
+      // Called after the new hash is stored
+      callback: async (user, methods) => {
+        await methods.createOneDocument(AuditLog, {
+          action: 'PasswordChanged',
+          entityId: user.id,
+        });
+      },
+    },
   },
 });
 ```
+
+`BeforeUpdatePasswordContext` is `{ currentPassword, newPassword, hashedPassword }` — see [Authenticated Password Change](./authentication.md#authenticated-password-change-updatepassword).
 
 ---
 

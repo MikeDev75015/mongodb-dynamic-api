@@ -7,3 +7,5 @@ export * from './reset-password-user.factory';
 export * from './broadcast-user.factory';
 export * from './refresh-token-user.factory';
 export * from './unique-login-user.factory';
+export * from './update-password-user.factory';
+export * from './unique-email-user.factory';

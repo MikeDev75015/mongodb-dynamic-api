@@ -432,6 +432,27 @@ describe('AuthHelper', () => {
         expect(authService).toHaveProperty('jwtService', jwtService);
         expect(authService).toHaveProperty('bcryptService', bcryptService);
       });
+
+      it('should leave updatePasswordOptions and passwordMinLength undefined by default', () => {
+        expect(authService).toHaveProperty('updatePasswordOptions', undefined);
+        expect(authService).toHaveProperty('passwordMinLength', undefined);
+      });
+
+      it('should expose updatePasswordOptions and password.minLength when provided', () => {
+        const updatePasswordOptions = { rateLimit: { limit: 5, ttl: 60000 } };
+        const { useClass: ConfiguredAuthService } = createAuthServiceProvider<UserEntity>(
+          UserEntity,
+          {
+            loginOptions: { loginField, passwordField },
+            updatePasswordOptions,
+            passwordOptions: { minLength: 12 },
+          },
+        ) as { useClass: Type };
+        const configuredAuthService = new ConfiguredAuthService(model, jwtService, bcryptService);
+
+        expect(configuredAuthService).toHaveProperty('updatePasswordOptions', updatePasswordOptions);
+        expect(configuredAuthService).toHaveProperty('passwordMinLength', 12);
+      });
     });
   });
 

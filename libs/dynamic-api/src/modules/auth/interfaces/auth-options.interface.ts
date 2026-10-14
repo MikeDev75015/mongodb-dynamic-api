@@ -3,6 +3,7 @@ import type { Request } from 'express';
 import {
   AuthAbilityPredicate,
   BeforeRegisterContext,
+  BeforeUpdatePasswordContext,
   BroadcastAbilityPredicate,
   BroadcastRooms,
   DynamicApiResetPasswordCallback,
@@ -101,6 +102,13 @@ type DynamicApiRegisterOptions<Entity extends BaseEntity = any, TExtra = Record<
   broadcast?: DynamicApiAuthBroadcastConfig<Entity>;
   /** Rate-limits `POST /auth/register`. See {@link DynamicApiLoginOptions.rateLimit}. */
   rateLimit?: RateLimitConfig;
+  /**
+   * Since v6.3 — when true, `POST /auth/register` and the `auth-register` socket event are not
+   * declared at all: the route answers 404 (not 401/403), is absent from Swagger and the gateway
+   * never listens for the event. Use it to close account creation entirely (accounts are then
+   * created by your own code). Default: false.
+   */
+  disabled?: boolean;
 };
 
 type DynamicApiUpdateAccountOptions<Entity extends BaseEntity = any> = {
@@ -116,6 +124,55 @@ type DynamicApiUpdateAccountOptions<Entity extends BaseEntity = any> = {
    * a profile change without a separate /refresh-token call.
    */
   refreshTokenOnUpdate?: boolean;
+  /**
+   * Since v6.3 — when true, `PATCH /auth/account` and the `auth-update-account` socket event are
+   * not declared at all (404, absent from Swagger). Default: false.
+   */
+  disabled?: boolean;
+};
+
+/**
+ * Since v6.3 — options of `PATCH /auth/account/password`, the authenticated password change
+ * (`{ currentPassword, newPassword }` behind a valid access token). The route is only declared when
+ * this object is set on `DynamicApiAuthOptions.updatePassword` (`updatePassword: {}` enables it
+ * with the defaults) — without it nothing changes.
+ *
+ * @example
+ * ```typescript
+ * updatePassword: {
+ *   rateLimit: { limit: 5, ttl: 60000 },
+ *   callback: async (user) => {
+ *     await mailer.send(user.email, 'Your password was changed');
+ *   },
+ * },
+ * ```
+ */
+type UpdatePasswordOptions<Entity extends BaseEntity = any> = {
+  /**
+   * Called once the current password is verified and the new one hashed, before the write.
+   * Throw to reject the change — the return value is ignored. See {@link BeforeUpdatePasswordContext}.
+   */
+  beforeSaveCallback?: BeforeSaveCallback<Entity, BeforeUpdatePasswordContext>;
+  /** Called after the new password is persisted, with the fresh user document. */
+  callback?: AfterSaveCallback<Entity>;
+  /** Restricts who may change their own password (403 `Access denied` otherwise). */
+  abilityPredicate?: AuthAbilityPredicate;
+  useInterceptors?: Type<NestInterceptor>[];
+  /** Rate-limits `PATCH /auth/account/password`. See {@link DynamicApiLoginOptions.rateLimit}. */
+  rateLimit?: RateLimitConfig;
+};
+
+/**
+ * Since v6.3 — password policy shared by every route that sets a password: `POST /auth/register`,
+ * `PATCH /auth/change-password` and `PATCH /auth/account/password`. Nothing is enforced when unset.
+ */
+type PasswordOptions = {
+  /**
+   * Minimum number of characters. A shorter password gets a 400 whose message follows the
+   * class-validator format: `newPassword must be longer than or equal to 12 characters`
+   * (`password must be…` on register, using `passwordField`).
+   */
+  minLength?: number;
 };
 
 type DynamicApiResetPasswordOptions<Entity extends BaseEntity = any> = {
@@ -236,6 +293,10 @@ type DynamicApiAuthOptions<Entity extends BaseEntity = any, RegisterExtra = Reco
   resetPassword?: Partial<DynamicApiResetPasswordOptions<Entity>>;
   refreshToken?: DynamicApiRefreshTokenOptions<Entity>;
   passwordless?: PasswordlessOptions<Entity>;
+  /** Since v6.3 — declares `PATCH /auth/account/password`. See {@link UpdatePasswordOptions}. */
+  updatePassword?: UpdatePasswordOptions<Entity>;
+  /** Since v6.3 — password policy applied on register, change-password and account/password. */
+  password?: PasswordOptions;
   validationPipeOptions?: ValidationPipeOptions;
   webSocket?: DynamicApiWebSocketOptions;
   extraImports?: ModuleMetadata['imports'];
@@ -254,4 +315,6 @@ export type {
   DynamicApiRefreshTokenOptions,
   DynamicApiResetPasswordOptions,
   PasswordlessOptions,
+  PasswordOptions,
+  UpdatePasswordOptions,
 };

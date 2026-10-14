@@ -15,7 +15,7 @@ import { BaseService } from '../../../services/base/base.service';
 import { BcryptService } from '../../../services/bcrypt/bcrypt.service';
 import { DynamicApiModule } from '../../../dynamic-api.module';
 import { OtpCode } from '../models/otp-code.model';
-import { DynamicApiResetPasswordOptions, PasswordlessOptions } from '../interfaces';
+import { DynamicApiResetPasswordOptions, PasswordlessOptions, UpdatePasswordOptions } from '../interfaces';
 
 /** Internal record stored in `refreshTokenField` (JSON-encoded). */
 interface RefreshTokenRecord {
@@ -61,6 +61,10 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
   protected resetPasswordOptions: DynamicApiResetPasswordOptions<Entity> | undefined;
   protected refreshTokenField: keyof Entity | undefined;
   protected passwordlessOptions: PasswordlessOptions<Entity> | undefined;
+  /** Options of `PATCH /auth/account/password` — the route only exists when they are set. */
+  protected updatePasswordOptions: UpdatePasswordOptions<Entity> | undefined;
+  /** `password.minLength` — enforced on register, change-password and account/password when set. */
+  protected passwordMinLength: number | undefined;
 
   /** refreshTokenOnUpdate */
   protected refreshTokenOnUpdate = false;
@@ -233,12 +237,19 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     // write, same as every other out-of-native-pipeline write CallbackMethods exposes
     // (updateOneDocument/rawUpdateOneDocument) — updateAccount used to bypass that entirely,
     // leaving derived fields stale after a profile update.
-    await this.updateOneDocument(
-      this.entity,
-      { _id: id } as FilterQuery<Entity>,
-      // @ts-ignore
-      { $set: update },
-    );
+    try {
+      await this.updateOneDocument(
+        this.entity,
+        { _id: id } as FilterQuery<Entity>,
+        // @ts-ignore
+        { $set: update },
+      );
+    } catch (error) {
+      // Same conversion as register: a unique index hit (E11000, e.g. an email already taken by
+      // another account) is a 409, not a 500; CastError/ValidationError map to 404/400.
+      this.handleDuplicateKeyError(error, false);
+      this.handleMongoErrors(error);
+    }
 
     if (this.updateAccountCallback) {
       const fullUser = (await this.model.findOne({ _id: id }).lean<Entity>().exec());
@@ -314,6 +325,7 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
   protected async changePassword(resetPasswordToken: string, newPassword: string) {
     this.logger.debug('Changing password', { resetPasswordToken: !!resetPasswordToken, newPassword: !!newPassword });
     this.verifyArguments(resetPasswordToken, newPassword);
+    this.assertPasswordMinLength(newPassword, 'newPassword');
 
     const invalidTokenMessage = 'Invalid reset password token. Please redo the reset password process.';
     let payload: ResetPasswordTokenPayload;
@@ -391,6 +403,56 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
         { ...user, id: user._id.toString() },
         this.callbackMethods,
       );
+    }
+  }
+
+  /**
+   * Authenticated password change (`PATCH /auth/account/password`): verifies `currentPassword`
+   * against the stored hash (same bcrypt check as `validateUser`, same 401 `Invalid credentials`
+   * as login), applies `password.minLength`, then persists the hash of `newPassword`.
+   * Honors `revokeSessionsOnPasswordChange` exactly like `changePassword`.
+   */
+  protected async updatePassword(user: Entity, currentPassword: string, newPassword: string): Promise<void> {
+    this.logger.debug('Updating password', { userId: user?.id, currentPassword: !!currentPassword, newPassword: !!newPassword });
+    this.verifyArguments(user, currentPassword, newPassword);
+    this.assertPasswordMinLength(newPassword, 'newPassword');
+
+    const storedUser = await this.model.findOne({ _id: user._id || user.id }).lean<Entity>().exec();
+    const storedHash = storedUser?.[this.passwordField] as string | undefined;
+    const isCurrentPasswordValid = storedHash
+      ? await this.bcryptService.comparePassword(currentPassword, storedHash)
+      : false;
+
+    if (!isCurrentPasswordValid) {
+      // Same message as a failed login: a wrong current password leaks nothing more than login does.
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const userId = (storedUser._id as { toString(): string }).toString();
+    const hashedPassword = await this.bcryptService.hashPassword(newPassword);
+
+    if (this.updatePasswordOptions?.beforeSaveCallback) {
+      await this.updatePasswordOptions.beforeSaveCallback(
+        { ...storedUser, id: userId },
+        { currentPassword, newPassword, hashedPassword },
+        this.callbackMethods,
+      );
+    }
+
+    await this.model.updateOne(
+      { _id: userId },
+      // @ts-ignore
+      {
+        $set: {
+          [this.passwordField]: hashedPassword,
+          ...(this.revokeSessionsOnPasswordChange && this.refreshTokenField ? { [this.refreshTokenField]: null } : {}),
+        },
+      },
+    ).exec();
+
+    if (this.updatePasswordOptions?.callback) {
+      const updatedUser = await this.model.findOne({ _id: userId }).lean<Entity>().exec();
+      await this.updatePasswordOptions.callback({ ...updatedUser, id: userId }, this.callbackMethods);
     }
   }
 
@@ -819,8 +881,12 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
       errors.push(`${String(this.loginField)} property is required`);
     }
 
-    if (!userToCreate[this.passwordField]) {
+    const password = userToCreate[this.passwordField];
+
+    if (!password) {
       errors.push(`${String(this.passwordField)} property is required`);
+    } else if (this.isPasswordTooShort(password)) {
+      errors.push(this.passwordTooShortMessage(String(this.passwordField)));
     }
 
     if (!errors.length) {
@@ -828,5 +894,20 @@ export abstract class BaseAuthService<Entity extends BaseEntity> extends BaseSer
     }
 
     throw new BadRequestException(errors);
+  }
+
+  /** `password.minLength` check, 400 with a class-validator-style message (`field` names the body property). */
+  private assertPasswordMinLength(password: string, field: string): void {
+    if (this.isPasswordTooShort(password)) {
+      throw new BadRequestException([this.passwordTooShortMessage(field)]);
+    }
+  }
+
+  private isPasswordTooShort(password: unknown): boolean {
+    return !!this.passwordMinLength && String(password).length < this.passwordMinLength;
+  }
+
+  private passwordTooShortMessage(field: string): string {
+    return `${field} must be longer than or equal to ${this.passwordMinLength} characters`;
   }
 }
