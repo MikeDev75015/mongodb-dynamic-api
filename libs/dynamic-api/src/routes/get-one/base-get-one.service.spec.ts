@@ -2,7 +2,7 @@ import { describe, expect, it, test, vi } from 'vitest';
 import type { Mock } from 'vitest';
 import { NotFoundException } from '@nestjs/common';
 import { Model } from 'mongoose';
-import { CallbackMethods, AfterSaveCallback, CallbackRetryOptions, PopulateConfig } from '../../interfaces';
+import { CallbackMethods, AfterSaveCallback, CallbackRetryOptions, PopulateConfig, RouteProjection } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseGetOneService } from './base-get-one.service';
 
@@ -21,6 +21,7 @@ type InternalService = {
   callbackRetry: CallbackRetryOptions | undefined;
   callbackMethods: CallbackMethods;
   populate: PopulateConfig | undefined;
+  projection: RouteProjection<TestEntity> | undefined;
 };
 
 const internal = (svc: TestService) => svc as unknown as InternalService;
@@ -128,6 +129,28 @@ describe('BaseGetOneService', () => {
       await service.getOne('ObjectId');
 
       expect(queryMock.populate).toHaveBeenCalledWith('author');
+    });
+
+    it.each([
+      ['a static projection', { name: 0 }, { name: 0 }],
+      ['a projection derived from the user', (u: unknown) => (u ? 'name' : '-name'), 'name'],
+    ])('should select %s', async (_, projection, expected) => {
+      const exec = vi.fn().mockResolvedValueOnce(response);
+      const queryMock: { select: Mock; lean: Mock } = {
+        select: vi.fn(),
+        lean: vi.fn(() => ({ exec })),
+      };
+      queryMock.select.mockReturnValue(queryMock);
+      modelMock = {
+        findOne: vi.fn(() => queryMock),
+      } as unknown as Model<TestEntity>;
+      service = new TestService(modelMock);
+      vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+      internal(service).projection = projection;
+
+      await service.getOne('ObjectId', { id: 'userId' });
+
+      expect(queryMock.select).toHaveBeenCalledWith(expected);
     });
 
     it('should throw error if document not found', async () => {

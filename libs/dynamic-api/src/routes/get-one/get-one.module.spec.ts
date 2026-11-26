@@ -55,7 +55,19 @@ describe('GetOneModule', () => {
       .toHaveBeenCalledWith(Entity, fakeDisplayedName, controllerOptions, routeConfig, version, validationPipeOptions);
       expect(spyCreateGetOneServiceProvider)
       .toHaveBeenCalledWith(
-        Entity, fakeDisplayedName, version, { callback: routeConfigCallback, retry: routeConfig.callbackRetry }, routeConfig.populate,
+        Entity, fakeDisplayedName, version, { callback: routeConfigCallback, retry: routeConfig.callbackRetry }, routeConfig.populate, undefined,
+      );
+    });
+
+    it('should forward projection from the route config to createGetOneServiceProvider', () => {
+      const projection = { name: 0 };
+      const projectedRouteConfig: GetOneRouteConfig<Entity> = { type: 'GetOne', projection };
+
+      GetOneModule.forFeature(databaseModule, Entity, controllerOptions, projectedRouteConfig, version, validationPipeOptions);
+
+      expect(spyCreateGetOneServiceProvider)
+      .toHaveBeenCalledWith(
+        Entity, fakeDisplayedName, version, { callback: undefined, retry: undefined }, undefined, projection,
       );
     });
 
@@ -65,7 +77,7 @@ describe('GetOneModule', () => {
       GetOneModule.forFeature(databaseModule, Entity, controllerOptions, routeConfigWithPopulate, version, validationPipeOptions);
 
       expect(spyCreateGetOneServiceProvider)
-      .toHaveBeenCalledWith(Entity, fakeDisplayedName, version, { callback: undefined, retry: undefined }, 'author');
+      .toHaveBeenCalledWith(Entity, fakeDisplayedName, version, { callback: undefined, retry: undefined }, 'author', undefined);
     });
 
     it('should return a DynamicModule with gateway', () => {
@@ -90,7 +102,7 @@ describe('GetOneModule', () => {
       .toHaveBeenCalledWith(Entity, fakeDisplayedName, controllerOptions, routeConfig, version, validationPipeOptions);
       expect(spyCreateGetOneServiceProvider)
       .toHaveBeenCalledWith(
-        Entity, fakeDisplayedName, version, { callback: routeConfigCallback, retry: routeConfig.callbackRetry }, routeConfig.populate,
+        Entity, fakeDisplayedName, version, { callback: routeConfigCallback, retry: routeConfig.callbackRetry }, routeConfig.populate, undefined,
       );
       expect(spyCreateGetOneGateway)
       .toHaveBeenCalledWith(

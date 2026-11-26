@@ -35,6 +35,14 @@ describe('GetOneHelper', () => {
 
       expect(service.populate).toBe('author');
     });
+
+    it('should pass projection through to the service', () => {
+      const projection = { name: 0 };
+      const { useClass } = createGetOneServiceProvider(entity, displayedName, '1', undefined, undefined, projection);
+      const service = new useClass(model);
+
+      expect(service.projection).toBe(projection);
+    });
   });
 
   describe('createGetOneController', () => {

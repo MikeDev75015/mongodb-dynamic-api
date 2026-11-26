@@ -23,6 +23,8 @@ import {
   GatewayOptions,
   PopulateConfig,
   PredicateBehavior,
+  QueryScope,
+  RouteProjection,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseGetManyService } from './base-get-many.service';
@@ -40,6 +42,8 @@ function createGetManyServiceProvider<Entity extends BaseEntity>(
   abilityPredicate?: AbilityPredicate<Entity>,
   predicateBehavior?: PredicateBehavior,
   populate?: PopulateConfig,
+  queryScope?: QueryScope<Entity>,
+  projection?: RouteProjection<Entity>,
 ): DynamicApiServiceProvider {
   class GetManyService extends BaseGetManyService<Entity> {
     protected readonly entity = entity;
@@ -48,6 +52,8 @@ function createGetManyServiceProvider<Entity extends BaseEntity>(
     protected readonly predicateBehavior = predicateBehavior;
     protected readonly callbackRetry = afterSave?.retry;
     protected readonly populate = populate;
+    protected readonly queryScope = queryScope;
+    protected readonly projection = projection;
 
     constructor(
       @InjectModel(

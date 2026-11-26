@@ -43,6 +43,8 @@ Each route in `DynamicApiModule.forFeature` can be finely configured through the
   - [subPath](#subpath)
   - [validationPipeOptions](#validationpipeoptions)
   - [populate](#populate) ⭐ *New*
+  - [queryScope](#queryscope) ⭐ *New*
+  - [projection](#projection) ⭐ *New*
   - [abilityPredicate](#abilitypredicate)
   - [authAbilityPredicate](#authabilitypredicate)
   - [predicateBehavior](#predicatebehavior)
@@ -127,6 +129,12 @@ interface DynamicApiRouteConfig<Entity extends BaseEntity> {
 
   // Relations (GetOne / GetMany only)
   populate?: string | PopulateOptions | (string | PopulateOptions)[];
+
+  // Query restriction (GetMany only) — caller-derived MongoDB filter merged into find()
+  queryScope?: (user: unknown) => FilterQuery<Entity> | null | Promise<FilterQuery<Entity> | null>;
+
+  // Projection (GetOne / GetMany only) — static, or derived from the caller
+  projection?: ProjectionType<Entity> | ((user: unknown) => ProjectionType<Entity>);
 
   // Authorization
   abilityPredicate?: (entity: Entity, user: any) => boolean;
@@ -1131,6 +1139,143 @@ routes: [
 
 ---
 
+### queryScope
+
+Restricts the **MongoDB query itself** of a **`GetMany`** route to what the caller may see. The function receives the authenticated user and returns a filter that is merged into the route's `find()` — documents outside that filter are **never read** from the database.
+
+This is the scalable counterpart of [`predicateBehavior: 'filter'`](#predicatebehavior): `'filter'` alone reads and instantiates the **whole collection** on every call, then drops what the caller may not see in memory. On a collection that grows with every tenant, that cost is paid by every request. `queryScope` bounds the read; the `'filter'` predicate can stay on top of it as a per-document safety net.
+
+#### Signature
+
+```typescript
+import { FilterQuery } from 'mongoose';
+
+type QueryScope<Entity> = (
+  user: unknown,
+) => FilterQuery<Entity> | null | Promise<FilterQuery<Entity> | null>;
+```
+
+| Returned value | Effect |
+|---|---|
+| a filter (e.g. `{ familyId: { $in: ids } }`) | Combined with the client query through `$and` and passed to `find()` |
+| `{}` | No restriction (e.g. an admin) — the route behaves as if `queryScope` was not set |
+| `null` | Short-circuit: the route answers `[]` **without querying MongoDB** (`callback` is not invoked) |
+
+- The scope is combined with the client's query string through `$and`: `?familyId=<another family>` can only ever **narrow** the scope, never override it.
+- The function may be `async` (e.g. to look up the caller's memberships first).
+- `user` is `undefined` on an `isPublic` route.
+- A scope function that returns `undefined` (forgotten `return`) is treated like `null` — fail-closed.
+
+#### Example
+
+```typescript
+import { Module } from '@nestjs/common';
+import { DynamicApiModule, QueryScope } from 'mongodb-dynamic-api';
+import { MultiplayerLobby } from './multiplayer-lobby.entity';
+
+interface LobbyCaller {
+  id: string;
+  familyIds: string[];
+  isAdmin: boolean;
+}
+
+const lobbyScope: QueryScope<MultiplayerLobby> = (user) => {
+  const { familyIds, isAdmin } = user as LobbyCaller;
+
+  if (isAdmin) {
+    return {}; // no restriction
+  }
+
+  // null → [] without any database read
+  return familyIds.length ? { familyId: { $in: familyIds } } : null;
+};
+
+@Module({
+  imports: [
+    DynamicApiModule.forFeature({
+      entity: MultiplayerLobby,
+      controllerOptions: { path: 'multiplayer-lobbies' },
+      routes: [
+        {
+          type: 'GetMany',
+          queryScope: lobbyScope,
+          // Optional safety net, applied on the scoped documents only
+          predicateBehavior: 'filter',
+          abilityPredicate: (lobby, user) => (user as LobbyCaller).familyIds.includes(lobby.familyId),
+        },
+      ],
+    }),
+  ],
+})
+export class MultiplayerLobbyModule {}
+```
+
+> **Scope:** `GetMany` only (HTTP and WebSocket — both transports share the same service). No effect on other route types.
+
+> **With `predicateBehavior: 'throw'`:** the route's Guard runs its own, unscoped, document check *before* the service — `queryScope` does not bound that read. Pair `queryScope` with `predicateBehavior: 'filter'` (or no `abilityPredicate` at all) to keep the whole request bounded.
+
+> **Cache note:** the scope depends on the caller, so the same rule as [`predicateBehavior: 'filter'` and Cache](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/caching.md#predicatebehavior-filter-and-cache) applies — keep the default `keyBy: 'url+identity'`, or set `disableCache: true` on the route.
+
+---
+
+### projection
+
+MongoDB projection applied to the read of a **`GetOne`** / **`GetMany`** route. Excluded fields are **never transferred from the database**: they reach neither the route's `callback`, nor the presenter, nor the response. Use it to keep heavy fields (embedded arrays, blobs, history) out of list endpoints.
+
+#### Signature
+
+```typescript
+import { ProjectionType } from 'mongoose';
+
+type RouteProjection<Entity> = ProjectionType<Entity> | ((user: unknown) => ProjectionType<Entity>);
+```
+
+Accepts everything Mongoose's own `Query.select()` accepts — an exclusion object (`{ strokes: 0 }`), an inclusion object (`{ name: 1, status: 1 }`), a string (`'name status'` / `'-strokes'`), or expressions such as `$slice` — either static, or as a function of the caller. A function returning `undefined` applies no projection.
+
+#### Example
+
+```typescript
+import { Module } from '@nestjs/common';
+import { DynamicApiModule } from 'mongodb-dynamic-api';
+import { MultiplayerLobby } from './multiplayer-lobby.entity';
+
+interface LobbyCaller {
+  isAdmin: boolean;
+}
+
+@Module({
+  imports: [
+    DynamicApiModule.forFeature({
+      entity: MultiplayerLobby,
+      controllerOptions: { path: 'multiplayer-lobbies' },
+      routes: [
+        {
+          type: 'GetMany',
+          // Static: the list never carries the drawing strokes
+          projection: { strokes: 0 },
+        },
+        {
+          type: 'GetOne',
+          // Per caller: only admins receive the moderation notes
+          projection: (user) => ((user as LobbyCaller).isAdmin ? {} : { moderationNotes: 0 }),
+        },
+      ],
+    }),
+  ],
+})
+export class MultiplayerLobbyModule {}
+```
+
+> **Scope:** `GetOne` and `GetMany` only (HTTP and WebSocket). No effect on other route types.
+
+> **What still sees the full document:** an `abilityPredicate` checked by the Guard (`GetOne`, or `GetMany` with `predicateBehavior: 'throw'`) loads its own, unprojected, copy. On `GetMany` with `predicateBehavior: 'filter'` the predicate runs on the **projected** documents — do not exclude a field your predicate reads.
+
+> **Derived fields / presenters:** a `@DerivedField({ on: 'read' })` or a presenter's `fromEntity` computed from an excluded field receives `undefined` for it. A conditional projection (e.g. "strip `strokes` only when `status` is `finished`") cannot be expressed as a plain exclusion — use a `$cond` projection expression, or keep that reduction in the presenter.
+
+> **Swagger note:** the generated OpenAPI schema still lists every entity field. Declare a `dTOs.presenter` without the excluded fields if the generated client must reflect the projection.
+
+---
+
 ### abilityPredicate
 
 A function that determines whether the **authenticated user** has access to a specific document returned or targeted by this route.
@@ -1220,6 +1365,8 @@ Controls how `abilityPredicate` reacts when a document fails the authorization c
 | `'filter'` | Documents that fail the predicate are **silently removed** from the response. The request always returns **200** with the authorized subset (empty array `[]` if none pass). |
 
 > **Scope:** `GetMany` (HTTP + WebSocket) and `Aggregate` (HTTP + WebSocket) only. No effect on `GetOne`, `UpdateOne`, etc.
+
+> **Performance:** `'filter'` runs in memory, after the whole query result has been read and instantiated. On `GetMany`, add a [`queryScope`](#queryscope) so MongoDB only returns what the caller may see.
 
 ```typescript
 routes: [

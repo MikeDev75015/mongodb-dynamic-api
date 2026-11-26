@@ -21,6 +21,7 @@ import {
   DynamicApiServiceProvider,
   GatewayOptions,
   PopulateConfig,
+  RouteProjection,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseGetOneService } from './base-get-one.service';
@@ -36,12 +37,14 @@ function createGetOneServiceProvider<Entity extends BaseEntity>(
   version: string | undefined,
   afterSave: AfterSaveCallbackConfig<Entity> | undefined,
   populate: PopulateConfig | undefined,
+  projection?: RouteProjection<Entity>,
 ): DynamicApiServiceProvider {
   class GetOneService extends BaseGetOneService<Entity> {
     protected readonly entity = entity;
     protected readonly callback = afterSave?.callback;
     protected readonly callbackRetry = afterSave?.retry;
     protected readonly populate = populate;
+    protected readonly projection = projection;
 
     constructor(
       @InjectModel(

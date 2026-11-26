@@ -1,5 +1,5 @@
 import { NestInterceptor, Type, ValidationPipeOptions } from '@nestjs/common';
-import { PopulateOptions } from 'mongoose';
+import { FilterQuery, PopulateOptions, ProjectionType } from 'mongoose';
 import { BaseEntity } from '../models';
 import { AbilityPredicate, AuthAbilityPredicate, PredicateBehavior } from './dynamic-api-ability.interface';
 import { BroadcastConfig } from './dynamic-api-broadcast-config.interface';
@@ -253,6 +253,44 @@ interface DeleteManyRouteConfig<Entity extends BaseEntity> extends BaseRouteConf
 type PopulateConfig = string | PopulateOptions | (string | PopulateOptions)[];
 
 /**
+ * Server-side MongoDB filter derived from the caller, merged into the `find()` of a `GetMany`
+ * route — the documents outside the returned filter are never read from the database.
+ *
+ * - Return a filter to restrict the query to what `user` may see.
+ * - Return `{}` for "no restriction" (e.g. an admin).
+ * - Return `null` to short-circuit: the route answers `[]` without querying MongoDB at all.
+ *
+ * The scope is combined with the client's own query through `$and`, so a query-string filter can
+ * only ever narrow it, never override it. May be async. `user` is `undefined` on a public route.
+ *
+ * @example
+ * ```typescript
+ * const lobbyScope: QueryScope<MultiplayerLobby> = (user) => {
+ *   const { familyIds } = user as { familyIds: string[] };
+ *   return familyIds.length ? { familyId: { $in: familyIds } } : null;
+ * };
+ * ```
+ */
+type QueryScope<Entity> = (
+  user: unknown,
+) => FilterQuery<Entity> | null | Promise<FilterQuery<Entity> | null>;
+
+/**
+ * MongoDB projection applied to the `find()`/`findOne()` of a `GetMany`/`GetOne` route — either a
+ * static Mongoose projection, or a function deriving one from the caller. Excluded fields are
+ * never transferred from the database: they reach neither `callback`, nor the presenter, nor the
+ * response.
+ *
+ * @example
+ * ```typescript
+ * projection: { strokes: 0 }
+ * projection: 'name status'
+ * projection: (user) => (isAdmin(user) ? {} : { internalNotes: 0 })
+ * ```
+ */
+type RouteProjection<Entity> = ProjectionType<Entity> | ((user: unknown) => ProjectionType<Entity>);
+
+/**
  * Route config for `GetOne` — no `beforeSaveCallback`.
  * `populate` is always applied server-side (static, not client-controlled) to avoid
  * exposing arbitrary relations/performance cost through the request.
@@ -260,6 +298,12 @@ type PopulateConfig = string | PopulateOptions | (string | PopulateOptions)[];
 interface GetOneRouteConfig<Entity extends BaseEntity> extends BaseRouteConfig<Entity> {
   type: 'GetOne';
   populate?: PopulateConfig;
+  /**
+   * MongoDB projection passed to the route's `findOne()`. See {@link RouteProjection}.
+   * Only applies to the route's own read — an `abilityPredicate` checked by the Guard
+   * (`predicateBehavior: 'throw'`) still loads the full document.
+   */
+  projection?: RouteProjection<Entity>;
 }
 
 /**
@@ -270,6 +314,19 @@ interface GetOneRouteConfig<Entity extends BaseEntity> extends BaseRouteConfig<E
 interface GetManyRouteConfig<Entity extends BaseEntity> extends BaseRouteConfig<Entity> {
   type: 'GetMany';
   populate?: PopulateConfig;
+  /**
+   * Restricts the MongoDB query itself to what the caller may see — unlike
+   * `abilityPredicate` + `predicateBehavior: 'filter'`, which reads and instantiates the whole
+   * collection before filtering in memory. Both can be combined: `queryScope` bounds what is
+   * read, the `'filter'` predicate stays as a per-document safety net. See {@link QueryScope}.
+   *
+   * Only applies to the route's own read — with `predicateBehavior: 'throw'` the Guard still
+   * runs its own unscoped check beforehand; pair `queryScope` with `'filter'` (or no
+   * `abilityPredicate`) to keep the read bounded.
+   */
+  queryScope?: QueryScope<Entity>;
+  /** MongoDB projection passed to the route's `find()`. See {@link RouteProjection}. */
+  projection?: RouteProjection<Entity>;
 }
 
 /** Route config for `Aggregate` — no `beforeSaveCallback`. */
@@ -422,6 +479,8 @@ export {
   GetOneRouteConfig,
   GetManyRouteConfig,
   PopulateConfig,
+  QueryScope,
+  RouteProjection,
   AggregateRouteConfig,
   CustomOperationRouteConfig,
   DynamicApiRouteConfig,
