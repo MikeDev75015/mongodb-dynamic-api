@@ -251,6 +251,24 @@ describe('createCustomRouteGateway', () => {
       expect(fromEntity).toHaveBeenCalledWith(raw);
       expect(result.data).toEqual(mapped);
     });
+
+    it('maps a list through presenter.fromEntities with the socket user when isArrayResponse is set', async () => {
+      const rawList = [{ id: '1', name: 'a' }, { id: '2', name: 'b' }] as unknown as FakeEntity[];
+      const mappedList = [{ id: '1' }, { id: '2' }];
+      const fromEntities = vi.fn().mockReturnValue(mappedList);
+
+      class FakeListPresenter {
+        static fromEntities = fromEntities;
+      }
+
+      fakeHandler.mockResolvedValueOnce(rawList);
+      const instance = makeInstance({ isArrayResponse: true, dTOs: { presenter: FakeListPresenter } });
+      const user = { id: 'userId' };
+      const result = await instance.handle({ user } as unknown as ExtendedSocket<FakeEntity>, {});
+
+      expect(fromEntities).toHaveBeenCalledWith(rawList, user);
+      expect(result.data).toBe(mappedList);
+    });
   });
 
   // ── inject (DI resolution) ────────────────────────────────────────────────

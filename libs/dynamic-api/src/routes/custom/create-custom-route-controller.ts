@@ -45,6 +45,7 @@ import { MongoDBDynamicApiLogger } from '../../logger/mongo-dynamic-api.logger';
 import { RoutePoliciesGuardMixin } from '../../mixins';
 import { BaseEntity } from '../../models';
 import { CustomRouteCallbackService } from './custom-route-callback.service';
+import { presentCustomRouteResult } from './present-custom-route-result.helper';
 
 type HttpMethodDecoratorFactory = (path: string) => MethodDecorator;
 
@@ -107,6 +108,7 @@ interface ApplyHandlerDecoratorsOptions<Entity extends BaseEntity> {
   routeInterceptors: Type<NestInterceptor>[];
   isPublic: boolean | undefined;
   isAuthEnabled: boolean;
+  isArrayResponse: boolean | undefined;
 }
 
 /**
@@ -123,7 +125,7 @@ function applyCustomRouteHandlerDecorators<Entity extends BaseEntity>(
 ): void {
   const {
     method, routePath, routePathPascal, baseDisplayedName, effectiveVersion, description,
-    entity, presenterType, dTOs, allGuards, routeInterceptors, isPublic, isAuthEnabled,
+    entity, presenterType, dTOs, allGuards, routeInterceptors, isPublic, isAuthEnabled, isArrayResponse,
   } = options;
 
   // ─── Override reflect-metadata paramtypes so ValidationPipe uses DTO classes
@@ -155,6 +157,7 @@ function applyCustomRouteHandlerDecorators<Entity extends BaseEntity>(
 
   ApiResponse({
     type: presenterType,
+    isArray: !!isArrayResponse,
   })(ControllerClass.prototype, 'handle', descriptor);
 
   if (dTOs?.body) {
@@ -201,7 +204,8 @@ function applyCustomRouteHandlerDecorators<Entity extends BaseEntity>(
  *  - injects the Mongoose model automatically via `@InjectModel`
  *  - applies `@UseGuards` with the ability-predicate guard first, then any extra guards
  *  - emits Swagger decorators (`ApiOperation`, `ApiResponse`, `ApiBody`, `ApiQuery`, `ApiBearerAuth` / `Public`)
- *  - maps the handler result through `presenter.fromEntity` when available, or returns it raw
+ *  - maps the handler result through `presenter.fromEntity` (`fromEntities` when
+ *    `isArrayResponse` is set) when available, or returns it raw
  *    (with `ClassSerializerInterceptor` active for field-stripping)
  *
  * Class / guard names are unique per entity×path×version to avoid DI collisions.
@@ -235,6 +239,7 @@ function createCustomRouteController<
     validationPipeOptions: routeValidationPipeOptions,
     dTOs,
     useInterceptors: routeInterceptors = [],
+    isArrayResponse,
   } = customRouteConfig;
 
   const { path: controllerPath, apiTag } = controllerOptions;
@@ -308,14 +313,13 @@ function createCustomRouteController<
         req,
       }, injected);
 
-      const fromEntity = (presenterType as Mappable<Entity>).fromEntity;
-      return fromEntity ? fromEntity(result as Entity) : result;
+      return presentCustomRouteResult(presenterType as Mappable<Entity>, result, req?.user, isArrayResponse);
     }
   }
 
   applyCustomRouteHandlerDecorators(CustomRouteController, {
     method, routePath, routePathPascal, baseDisplayedName, effectiveVersion, description,
-    entity, presenterType, dTOs, allGuards, routeInterceptors, isPublic, isAuthEnabled,
+    entity, presenterType, dTOs, allGuards, routeInterceptors, isPublic, isAuthEnabled, isArrayResponse,
   });
 
   // ─── Unique class name ─────────────────────────────────────────────────────

@@ -300,7 +300,8 @@ interface CustomRouteConfig<
     params?: Type;
     /**
      * Presenter class for the response.
-     * If it exposes a static `fromEntity` method, the handler result is mapped through it.
+     * If it exposes a static `fromEntity` method, the handler result is mapped through it
+     * (`fromEntities` — or `fromEntity` on every item — when `isArrayResponse` is set).
      * Falls back to returning the raw handler result with `ClassSerializerInterceptor` applied.
      */
     presenter?: Type & Partial<Mappable<Entity>>;
@@ -329,6 +330,36 @@ interface CustomRouteConfig<
    * ```
    */
   useInterceptors?: Type<NestInterceptor>[];
+
+  /**
+   * Declares that the handler returns a **list** — same option as `isArrayResponse` on standard
+   * routes.
+   *
+   * - Swagger/OpenAPI documents the response as an array of the presenter (or entity) instead of
+   *   a single object, so generated clients get the right return type.
+   * - The result is mapped through `presenter.fromEntities(list, user)` when the presenter
+   *   defines it, else through `presenter.fromEntity(item, user)` on every item.
+   *
+   * This is what lets a custom route at `path: ''` cleanly replace a native `GetMany` (custom
+   * aggregation, per-caller shaping, ...) while keeping the route, its Swagger contract and the
+   * generated client unchanged — exclude the native one with
+   * `controllerOptions.routesConfig: { excluded: ['GetMany'] }`.
+   *
+   * @default false
+   *
+   * @example
+   * ```typescript
+   * const listLobbiesRoute: CustomRouteConfig<MultiplayerLobby> = {
+   *   path: '',
+   *   method: 'GET',
+   *   isArrayResponse: true,
+   *   dTOs: { presenter: MultiplayerLobbyPresenter },
+   *   handler: async ({ model, user }) =>
+   *     model.aggregate([{ $match: { familyId: { $in: (user as { familyIds: string[] }).familyIds } } }]),
+   * };
+   * ```
+   */
+  isArrayResponse?: boolean;
 }
 
 export type { HttpMethod, CustomRouteContext, CustomRouteConfig };
