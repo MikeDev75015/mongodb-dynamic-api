@@ -27,7 +27,7 @@ extensions._extensions['.ts'] = (mod, filename) => {
       parser: { syntax: 'typescript', decorators: true },
       transform: { legacyDecorator: true, decoratorMetadata: true },
     },
-    // CommonJS here (unlike vitest.config.ts's 'es6'): this hook feeds Node's own native
+    // CommonJS here (unlike vitest.config.mts's 'es6'): this hook feeds Node's own native
     // require(), not Vite's SSR module runner, so it needs real `module.exports`/`require(...)`.
     module: { type: 'commonjs' },
   });

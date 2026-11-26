@@ -14,7 +14,7 @@ import swc from 'unplugin-swc';
  * because each file boots a real NestJS HTTP server + live socket.io connections.
  */
 export default defineConfig({
-  // See vitest.config.ts for why this plugin is required (legacy decorators + decorator
+  // See vitest.config.mts for why this plugin is required (legacy decorators + decorator
   // metadata, which Vite 8's default Rolldown/oxc transform does not support).
   plugins: [
     swc.vite({
@@ -23,7 +23,7 @@ export default defineConfig({
     }),
   ],
   test: {
-    // No `globals: true` — see vitest.config.ts for why (e2e-spec files are part of the tsc
+    // No `globals: true` — see vitest.config.mts for why (e2e-spec files are part of the tsc
     // build, so explicit `from 'vitest'` imports are used instead of ambient globals).
     environment: 'node',
     include: ['libs/**/*.e2e-spec.ts'],
