@@ -36,12 +36,14 @@ export class GetManyModule {
       entity,
       displayedName,
       version,
-      { callback: routeConfig.callback, retry: routeConfig.callbackRetry },
-      routeConfig.abilityPredicate,
-      routeConfig.predicateBehavior,
-      routeConfig.populate,
-      routeConfig.queryScope,
-      routeConfig.projection,
+      {
+        afterSave: { callback: routeConfig.callback, retry: routeConfig.callbackRetry },
+        abilityPredicate: routeConfig.abilityPredicate,
+        predicateBehavior: routeConfig.predicateBehavior,
+        populate: routeConfig.populate,
+        queryScope: routeConfig.queryScope,
+        projection: routeConfig.projection,
+      },
     );
 
     const gatewayOptions = webSocket
