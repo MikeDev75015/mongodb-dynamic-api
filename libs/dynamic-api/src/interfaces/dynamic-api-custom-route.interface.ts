@@ -180,6 +180,31 @@ interface CustomRouteConfig<
    */
   isPublic?: boolean;
 
+  /**
+   * Excludes this route from the global cache — same option as `disableCache` on standard routes.
+   * Falls back to `controllerOptions.disableCache` if omitted.
+   *
+   * With the global cache enabled, every `GET` response is cached and only invalidated by a
+   * write **through an HTTP route under the same controller path**. A custom `GET` route whose
+   * data also changes from elsewhere — another entity's route, a raw `collection.updateOne`, a
+   * scheduled job — keeps serving the stale response until the entry expires. Set
+   * `disableCache: true` on such a route (or call `DynamicApiCacheService.invalidate(Entity)`
+   * after each out-of-band write).
+   *
+   * Only meaningful on `GET` routes — other methods are never cached.
+   *
+   * @example
+   * ```typescript
+   * const familyPlayFeedRoute: CustomRouteConfig<MultiplayerLobby> = {
+   *   path: 'family-play/feed',
+   *   method: 'GET',
+   *   disableCache: true, // lobbies are also written by the guest-invite routes
+   *   handler: async ({ model }) => model.find({ status: 'open' }).lean().exec(),
+   * };
+   * ```
+   */
+  disableCache?: boolean;
+
   /** Swagger `summary` for this route. Auto-generated if omitted. */
   description?: string;
 

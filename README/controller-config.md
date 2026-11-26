@@ -218,6 +218,7 @@ Both let you attach `abilityPredicate`, guards, DTOs, and WebSocket exposure —
 | `inject` | `Array<Type<unknown> \| string \| symbol>` | ➖ | Application providers to resolve and pass to `handler`'s second argument. See [inject](#inject) below. |
 | `version` | `string` | ➖ | Route-level version override. Falls back to `controllerOptions.version`. |
 | `isPublic` | `boolean` | ➖ | Skip JWT guard for this route. Falls back to `controllerOptions.isPublic`. |
+| `disableCache` | `boolean` | ➖ | Excludes a `GET` custom route from the global cache. Falls back to `controllerOptions.disableCache`. See [Caching → Custom Routes](./caching.md#custom-routes). |
 | `description` | `string` | ➖ | Swagger `summary`. Auto-generated if omitted. |
 | `guards` | `Type<CanActivate>[]` | ➖ | Extra NestJS guard classes applied **after** the ability-predicate guard. |
 | `abilityPredicate` | `AbilityPredicate<Entity>` | ➖ | Ability predicate identical to `DynamicApiRouteConfig.abilityPredicate`. Generates a `RoutePoliciesGuard` automatically. |
@@ -746,6 +747,8 @@ routes: [
   { type: 'GetOne', disableCache: false }, // ✅ Cached (overrides controller)
 ]
 ```
+
+The controller-level value is also inherited by [`customRoutes`](#customroutes) (each one can override it with its own `disableCache`).
 
 > 📚 See [Caching guide](https://github.com/MikeDev75015/mongodb-dynamic-api/blob/main/README/caching.md) for full details on cache control, auto-purge, and the manual purge endpoint.
 

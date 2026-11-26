@@ -569,6 +569,36 @@ describe('createCustomRouteController', () => {
     });
   });
 
+  describe('disableCache', () => {
+    const DISABLE_CACHE_KEY = 'dynamicApiDisableCache';
+
+    const getDisableCache = (
+      routeDisableCache: boolean | undefined,
+      controllerDisableCache: boolean | undefined,
+    ): boolean => {
+      const Ctrl = createCustomRouteController(
+        FakeEntity,
+        { ...fakeControllerOptions, disableCache: controllerDisableCache },
+        { path: 'feed', method: 'GET', handler: fakeHandler, disableCache: routeDisableCache },
+      ) as unknown as CustomRouteControllerClass;
+
+      return Reflect.getMetadata(DISABLE_CACHE_KEY, Ctrl.prototype.handle);
+    };
+
+    it.each([
+      // [route, controller, expected]
+      [undefined, undefined, false],
+      [true, undefined, true],
+      [false, undefined, false],
+      [undefined, true, true],
+      [undefined, false, false],
+      [false, true, false],
+      [true, false, true],
+    ])('resolves route: %s / controller: %s to %s on the handler metadata', (route, controller, expected) => {
+      expect(getDisableCache(route, controller)).toBe(expected);
+    });
+  });
+
   describe('dTOs.params', () => {
     // 'swagger/apiParameters' — @nestjs/swagger's internal metadata key (DECORATORS.API_PARAMETERS),
     // not publicly exported, so asserted against directly.
