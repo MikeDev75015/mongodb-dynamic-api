@@ -15,6 +15,7 @@ Smart caching is enabled by default for all **read** routes (GET / Aggregate), u
   - [Cache Key & Multi-User Safety](#cache-key--multi-user-safety)
   - [Feature-Level Configuration](#feature-level-configuration)
   - [Route-Level Configuration](#route-level-configuration)
+  - [Custom Routes](#custom-routes) ⭐ *New*
   - [Priority Resolution](#priority-resolution)
 - [predicateBehavior: 'filter' and Cache](#predicatebehavior-filter-and-cache)
 - [Cache Purge](#cache-purge)
@@ -295,6 +296,61 @@ In this example:
 - `GET /products` → **Not cached** (inherited from controller)
 - `GET /products/:id` → **Cached** (route overrides controller)
 
+### Custom Routes
+
+A [custom route](./controller-config.md#customroutes) using `method: 'GET'` goes through the global cache exactly like a native read route: its response is cached, and only invalidated by a write **through an HTTP route under the same controller path**.
+
+That is a trap for a custom `GET` whose data also changes from somewhere the cache never sees — another entity's route (`POST /guest/invites/:code/join`), a raw `collection.updateOne`, a scheduled job: the route silently keeps answering with its first response until the entry expires. Set `disableCache: true` on it:
+
+```typescript
+disableCache?: boolean; // CustomRouteConfig — falls back to controllerOptions.disableCache
+```
+
+```typescript
+import { Module } from '@nestjs/common';
+import { CustomRouteConfig, DynamicApiModule } from 'mongodb-dynamic-api';
+import { MultiplayerLobby } from './multiplayer-lobby.entity';
+
+const familyPlayFeedRoute: CustomRouteConfig<MultiplayerLobby> = {
+  path: 'family-play/feed',
+  method: 'GET',
+  disableCache: true, // ← lobbies are also written by the guest-invite routes and a cleanup job
+  handler: async ({ model, user }) => {
+    const { familyIds } = user as { familyIds: string[] };
+
+    return model.find({ familyId: { $in: familyIds }, status: 'open' }).lean().exec();
+  },
+};
+
+const lobbyStatsRoute: CustomRouteConfig<MultiplayerLobby> = {
+  path: 'stats',
+  method: 'GET',
+  // Cached (default) — only ever changes through this controller's own write routes
+  handler: async ({ model }) => ({ total: await model.countDocuments() }),
+};
+
+@Module({
+  imports: [
+    DynamicApiModule.forFeature({
+      entity: MultiplayerLobby,
+      controllerOptions: { path: 'multiplayer-lobbies' },
+      customRoutes: [familyPlayFeedRoute, lobbyStatsRoute],
+    }),
+  ],
+})
+export class MultiplayerLobbyModule {}
+```
+
+In this example:
+- `GET /multiplayer-lobbies/family-play/feed` → **Not cached** (`disableCache: true`)
+- `GET /multiplayer-lobbies/stats` → **Cached** (default)
+
+Custom routes follow the same [priority](#priority-resolution) as native routes: the route's own `disableCache`, else `controllerOptions.disableCache`, else cached.
+
+> **Behavior change:** before this option existed, custom routes ignored `controllerOptions.disableCache` and were always cached. A controller with `disableCache: true` now also stops caching its custom `GET` routes — set `disableCache: false` on a custom route to keep it cached.
+
+> **Alternative:** keep the route cached and call [`DynamicApiCacheService.invalidate(Entity)`](#dynamicapicacheservice) after each out-of-band write.
+
 ### Priority Resolution
 
 The `disableCache` option follows a **route > controller > global** priority:
@@ -310,7 +366,7 @@ The `disableCache` option follows a **route > controller > global** priority:
 | `false` | `true` | `true` | ✅ Cache **enabled** (route wins) |
 | _any_ | _any_ | `false` | ❌ Cache **disabled** (global off = all off) |
 
-> **Note:** `disableCache` only applies to **read** routes (GetMany, GetOne, Aggregate). Write operations never cache, they only auto-purge.
+> **Note:** `disableCache` only applies to **read** routes (GetMany, GetOne, Aggregate, and custom `GET` routes). Write operations never cache, they only auto-purge.
 
 > **Note:** When `useGlobalCache: false`, cache is completely disabled regardless of any other setting.
 

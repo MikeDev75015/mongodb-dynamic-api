@@ -12,6 +12,7 @@ import {
   Query,
   Request,
   Param,
+  SetMetadata,
   Type,
   UseGuards,
   UseInterceptors,
@@ -29,7 +30,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Model } from 'mongoose';
-import { Public } from '../../decorators';
+import { DISABLE_CACHE_KEY, Public } from '../../decorators';
 import { ValidatorPipe } from '../../decorators/validator-pipe.decorator';
 import { DynamicApiModule } from '../../dynamic-api.module';
 import { addVersionSuffix } from '../../helpers/versioning-config.helper';
@@ -109,6 +110,7 @@ interface ApplyHandlerDecoratorsOptions<Entity extends BaseEntity> {
   isPublic: boolean | undefined;
   isAuthEnabled: boolean;
   isArrayResponse: boolean | undefined;
+  disableCache: boolean;
 }
 
 /**
@@ -126,6 +128,7 @@ function applyCustomRouteHandlerDecorators<Entity extends BaseEntity>(
   const {
     method, routePath, routePathPascal, baseDisplayedName, effectiveVersion, description,
     entity, presenterType, dTOs, allGuards, routeInterceptors, isPublic, isAuthEnabled, isArrayResponse,
+    disableCache,
   } = options;
 
   // ─── Override reflect-metadata paramtypes so ValidationPipe uses DTO classes
@@ -189,6 +192,9 @@ function applyCustomRouteHandlerDecorators<Entity extends BaseEntity>(
     UseInterceptors(...routeInterceptors)(ControllerClass.prototype, 'handle', descriptor);
   }
 
+  // Read by DynamicApiCacheInterceptor — same metadata native routes set on their own handler.
+  SetMetadata(DISABLE_CACHE_KEY, disableCache)(ControllerClass.prototype, 'handle', descriptor);
+
   if (isPublic) {
     Public()(ControllerClass.prototype, 'handle', descriptor);
   } else if (isAuthEnabled) {
@@ -240,9 +246,13 @@ function createCustomRouteController<
     dTOs,
     useInterceptors: routeInterceptors = [],
     isArrayResponse,
+    disableCache: routeDisableCache,
   } = customRouteConfig;
 
-  const { path: controllerPath, apiTag } = controllerOptions;
+  const { path: controllerPath, apiTag, disableCache: controllerDisableCache } = controllerOptions;
+
+  // Same priority as native routes: route-level value, else controller-level, else cached.
+  const disableCache = routeDisableCache ?? controllerDisableCache ?? false;
 
   const effectiveVersion = routeVersion ?? controllerVersion;
   const effectiveValidationPipeOptions = routeValidationPipeOptions ?? controllerValidationPipeOptions;
@@ -320,6 +330,7 @@ function createCustomRouteController<
   applyCustomRouteHandlerDecorators(CustomRouteController, {
     method, routePath, routePathPascal, baseDisplayedName, effectiveVersion, description,
     entity, presenterType, dTOs, allGuards, routeInterceptors, isPublic, isAuthEnabled, isArrayResponse,
+    disableCache,
   });
 
   // ─── Unique class name ─────────────────────────────────────────────────────
