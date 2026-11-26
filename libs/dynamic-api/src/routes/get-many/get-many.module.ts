@@ -40,6 +40,8 @@ export class GetManyModule {
       routeConfig.abilityPredicate,
       routeConfig.predicateBehavior,
       routeConfig.populate,
+      routeConfig.queryScope,
+      routeConfig.projection,
     );
 
     const gatewayOptions = webSocket

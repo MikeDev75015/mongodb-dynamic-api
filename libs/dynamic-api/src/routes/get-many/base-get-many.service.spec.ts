@@ -2,7 +2,14 @@ import { describe, expect, it, test, vi } from 'vitest';
 import type { Mock } from 'vitest';
 import { BadRequestException } from '@nestjs/common';
 import { Model } from 'mongoose';
-import { CallbackMethods, AfterSaveCallback, CallbackRetryOptions, PopulateConfig } from '../../interfaces';
+import {
+  CallbackMethods,
+  AfterSaveCallback,
+  CallbackRetryOptions,
+  PopulateConfig,
+  QueryScope,
+  RouteProjection,
+} from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseGetManyService } from './base-get-many.service';
 
@@ -21,6 +28,8 @@ type InternalService = {
   callbackRetry: CallbackRetryOptions | undefined;
   callbackMethods: CallbackMethods;
   populate: PopulateConfig | undefined;
+  queryScope: QueryScope<TestEntity> | undefined;
+  projection: RouteProjection<TestEntity> | undefined;
 };
 
 const internal = (svc: TestService) => svc as unknown as InternalService;
@@ -133,6 +142,118 @@ describe('BaseGetManyService', () => {
       await service.getMany();
 
       expect(findQueryMock.populate).toHaveBeenCalledWith(['author', 'comments']);
+    });
+
+    describe('queryScope', () => {
+      const user = { id: 'userId' };
+
+      it.each([
+        ['sync', (): { name: string } => ({ name: 'mine' })],
+        ['async', async (): Promise<{ name: string }> => ({ name: 'mine' })],
+      ])('should merge a %s scope into model.find through $and', async (_, scopeFn) => {
+        const exec = vi.fn().mockResolvedValueOnce(response);
+        service = initService(exec);
+        vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(true);
+        const queryScope = vi.fn(scopeFn);
+        internal(service).queryScope = queryScope;
+
+        await service.getMany({ name: 'theirs' }, user);
+
+        expect(queryScope).toHaveBeenCalledWith(user);
+        expect(modelMock.find).toHaveBeenCalledWith({
+          isDeleted: false,
+          name: 'theirs',
+          $and: [{ name: 'mine' }],
+        });
+      });
+
+      it('should keep an empty scope ("no restriction") in the query', async () => {
+        const exec = vi.fn().mockResolvedValueOnce(response);
+        service = initService(exec);
+        vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+        internal(service).queryScope = () => ({});
+
+        await expect(service.getMany()).resolves.toHaveLength(1);
+        expect(modelMock.find).toHaveBeenCalledWith({ $and: [{}] });
+      });
+
+      it.each([
+        ['null', null],
+        ['undefined', undefined],
+      ])('should return [] without querying the database when the scope is %s', async (_, scope) => {
+        service = initService();
+        vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+        internal(service).queryScope = () => scope;
+        const callback = vi.fn();
+        internal(service).callback = callback;
+
+        await expect(service.getMany(undefined, user)).resolves.toStrictEqual([]);
+        expect(modelMock.find).not.toHaveBeenCalled();
+        expect(callback).not.toHaveBeenCalled();
+      });
+
+      it('should still apply the filter predicate on the scoped documents', async () => {
+        const documents = [
+          { _id: 'id1', __v: 1, name: 'allowed' },
+          { _id: 'id2', __v: 1, name: 'denied' },
+        ];
+        service = initService(vi.fn().mockResolvedValueOnce(documents));
+        vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+        internal(service).queryScope = () => ({ name: { $in: ['allowed', 'denied'] } });
+        Object.defineProperty(service, 'abilityPredicate', {
+          value: (entity: TestEntity) => entity.name === 'allowed', configurable: true,
+        });
+        Object.defineProperty(service, 'predicateBehavior', { value: 'filter', configurable: true });
+
+        const result = await service.getMany(undefined, user);
+
+        expect(result.map(({ name }) => name)).toStrictEqual(['allowed']);
+      });
+    });
+
+    describe('projection', () => {
+      const initSelectableService = (exec: Mock) => {
+        const findQueryMock: { select: Mock; lean: Mock } = {
+          select: vi.fn(),
+          lean: vi.fn(() => ({ exec })),
+        };
+        findQueryMock.select.mockReturnValue(findQueryMock);
+        modelMock = { find: vi.fn(() => findQueryMock) } as unknown as Model<TestEntity>;
+        service = new TestService(modelMock);
+        vi.spyOn(service, 'isSoftDeletable', 'get').mockReturnValue(false);
+
+        return findQueryMock;
+      };
+
+      it('should select a static projection', async () => {
+        const findQueryMock = initSelectableService(vi.fn().mockResolvedValueOnce(response));
+        internal(service).projection = { name: 0 };
+
+        await service.getMany();
+
+        expect(findQueryMock.select).toHaveBeenCalledWith({ name: 0 });
+      });
+
+      it('should select the projection derived from the user', async () => {
+        const findQueryMock = initSelectableService(vi.fn().mockResolvedValueOnce(response));
+        const projection = vi.fn(() => 'name');
+        internal(service).projection = projection;
+        const user = { id: 'userId' };
+
+        await service.getMany(undefined, user);
+
+        expect(projection).toHaveBeenCalledWith(user);
+        expect(findQueryMock.select).toHaveBeenCalledWith('name');
+      });
+
+      it('should not select anything when the projection function returns undefined', async () => {
+        const findQueryMock = initSelectableService(vi.fn().mockResolvedValueOnce(response));
+        internal(service).projection = () => undefined;
+
+        await service.getMany();
+
+        expect(findQueryMock.select).not.toHaveBeenCalled();
+      });
     });
 
     it('should filter documents when predicateBehavior is filter and abilityPredicate rejects some', async () => {

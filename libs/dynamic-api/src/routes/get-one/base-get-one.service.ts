@@ -1,5 +1,6 @@
 import { Model, PopulateOptions } from 'mongoose';
-import { AfterSaveCallback, CallbackRetryOptions, PopulateConfig } from '../../interfaces';
+import { resolveRouteProjection } from '../../helpers/route-projection.helper';
+import { AfterSaveCallback, CallbackRetryOptions, PopulateConfig, RouteProjection } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseService } from '../../services/base/base.service';
 import { GetOneService } from './get-one-service.interface';
@@ -10,6 +11,7 @@ export abstract class BaseGetOneService<Entity extends BaseEntity>
   protected readonly callback: AfterSaveCallback<Entity> | undefined;
   protected readonly callbackRetry: CallbackRetryOptions | undefined;
   protected readonly populate: PopulateConfig | undefined;
+  protected readonly projection: RouteProjection<Entity> | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
     super(model);
@@ -23,6 +25,11 @@ export abstract class BaseGetOneService<Entity extends BaseEntity>
           this.isSoftDeletable ? { isDeleted: false } : undefined
         ),
       });
+
+      const projection = resolveRouteProjection(this.projection, user);
+      if (projection !== undefined) {
+        query.select(projection);
+      }
 
       if (this.populate) {
         // Mongoose's `populate()` overloads don't jointly cover a bare-string-or-array-or-object

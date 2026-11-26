@@ -56,7 +56,21 @@ describe('GetManyModule', () => {
       expect(spyCreateGetManyServiceProvider)
       .toHaveBeenCalledWith(
         Entity, fakeDisplayedName, version,
-        { callback: routeConfigCallback, retry: routeConfig.callbackRetry }, undefined, undefined, routeConfig.populate,
+        { callback: routeConfigCallback, retry: routeConfig.callbackRetry }, undefined, undefined, routeConfig.populate, undefined, undefined,
+      );
+    });
+
+    it('should forward queryScope and projection from the route config to createGetManyServiceProvider', () => {
+      const queryScope = () => ({ name: 'scoped' });
+      const projection = { name: 0 };
+      const scopedRouteConfig: GetManyRouteConfig<Entity> = { type: 'GetMany', queryScope, projection };
+
+      GetManyModule.forFeature(databaseModule, Entity, controllerOptions, scopedRouteConfig, version, validationPipeOptions);
+
+      expect(spyCreateGetManyServiceProvider)
+      .toHaveBeenCalledWith(
+        Entity, fakeDisplayedName, version, { callback: undefined, retry: undefined },
+        undefined, undefined, undefined, queryScope, projection,
       );
     });
 
@@ -67,7 +81,7 @@ describe('GetManyModule', () => {
 
       expect(spyCreateGetManyServiceProvider)
       .toHaveBeenCalledWith(
-        Entity, fakeDisplayedName, version, { callback: undefined, retry: undefined }, undefined, undefined, ['author', 'comments'],
+        Entity, fakeDisplayedName, version, { callback: undefined, retry: undefined }, undefined, undefined, ['author', 'comments'], undefined, undefined,
       );
     });
 
@@ -94,7 +108,7 @@ describe('GetManyModule', () => {
       expect(spyCreateGetManyServiceProvider)
       .toHaveBeenCalledWith(
         Entity, fakeDisplayedName, version,
-        { callback: routeConfigCallback, retry: routeConfig.callbackRetry }, undefined, undefined, routeConfig.populate,
+        { callback: routeConfigCallback, retry: routeConfig.callbackRetry }, undefined, undefined, routeConfig.populate, undefined, undefined,
       );
       expect(spyCreateGetManyGateway)
       .toHaveBeenCalledWith(

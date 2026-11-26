@@ -37,6 +37,18 @@ describe('GetManyHelper', () => {
 
       expect(service.populate).toStrictEqual(['author', 'comments']);
     });
+
+    it('should pass queryScope and projection through to the service', () => {
+      const queryScope = () => null;
+      const projection = { name: 0 };
+      const { useClass } = createGetManyServiceProvider(
+        entity, displayedName, '1', undefined, undefined, undefined, undefined, queryScope, projection,
+      );
+      const service = new useClass(model);
+
+      expect(service.queryScope).toBe(queryScope);
+      expect(service.projection).toBe(projection);
+    });
   });
 
   describe('createGetManyController', () => {

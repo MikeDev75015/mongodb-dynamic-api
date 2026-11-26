@@ -1,11 +1,14 @@
-import { Model, PopulateOptions } from 'mongoose';
+import { FilterQuery, Model, PopulateOptions } from 'mongoose';
 import { assertNoMongoOperators } from '../../helpers/request-filter.helper';
+import { resolveRouteProjection } from '../../helpers/route-projection.helper';
 import {
   AbilityPredicate,
   AfterSaveCallback,
   CallbackRetryOptions,
   PopulateConfig,
   PredicateBehavior,
+  QueryScope,
+  RouteProjection,
 } from '../../interfaces';
 import { BaseEntity } from '../../models';
 import { BaseService } from '../../services/base/base.service';
@@ -19,6 +22,8 @@ export abstract class BaseGetManyService<Entity extends BaseEntity>
   protected readonly abilityPredicate: AbilityPredicate<Entity> | undefined;
   protected readonly predicateBehavior: PredicateBehavior | undefined;
   protected readonly populate: PopulateConfig | undefined;
+  protected readonly queryScope: QueryScope<Entity> | undefined;
+  protected readonly projection: RouteProjection<Entity> | undefined;
 
   protected constructor(protected readonly model: Model<Entity>) {
     super(model);
@@ -28,6 +33,14 @@ export abstract class BaseGetManyService<Entity extends BaseEntity>
     // `query` is the client's HTTP query string or WebSocket payload, used as a MongoDB filter.
     assertNoMongoOperators(query);
 
+    // `queryScope` is the server-side, caller-derived restriction: resolved before any read, so
+    // the documents outside it are never fetched. Nullish = "nothing visible" → no query at all
+    // (fail-closed: a scope function that forgets to return is treated like `null`, not `{}`).
+    const scope = this.queryScope ? await this.queryScope(user) : undefined;
+    if (this.queryScope && (scope === null || scope === undefined)) {
+      return [];
+    }
+
     const findQuery = this.model.find({
       ...(
         this.isSoftDeletable ? { isDeleted: false } : {}
@@ -35,7 +48,17 @@ export abstract class BaseGetManyService<Entity extends BaseEntity>
       ...(
         query ?? {}
       ),
-    });
+      // `$and` rather than a spread: a client filter on the same field must narrow the scope,
+      // never replace it (and `assertNoMongoOperators` already bars the client from `$and`).
+      ...(
+        scope ? { $and: [scope] } : {}
+      ),
+    } as FilterQuery<Entity>);
+
+    const projection = resolveRouteProjection(this.projection, user);
+    if (projection !== undefined) {
+      findQuery.select(projection);
+    }
 
     if (this.populate) {
       // See BaseGetOneService.getOne for why this cast is needed.

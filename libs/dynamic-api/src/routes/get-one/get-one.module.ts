@@ -39,6 +39,7 @@ export class GetOneModule {
       entity, displayedName, version,
       { callback: routeConfig.callback, retry: routeConfig.callbackRetry },
       routeConfig.populate,
+      routeConfig.projection,
     );
 
     const gatewayOptions = webSocket
