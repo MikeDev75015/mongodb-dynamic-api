@@ -56,7 +56,14 @@ describe('GetManyModule', () => {
       expect(spyCreateGetManyServiceProvider)
       .toHaveBeenCalledWith(
         Entity, fakeDisplayedName, version,
-        { callback: routeConfigCallback, retry: routeConfig.callbackRetry }, undefined, undefined, routeConfig.populate, undefined, undefined,
+        {
+          afterSave: { callback: routeConfigCallback, retry: routeConfig.callbackRetry },
+          abilityPredicate: undefined,
+          predicateBehavior: undefined,
+          populate: routeConfig.populate,
+          queryScope: undefined,
+          projection: undefined,
+        },
       );
     });
 
@@ -69,8 +76,8 @@ describe('GetManyModule', () => {
 
       expect(spyCreateGetManyServiceProvider)
       .toHaveBeenCalledWith(
-        Entity, fakeDisplayedName, version, { callback: undefined, retry: undefined },
-        undefined, undefined, undefined, queryScope, projection,
+        Entity, fakeDisplayedName, version,
+        expect.objectContaining({ queryScope, projection }),
       );
     });
 
@@ -81,7 +88,8 @@ describe('GetManyModule', () => {
 
       expect(spyCreateGetManyServiceProvider)
       .toHaveBeenCalledWith(
-        Entity, fakeDisplayedName, version, { callback: undefined, retry: undefined }, undefined, undefined, ['author', 'comments'], undefined, undefined,
+        Entity, fakeDisplayedName, version,
+        expect.objectContaining({ populate: ['author', 'comments'] }),
       );
     });
 
@@ -108,7 +116,14 @@ describe('GetManyModule', () => {
       expect(spyCreateGetManyServiceProvider)
       .toHaveBeenCalledWith(
         Entity, fakeDisplayedName, version,
-        { callback: routeConfigCallback, retry: routeConfig.callbackRetry }, undefined, undefined, routeConfig.populate, undefined, undefined,
+        {
+          afterSave: { callback: routeConfigCallback, retry: routeConfig.callbackRetry },
+          abilityPredicate: undefined,
+          predicateBehavior: undefined,
+          populate: routeConfig.populate,
+          queryScope: undefined,
+          projection: undefined,
+        },
       );
       expect(spyCreateGetManyGateway)
       .toHaveBeenCalledWith(

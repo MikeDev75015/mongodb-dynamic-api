@@ -20,7 +20,7 @@ describe('GetManyHelper', () => {
 
   describe('createGetManyServiceProvider', () => {
     it('should return GetMany provider', () => {
-      const { provide, useClass } = createGetManyServiceProvider(entity, displayedName, '1', undefined);
+      const { provide, useClass } = createGetManyServiceProvider(entity, displayedName, '1');
       const service = new useClass(model);
 
       expect(provide).toBe(`GetMany${displayedName}V1Service`);
@@ -31,18 +31,34 @@ describe('GetManyHelper', () => {
 
     it('should pass populate through to the service', () => {
       const { useClass } = createGetManyServiceProvider(
-        entity, displayedName, '1', undefined, undefined, undefined, ['author', 'comments'],
+        entity, displayedName, '1', { populate: ['author', 'comments'] },
       );
       const service = new useClass(model);
 
       expect(service.populate).toStrictEqual(['author', 'comments']);
     });
 
+    it('should pass the after-save callback and the ability predicate through to the service', () => {
+      const callback = vi.fn();
+      const abilityPredicate = () => true;
+      const { useClass } = createGetManyServiceProvider(entity, displayedName, '1', {
+        afterSave: { callback, retry: { attempts: 2 } },
+        abilityPredicate,
+        predicateBehavior: 'filter',
+      });
+      const service = new useClass(model);
+
+      expect(service.callback).toBe(callback);
+      expect(service.callbackRetry).toStrictEqual({ attempts: 2 });
+      expect(service.abilityPredicate).toBe(abilityPredicate);
+      expect(service.predicateBehavior).toBe('filter');
+    });
+
     it('should pass queryScope and projection through to the service', () => {
       const queryScope = () => null;
       const projection = { name: 0 };
       const { useClass } = createGetManyServiceProvider(
-        entity, displayedName, '1', undefined, undefined, undefined, undefined, queryScope, projection,
+        entity, displayedName, '1', { queryScope, projection },
       );
       const service = new useClass(model);
 

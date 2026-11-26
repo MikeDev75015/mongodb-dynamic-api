@@ -34,16 +34,32 @@ import { GetManyGatewayConstructor } from './get-many-gateway.interface';
 import { GetManyGatewayMixin } from './get-many-gateway.mixin';
 import { GetManyService } from './get-many-service.interface';
 
+/**
+ * Per-route settings of the generated GetMany service, grouped so the factory keeps a short,
+ * stable signature as read options are added.
+ * @internal Not part of the public API.
+ */
+interface GetManyServiceOptions<Entity extends BaseEntity> {
+  afterSave?: AfterSaveCallbackConfig<Entity>;
+  abilityPredicate?: AbilityPredicate<Entity>;
+  predicateBehavior?: PredicateBehavior;
+  populate?: PopulateConfig;
+  queryScope?: QueryScope<Entity>;
+  projection?: RouteProjection<Entity>;
+}
+
 function createGetManyServiceProvider<Entity extends BaseEntity>(
   entity: Type<Entity>,
   displayedName: string,
   version: string | undefined,
-  afterSave: AfterSaveCallbackConfig<Entity> | undefined,
-  abilityPredicate?: AbilityPredicate<Entity>,
-  predicateBehavior?: PredicateBehavior,
-  populate?: PopulateConfig,
-  queryScope?: QueryScope<Entity>,
-  projection?: RouteProjection<Entity>,
+  {
+    afterSave,
+    abilityPredicate,
+    predicateBehavior,
+    populate,
+    queryScope,
+    projection,
+  }: GetManyServiceOptions<Entity> = {},
 ): DynamicApiServiceProvider {
   class GetManyService extends BaseGetManyService<Entity> {
     protected readonly entity = entity;
@@ -148,4 +164,4 @@ function createGetManyGateway<Entity extends BaseEntity>(
   return GetManyGateway;
 }
 
-export { createGetManyController, createGetManyGateway, createGetManyServiceProvider };
+export { createGetManyController, createGetManyGateway, createGetManyServiceProvider, GetManyServiceOptions };
