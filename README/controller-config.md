@@ -27,6 +27,7 @@
     - [authAbilityPredicate](#authabilitypredicate)
     - [inject](#inject)
     - [dTOs.params](#dtosparams)
+    - [isArrayResponse (custom routes)](#isarrayresponse-custom-routes) ⭐ *New*
     - [ctx.methods](#ctxmethods--callbackmethods-inside-a-custom-route)
 - [controllerOptions Reference](#controlleroptions-reference)
   - [path](#path)
@@ -230,6 +231,7 @@ Both let you attach `abilityPredicate`, guards, DTOs, and WebSocket exposure —
 | `dTOs.query` | `Type` | ➖ | DTO class for query string validation and Swagger `@ApiQuery`. |
 | `dTOs.params` | `Type` | ➖ | Class documenting the route's path param(s) for Swagger/OpenAPI — one `@ApiParam` per property. **Docs only**, unlike `body`/`query` — doesn't validate/transform `ctx.params`. See [dTOs.params](#dtosparams) below. |
 | `dTOs.presenter` | `Type & Partial<Mappable<Entity>>` | ➖ | Response presenter. If it exposes `fromEntity`, the handler result is mapped through it; otherwise raw result is returned (with `ClassSerializerInterceptor`). |
+| `isArrayResponse` | `boolean` | ➖ | Declares that `handler` returns a **list**: Swagger documents an array of the presenter, and the result is mapped through `fromEntities` (or `fromEntity` per item). See [isArrayResponse](#isarrayresponse-custom-routes) below. |
 
 #### targetParam
 
@@ -375,6 +377,75 @@ const inviteMemberRoute: CustomRouteConfig<Family> = {
 This only affects the generated OpenAPI document — one `@ApiParam` entry per declared property.
 It does **not** validate or transform `ctx.params`, which stays the raw `Record<string, string>`
 NestJS parses from the URL regardless of whether `dTOs.params` is set.
+
+#### isArrayResponse (custom routes)
+
+Declares that the route's `handler` returns a **list**. Same option as [`isArrayResponse`](./route-config.md#isarrayresponse) on standard routes.
+
+```typescript
+isArrayResponse?: boolean; // default: false
+```
+
+| | `isArrayResponse: false` *(default)* | `isArrayResponse: true` |
+|---|---|---|
+| Swagger/OpenAPI response | `Presenter` (single object) | `Presenter[]` (array) |
+| Presenter mapping | `presenter.fromEntity(result)` | `presenter.fromEntities(list, user)` when defined, else `presenter.fromEntity(item, user)` on every item |
+
+Without it, a custom route returning a list is documented as a single object — a generated client (`ng-openapi-gen`, `openapi-generator`, ...) then types the call wrong — and the presenter only ever receives the whole list through `fromEntity`.
+
+This is what makes a custom route a clean **drop-in replacement for a native `GetMany`** when the read needs bespoke query logic (an aggregation, a per-caller reshaping) that [`queryScope`](./route-config.md#queryscope) / [`projection`](./route-config.md#projection) cannot express: same URL, same Swagger contract, same generated client. Exclude the native route so both are not mounted on the same path.
+
+```typescript
+import { Module } from '@nestjs/common';
+import { ApiProperty } from '@nestjs/swagger';
+import { CustomRouteConfig, DynamicApiModule } from 'mongodb-dynamic-api';
+import { MultiplayerLobby } from './multiplayer-lobby.entity';
+
+class MultiplayerLobbyPresenter {
+  @ApiProperty() id: string;
+  @ApiProperty() name: string;
+  @ApiProperty() strokeCount: number;
+
+  static fromEntities(lobbies: MultiplayerLobby[]): MultiplayerLobbyPresenter[] {
+    return lobbies.map((lobby) => ({
+      id: String(lobby._id),
+      name: lobby.name,
+      strokeCount: lobby.strokes.length,
+    }));
+  }
+}
+
+const listLobbiesRoute: CustomRouteConfig<MultiplayerLobby> = {
+  path: '',          // GET /multiplayer-lobbies — the native GetMany's own URL
+  method: 'GET',
+  isArrayResponse: true,
+  dTOs: { presenter: MultiplayerLobbyPresenter },
+  handler: async ({ model, user }) => {
+    const { familyIds } = user as { familyIds: string[] };
+
+    return model.aggregate<MultiplayerLobby>([
+      { $match: { familyId: { $in: familyIds } } },
+      { $sort: { _id: 1 } },
+    ]);
+  },
+};
+
+@Module({
+  imports: [
+    DynamicApiModule.forFeature({
+      entity: MultiplayerLobby,
+      controllerOptions: {
+        path: 'multiplayer-lobbies',
+        routesConfig: { excluded: ['GetMany'] }, // the custom route replaces it
+      },
+      customRoutes: [listLobbiesRoute],
+    }),
+  ],
+})
+export class MultiplayerLobbyModule {}
+```
+
+> The same mapping applies to the route's WebSocket event when `webSocket` is enabled.
 
 #### `CustomRouteContext<Entity, Body, Query, Params>` fields
 

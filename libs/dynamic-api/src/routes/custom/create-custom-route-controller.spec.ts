@@ -526,6 +526,49 @@ describe('createCustomRouteController', () => {
 
   // ── dTOs.params (F9 — Swagger/OpenAPI path param docs) ───────────────────
 
+  describe('isArrayResponse', () => {
+    // 'swagger/apiResponse' — @nestjs/swagger's internal metadata key (DECORATORS.API_RESPONSE).
+    const API_RESPONSE_METADATA_KEY = 'swagger/apiResponse';
+
+    const getResponseMetadata = (Ctrl: CustomRouteControllerClass): { type: unknown; isArray: boolean } => {
+      const responses: Record<string, { type: unknown; isArray: boolean }> = Reflect.getMetadata(
+        API_RESPONSE_METADATA_KEY, Ctrl.prototype.handle,
+      );
+      return Object.values(responses)[0];
+    };
+
+    it.each([
+      [undefined, false],
+      [false, false],
+      [true, true],
+    ])('documents the Swagger response with isArrayResponse: %s as isArray: %s', (isArrayResponse, expected) => {
+      const Ctrl = makeController({ isArrayResponse });
+
+      expect(getResponseMetadata(Ctrl)).toEqual(expect.objectContaining({ type: FakeEntity, isArray: expected }));
+    });
+
+    it('maps the handler list through presenter.fromEntities with the request user', async () => {
+      const rawList = [{ id: '1', name: 'a' }, { id: '2', name: 'b' }];
+      const mappedList = [{ id: '1' }, { id: '2' }];
+      fakeHandler.mockResolvedValueOnce(rawList);
+      const fromEntities = vi.fn().mockReturnValue(mappedList);
+
+      class FakeListPresenter {
+        static fromEntities = fromEntities;
+      }
+
+      const Ctrl = makeController({ isArrayResponse: true, dTOs: { presenter: FakeListPresenter } });
+      const instance: ControllerInstanceShape = makeControllerInstance(Ctrl);
+      const user = { id: 'userId' };
+
+      const result = await instance.handle({}, {}, {}, { user } as DynamicApiRequest);
+
+      expect(fromEntities).toHaveBeenCalledWith(rawList, user);
+      expect(result).toBe(mappedList);
+      expect(getResponseMetadata(Ctrl)).toEqual(expect.objectContaining({ type: FakeListPresenter, isArray: true }));
+    });
+  });
+
   describe('dTOs.params', () => {
     // 'swagger/apiParameters' — @nestjs/swagger's internal metadata key (DECORATORS.API_PARAMETERS),
     // not publicly exported, so asserted against directly.
