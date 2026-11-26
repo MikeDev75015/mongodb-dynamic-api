@@ -20,7 +20,7 @@
    - For every feature touching callbacks, routes, or public services
    - Cover happy path for each operator/case + error paths (guard, exceptions)
    - Use real MongoDB + full NestJS app via `createTestingApp`
-   - Run `npx vitest run --config vitest.e2e.config.ts <file>` and verify all green
+   - Run `npx vitest run --config vitest.e2e.config.mts <file>` and verify all green
 
 3. **Documentation** (all impacted `.md` files)
    - Every new method / type / option: description + full TypeScript signature + complete compilable code example (imports included)
@@ -127,7 +127,7 @@ TypeScript, NestJS 12, Mongoose 8 (MongoDB), class-validator/class-transformer, 
 npm ci                                                    # install
 npx tsc --noEmit                                          # type-check
 npx vitest run libs/dynamic-api/src/<path>.spec.ts --coverage   # one unit spec + coverage
-npx vitest run --config vitest.e2e.config.ts libs/dynamic-api/test/<path>.e2e-spec.ts  # one e2e spec
+npx vitest run --config vitest.e2e.config.mts libs/dynamic-api/test/<path>.e2e-spec.ts  # one e2e spec
 npm run test-e2e                                          # full e2e suite (slow)
 npm run build                                             # lib + schematics build
 docker compose up -d                                      # local MongoDB replica set (not in cloud)

@@ -6,7 +6,7 @@ import swc from 'unplugin-swc';
  * Unit test config (mirrors the Jest config previously inlined in package.json's "jest" field).
  * Scope: libs/**\/*.spec.ts only — *.e2e-spec.ts files are excluded by the glob itself (a
  * filename ending in "-spec.ts" does not match "*.spec.ts", no extra exclude needed) and run
- * under vitest.e2e.config.ts instead.
+ * under vitest.e2e.config.mts instead.
  */
 export default defineConfig({
   // Vite 8 (bundled with vitest 4) transforms TS via Rolldown/oxc by default, which does not
@@ -30,7 +30,7 @@ export default defineConfig({
     alias: {
       // Fixed alias so the create-mock helper's import path doesn't depend on each spec file's
       // depth in the tree (kept stable across the codemod that will touch every *.spec.ts file).
-      '@test-helpers': resolve(__dirname, 'libs/dynamic-api/test/helpers'),
+      '@test-helpers': resolve(import.meta.dirname, 'libs/dynamic-api/test/helpers'),
     },
   },
   test: {
