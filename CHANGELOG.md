@@ -1,5 +1,20 @@
 Changelog
 
+## [6.3.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v6.2.2...v6.3.0) (2026-11-26)
+
+### core
+
+* **core:** add connectionOptions to forRoot ([c5dc112](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/c5dc112017a0a4a786ee12a2c794529947c13378))
+
+### custom-routes
+
+* **custom-routes:** add disableCache to custom routes ([7b150eb](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/7b150eb406b8628d93711cb26d82adfee3598833))
+* **custom-routes:** add isArrayResponse to custom routes ([92f4ef6](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/92f4ef6b1ba6178798f0554b511a6274b14721fb))
+
+### routes
+
+* **routes:** add queryScope and projection to read routes ([9c8e8b8](https://github.com/MikeDev75015/mongodb-dynamic-api/commit/9c8e8b88551e62e1a88dc976149015e1dad1fa49))
+
 ## [6.2.2](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v6.2.1...v6.2.2) (2026-10-11)
 
 ## [6.2.1](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v6.2.0...v6.2.1) (2026-10-11)
