@@ -56,6 +56,7 @@ export class DynamicApiModule {
       webSocket,
       broadcastGatewayOptions,
       onAfterSaveError,
+      connectionOptions,
     }: DynamicApiForRootOptions<Entity> = {},
   ): DynamicModule {
     if (!uri) {
@@ -85,7 +86,8 @@ export class DynamicApiModule {
         CacheModule.register({ isGlobal: true, ...cacheOptions }),
         MongooseModule.forRoot(
           uri,
-          { connectionName: this.state.get('connectionName') },
+          // connectionName last: the module's own connection name is not overridable.
+          { ...connectionOptions, connectionName: this.state.get('connectionName') },
         ),
         ...(
           useAuth?.userEntity ? [

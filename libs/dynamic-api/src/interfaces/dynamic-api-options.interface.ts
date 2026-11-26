@@ -1,4 +1,5 @@
 import { ModuleMetadata, Type } from '@nestjs/common';
+import { MongooseModuleOptions } from '@nestjs/mongoose';
 import { GatewayMetadata } from '@nestjs/websockets';
 import { BaseEntity } from '../models';
 import { DynamicApiAuthOptions } from '../modules';
@@ -13,7 +14,27 @@ import { DynamicApiWebSocketOptions } from './dynamic-api-web-socket.interface';
 /** @internal Not part of the public API. */
 const DYNAMIC_API_GLOBAL_STATE = Symbol('DYNAMIC_API_GLOBAL_STATE');
 
+/**
+ * Mongoose connection options accepted by `DynamicApiModule.forRoot(uri, { connectionOptions })` —
+ * everything `MongooseModule.forRoot(uri, options)` accepts (driver options such as
+ * `compressors`, `maxPoolSize`, `serverSelectionTimeoutMS`, and Nest options such as
+ * `retryAttempts`), except `uri` and `connectionName`, which the module owns.
+ */
+type MongoConnectionOptions = Omit<MongooseModuleOptions, 'uri' | 'connectionName'>;
+
 interface DynamicApiForRootOptions<Entity extends BaseEntity = any, RegisterExtra = Record<never, never>> {
+  /**
+   * Options forwarded as is to `MongooseModule.forRoot(uri, options)` for the module's MongoDB
+   * connection — wire compression, pool size, timeouts, ... See {@link MongoConnectionOptions}.
+   *
+   * @example
+   * ```typescript
+   * DynamicApiModule.forRoot(process.env.MONGODB_URI, {
+   *   connectionOptions: { compressors: ['zlib'], maxPoolSize: 20, serverSelectionTimeoutMS: 5000 },
+   * })
+   * ```
+   */
+  connectionOptions?: MongoConnectionOptions;
   useGlobalCache?: boolean;
   cacheOptions?: DynamicApiCacheOptions;
   /**
@@ -47,4 +68,4 @@ interface DynamicApiForFeatureOptions<Entity extends BaseEntity> {
   customRoutes?: CustomRouteConfig<Entity>[];
 }
 
-export { DynamicApiForFeatureOptions, DynamicApiForRootOptions, DYNAMIC_API_GLOBAL_STATE };
+export { DynamicApiForFeatureOptions, DynamicApiForRootOptions, MongoConnectionOptions, DYNAMIC_API_GLOBAL_STATE };

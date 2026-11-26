@@ -91,6 +91,20 @@ describe('DynamicApiModule', () => {
       });
     });
 
+    it('should forward connectionOptions to MongooseModule.forRoot without letting them override connectionName', () => {
+      const connectionOptions = { compressors: ['zlib' as const], maxPoolSize: 20 };
+
+      DynamicApiModule.forRoot(uri, {
+        connectionOptions: { ...connectionOptions, ...{ connectionName: 'hijacked' } },
+      });
+
+      expect(MongooseModule.forRoot).toHaveBeenCalledWith(uri, {
+        compressors: ['zlib'],
+        maxPoolSize: 20,
+        connectionName: DynamicApiModule.state.get('connectionName'),
+      });
+    });
+
     it('should add auth module with basic options if userEntity is provided', () => {
       const spyAuthModule = vi.spyOn(AuthModule, 'forRoot').mockImplementationOnce(() => null);
 

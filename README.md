@@ -301,6 +301,36 @@ import { DynamicApiModule } from 'mongodb-dynamic-api';
 export class AppModule {}
 ```
 
+#### Connection options ⭐ *New*
+
+`forRoot(uri, { connectionOptions })` forwards Mongoose / MongoDB driver options to the module's connection — wire compression, pool size, timeouts, retries… — without having to encode them in the URI.
+
+```typescript
+connectionOptions?: MongoConnectionOptions; // Omit<MongooseModuleOptions, 'uri' | 'connectionName'>
+```
+
+Accepts everything [`MongooseModule.forRoot(uri, options)`](https://docs.nestjs.com/techniques/mongodb) accepts, except `uri` and `connectionName`, which the module owns.
+
+```typescript
+// src/app.module.ts
+import { Module } from '@nestjs/common';
+import { DynamicApiModule } from 'mongodb-dynamic-api';
+
+@Module({
+  imports: [
+    DynamicApiModule.forRoot(process.env.MONGODB_URI, {
+      connectionOptions: {
+        compressors: ['zlib'],          // compress the MongoDB wire protocol (less network transfer)
+        maxPoolSize: 20,
+        serverSelectionTimeoutMS: 5000,
+        retryAttempts: 3,               // @nestjs/mongoose option
+      },
+    }),
+  ],
+})
+export class AppModule {}
+```
+
 ### 2 — Define your entity
 
 ```typescript
