@@ -36,3 +36,7 @@ lerna-debug.log*
 !.vscode/extensions.json
 # Windows reserved device name created accidentally
 nul
+
+# Claude Code (per-user settings and local worktrees; .claude/settings.json is shared)
+.claude/settings.local.json
+.claude/worktrees/

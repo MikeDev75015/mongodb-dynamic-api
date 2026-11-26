@@ -95,29 +95,58 @@ Skills live in `.github/skills/` (GitHub Copilot Cloud) and `.agents/skills/` (l
 
 ## Project Architecture
 
-<!-- ↓ Fill this section for your project ↓ -->
-
 | Path | Role |
 |------|------|
-| `<!-- src/ -->` | `<!-- Main source -->` |
+| `libs/dynamic-api/src/` | Library source (published to npm as `mongodb-dynamic-api`); unit specs `*.spec.ts` live next to each file |
+| `libs/dynamic-api/test/for-feature/`, `for-root/` | E2E specs (`*.e2e-spec.ts`), real MongoDB + full NestJS app |
+| `libs/dynamic-api/test/e2e.setup.ts`, `test/shared/` | E2E helpers (`createTestingApp`, `initApp`, `initModule`) |
+| `libs/dynamic-api/codemods/` | `migrate-v5` CLI codemod (package `bin`) |
+| `libs/schematics/` | Nest CLI schematics, separate build (`tsconfig.schematics.json`) |
+| `README.md`, `README/*.md` | User documentation (one file per topic) |
+| `scripts/` | `git-commit.cjs` (commit helper), `cloud-setup.sh` + `cloud-mongo.cjs` (Claude Code cloud bootstrap) |
+| `.circleci/config.yml` | CI + release pipeline |
 
 ### Stack
 
-<!-- List your languages, frameworks, libraries here -->
+TypeScript, NestJS 12, Mongoose 8 (MongoDB), class-validator/class-transformer, socket.io, Vitest 4 (+ `unplugin-swc` for decorator metadata), release-it, CircleCI, SonarCloud.
 
 ### Key Patterns & Conventions
 
-<!-- Describe entity patterns, state management, routing, etc. -->
+- Decorators: flat files in `src/decorators/`, option interfaces exported in the same file, JSDoc with full `@example`, re-exported alphabetically from `decorators/index.ts`.
+- `DynamicApiGlobalStateService.getEntityModel(Entity)` fetches the Mongoose model of any registered entity from anywhere in the lib (no DI wiring needed).
+- E2E needs a MongoDB **replica set** (transactions, cascade delete) reachable via `MONGO_DB_URL` (from env or `.env`). Locally: `docker compose up -d` (`compose.yaml`, port 27018). Cloud: started automatically, see below. E2E files run sequentially on one shared DB (`fileParallelism: false`) — keep it that way.
+- Second entity in an e2e test: nest another `DynamicApiModule.forFeature(...)` in `extraImports` (see `cascade-and-before-delete.e2e-spec.ts`).
+- `BaseEntity._id` is typed `mongoose.ObjectId` (schema class, not the runtime value): stringify with `(doc._id as { toString(): string }).toString()`, a `Types.ObjectId` cast fails `tsc`.
+- `tslint` (`npm run lint`) is broken with the current TS version — type-check with `npx tsc --noEmit` instead.
+- `scripts/git-commit.cjs` runs `git add -A` (stages everything). For split/atomic commits, `git add <files>` then `git commit --file=<tmp file>` instead.
+- Prefer targeted spec runs; don't run the full unit/e2e suites before a push unless asked (CI runs them).
 
 ### Quick Commands
 
 ```bash
-# <!-- Add your dev/build/test commands here -->
+npm ci                                                    # install
+npx tsc --noEmit                                          # type-check
+npx vitest run libs/dynamic-api/src/<path>.spec.ts --coverage   # one unit spec + coverage
+npx vitest run --config vitest.e2e.config.ts libs/dynamic-api/test/<path>.e2e-spec.ts  # one e2e spec
+npm run test-e2e                                          # full e2e suite (slow)
+npm run build                                             # lib + schematics build
+docker compose up -d                                      # local MongoDB replica set (not in cloud)
 ```
+
+### Claude Code cloud sessions (claude.ai/code)
+
+- `.claude/settings.json` runs `scripts/cloud-setup.sh` on SessionStart. It is a no-op unless `CLAUDE_CODE_REMOTE=true`.
+- In cloud it runs `npm ci` if needed, starts a Docker-free single-member replica set with `mongodb-memory-server` (`scripts/cloud-mongo.cjs`, port 27018, log in `/tmp/mda-cloud-mongo.log`) and exports `MONGO_DB_URL` (also written to `.env`).
+- If the hook warns that MongoDB is not ready, the environment's network policy is probably blocking `fastdl.mongodb.org` (mongod binary download). Unit tests still work; restart manually with `node scripts/cloud-mongo.cjs &` once network is allowed.
+- Work on a branch (never `main`), push it, open a PR to `main`. Never approve a release, never `npm publish`.
 
 ---
 
 ## Deployment
 
-<!-- Describe your deployment targets and commands -->
+Trunk-based on `main` (no `develop` branch). Every push to a branch other than `main` runs CircleCI `ci-default-workflow`: build, unit tests + SonarCloud, e2e (Docker MongoDB). `build-job`, `test-job` and `e2e-tests-mongodb-job` are required checks on `main`.
+
+Release is opt-in and **approved by a human in CircleCI only**: approving `confirm-release-job` → `release-pr-job` runs release-it on the branch (version bump + CHANGELOG, opens the PR if missing) → the release commit's pipeline rebase-merges the PR (`merge-release-pr-job`) → `ci-main-workflow` tags `vX.Y.Z` → `cd-release-version-workflow` publishes to npm. Leaving the approval pending merges nothing to npm; the next release picks the commits up.
+
+So from any environment (local or cloud), "deploy" = push a branch with green checks + PR, then the owner approves `confirm-release-job`.
 
