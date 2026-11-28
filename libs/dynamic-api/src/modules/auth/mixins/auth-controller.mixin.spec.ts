@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { createMock } from '@test-helpers';
+import { RequestMethod } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Response } from 'express';
 import { plainToInstance } from 'class-transformer';
@@ -409,6 +410,106 @@ describe('AuthControllerMixin', () => {
       await controller.changePassword({ resetPasswordToken: 'fake-token', newPassword: 'fake-password' });
 
       expect(service.changePassword).toHaveBeenCalledWith('fake-token', 'fake-password');
+    });
+  });
+
+  describe('updatePassword', () => {
+    const PATH_METADATA = 'path';
+    const METHOD_METADATA = 'method';
+    const HTTP_CODE_METADATA = '__httpCode__';
+    const GUARDS_METADATA = '__guards__';
+
+    it('should not declare the route at all when updatePassword options are not set', () => {
+      const AuthController = AuthControllerMixin(
+        TestEntity,
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' } },
+      );
+      const controller = new AuthController(service);
+
+      expect(Object.getOwnPropertyNames(AuthController.prototype)).not.toContain('updatePassword');
+      expect(controller.updatePassword).toBeUndefined();
+      expect(controller).toHaveProperty('updateAccount', expect.any(Function));
+    });
+
+    it('should declare PATCH account/password as a 204 bearer-guarded route when updatePassword options are set', () => {
+      const AuthController = AuthControllerMixin(
+        TestEntity,
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' }, updatePasswordOptions: {} },
+      );
+      const method = AuthController.prototype.updatePassword;
+
+      expect(Reflect.getMetadata(PATH_METADATA, method)).toBe('account/password');
+      expect(Reflect.getMetadata(METHOD_METADATA, method)).toBe(RequestMethod.PATCH);
+      expect(Reflect.getMetadata(HTTP_CODE_METADATA, method)).toBe(204);
+      expect(Reflect.getMetadata(GUARDS_METADATA, method)).toHaveLength(2);
+    });
+
+    it('should call service updatePassword with the verified req.user and both passwords', async () => {
+      const AuthController = AuthControllerMixin(
+        TestEntity,
+        {
+          loginOptions: { loginField: 'loginField', passwordField: 'passwordField' },
+          updatePasswordOptions: { abilityPredicate: (user: TestEntity) => user.isAdmin, useInterceptors: [] },
+        },
+      );
+      const controller = new AuthController(service);
+      const user = new TestEntity();
+      service.updatePassword.mockResolvedValueOnce(undefined);
+
+      const result = await controller.updatePassword({ user }, { currentPassword: 'old-pass', newPassword: 'new-pass' });
+
+      expect(service.updatePassword).toHaveBeenCalledWith(user, 'old-pass', 'new-pass');
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe('disabled routes', () => {
+    it('should remove the register handler only when register.disabled is true', () => {
+      const AuthController = AuthControllerMixin(
+        TestEntity,
+        {
+          loginOptions: { loginField: 'loginField', passwordField: 'passwordField' },
+          registerOptions: { disabled: true, protected: true, abilityPredicate: () => true },
+        },
+      );
+      const controller = new AuthController(service);
+
+      expect(Object.getOwnPropertyNames(AuthController.prototype)).not.toContain('register');
+      expect(controller.register).toBeUndefined();
+      expect(controller).toHaveProperty('login', expect.any(Function));
+      expect(controller).toHaveProperty('updateAccount', expect.any(Function));
+      expect(controller).toHaveProperty('getAccount', expect.any(Function));
+    });
+
+    it('should remove the updateAccount handler only when updateAccount.disabled is true', () => {
+      const AuthController = AuthControllerMixin(
+        TestEntity,
+        {
+          loginOptions: { loginField: 'loginField', passwordField: 'passwordField' },
+          updateAccountOptions: { disabled: true, refreshTokenOnUpdate: true },
+        },
+      );
+      const controller = new AuthController(service);
+
+      expect(Object.getOwnPropertyNames(AuthController.prototype)).not.toContain('updateAccount');
+      expect(controller.updateAccount).toBeUndefined();
+      expect(controller).toHaveProperty('register', expect.any(Function));
+      expect(controller).toHaveProperty('getAccount', expect.any(Function));
+    });
+
+    it('should keep both handlers when disabled is false', () => {
+      const AuthController = AuthControllerMixin(
+        TestEntity,
+        {
+          loginOptions: { loginField: 'loginField', passwordField: 'passwordField' },
+          registerOptions: { disabled: false },
+          updateAccountOptions: { disabled: false },
+        },
+      );
+      const controller = new AuthController(service);
+
+      expect(controller).toHaveProperty('register', expect.any(Function));
+      expect(controller).toHaveProperty('updateAccount', expect.any(Function));
     });
   });
 
@@ -990,6 +1091,22 @@ describe('AuthControllerMixin', () => {
         expect.objectContaining({ event: 'custom-login', isCustomEventName: true }),
       ]);
     });
+
+    it('should not register the broadcast events of disabled routes', () => {
+      AuthControllerMixin(
+        TestEntity,
+        {
+          loginOptions: { loginField: 'loginField', passwordField: 'passwordField', broadcast: { enabled: true } },
+          registerOptions: { broadcast: { enabled: true }, disabled: true },
+          getAccountOptions: { broadcast: { enabled: true } },
+          updateAccountOptions: { broadcast: { enabled: true }, disabled: true },
+        },
+      );
+
+      const events = DynamicApiEventRegistryStore.getAll().map(({ event }) => event);
+
+      expect(events).toEqual(['auth-login-broadcast', 'auth-get-account-broadcast']);
+    });
   });
 
   describe('rateLimit', () => {
@@ -1024,6 +1141,15 @@ describe('AuthControllerMixin', () => {
       isThrottled(AuthController.prototype.verifyOtpCode);
     });
 
+    it('should not throttle PATCH account/password when updatePassword.rateLimit is not configured', () => {
+      const AuthController = AuthControllerMixin(
+        TestEntity,
+        { loginOptions: { loginField: 'loginField', passwordField: 'passwordField' }, updatePasswordOptions: {} },
+      );
+
+      isThrottled(AuthController.prototype.updatePassword);
+    });
+
     it('should apply rateLimit independently to each configured route', () => {
       const AuthController = AuthControllerMixin(
         TestEntity,
@@ -1033,6 +1159,7 @@ describe('AuthControllerMixin', () => {
             passwordField: 'passwordField',
             rateLimit: { limit: 5, ttl: 60000 },
           },
+          updatePasswordOptions: { rateLimit: { limit: 4, ttl: 60000 } },
           registerOptions: { rateLimit: { limit: 3, ttl: 60000 } },
           refreshTokenOptions: { rateLimit: { limit: 10, ttl: 60000 } },
           resetPasswordOptions: {
@@ -1054,6 +1181,7 @@ describe('AuthControllerMixin', () => {
       isThrottled(AuthController.prototype.changePassword, { limit: 3, ttl: 3600000 });
       isThrottled(AuthController.prototype.sendOtpCode, { limit: 3, ttl: 60000 });
       isThrottled(AuthController.prototype.verifyOtpCode, { limit: 5, ttl: 60000 });
+      isThrottled(AuthController.prototype.updatePassword, { limit: 4, ttl: 60000 });
     });
   });
 });

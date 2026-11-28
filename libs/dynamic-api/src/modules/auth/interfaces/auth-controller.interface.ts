@@ -4,6 +4,7 @@ import { BaseEntity } from '../../../models';
 import { DynamicApiBroadcastService } from '../../../services/dynamic-api-broadcast/dynamic-api-broadcast.service';
 import { ChangePasswordDto } from '../dtos/change-password.dto';
 import { ResetPasswordDto } from '../dtos/reset-password.dto';
+import { UpdatePasswordDto } from '../dtos/update-password.dto';
 import { AuthService, LoginResponse } from './auth-service.interface';
 
 interface AuthController<Entity extends BaseEntity> {
@@ -13,6 +14,7 @@ interface AuthController<Entity extends BaseEntity> {
   updateAccount<Body>(req: { user: Entity; headers: Record<string, string> }, body: Body, res: Response): Promise<Entity | LoginResponse>;
   resetPassword(body: ResetPasswordDto): Promise<void>;
   changePassword(body: ChangePasswordDto): Promise<void>;
+  updatePassword(req: { user: Entity }, body: UpdatePasswordDto): Promise<void>;
   refreshToken(req: { user: Entity; headers: Record<string, string>; cookies: Record<string, string> }, res: Response): Promise<LoginResponse>;
   logout(req: { user: Entity }, res: Response): Promise<void>;
   logoutAll(req: { user: Entity }, res: Response): Promise<void>;

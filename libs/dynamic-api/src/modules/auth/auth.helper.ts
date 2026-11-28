@@ -15,7 +15,20 @@ import { BaseEntity } from '../../models';
 import { BcryptService } from '../../services/bcrypt/bcrypt.service';
 import { DynamicApiBroadcastService } from '../../services/dynamic-api-broadcast/dynamic-api-broadcast.service';
 import { OtpCode } from './models/otp-code.model';
-import { AuthControllerConstructor, AuthGatewayConstructor, AuthService, DynamicApiGetAccountOptions, DynamicApiLoginOptions, DynamicApiRefreshTokenOptions, DynamicApiRegisterOptions, DynamicApiResetPasswordOptions, DynamicApiUpdateAccountOptions, PasswordlessOptions } from './interfaces';
+import {
+  AuthControllerConstructor,
+  AuthGatewayConstructor,
+  AuthService,
+  DynamicApiGetAccountOptions,
+  DynamicApiLoginOptions,
+  DynamicApiRefreshTokenOptions,
+  DynamicApiRegisterOptions,
+  DynamicApiResetPasswordOptions,
+  DynamicApiUpdateAccountOptions,
+  PasswordlessOptions,
+  PasswordOptions,
+  UpdatePasswordOptions,
+} from './interfaces';
 import { AuthControllerMixin, AuthGatewayMixin } from './mixins';
 import { BaseAuthService } from './services/base-auth.service';
 
@@ -110,6 +123,8 @@ type AuthServiceProviderOptions<Entity extends BaseEntity> = {
   updateAccount?: DynamicApiUpdateAccountOptions<Entity>;
   refreshToken?: DynamicApiRefreshTokenOptions<Entity>;
   passwordlessOptions?: PasswordlessOptions<Entity>;
+  updatePasswordOptions?: UpdatePasswordOptions<Entity>;
+  passwordOptions?: PasswordOptions;
 };
 
 function createAuthServiceProvider<Entity extends BaseEntity>(
@@ -122,6 +137,8 @@ function createAuthServiceProvider<Entity extends BaseEntity>(
     updateAccount,
     refreshToken,
     passwordlessOptions,
+    updatePasswordOptions,
+    passwordOptions,
   }: AuthServiceProviderOptions<Entity>,
 ): DynamicApiServiceProvider {
   class AuthService extends BaseAuthService<Entity> {
@@ -148,6 +165,8 @@ function createAuthServiceProvider<Entity extends BaseEntity>(
     protected getAccountCallback = getAccountCallback;
     protected resetPasswordOptions = resetPasswordOptions;
     protected passwordlessOptions = passwordlessOptions;
+    protected updatePasswordOptions = updatePasswordOptions;
+    protected passwordMinLength = passwordOptions?.minLength;
 
     constructor(
       @InjectModel(
@@ -181,6 +200,7 @@ type CreateAuthControllerOptions<Entity extends BaseEntity> = {
   updateAccountOptions?: DynamicApiUpdateAccountOptions<Entity>;
   refreshTokenOptions?: DynamicApiRefreshTokenOptions<Entity>;
   passwordlessOptions?: PasswordlessOptions<Entity>;
+  updatePasswordOptions?: UpdatePasswordOptions<Entity>;
 };
 
 type CreateAuthGatewayOptions<Entity extends BaseEntity> = GatewayOptions & {
@@ -203,6 +223,7 @@ function createAuthController<Entity extends BaseEntity>(
     updateAccountOptions,
     refreshTokenOptions,
     passwordlessOptions,
+    updatePasswordOptions,
   }: CreateAuthControllerOptions<Entity> = {},
 ): AuthControllerConstructor<Entity> {
   @Controller('auth')
@@ -218,6 +239,7 @@ function createAuthController<Entity extends BaseEntity>(
       getAccountOptions,
       refreshTokenOptions,
       passwordlessOptions,
+      updatePasswordOptions,
     },
   ) {
     constructor(

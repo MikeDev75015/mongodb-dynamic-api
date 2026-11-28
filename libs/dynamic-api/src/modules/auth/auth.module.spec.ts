@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Mock } from 'vitest';
-import { DynamicModule } from '@nestjs/common';
+import { DynamicModule, MiddlewareConsumer } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { PassportModule } from '@nestjs/passport';
@@ -224,6 +224,7 @@ describe('AuthModule', () => {
             updateAccountOptions: { additionalFieldsToExclude: [] },
             refreshTokenOptions: { useInterceptors: [], refreshTokenField: undefined, useCookie: false },
             passwordlessOptions: undefined,
+            updatePasswordOptions: undefined,
           },
         );
 
@@ -242,6 +243,8 @@ describe('AuthModule', () => {
             updateAccount: { additionalFieldsToExclude: [] },
             refreshToken: { useInterceptors: [], refreshTokenField: undefined, useCookie: false },
             passwordlessOptions: undefined,
+            updatePasswordOptions: undefined,
+            passwordOptions: undefined,
           },
         );
 
@@ -305,6 +308,7 @@ describe('AuthModule', () => {
             updateAccountOptions: fullOptions.updateAccount,
             refreshTokenOptions: fullOptions.refreshToken,
             passwordlessOptions: undefined,
+            updatePasswordOptions: fullOptions.updatePassword,
           },
         );
 
@@ -319,6 +323,8 @@ describe('AuthModule', () => {
             updateAccount: fullOptions.updateAccount,
             refreshToken: fullOptions.refreshToken,
             passwordlessOptions: undefined,
+            updatePasswordOptions: fullOptions.updatePassword,
+            passwordOptions: fullOptions.password,
           },
         );
 
@@ -385,6 +391,32 @@ describe('AuthModule', () => {
 
       it('should have controllers', () => {
         expect(module.controllers).toEqual([AuthController, fakeController]);
+      });
+    });
+
+    describe('configure (cookie-parser middleware)', () => {
+      const consumer = { apply: vi.fn(), forRoutes: vi.fn() };
+
+      beforeEach(() => {
+        consumer.apply.mockReset().mockReturnValue(consumer);
+        consumer.forRoutes.mockReset();
+      });
+
+      it('should apply cookie-parser on every route when refreshToken.useCookie is true', () => {
+        AuthModule.forRoot({ ...basicOptions, refreshToken: { useCookie: true } });
+
+        new AuthModule().configure(consumer as unknown as MiddlewareConsumer);
+
+        expect(consumer.apply).toHaveBeenCalledWith(expect.any(Function));
+        expect(consumer.forRoutes).toHaveBeenCalledWith('*');
+      });
+
+      it('should not register any middleware when refreshToken.useCookie is false', () => {
+        AuthModule.forRoot(basicOptions);
+
+        new AuthModule().configure(consumer as unknown as MiddlewareConsumer);
+
+        expect(consumer.apply).not.toHaveBeenCalled();
       });
     });
 

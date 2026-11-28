@@ -114,6 +114,33 @@ type BeforeRegisterContext = {
   hashedPassword: string;
 };
 
+/**
+ * Context provided to `updatePassword.beforeSaveCallback` (`PATCH /auth/account/password`).
+ *
+ * Available once the current password has been verified and the new one hashed, before the user
+ * document is updated. Throw to reject the change (the callback's return value is ignored).
+ *
+ * @example
+ * import { BadRequestException } from '@nestjs/common';
+ * import { BeforeSaveCallback, BeforeUpdatePasswordContext } from 'mongodb-dynamic-api';
+ *
+ * const beforeUpdatePassword: BeforeSaveCallback<User, BeforeUpdatePasswordContext> =
+ *   async (user, { currentPassword, newPassword }) => {
+ *     if (newPassword === currentPassword) {
+ *       throw new BadRequestException('newPassword must differ from currentPassword');
+ *     }
+ *     return user;
+ *   };
+ */
+type BeforeUpdatePasswordContext = {
+  /** Plain current password, already verified against the stored hash. */
+  currentPassword: string;
+  /** Plain new password, already checked against `password.minLength`. */
+  newPassword: string;
+  /** Bcrypt hash of `newPassword`, about to be persisted. */
+  hashedPassword: string;
+};
+
 type BeforeSaveCallback<Entity extends BaseEntity, Context = Record<string, unknown>, User = unknown> = (
   entity: Entity | undefined,
   context: Context,
@@ -190,4 +217,5 @@ export type {
   BeforeSaveDuplicateContext,
   BeforeSaveDuplicateManyContext,
   BeforeRegisterContext,
+  BeforeUpdatePasswordContext,
 };

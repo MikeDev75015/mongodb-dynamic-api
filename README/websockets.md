@@ -1095,6 +1095,8 @@ You can customize event names using the `eventName` parameter in route configura
 - `auth-logout` - Invalidate the current refresh token ⭐ *New in v4*
 - `auth-logout-all` - Revoke every refresh session of the user (requires `refreshToken.multiSession`) ⭐ *New in v6.1*
 
+> ⭐ *v6.3* — `register: { disabled: true }` / `updateAccount: { disabled: true }` remove `auth-register` / `auth-update-account` from the gateway as well as their HTTP routes: the event is simply never listened for (no response, no `exception`). The authenticated password change (`PATCH /auth/account/password`) is HTTP-only, like the passwordless routes.
+
 **Authentication Broadcast Events (Fixed Names):**
 - `auth-login-broadcast` - Broadcast after login
 - `auth-register-broadcast` - Broadcast after registration
@@ -1142,9 +1144,9 @@ These event names are fixed and cannot be customized:
 | Event | Description | Authentication Required |
 |-------|-------------|------------------------|
 | `auth-login` | User login | No |
-| `auth-register` | User registration | Optional (based on config) |
+| `auth-register` | User registration — not listened for at all with `register.disabled` ⭐ *v6.3* | Optional (based on config) |
 | `auth-get-account` | Get current user account | Yes |
-| `auth-update-account` | Update current user account | Yes |
+| `auth-update-account` | Update current user account — not listened for at all with `updateAccount.disabled` ⭐ *v6.3* | Yes |
 | `auth-reset-password` | Request password reset email | No |
 | `auth-change-password` | Change password with reset token | No (requires reset token) |
 | `auth-refresh-token` | Obtain a new token pair (access + refresh) | Yes (refresh token via `JwtRefreshGuard`) ⭐ *New in v4* |

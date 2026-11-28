@@ -104,6 +104,42 @@ describe('AuthGatewayMixin', () => {
     expect(gateway).toHaveProperty('refreshToken', expect.any(Function));
   });
 
+  describe('disabled handlers', () => {
+    it('should remove the register handler only when register.disabled is true', () => {
+      const AuthGateway = AuthGatewayMixin(TestEntity, login, { ...register, disabled: true });
+      const gateway = new AuthGateway(service, jwtService);
+
+      expect(Object.getOwnPropertyNames(AuthGateway.prototype)).not.toContain('register');
+      expect(gateway.register).toBeUndefined();
+      expect(gateway).toHaveProperty('login', expect.any(Function));
+      expect(gateway).toHaveProperty('updateAccount', expect.any(Function));
+    });
+
+    it('should remove the updateAccount handler only when updateAccount.disabled is true', () => {
+      const AuthGateway = AuthGatewayMixin(TestEntity, login, register, undefined, { ...updateAccount, disabled: true });
+      const gateway = new AuthGateway(service, jwtService);
+
+      expect(Object.getOwnPropertyNames(AuthGateway.prototype)).not.toContain('updateAccount');
+      expect(gateway.updateAccount).toBeUndefined();
+      expect(gateway).toHaveProperty('register', expect.any(Function));
+      expect(gateway).toHaveProperty('getAccount', expect.any(Function));
+    });
+
+    it('should keep both handlers when disabled is false', () => {
+      const AuthGateway = AuthGatewayMixin(
+        TestEntity,
+        login,
+        { ...register, disabled: false },
+        undefined,
+        { ...updateAccount, disabled: false },
+      );
+      const gateway = new AuthGateway(service, jwtService);
+
+      expect(gateway).toHaveProperty('register', expect.any(Function));
+      expect(gateway).toHaveProperty('updateAccount', expect.any(Function));
+    });
+  });
+
   describe('getAccount', () => {
     let gateway: AuthGateway<TestEntity>;
     let socket: ExtendedSocket<TestEntity>;
@@ -798,6 +834,21 @@ describe('AuthGatewayMixin', () => {
       expect(DynamicApiEventRegistryStore.getAll()).toEqual([
         expect.objectContaining({ event: 'custom-login', isCustomEventName: true }),
       ]);
+    });
+
+    it('should not register the broadcast events of disabled handlers', () => {
+      AuthGatewayMixin(
+        TestEntity,
+        { ...login, abilityPredicate: undefined, broadcast: { enabled: true } },
+        { ...register, broadcast: { enabled: true }, disabled: true },
+        undefined,
+        { ...updateAccount, broadcast: { enabled: true }, disabled: true },
+        { broadcast: { enabled: true } },
+      );
+
+      const events = DynamicApiEventRegistryStore.getAll().map(({ event }) => event);
+
+      expect(events).toEqual(['auth-login-broadcast', 'auth-get-account-broadcast']);
     });
   });
 });

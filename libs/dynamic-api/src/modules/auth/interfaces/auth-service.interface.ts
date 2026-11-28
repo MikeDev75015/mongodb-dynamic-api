@@ -17,6 +17,8 @@ interface AuthService<Entity extends BaseEntity> {
 
   changePassword(resetPasswordToken: string, newPassword: string): Promise<void>;
 
+  updatePassword(user: Entity, currentPassword: string, newPassword: string): Promise<void>;
+
   refreshToken(user: Entity, rawToken?: string): Promise<LoginResponse>;
 
   logout(user: Entity): Promise<void>;
