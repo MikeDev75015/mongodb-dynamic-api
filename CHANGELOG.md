@@ -1,5 +1,7 @@
 Changelog
 
+## [6.3.1](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v6.3.0...v6.3.1) (2026-11-28)
+
 ## [6.3.0](https://github.com/MikeDev75015/mongodb-dynamic-api/compare/v6.2.2...v6.3.0) (2026-11-26)
 
 ### core
