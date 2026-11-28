@@ -258,17 +258,26 @@ commands:
             "
 
   publish-npm-command:
-    description: "Authenticate to npm account and publish new version"
+    description: "Publish new version on npm through trusted publishing (OIDC, no stored token)"
     parameters:
       branch:
         type: string
     steps:
       - run:
-          name: NPM Account Authentication
-          command: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
+          # Trusted publishing needs npm >= 11.5.1; the executor image ships an older one, and the
+          # global install done by dependencies-job does not carry over to this job's container.
+          name: Update NPM to a version supporting trusted publishing
+          command: |
+            sudo npm install -g npm@11
+            npm --version
       - run:
+          # No .npmrc token: npm exchanges the CircleCI OIDC token (NPM_ID_TOKEN) for a short-lived
+          # publish token. The package's trusted publisher on npmjs.com must match this project,
+          # pipeline definition and (if configured there) context — no 2FA prompt, nothing to rotate.
           name: Publish << parameters.branch >> on npm
-          command: npm run publish-<< parameters.branch >>
+          command: |
+            export NPM_ID_TOKEN=$(circleci run oidc get --claims '{"aud": "npm:registry.npmjs.org"}')
+            npm run publish-<< parameters.branch >>
 
 jobs:
   dependencies-job:
