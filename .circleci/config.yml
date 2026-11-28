@@ -301,13 +301,6 @@ jobs:
       - checkout
       - *restore-cache
       - *build-package
-      - run:
-          # TEMPORARY — remove before merge. Prints the OIDC token's payload only (no signature,
-          # so nothing usable as a credential) to compare its claims with the npm trusted publisher.
-          name: TEMP - show OIDC claims
-          command: |
-            circleci run oidc get --claims '{"aud": "npm:registry.npmjs.org"}' \
-              | node -e "let t='';process.stdin.on('data',d=>t+=d).on('end',()=>console.log(JSON.stringify(JSON.parse(Buffer.from(t.trim().split('.')[1],'base64url').toString()),null,2)))"
       - *notify-fail
       - *notify-success
 
