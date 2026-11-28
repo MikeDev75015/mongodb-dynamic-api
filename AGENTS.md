@@ -148,5 +148,7 @@ Trunk-based on `main` (no `develop` branch). Every push to a branch other than `
 
 Release is opt-in and **approved by a human in CircleCI only**: approving `confirm-release-job` → `release-pr-job` runs release-it on the branch (version bump + CHANGELOG, opens the PR if missing) → the release commit's pipeline rebase-merges the PR (`merge-release-pr-job`) → `ci-main-workflow` tags `vX.Y.Z` → `cd-release-version-workflow` publishes to npm. Leaving the approval pending merges nothing to npm; the next release picks the commits up.
 
+npm publish uses **trusted publishing (OIDC)**: no `NPM_TOKEN`, no `.npmrc`, no 2FA prompt. `publish-npm-command` exports `NPM_ID_TOKEN` from `circleci run oidc get` (audience `npm:registry.npmjs.org`) and npm (>= 11.5.1) exchanges it for a short-lived token. The trusted publisher is configured on npmjs.com (package Settings); it must match the CircleCI org, project, pipeline definition and context.
+
 So from any environment (local or cloud), "deploy" = push a branch with green checks + PR, then the owner approves `confirm-release-job`.
 
